@@ -20,6 +20,10 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log(`🔌 New client connected: ${socket.id}`);
   socketHandlers(io, socket);
+
+  socket.on('disconnect', () => {
+    console.log(`❌ Client disconnected: ${socket.id}`);
+  });
 });
 
 const PORT = process.env.PORT || 3001;

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { SocketContext } from '../context/SocketContext';
 import PokerGameInProgress from './PokerGameInProgress';
 import GameShowdown from './GameShowdown';
+import PowerCardsHand from './PowerCardsHand';
 
 function Room({ players: initialPlayers, roomCode, isHost }) {
   const socket = useContext(SocketContext);
@@ -9,7 +10,7 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
   const [players, setPlayers] = useState(initialPlayers);
   const [gameStarted, setGameStarted] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
-  const [betSize, setBetSize] = useState(2);
+  const [betSize, setBetSize] = useState(1000); // Updated to 1000 chips
   const [communityCards, setCommunityCards] = useState([]);
 
   const [currentTurnId, setCurrentTurnId] = useState('');
@@ -18,19 +19,29 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
   const [pot, setPot] = useState(0);
   const [showdownData, setShowdownData] = useState(null);
   const [message, setMessage] = useState('');
+  const [gamePhase, setGamePhase] = useState(''); // Poker for Wizards: track game phase for power cards
+  const [powerCards, setPowerCards] = useState([]); // Poker for Wizards: player's power cards
+  const [smallBlindPlayer, setSmallBlindPlayer] = useState('');
+  const [bigBlindPlayer, setBigBlindPlayer] = useState('');
 
   const currentPlayer = players.find(p => p.id === socket.id);
   const folded = currentPlayer?.folded || false;
   const isYourTurn = currentTurnId === socket.id;
 
   const chipBalance = currentPlayer?.chipBalance || 0;
-  const toCall = Math.max(2, betSize - (currentPlayer?.bet || 0));
+  const rawToCall = betSize - (currentPlayer?.bet || 0);
+  const toCall = Math.max(0, rawToCall); // Ensure toCall is never negative
 
   useEffect(() => {
 
     socket.on('game_started', () => {
       setGameStarted(true);
       setMessage('');
+    });
+
+    socket.on('blind_positions', ({ smallBlindPlayer, bigBlindPlayer }) => {
+      setSmallBlindPlayer(smallBlindPlayer);
+      setBigBlindPlayer(bigBlindPlayer);
     });
 
     socket.on('new_loop', (newLoopNum) => {
@@ -70,6 +81,16 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
 
     socket.on('room_update', (updatedPlayers) => {
       setPlayers(updatedPlayers);
+      
+      // Poker for Wizards: Update current player's power cards
+      const currentPlayer = updatedPlayers.find(p => p.id === socket.id);
+      if (currentPlayer && currentPlayer.powerCards) {
+        setPowerCards(currentPlayer.powerCards);
+      }
+    });
+
+    socket.on('update_bet_size', (newBetSize) => {
+      setBetSize(newBetSize);
     });
 
     socket.on('showdown', (data) => {
@@ -91,6 +112,14 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
       setError(msg);
     });
 
+    socket.on('spell_played', ({ playerName, spellName }) => {
+      setMessage(`✨ ${playerName} played ${spellName}!`);
+    });
+
+    socket.on('card_sold', ({ playerName, sellValue }) => {
+      setMessage(`💰 ${playerName} sold a card for ${sellValue} chips!`);
+    });
+
     return () => {
       socket.off('game_started');
       socket.off('new_loop');
@@ -108,6 +137,8 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
       socket.off('host_disconnected');
       socket.off('game_ended');
       socket.off('action_error');
+      socket.off('spell_played');
+      socket.off('card_sold');
     };
   }, [socket]);
 
@@ -119,14 +150,16 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
   };
 
   const call = () => {
-    if (toCall < 2) {
-      setError('You must call at least 2 chips. No checking allowed.');
-      return;
+    console.log(`[Call] toCall=${toCall}, chipBalance=${chipBalance}`);
+    if (toCall > 0) {
+      // Must call
+      if (chipBalance < toCall) {
+        setError(`You need ${toCall} chips to call but only have ${chipBalance}.`);
+        return;
+      }
     }
-    if (chipBalance < toCall) {
-      setError(`You need ${toCall} chips to call but only have ${chipBalance}.`);
-      return;
-    }
+    // If toCall === 0, this is a check (which is always allowed)
+    console.log(`[Call] Emitting call_bet for ${toCall === 0 ? 'CHECK' : 'CALL'}`);
     socket.emit('call_bet', roomCode);
     setError('');
   };
@@ -144,6 +177,19 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
   return (
     <div className="room">
       <h2>Hello {currentPlayer?.name}, you're in room '{roomCode}'</h2>
+
+      {/* Poker for Wizards: Display power cards */}
+      {gameStarted && (
+        <PowerCardsHand
+          powerCards={powerCards}
+          roomCode={roomCode}
+          isMyTurn={isYourTurn}
+          gamePhase={gamePhase}
+          onCardPlayed={(card) => {
+            setMessage(`You played ${card.name}!`);
+          }}
+        />
+      )}
 
       {showdownData ? (
         <GameShowdown 
@@ -168,6 +214,9 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
           call={call}
           raise={raise}
           isNextTurn={folded || !isYourTurn}
+          smallBlindPlayer={smallBlindPlayer}
+          bigBlindPlayer={bigBlindPlayer}
+          currentPlayerName={currentPlayer?.name || ''}
         />
       ) : (
         <div>
@@ -179,7 +228,7 @@ function Room({ players: initialPlayers, roomCode, isHost }) {
           </ul>
           {isHost && (
             <button className="btn start-btn" onClick={startGame}>
-              Start Game
+              Start Game (Poker for Wizards 🧙)
             </button>
           )}
           {message && <p>{message}</p>}

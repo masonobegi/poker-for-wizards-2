@@ -10,8 +10,12 @@ function App() {
   const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
+    console.log('Socket ID:', socket.id);
+    console.log('Socket connected:', socket.connected);
+
     // Listen for updated players list from server
     socket.on('room_update', (playerList) => {
+      console.log('Room updated with players:', playerList);
       setPlayers(playerList);
 
       // When room_update comes, mark user as in room
@@ -23,6 +27,7 @@ function App() {
     });
 
     socket.on('join_error', (msg) => {
+      console.error('Join error:', msg);
       alert('Join error: ' + msg);
     });
 
@@ -34,6 +39,7 @@ function App() {
 
   // Called from Lobby to join a room
   const handleJoinRoom = (room, name) => {
+    console.log('Attempting to join room:', room, 'as', name);
     setRoomCode(room);
     socket.emit('join_room', room, name);
   };

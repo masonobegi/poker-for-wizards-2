@@ -1,0 +1,290 @@
+/* Power Card Component Styles */
+
+.power-card {
+  width: 120px;
+  height: 160px;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  border: 2px solid transparent;
+}
+
+.power-card.spell {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.power-card.enchantment {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.power-card.bounty {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.power-card:hover:not(.disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.power-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(50%);
+}
+
+.power-card.playable {
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.card-header {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.card-name {
+  word-wrap: break-word;
+  font-size: 12px;
+}
+
+.card-type {
+  font-size: 10px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card-sell-value {
+  font-size: 11px;
+  text-align: center;
+  margin-top: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* Detail Popup */
+.card-detail-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  color: #333;
+  animation: popupSlideIn 0.2s ease;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -55%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.card-detail-popup::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.card-description {
+  margin-bottom: 20px;
+}
+
+.card-description p {
+  margin: 10px 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.card-timing {
+  color: #666;
+  font-style: italic;
+  font-size: 12px;
+  margin-top: 12px !important;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-actions button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-play {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-play:hover {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-sell {
+  background: #f5a623;
+  color: white;
+}
+
+.btn-sell:hover {
+  background: #e89c0f;
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.4);
+}
+
+.btn-close {
+  background: #ccc;
+  color: #333;
+}
+
+.btn-close:hover {
+  background: #bbb;
+}
+
+/* Power Cards Hand Display */
+.power-cards-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.power-cards-label {
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+/* Overlay for popup */
+.power-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dialog Styles */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: dialogSlideIn 0.2s ease;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dialog-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.dialog-content p {
+  color: #666;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.target-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.target-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.target-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-cancel {
+  width: 100%;
+  padding: 10px 16px;
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #bbb;
+}

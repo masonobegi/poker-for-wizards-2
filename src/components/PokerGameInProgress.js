@@ -14,10 +14,29 @@ function PokerGameInProgress({
   fold,
   call,
   raise,
-  isNextTurn
+  isNextTurn,
+  smallBlindPlayer,
+  bigBlindPlayer,
+  currentPlayerName
 }) {
   return (
     <>
+      {/* BLIND POSITIONS - VERY OBVIOUS */}
+      <div style={{
+        backgroundColor: '#FFD700',
+        border: '3px solid red',
+        padding: '15px',
+        marginBottom: '15px',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        borderRadius: '8px'
+      }}>
+        <div>💰 SMALL BLIND: <span style={{ color: 'blue' }}>{smallBlindPlayer}</span></div>
+        <div>💰💰 BIG BLIND: <span style={{ color: 'red' }}>{bigBlindPlayer}</span></div>
+        <div style={{ marginTop: '10px', fontSize: '16px' }}>YOU: {currentPlayerName}</div>
+      </div>
+
       <p style={{ fontWeight: 'bold', color: 'orange' }}>
         {currentTurnPlayerName
           ? (isYourTurn
@@ -73,9 +92,9 @@ function PokerGameInProgress({
           <button
             className="btn btn-green"
             onClick={call}
-            disabled={chipBalance < toCall || toCall < 2 || isNextTurn}
+            disabled={chipBalance < toCall || isNextTurn}
           >
-            Call {toCall}
+            {toCall === 0 ? 'Check' : `Call ${toCall}`}
           </button>
         </div>
 

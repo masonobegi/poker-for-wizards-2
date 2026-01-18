@@ -1,0 +1,177 @@
+/* GameShowdown Styles */
+
+.showdown-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.showdown-container h2 {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 24px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Reward Choice Display */
+.showdown-container.reward-choice {
+  text-align: center;
+}
+
+.pot-amount {
+  font-size: 20px;
+  color: #ffd700;
+  margin-bottom: 24px;
+  font-weight: bold;
+}
+
+.reward-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .reward-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reward-option {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.reward-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.reward-option h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ffd700;
+}
+
+.reward-option p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.btn-reward {
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.btn-reward:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.target-players {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-target {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-target:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+/* Community Cards Row */
+.community-cards-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.community-card-img {
+  height: 120px;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.community-card-img:hover {
+  transform: translateY(-8px);
+}
+
+/* Players Cards Row */
+.players-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.player-hand {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.player-hand.winner {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.player-hand p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.player-hand .player-cards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.player-hand-card {
+  height: 100px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.player-hand-card:hover {
+  transform: scale(1.1);
+}
