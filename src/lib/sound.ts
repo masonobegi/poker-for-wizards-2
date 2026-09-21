@@ -44,7 +44,7 @@ async function load(): Promise<void> {
         if (pendingMood) { api.music(pendingMood); pendingMood = null; }
       }
     } catch (err) {
-      if (import.meta.env.DEV) console.warn('[sound] engine unavailable', err);
+      if (import.meta.env?.DEV) console.warn('[sound] engine unavailable', err);
     }
   })();
   return loading;

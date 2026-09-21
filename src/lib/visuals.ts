@@ -32,7 +32,7 @@ function load(): void {
       }
     })
     .catch((err) => {
-      if (import.meta.env.DEV) console.warn('[vfx] layer unavailable', err);
+      if (import.meta.env?.DEV) console.warn('[vfx] layer unavailable', err);
     });
 }
 

@@ -11,7 +11,10 @@ import { create } from 'zustand';
 import type { ChatMessage, FxEvent } from '@shared/protocol';
 import type { BetAction, RoomConfig, SigilTargets, TableView } from '@shared/types';
 
-const SERVER_URL = import.meta.env.DEV
+// `import.meta.env` only exists under Vite; guard it so the module can also be
+// imported by tests and any non-bundled tooling.
+const DEV = !!import.meta.env?.DEV;
+const SERVER_URL = DEV
   ? `http://${window.location.hostname}:3001`
   : window.location.origin;
 
