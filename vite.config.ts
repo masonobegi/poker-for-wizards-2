@@ -14,6 +14,15 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+    watch: {
+      // Build outputs live inside the project; without this the dev server
+      // tries to crawl the packaged client as if it were source.
+      ignored: ['**/dist/**', '**/dist-server/**', '**/release/**'],
+    },
+  },
+  optimizeDeps: {
+    // Scan the real entry points only, for the same reason.
+    entries: ['index.html', 'src/**/*.{ts,tsx}'],
   },
   build: {
     outDir: 'dist',
