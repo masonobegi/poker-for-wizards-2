@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type SigilInstance } from '@shared/sigils';
 
@@ -22,6 +22,21 @@ function SigilCardBase({
   const school = SCHOOLS[def.school];
   const usable = castable && affordable;
 
+  // A quick pop the instant a sigil crosses from locked to castable (mana
+  // just filled the last pip) — a "you can act now" cue, not a loop.
+  const wasUsable = useRef(usable);
+  const [justUsable, setJustUsable] = useState(false);
+  useEffect(() => {
+    if (usable && !wasUsable.current) {
+      setJustUsable(true);
+      const t = window.setTimeout(() => setJustUsable(false), 260);
+      wasUsable.current = usable;
+      return () => window.clearTimeout(t);
+    }
+    wasUsable.current = usable;
+    return undefined;
+  }, [usable]);
+
   return (
     <motion.div
       className={[
@@ -29,7 +44,9 @@ function SigilCardBase({
         usable ? 'is-castable' : 'is-locked',
         selected ? 'is-selected' : '',
         compact ? 'is-compact' : '',
+        justUsable ? 'is-justcastable' : '',
       ].filter(Boolean).join(' ')}
+      data-sigil-uid={inst.uid}
       style={{
         ['--school' as string]: school.accent,
         ['--school-deep' as string]: school.glow,

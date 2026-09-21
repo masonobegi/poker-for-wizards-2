@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
 import { SIGIL_BY_ID } from '@shared/sigils';
@@ -10,6 +10,10 @@ import SigilCard from '@/components/table/SigilCard';
 import { Tooltip } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import type { Targeting } from '@/scenes/GameTable';
+import { RollingNumber } from '@/components/fx/RollingNumber';
+import { useCardAnchors } from '@/components/fx/useCardAnchors';
+import { spellFlight, SpellFlightLayer } from '@/components/fx/SpellFlight';
+import type { Vec2 } from '@/vfx';
 
 export interface RailProps {
   view: TableView;
@@ -31,6 +35,13 @@ function costOf(defId: string, relics: string[]): number {
   return Math.max(1, def.cost + delta);
 }
 
+/** Where an untargeted (or stack-targeted) cast flies to — "out onto the table". */
+function immediateFlightTarget(): Element | Vec2 {
+  return document.querySelector('.stack-panel')
+    ?? document.querySelector('[data-fx-pot]')
+    ?? { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
+}
+
 function RailBase({
   view, me, targeting, targetableHole, pickedIds, onPickCard, onBeginCast,
 }: RailProps) {
@@ -39,8 +50,38 @@ function RailBase({
   const sigils = me.sigils ?? [];
   const winningIds = me.result?.usedIds;
 
+  const holeRef = useRef<HTMLDivElement>(null);
+  useCardAnchors(holeRef, me.hole.map((c) => c.id));
+
+  const railRef = useRef<HTMLDivElement>(null);
+
+  // An armed cast (waiting on a card/player pick) that never gets released —
+  // the target prompt was cancelled, or the phase moved on — must not linger.
+  useEffect(() => {
+    if (!targeting) spellFlight.cancel();
+  }, [targeting]);
+
+  const handleBeginCast = (uid: string): void => {
+    const inst = sigils.find((s) => s.uid === uid);
+    const def = inst ? SIGIL_BY_ID[inst.defId] : undefined;
+    const originEl = railRef.current?.querySelector(`[data-sigil-uid="${uid}"]`) ?? null;
+    if (def) {
+      if (def.target === 'none' || def.target === 'stack') {
+        spellFlight.fireNow(originEl, immediateFlightTarget(), def.school, def.glyph);
+      } else {
+        spellFlight.arm(originEl, def.school, def.glyph);
+      }
+    }
+    onBeginCast(uid);
+  };
+
+  const handlePickCard = (id: string): void => {
+    spellFlight.release(document.querySelector(`[data-card-id="${id}"]`));
+    onPickCard(id);
+  };
+
   return (
-    <div className="rail">
+    <div className="rail" ref={railRef}>
       <div className="rail-me">
         <Avatar seed={me.avatar} size={46} dim={me.folded} />
         <div className="rail-meinfo">
@@ -50,7 +91,9 @@ function RailBase({
             {me.severed ? <Tooltip body="Severed — no mana this hand"><span className="rail-flag is-bad">⨯</span></Tooltip> : null}
             {me.hexed > 0 ? <Tooltip body={`Hexed ×${me.hexed}`}><span className="rail-flag is-bad">☠</span></Tooltip> : null}
           </span>
-          <span className="rail-chips mono">{me.chips.toLocaleString()}</span>
+          <span className="rail-chips mono">
+            <RollingNumber value={me.chips} spring={{ stiffness: 260, damping: 24, mass: 1 }} />
+          </span>
         </div>
 
         <div className="rail-resources">
@@ -75,7 +118,7 @@ function RailBase({
         ) : null}
       </div>
 
-      <div className="rail-hole">
+      <div className="rail-hole" ref={holeRef}>
         <CardRow
           views={me.hole}
           size="lg"
@@ -87,7 +130,7 @@ function RailBase({
           restHighlight={me.folded ? 'dimmed' : 'none'}
           selectable={targetableHole}
           selectedIds={pickedIds}
-          onCardClick={targetableHole ? onPickCard : undefined}
+          onCardClick={targetableHole ? handlePickCard : undefined}
         />
       </div>
 
@@ -107,13 +150,15 @@ function RailBase({
                 castable={castable.has(s.uid)}
                 affordable={me.mana >= cost}
                 selected={targeting?.uid === s.uid}
-                onCast={onBeginCast}
+                onCast={handleBeginCast}
                 onDiscard={sigils.length > 1 ? discardSigil : undefined}
               />
             );
           })}
         </AnimatePresence>
       </div>
+
+      <SpellFlightLayer />
     </div>
   );
 }

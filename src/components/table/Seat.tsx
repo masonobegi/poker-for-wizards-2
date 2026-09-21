@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
 import { RELIC_BY_ID } from '@shared/relics';
@@ -8,6 +8,10 @@ import Avatar from '@/components/Avatar';
 import { Tooltip } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import ManaPips from '@/components/table/ManaPips';
+import { TurnTimer } from '@/components/fx/TurnTimer';
+import { RollingNumber } from '@/components/fx/RollingNumber';
+import { useCardAnchors } from '@/components/fx/useCardAnchors';
+import { spellFlight } from '@/components/fx/SpellFlight';
 
 export interface SeatProps {
   player: PlayerView;
@@ -32,6 +36,18 @@ function SeatBase({
       : p.allIn ? 'allin'
         : 'in';
 
+  const cardsRef = useRef<HTMLDivElement>(null);
+  useCardAnchors(cardsRef, p.hole.map((c) => c.id));
+
+  const handleTarget = (): void => {
+    spellFlight.release(document.querySelector(`[data-seat-id="${p.id}"]`));
+    onTarget?.(p.id);
+  };
+  const handlePickCard = (id: string): void => {
+    spellFlight.release(document.querySelector(`[data-card-id="${id}"]`));
+    onPickCard?.(id);
+  };
+
   return (
     <div
       className={[
@@ -43,14 +59,14 @@ function SeatBase({
         !p.connected && !p.isBot ? 'is-away' : '',
       ].filter(Boolean).join(' ')}
       data-seat-id={p.id}
-      onClick={targetable ? () => onTarget?.(p.id) : undefined}
+      onClick={targetable ? handleTarget : undefined}
       role={targetable ? 'button' : undefined}
       tabIndex={targetable ? 0 : undefined}
-      onKeyDown={targetable ? (e) => { if (e.key === 'Enter') onTarget?.(p.id); } : undefined}
+      onKeyDown={targetable ? (e) => { if (e.key === 'Enter') handleTarget(); } : undefined}
     >
-      {acting ? <ActionTimer until={view.actingUntil} total={view.config.actionSeconds} /> : null}
+      {acting ? <TurnTimer className="seat-timer" until={view.actingUntil} total={view.config.actionSeconds} /> : null}
 
-      <div className="seat-cards">
+      <div className="seat-cards" ref={cardsRef}>
         <CardRow
           views={p.hole}
           size="sm"
@@ -61,7 +77,7 @@ function SeatBase({
           restHighlight={p.folded ? 'dimmed' : 'none'}
           selectable={targetableCards && !p.warded}
           selectedIds={pickedIds}
-          onCardClick={targetableCards ? onPickCard : undefined}
+          onCardClick={targetableCards ? handlePickCard : undefined}
           tiltOnHover={false}
         />
       </div>
@@ -75,7 +91,7 @@ function SeatBase({
         <div className="seat-info">
           <span className="seat-name">{p.name}</span>
           <span className="seat-chips mono">
-            {p.eliminated ? 'OUT' : p.chips.toLocaleString()}
+            {p.eliminated ? 'OUT' : <RollingNumber value={p.chips} spring={{ stiffness: 260, damping: 24, mass: 1 }} />}
           </span>
         </div>
 
@@ -119,7 +135,9 @@ function SeatBase({
             transition={{ type: 'spring', stiffness: 420, damping: 26 }}
           >
             <span className="seat-betchip" aria-hidden />
-            <span className="mono">{p.betVeiled ? '???' : p.bet.toLocaleString()}</span>
+            <span className="mono">
+              {p.betVeiled ? '???' : <RollingNumber value={p.bet} spring={{ stiffness: 300, damping: 22, mass: 0.8 }} />}
+            </span>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -164,44 +182,6 @@ function SeatBase({
         </motion.div>
       ) : null}
     </div>
-  );
-}
-
-/** A ring that drains as the clock runs out, turning red at the end. */
-function ActionTimer({ until, total }: { until: number | null; total: number }) {
-  const [pct, setPct] = useState(1);
-
-  useEffect(() => {
-    if (!until) { setPct(1); return; }
-    let raf = 0;
-    const tick = () => {
-      const left = Math.max(0, until - Date.now());
-      setPct(Math.min(1, left / (total * 1000)));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [until, total]);
-
-  const r = 27;
-  const c = 2 * Math.PI * r;
-  const urgent = pct < 0.25;
-
-  return (
-    <svg className="seat-timer" viewBox="0 0 60 60" aria-hidden>
-      <circle cx="30" cy="30" r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="2.5" />
-      <circle
-        cx="30" cy="30" r={r}
-        fill="none"
-        stroke={urgent ? 'var(--bad)' : 'var(--gold)'}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - pct)}
-        transform="rotate(-90 30 30)"
-        style={{ filter: `drop-shadow(0 0 6px ${urgent ? 'var(--bad)' : 'var(--gold)'})` }}
-      />
-    </svg>
   );
 }
 

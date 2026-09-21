@@ -6,13 +6,15 @@
  * order — last cast, first resolved — is visible rather than something you have
  * to have read the rules to know.
  */
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
-import { SCHOOLS, SIGIL_BY_ID } from '@shared/sigils';
+import { SCHOOLS, SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
+import { vfx } from '@/vfx';
+import { spellFlight } from '@/components/fx/SpellFlight';
 
 export interface StackOverlayProps {
   view: TableView;
@@ -24,6 +26,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const pass = useGame((s) => s.pass);
   const stack = view.stack;
   const mayRespond = !!stack?.pending.includes(me.id);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const responses = (me.sigils ?? []).filter((s) => {
     const def = SIGIL_BY_ID[s.defId];
@@ -32,6 +35,20 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
     for (const id of me.relics) delta += RELIC_BY_ID[id]?.sigils?.costDelta ?? 0;
     return me.mana >= Math.max(1, def.cost + delta);
   });
+
+  // A tiny impact tap each time a new sigil lands on the stack — the panel's
+  // own spring already sells the "slam", this just adds a bit of weight to it.
+  const topId = view.stackEntries.length ? view.stackEntries[view.stackEntries.length - 1].id : null;
+  const prevTopId = useRef<string | null>(null);
+  useEffect(() => {
+    if (topId && topId !== prevTopId.current) vfx.shake(4, 140);
+    prevTopId.current = topId;
+  }, [topId]);
+
+  const handleRespond = (uid: string, originEl: Element, def: SigilDef): void => {
+    spellFlight.fireNow(originEl, panelRef.current, def.school, def.glyph);
+    onBeginCast(uid);
+  };
 
   return (
     <AnimatePresence>
@@ -45,10 +62,11 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
         >
           <motion.div
             className="stack-panel"
-            initial={{ y: 40, scale: 0.94 }}
+            ref={panelRef}
+            initial={{ y: 60, scale: 0.9 }}
             animate={{ y: 0, scale: 1 }}
             exit={{ y: 24, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            transition={{ type: 'spring', stiffness: 460, damping: 26, mass: 0.9 }}
           >
             <header className="stack-head">
               <span className="eyebrow">The Stack</span>
@@ -94,7 +112,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                         key={s.uid}
                         className="stack-option"
                         style={{ ['--school' as string]: school.accent }}
-                        onClick={() => onBeginCast(s.uid)}
+                        onClick={(ev) => handleRespond(s.uid, ev.currentTarget, def)}
                       >
                         <span className="stack-optglyph">{def.glyph}</span>
                         <span>

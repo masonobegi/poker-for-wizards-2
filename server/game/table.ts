@@ -21,6 +21,7 @@ import {
   type Pot, type RoomConfig, type StackEntry, type Table, type TableView,
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
+import { omenMods, omenNumber } from '../../shared/omens';
 
 export const AVATARS = 12;
 
@@ -65,6 +66,7 @@ export function createTable(code: string, hostId: string, config: Partial<RoomCo
     sealedRanks: [],
     tempMarks: [],
     quantumFlop: false,
+    omens: [],
     shop: new Map(),
     payout: null,
     log: [],
@@ -200,7 +202,21 @@ export const totalPot = (t: Table): number =>
 /** Table-wide sigil rules plus this player's relics plus any curse on them. */
 export function modsFor(t: Table, p: Player): RuleMods {
   const relic = mergeRelicMods(p.relics);
+  const omen = omenMods(t.omens);
   const m: RuleMods = { ...t.mods };
+
+  // Omens are table-wide and permanent; they merge in under the same rules as
+  // a relic, except that nobody chose them.
+  if (omen.mergedColors) m.mergedColors = true;
+  if (omen.wheelWrap) m.wheelWrap = true;
+  if (omen.facesAreKings) m.facesAreKings = true;
+  if (omen.lowWins) m.lowWins = true;
+  if (omen.memoryBonus) m.memoryBonus = true;
+  if (omen.flushSize !== undefined) m.flushSize = Math.min(m.flushSize ?? 5, omen.flushSize);
+  if (omen.deadRanks?.length) {
+    m.deadRanks = [...new Set([...(m.deadRanks ?? []), ...omen.deadRanks])];
+  }
+  if (omen.categoryShift) m.categoryShift = (m.categoryShift ?? 0) + omen.categoryShift;
 
   if (relic.mergedColors) m.mergedColors = true;
   if (relic.wheelWrap) m.wheelWrap = true;
@@ -215,8 +231,9 @@ export function modsFor(t: Table, p: Player): RuleMods {
   return m;
 }
 
-export const maxManaFor = (p: Player): number =>
-  8 + relicNumber(p.relics, (r) => r.mana?.max);
+export const maxManaFor = (p: Player, t?: Table): number =>
+  8 + relicNumber(p.relics, (r) => r.mana?.max)
+    + (t ? omenNumber(t.omens, (o) => o.mana?.max) : 0);
 
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
@@ -445,6 +462,10 @@ export function viewFor(t: Table, viewerId: string): TableView {
     stackEntries: t.stack ? t.stack.entries.map((e) => stackEntryView(t, e)) : [],
     activeMods: t.mods,
     modNotes: t.modNotes,
+    omens: t.omens,
+    newOmen: t.omens.length && t.omens[t.omens.length - 1].ante === t.ante
+      ? t.omens[t.omens.length - 1]
+      : null,
     shop: t.shop.get(viewer.id) ?? null,
     payout: t.payout,
     log: t.log.slice(-60),

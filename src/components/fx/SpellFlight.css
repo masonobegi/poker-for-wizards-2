@@ -1,0 +1,47 @@
+/* ===========================================================================
+   SpellFlight — the sigil card travelling from hand to target.
+   transform + opacity only; positioned once via left/top (not animated),
+   then moved entirely with `transform` so it stays off the layout/paint path.
+   =========================================================================== */
+
+.fx-spellflight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx, 90);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fx-spellflight {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  will-change: transform, opacity;
+}
+
+.fx-spellflight-glyph {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--fx-school-hi, #fff);
+  text-shadow:
+    0 0 10px var(--fx-school, var(--gold)),
+    0 0 22px var(--fx-school, var(--gold));
+}
+
+.fx-spellflight-tail {
+  position: absolute;
+  inset: -60% ;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--fx-school, var(--gold)) 55%, transparent), transparent 72%);
+  filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-spellflight-layer { display: none; }
+}
+:root[data-reduced-motion='1'] .fx-spellflight-layer { display: none; }

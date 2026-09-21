@@ -1,0 +1,107 @@
+.omens {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.omens-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  flex: none;
+}
+
+.omens-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.omens-list > li { position: relative; }
+
+.omen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(185, 140, 255, 0.4);
+  background: rgba(185, 140, 255, 0.1);
+  color: var(--entropy);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast) var(--ease-snap);
+}
+.omen:hover,
+.omen.is-open {
+  border-color: var(--entropy);
+  background: rgba(185, 140, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(185, 140, 255, 0.35);
+}
+
+.omen-glyph {
+  font-size: 13px;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+.omen-name { text-transform: uppercase; }
+.omen-rank {
+  padding-left: 5px;
+  margin-left: 1px;
+  border-left: 1px solid rgba(185, 140, 255, 0.35);
+  color: var(--bad);
+}
+
+.omen-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  width: 270px;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, #1b2140, #0c0f21);
+  border: 1px solid rgba(185, 140, 255, 0.45);
+  box-shadow: var(--e-4);
+  pointer-events: none;
+  text-align: left;
+  white-space: normal;
+}
+.omen-tip strong {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--entropy);
+  margin-bottom: 4px;
+}
+.omen-tip p { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
+.omen-impossible {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-soft);
+  font-style: italic;
+  color: var(--text-4) !important;
+}
+.omen-impossible span { color: var(--entropy); font-style: normal; margin-right: 4px; }
+.omen-since {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+@media (max-width: 1100px) {
+  .omens-label { display: none; }
+  .omen-name { display: none; }
+  .omen { padding: 3px 7px; }
+}

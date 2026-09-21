@@ -137,9 +137,18 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onChange);
 }
 
-/** True when the user asked for less motion (or it was forced in code). */
+/** The in-game accessibility toggle in Settings sets this on <html>, as a
+ *  belt-and-braces alternative to the OS-level media query. */
+function reducedByAttribute(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.documentElement.dataset.reducedMotion === '1';
+}
+
+/** True when the user asked for less motion (OS setting or the in-game
+ *  toggle), or it was forced in code via `setReducedMotion`. */
 export function prefersReducedMotion(): boolean {
-  return reducedForced ?? reduced;
+  if (reducedForced !== null) return reducedForced;
+  return reduced || reducedByAttribute();
 }
 
 /** Override the media query. Pass `null` to go back to following the OS. */
@@ -1016,6 +1025,58 @@ export const PRESETS = {
         glow: 1,
       },
     ];
+  },
+
+  /* ---- chipsToPot: coins tossed from a seat, arcing over to a target ---- */
+  chipsToPot: (at, opts) => {
+    const amount = opts?.amount ?? 100;
+    const target = opts?.target ?? at;
+    const n = Math.round(clamp(4 + amount / 45, 4, 13));
+    const col = paletteFor(opts, [gold(), goldHi(), goldDeep(), token('--chip', '#f5d478')]);
+    const k = s(opts);
+    const dx = target.x - at.x;
+    const dy = target.y - at.y;
+    const dist = Math.max(1, Math.hypot(dx, dy));
+    const toward = Math.atan2(dy, dx);
+    const out: EmitSpec[] = [];
+    const STEP = 0.032;
+    for (let i = 0; i < n; i++) {
+      out.push({
+        origin: at,
+        count: 1,
+        // Launched up and slightly toward the target; gravity + the target's
+        // pull bend the rest of the path into an arc rather than a straight line.
+        angle: [toward - 1.35, toward - 0.85],
+        spread: 0.12,
+        speed: [dist * 0.9, dist * 1.3],
+        life: [0.46, 0.62],
+        size: [4.2, 7.6],
+        colors: col,
+        shape: 'coin',
+        gravity: 620 * k,
+        target,
+        attraction: 1500,
+        drag: 0.35,
+        spin: [-11, 11],
+        glow: 0.5,
+        fade: 'ease',
+        delay: i * STEP,
+      });
+    }
+    out.push({
+      origin: target,
+      count: 12,
+      even: true,
+      speed: [50, 160],
+      life: [0.22, 0.42],
+      size: [1.1, 2.4],
+      colors: [goldHi(), WHITE],
+      shape: 'spark',
+      drag: 4,
+      glow: 1,
+      delay: n * STEP + 0.32,
+    });
+    return out;
   },
 
   /* ---- potCollect: a dense gold stream pulled to a target ---- */

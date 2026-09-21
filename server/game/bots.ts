@@ -38,7 +38,7 @@ function personalityOf(p: Player): Personality {
       tight: 0.3 + r.next() * 0.45,
       aggro: 0.25 + r.next() * 0.55,
       bluff: 0.06 + r.next() * 0.2,
-      arcane: 0.35 + r.next() * 0.5,
+      arcane: 0.55 + r.next() * 0.4,
     };
     personalities.set(p.id, pr);
   }
@@ -283,8 +283,11 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
 
   if (options.length === 0) return null;
 
-  // Hold counterspell mana back; do not dump the whole pool on a whim.
-  const reserve = p.sigils.some((s) => SIGIL_BY_ID[s.defId]?.timing.includes('response')) ? 2 : 0;
+  // Hold a little back for a counterspell, but only while mana is actually
+  // scarce. Reserving unconditionally left bots sitting on a full pool all
+  // game and the table never saw any magic.
+  const holdsAnswer = p.sigils.some((s) => SIGIL_BY_ID[s.defId]?.timing.includes('response'));
+  const reserve = holdsAnswer && p.mana <= 6 ? 1 : 0;
 
   const eq = t.board.length > 0 ? equity(t, p, rng) : 0.5;
 
@@ -293,11 +296,14 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
 
     let want = (def.botBias ?? 0.5) * pr.arcane;
     // Lean on magic when the cards are not cooperating, and to press an edge.
-    if (eq < 0.35) want *= 1.3;
-    if (eq > 0.7 && def.school === 'ruin') want *= 1.2;
-    if (p.sigils.length >= 4) want *= 1.4;
+    if (eq < 0.35) want *= 1.35;
+    if (eq > 0.7 && def.school === 'ruin') want *= 1.25;
+    // A full hand is a wasted hand — spend down rather than hoard.
+    if (p.sigils.length >= 4) want *= 1.6;
+    // Mana at the cap is mana being thrown away every street.
+    if (p.mana >= p.maxMana - 1) want *= 1.5;
 
-    if (!rng.chance(Math.min(0.75, want * 0.5))) continue;
+    if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
 
     const targets = targetsFor(t, p, def, rng);
     if (!targets) continue;
@@ -324,9 +330,9 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
     .filter(({ s, def }) => def?.timing.includes('response') && canCast(t, p, s).ok);
   if (options.length === 0) return null;
 
-  const threat = incoming.rarity === 'mythic' ? 0.9 : incoming.rarity === 'rare' ? 0.6 : 0.35;
-  const want = (aimedAtMe ? 0.75 : 0.3) * threat * (0.6 + pr.arcane);
-  if (!rng.chance(Math.min(0.85, want))) return null;
+  const threat = incoming.rarity === 'mythic' ? 1 : incoming.rarity === 'rare' ? 0.8 : 0.55;
+  const want = (aimedAtMe ? 1.1 : 0.55) * threat * (0.7 + pr.arcane);
+  if (!rng.chance(Math.min(0.9, want))) return null;
 
   const { s, def } = rng.pick(options);
   const targets = def.id === 'redirect' || def.id === 'reflect'
@@ -355,5 +361,5 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
  * everyone is already staring at the spell.
  */
 export function thinkTime(rng: Rng, fast = false): number {
-  return fast ? 200 + rng.int(260) : 450 + rng.int(900);
+  return fast ? 140 + rng.int(200) : 300 + rng.int(620);
 }

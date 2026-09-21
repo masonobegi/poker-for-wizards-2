@@ -1,7 +1,13 @@
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { TableView } from '@shared/types';
+import type { ShowdownEntry, TableView } from '@shared/types';
 import { CAT_NAME } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
+import { useCardAnchors } from '@/components/fx/useCardAnchors';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { vfx, type School } from '@/vfx';
+
+const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
 export default function ShowdownPanel({ view }: { view: TableView }) {
   const payout = view.payout;
@@ -41,64 +47,107 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
 
         <ul className="showdown-list">
           {shown.map((e, i) => (
-            <motion.li
-              key={e.playerId}
-              className={[
-                'showdown-row',
-                e.won > 0 ? 'is-winner' : '',
-                e.impossible ? 'is-impossible' : '',
-              ].filter(Boolean).join(' ')}
-              initial={{ opacity: 0, x: -18 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35 + i * 0.1 }}
-            >
-              <div className="showdown-who">
-                <strong>{nameOf(e.playerId)}</strong>
-                <span className="showdown-hand">
-                  {e.handName}
-                  {e.timelineUsed === 'echo' ? (
-                    <em className="showdown-echo" title="Scored from the second timeline">
-                      ⧖ echo
-                    </em>
-                  ) : null}
-                </span>
-                {e.echoName && e.timelineUsed !== 'echo' ? (
-                  <span className="showdown-alt">echo would have been {e.echoName}</span>
-                ) : null}
-              </div>
-
-              {e.cards.length ? (
-                <CardRow
-                  views={e.cards}
-                  size="sm"
-                  overlap={0.34}
-                  highlightIds={e.usedIds}
-                  highlight="used"
-                  tiltOnHover={false}
-                />
-              ) : (
-                <span className="showdown-muck">mucked</span>
-              )}
-
-              {e.won > 0 ? (
-                <motion.span
-                  className="showdown-won mono"
-                  initial={{ scale: 0.6, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 420, damping: 20 }}
-                >
-                  +{e.won.toLocaleString()}
-                  {payout.shards[e.playerId] ? (
-                    <em className="showdown-shards">◆{payout.shards[e.playerId]}</em>
-                  ) : null}
-                </motion.span>
-              ) : (
-                <span className="showdown-lost">{CAT_NAME[e.cat as keyof typeof CAT_NAME] ? '' : ''}</span>
-              )}
-            </motion.li>
+            <ShowdownRow key={e.playerId} e={e} i={i} nameOf={nameOf} />
           ))}
         </ul>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * One player's revealed hand. Winning cards light up one at a time, in rank
+ * order, rather than all at once — a staggered gold sweep down the row. An
+ * impossible hand gets a slower, more deliberate version of the same reveal
+ * plus a small school-coloured burst per card; the big screen-wide moment
+ * (shake/chromatic/slowmo/confetti) is fxbridge's job on the `win` event, so
+ * this stays a quieter, localized "here's why" that follows it rather than
+ * repeating it.
+ */
+function ShowdownRow({ e, i, nameOf }: { e: ShowdownEntry; i: number; nameOf: (id: string) => string }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useCardAnchors(rowRef, e.cards.map((c) => c.id));
+  const reduced = useReducedMotionPref();
+
+  const isWinner = e.won > 0 && e.usedIds.length > 0;
+  const stepMs = e.impossible ? 300 : 90;
+
+  const [revealed, setRevealed] = useState<string[]>(() => (reduced || !isWinner ? e.usedIds : []));
+
+  useEffect(() => {
+    if (reduced || !isWinner) { setRevealed(e.usedIds); return; }
+    setRevealed([]);
+    const timers: number[] = [];
+    e.usedIds.forEach((id, idx) => {
+      const t = window.setTimeout(() => {
+        setRevealed((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        const el = rowRef.current?.querySelector(`[data-card-id="${id}"]`);
+        if (!el) return;
+        if (e.impossible) vfx.burstAtEl('cast', el, { school: SCHOOL_CYCLE[idx % SCHOOL_CYCLE.length], scale: 1.1 });
+        else vfx.burstAtEl('sparkleTrail', el, { count: 5 });
+      }, 320 + idx * stepMs);
+      timers.push(t);
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // Re-run only when the hand itself changes, not on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [e.playerId, e.usedIds.join('|'), e.impossible, isWinner, reduced]);
+
+  return (
+    <motion.li
+      className={[
+        'showdown-row',
+        e.won > 0 ? 'is-winner' : '',
+        e.impossible ? 'is-impossible' : '',
+      ].filter(Boolean).join(' ')}
+      initial={{ opacity: 0, x: -18 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.35 + i * 0.1 }}
+    >
+      <div className="showdown-who">
+        <strong>{nameOf(e.playerId)}</strong>
+        <span className="showdown-hand">
+          {e.handName}
+          {e.timelineUsed === 'echo' ? (
+            <em className="showdown-echo" title="Scored from the second timeline">
+              ⧖ echo
+            </em>
+          ) : null}
+        </span>
+        {e.echoName && e.timelineUsed !== 'echo' ? (
+          <span className="showdown-alt">echo would have been {e.echoName}</span>
+        ) : null}
+      </div>
+
+      {e.cards.length ? (
+        <div ref={rowRef}>
+          <CardRow
+            views={e.cards}
+            size="sm"
+            overlap={0.34}
+            highlightIds={revealed}
+            highlight="winning"
+            restHighlight="none"
+            tiltOnHover={false}
+          />
+        </div>
+      ) : (
+        <span className="showdown-muck">mucked</span>
+      )}
+
+      {e.won > 0 ? (
+        <motion.span
+          className="showdown-won mono"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 420, damping: 20 }}
+        >
+          +{e.won.toLocaleString()}
+          {/* shard reward, when present, is looked up by the parent via payout.shards */}
+        </motion.span>
+      ) : (
+        <span className="showdown-lost">{CAT_NAME[e.cat as keyof typeof CAT_NAME] ? '' : ''}</span>
+      )}
+    </motion.li>
   );
 }

@@ -1,0 +1,276 @@
+/* ===========================================================================
+   Shell layer: the system menu, connection resilience UI, and the settings
+   panel's tabs/segmented controls. Reads tokens.css but never edits it.
+   =========================================================================== */
+
+:root { --ui-scale: 1; }
+
+/* UI scale. `.app` is the single full-viewport shell every scene renders
+   inside (see src/App.tsx); zooming it scales type, spacing and every
+   px-based token together without needing rem units anywhere else. `zoom`
+   (now standard, supported by every browser HEXHOLD ships to) triggers a
+   real layout pass, unlike `transform: scale()`, so it does not fight
+   `position: fixed` children. */
+.app { zoom: var(--ui-scale, 1); }
+
+/* ---------------------------------------------------------------------------
+   System menu
+   ------------------------------------------------------------------------- */
+
+.hh-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--s-5);
+  background: rgba(3, 4, 9, 0.8);
+  backdrop-filter: blur(10px) saturate(0.8);
+}
+
+.hh-menu-panel {
+  width: min(420px, 100%);
+  max-height: min(86vh, 720px);
+  overflow: auto;
+  padding: var(--s-6);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, #1b2140, #0d1022);
+  border: 1px solid var(--line);
+  box-shadow: var(--e-4), 0 0 80px rgba(76, 52, 140, 0.25);
+}
+.hh-menu-panel:focus { outline: none; }
+
+.hh-menu-head { display: grid; gap: var(--s-2); }
+
+.hh-menu-title {
+  font-size: var(--fs-xl);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.hh-menu-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: 1.6;
+}
+
+.hh-menu-actions {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+}
+
+/* ---------------------------------------------------------------------------
+   Connection resilience
+   ------------------------------------------------------------------------- */
+
+.hh-conn-pill {
+  position: fixed;
+  bottom: 14px;
+  left: 14px;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  background: rgba(8, 10, 20, 0.92);
+  border: 1px solid rgba(244, 87, 111, 0.45);
+  color: var(--bad);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.hh-conn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--s-5);
+  background: rgba(3, 4, 9, 0.82);
+  backdrop-filter: blur(10px) saturate(0.8);
+}
+
+.hh-conn-panel {
+  width: min(460px, 100%);
+  padding: var(--s-6);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, #241a24, #10141f);
+  border: 1px solid rgba(244, 87, 111, 0.35);
+  box-shadow: var(--e-4), 0 0 80px rgba(244, 87, 111, 0.12);
+}
+.hh-conn-panel:focus { outline: none; }
+
+.hh-conn-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-xl);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bad);
+}
+
+.hh-conn-body {
+  margin: var(--s-3) 0 var(--s-5);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.hh-conn-actions { display: grid; gap: var(--s-3); }
+
+/* ---------------------------------------------------------------------------
+   Settings: tabs
+   ------------------------------------------------------------------------- */
+
+.hh-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.hh-tab {
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.hh-tab:hover { color: var(--text); }
+.hh-tab.is-active {
+  color: var(--gold);
+  background: rgba(240, 196, 101, 0.08);
+  border-color: var(--line-soft);
+}
+
+.hh-tabpanel {
+  display: grid;
+  gap: var(--s-4);
+  padding-top: var(--s-4);
+}
+
+/* ---------------------------------------------------------------------------
+   Settings: segmented control (particle density)
+   ------------------------------------------------------------------------- */
+
+.hh-segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  width: fit-content;
+}
+
+.hh-segmented-option {
+  position: relative;
+  cursor: pointer;
+}
+.hh-segmented-option:not(:last-child) .hh-segmented-label {
+  border-right: 1px solid var(--line);
+}
+
+.hh-segmented-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hh-segmented-label {
+  display: block;
+  padding: 8px 16px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.hh-segmented-input:checked + .hh-segmented-label {
+  background: var(--gold);
+  color: var(--void);
+}
+.hh-segmented-input:focus-visible + .hh-segmented-label {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Settings: controls list
+   ------------------------------------------------------------------------- */
+
+.hh-shortcuts { display: grid; gap: 2px; }
+
+.hh-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.hh-shortcut-row:last-child { border-bottom: none; }
+
+.hh-kbd {
+  display: inline-flex;
+  min-width: 30px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  box-shadow: var(--e-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+/* ---------------------------------------------------------------------------
+   Settings: about
+   ------------------------------------------------------------------------- */
+
+.hh-about { display: grid; gap: var(--s-2); }
+.hh-about-name {
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+.hh-about-version {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.hh-about-credit {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------------------
+   Small layout helpers reused across the shell components
+   ------------------------------------------------------------------------- */
+
+.hh-field-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  line-height: 1.6;
+}

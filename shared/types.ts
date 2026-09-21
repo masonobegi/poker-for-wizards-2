@@ -1,6 +1,7 @@
 import type { CardEntity, CardView, Face, MarkId, Rank, Suit } from './cards';
 import type { RuleMods } from './hand';
 import type { SigilInstance } from './sigils';
+import type { ActiveOmen } from './omens';
 
 // ---------------------------------------------------------------------------
 // Phases
@@ -260,8 +261,8 @@ export const DEFAULT_CONFIG: RoomConfig = {
   baseBlind: 200,
   handsPerAnte: 4,
   actionSeconds: 30,
-  responseSeconds: 7,
-  shopSeconds: 60,
+  responseSeconds: 5,
+  shopSeconds: 45,
   magicEnabled: true,
   botFill: 0,
   private: false,
@@ -307,6 +308,10 @@ export interface TableView {
   /** Table-wide rules in force this hand, from sigils. */
   activeMods: RuleMods;
   modNotes: string[];
+  /** Permanent rules imposed at each ante. */
+  omens: ActiveOmen[];
+  /** The omen that landed this ante, for the announcement. */
+  newOmen: ActiveOmen | null;
 
   shop: ShopState | null;
   payout: PayoutInfo | null;
@@ -375,6 +380,8 @@ export interface Table {
   tempMarks: Array<{ cardId: string; markId: MarkId }>;
   /** Set by Schrödinger's Flop — the next flop arrives undecided. */
   quantumFlop: boolean;
+  /** Permanent table-wide rules, one added per ante. They never come off. */
+  omens: ActiveOmen[];
 
   shop: Map<string, ShopState>;
   payout: PayoutInfo | null;

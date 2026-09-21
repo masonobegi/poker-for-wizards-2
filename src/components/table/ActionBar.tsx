@@ -4,6 +4,7 @@ import type { PlayerView, TableView } from '@shared/types';
 import { Button, Range } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import { playSfx } from '@/lib/sound';
+import { TurnTimer } from '@/components/fx/TurnTimer';
 
 export interface ActionBarProps {
   view: TableView;
@@ -68,15 +69,21 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
 
   return (
     <div className="actionbar">
+      {yourTurn ? (
+        <div className="ab-clock">
+          <TurnTimer until={view.actingUntil} total={view.config.actionSeconds} size={46} sound />
+        </div>
+      ) : null}
+
       <AnimatePresence mode="wait">
         {yourTurn ? (
           <motion.div
             key="acting"
             className="ab-inner"
-            initial={{ opacity: 0, y: 26 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 18 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+            initial={{ opacity: 0, y: 42, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 480, damping: 28, mass: 0.9 }}
           >
             <AnimatePresence>
               {raising ? (

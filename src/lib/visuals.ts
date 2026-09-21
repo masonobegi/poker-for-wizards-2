@@ -72,7 +72,10 @@ export const vignette = (color: string, ms: number): void => call('vignette', co
 export const chromatic = (ms: number): void => call('chromatic', ms);
 export const timeRipple = (at: Point): void => call('timeRipple', at);
 export const slowmo = (scale: number, ms: number): void => call('slowmo', scale, ms);
-export const confetti = (at?: Point): void => call('confetti', at);
+// Callers usually have a `centerOf()` result, which is nullable; accept that
+// rather than making every call site coalesce.
+export const confetti = (at?: Point | null): void =>
+  call('confetti', at ?? undefined);
 
 export const SCHOOL_COLOR: Record<string, string> = {
   entropy: '#b98cff',

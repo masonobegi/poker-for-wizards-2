@@ -18,6 +18,8 @@ import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import Shop from '@/scenes/Shop';
 import GameOver from '@/components/table/GameOver';
+import OmenBar from '@/components/OmenBar';
+import Hints from '@/components/onboarding/Hints';
 
 import './table.css';
 
@@ -123,6 +125,8 @@ export default function GameTable() {
             <span className="tbl-antesub gold">market next</span>
           )}
         </div>
+
+        <OmenBar omens={view.omens} />
 
         <div className="tbl-top-r">
           <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>Codex</Button>
@@ -252,6 +256,8 @@ export default function GameTable() {
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />
       </Modal>
+
+      <Hints />
     </div>
   );
 }

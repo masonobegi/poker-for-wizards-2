@@ -1,0 +1,318 @@
+/* ===========================================================================
+   Onboarding — the first-run intro flow, the sigil tile it uses to avoid
+   depending on table.css, and the contextual coach marks.
+   =========================================================================== */
+
+/* --- flow shell ----------------------------------------------------------- */
+
+.intro-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--s-5);
+  background: rgba(3, 4, 9, 0.8);
+  backdrop-filter: blur(10px) saturate(0.8);
+}
+
+.intro-panel {
+  width: min(720px, 100%);
+  max-height: min(88vh, 780px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s-4);
+  padding: var(--s-6);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, #1b2140, #0d1022);
+  border: 1px solid var(--line);
+  box-shadow: var(--e-4), 0 0 90px rgba(76, 52, 140, 0.28);
+}
+
+.intro-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+
+.intro-dots { display: flex; align-items: center; gap: 7px; }
+.intro-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  transition: background var(--t-fast), transform var(--t-fast);
+}
+.intro-dot.is-done { background: var(--gold-deep); }
+.intro-dot.is-on { background: var(--gold); transform: scale(1.35); }
+
+.intro-body { min-height: 0; overflow: hidden auto; padding: 2px; }
+
+.intro-page { display: grid; justify-items: center; gap: var(--s-3); text-align: center; padding: var(--s-2) 0; }
+
+.intro-kicker {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.intro-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.6vw, var(--fs-2xl));
+  font-weight: 700;
+  color: var(--text);
+  max-width: 30ch;
+}
+
+.intro-copy {
+  max-width: 52ch;
+  font-size: var(--fs-md);
+  line-height: 1.65;
+  color: var(--text-2);
+  text-wrap: balance;
+}
+
+.intro-visualwrap {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  padding: var(--s-4) var(--s-2);
+}
+
+.intro-visual__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.intro-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.intro-step { font-size: var(--fs-xs); color: var(--text-4); }
+
+@media (max-height: 720px) {
+  .intro-panel { padding: var(--s-4); gap: var(--s-3); }
+  .intro-visualwrap { min-height: 120px; padding: var(--s-3) var(--s-2); }
+}
+
+/* --- panel 1: hold'em ------------------------------------------------------ */
+
+.intro-holdem { display: flex; align-items: flex-end; gap: var(--s-6); flex-wrap: wrap; justify-content: center; }
+.intro-holdem__group { display: grid; justify-items: center; gap: var(--s-2); }
+
+/* --- panel 2: mana ---------------------------------------------------------- */
+
+.intro-mana-row { display: grid; gap: var(--s-3); width: min(380px, 100%); }
+
+.intro-mana {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: rgba(5, 6, 12, 0.4);
+  border: 1px solid var(--line-soft);
+}
+.intro-mana__label {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: left;
+}
+.intro-mana__pips { display: flex; gap: 5px; }
+.intro-mana__pip {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+}
+.intro-mana__pip.is-lit {
+  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold-deep));
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(240, 196, 101, 0.5);
+}
+.intro-mana__value { font-size: var(--fs-sm); font-weight: 700; color: var(--text-2); }
+.intro-mana.is-warn { border-color: rgba(244, 87, 111, 0.4); }
+.intro-mana.is-warn .intro-mana__pip.is-lit {
+  background: radial-gradient(circle at 35% 30%, #ffb3bd, var(--ruin-deep));
+  border-color: var(--ruin);
+  box-shadow: 0 0 8px rgba(255, 122, 138, 0.5);
+}
+.intro-mana.is-warn .intro-mana__value { color: var(--ruin); }
+
+/* --- sigil tile (matches SigilCard's look, styled independently) ---------- */
+
+.intro-sigil {
+  --school: var(--gold);
+  --school-deep: var(--gold-deep);
+  --rarity: var(--text-3);
+  position: relative;
+  width: 178px;
+  display: grid;
+  gap: 6px;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(5, 6, 12, 0.55)), var(--surface);
+  border: 1px solid color-mix(in srgb, var(--school) 45%, var(--line));
+  box-shadow: var(--e-2), 0 0 24px color-mix(in srgb, var(--school) 20%, transparent);
+}
+.intro-sigil__head { display: flex; align-items: center; justify-content: space-between; }
+.intro-sigil__cost {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(5, 6, 12, 0.6);
+  border: 1px solid var(--school);
+  color: var(--school);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.intro-sigil__school {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--school);
+}
+.intro-sigil__glyph {
+  justify-self: center;
+  font-size: 30px;
+  color: var(--school);
+  filter: drop-shadow(0 0 10px var(--school-deep));
+}
+.intro-sigil__name {
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+.intro-sigil__text { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
+.intro-sigil__impossible {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-4);
+  font-style: italic;
+  padding-top: 5px;
+  border-top: 1px dashed var(--line-soft);
+}
+.intro-sigil__impossible span { color: var(--school); font-style: normal; margin-right: 3px; }
+.intro-sigil__rarity {
+  justify-self: start;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rarity);
+}
+.intro-sigil__order {
+  justify-self: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* --- panel 4: stack --------------------------------------------------------- */
+
+.intro-stack { display: grid; justify-items: center; gap: 6px; }
+.intro-stack__item { display: grid; justify-items: center; gap: 6px; }
+.intro-stack__item--response .intro-sigil { border-color: color-mix(in srgb, var(--veil) 55%, var(--line)); }
+.intro-stack__item--response .intro-sigil__order { color: var(--veil); }
+.intro-stack__arrow { font-size: 20px; color: var(--text-4); line-height: 1; }
+
+/* --- panel 5: deck breaks / panel 6: hands --------------------------------- */
+
+.intro-trio, .intro-hands {
+  display: flex;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.intro-trio__item, .intro-hands__item { display: grid; justify-items: center; gap: var(--s-2); }
+
+/* --- panel 7: shop ---------------------------------------------------------- */
+
+.intro-shop { display: flex; gap: var(--s-4); flex-wrap: wrap; justify-content: center; }
+.intro-shop__tile {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 132px;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: rgba(5, 6, 12, 0.4);
+  border: 1px solid var(--line-soft);
+}
+.intro-shop__glyph { font-size: 26px; color: var(--gold); filter: drop-shadow(0 0 10px var(--gold-deep)); }
+.intro-shop__name { font-size: var(--fs-sm); font-weight: 700; color: var(--text); text-align: center; }
+.intro-shop__price { font-size: var(--fs-xs); color: var(--chip); }
+
+/* ===========================================================================
+   Contextual first-time hints — small, dismissible, never blocking.
+   =========================================================================== */
+
+.hints-layer { position: fixed; inset: 0; z-index: var(--z-toast); pointer-events: none; }
+
+.hint-mark {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: min(420px, 90vw);
+  padding: 9px 10px 9px 14px;
+  border-radius: var(--r-pill);
+  background: rgba(8, 10, 20, 0.95);
+  border: 1px solid var(--gold-deep);
+  box-shadow: var(--e-3), 0 0 26px rgba(240, 196, 101, 0.22);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.hint-mark__text { font-size: var(--fs-xs); line-height: 1.4; color: var(--text-2); }
+
+.hint-mark__dismiss {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: var(--text-4);
+  font-size: 13px;
+  line-height: 1;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.hint-mark__dismiss:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+
+/* `.hints-layer` already sits above z-stack and z-modal (it's on z-toast), so
+   these only need to place each hint near the real UI it's talking about. */
+
+/* Just above the sigil rail (--rail-h), where a castable sigil lives. */
+.hint-mark--rail { bottom: calc(var(--rail-h) + 14px); }
+
+/* Near the top, like the response-window overlay it's commenting on. */
+.hint-mark--stack { top: 64px; border-color: var(--veil); box-shadow: var(--e-3), 0 0 26px rgba(110, 200, 255, 0.28); }
+
+/* Just under the top edge of the full-screen shop overlay. */
+.hint-mark--shop { top: 18px; }
+
+@media (max-width: 640px) {
+  .intro-holdem, .intro-trio, .intro-hands, .intro-shop { gap: var(--s-3); }
+}

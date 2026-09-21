@@ -6,6 +6,7 @@ import { SCHOOLS, SIGILS } from '@shared/sigils';
 import { RELICS } from '@shared/relics';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
+import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import './menu.css';
 
 type Pane = 'home' | 'host' | 'join';
@@ -16,10 +17,14 @@ export default function Menu() {
   const [code, setCode] = useState('');
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [intro, setIntro] = useState(() => !hasSeenIntro());
+  const [practicing, setPracticing] = useState(false);
 
   const createRoom = useGame((s) => s.createRoom);
   const joinRoom = useGame((s) => s.joinRoom);
   const tryRejoin = useGame((s) => s.tryRejoin);
+  const addBot = useGame((s) => s.addBot);
+  const startGame = useGame((s) => s.startGame);
   const joining = useGame((s) => s.joining);
   const error = useGame((s) => s.error);
   const clearError = useGame((s) => s.clearError);
@@ -34,6 +39,31 @@ export default function Menu() {
 
   const host = async () => { if (canHost) await createRoom(trimmed); };
   const join = async () => { if (canJoin) await joinRoom(code.trim(), trimmed); };
+
+  /**
+   * One click, straight to a live table: create a private room, seat three
+   * bots, and deal. `room:create` gets an ack, so we await that; `room:bot`
+   * and `room:start` are plain emits over the same socket, and the server
+   * handles every event on a socket in the order it arrives and fully
+   * synchronously (see server/net/io.ts and Engine.addBot/start) — so firing
+   * the three bot adds and the start in sequence right after the room exists
+   * is enough to guarantee the bots are seated before the hand deals, with
+   * no polling of the lobby view required.
+   */
+  const practice = async () => {
+    if (!connected || practicing) return;
+    setPracticing(true);
+    try {
+      const code = await createRoom(trimmed || 'Adept', { maxPlayers: 4, private: true });
+      if (!code) return;
+      addBot(true);
+      addBot(true);
+      addBot(true);
+      startGame();
+    } finally {
+      setPracticing(false);
+    }
+  };
 
   return (
     <div className="menu">
@@ -79,16 +109,28 @@ export default function Menu() {
 
               <div className="menu-actions">
                 <Button tone="primary" size="lg" display block
-                  disabled={!connected} onClick={() => setPane('host')}>
-                  Host a Table
+                  loading={practicing} disabled={!connected || practicing}
+                  onClick={() => void practice()}>
+                  Practice vs Bots
                 </Button>
-                <Button size="lg" display block
-                  disabled={!connected} onClick={() => setPane('join')}>
-                  Join with a Code
-                </Button>
+                <p className="menu-practicenote">
+                  One click. Three bots fill the table and the first hand deals itself.
+                </p>
+
+                <div className="menu-actions-row">
+                  <Button size="md" block disabled={!connected} onClick={() => setPane('host')}>
+                    Host a Table
+                  </Button>
+                  <Button size="md" block disabled={!connected} onClick={() => setPane('join')}>
+                    Join with a Code
+                  </Button>
+                </div>
               </div>
 
               <div className="menu-links">
+                <Button tone="ghost" size="sm" onClick={() => setIntro(true)}>
+                  How this works
+                </Button>
                 <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>
                   Codex &mdash; {SIGILS.length} sigils, {RELICS.length} relics
                 </Button>
@@ -173,6 +215,7 @@ export default function Menu() {
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />
       </Modal>
+      <IntroFlow open={intro} onClose={() => setIntro(false)} />
     </div>
   );
 }

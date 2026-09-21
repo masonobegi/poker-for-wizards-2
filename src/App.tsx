@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGame } from '@/store/net';
 import { installFxBridge } from '@/lib/fxbridge';
@@ -10,6 +10,8 @@ import GameTable from '@/scenes/GameTable';
 import Toasts from '@/components/Toasts';
 import BannerLayer from '@/components/BannerLayer';
 import ConnectionBadge from '@/components/ConnectionBadge';
+import SystemMenu from '@/components/shell/SystemMenu';
+import IntroFlow from '@/components/onboarding/IntroFlow';
 
 /**
  * The particle layer is decoration — load it after the first paint, and if the
@@ -35,6 +37,15 @@ export default function App() {
   const screen = useGame((s) => s.screen);
   const connect = useGame((s) => s.connect);
   const shellRef = useRef<HTMLDivElement>(null);
+  const [howTo, setHowTo] = useState(false);
+
+  // The system menu can ask for the intro from inside a game, where the menu
+  // scene that normally owns it is not mounted.
+  useEffect(() => {
+    const open = () => setHowTo(true);
+    window.addEventListener('hexhold:how-to-play', open);
+    return () => window.removeEventListener('hexhold:how-to-play', open);
+  }, []);
 
   useEffect(() => {
     connect();
@@ -93,6 +104,8 @@ export default function App() {
       <BannerLayer />
       <Toasts />
       <ConnectionBadge />
+      <SystemMenu />
+      <IntroFlow open={howTo} onClose={() => setHowTo(false)} />
 
       <Suspense fallback={null}>
         <VfxLayer />

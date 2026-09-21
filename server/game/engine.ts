@@ -12,6 +12,7 @@ import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELIC_BY_ID, relicNumber } from '../../shared/relics';
 import { SIGIL_BY_ID } from '../../shared/sigils';
+import { OMENS, OMEN_BY_ID, omenNumber, type ActiveOmen } from '../../shared/omens';
 import {
   isStreet,
   type BetAction, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
@@ -45,6 +46,8 @@ export class Engine {
   private botClock = new Map<string, number>();
   /** When the table first went quiet with nothing scheduled. 0 means busy. */
   private idleSince = 0;
+  /** Sigils each bot has cast in its current action window. */
+  private castsThisTurn = new Map<string, number>();
 
   constructor(
     code: string,
@@ -92,7 +95,7 @@ export class Engine {
     const seat = freeSeat(t);
     if (seat < 0) return null;
     const p = createPlayer(id, name, seat, t.config, isBot);
-    p.maxMana = maxManaFor(p);
+    p.maxMana = maxManaFor(p, t);
     t.players.push(p);
     log(t, `${p.name} takes a seat.`, 'plain', { playerId: p.id });
     this.flush();
@@ -157,7 +160,10 @@ export class Engine {
     t.bb = t.config.baseBlind;
     t.sb = Math.floor(t.bb / 2);
     t.winnerId = null;
+    t.omens = [];
     t.dealerSeat = seated(t)[0]?.seat ?? 0;
+    // A new run gets a clean deck: strip anything a previous run inscribed.
+    for (const c of t.cards.values()) { c.marks = []; c.memory = 0; }
 
     for (const p of t.players) {
       p.chips = t.config.startingChips;
@@ -166,7 +172,7 @@ export class Engine {
       p.relics = [];
       p.eliminated = false;
       p.handsWon = 0;
-      p.maxMana = maxManaFor(p);
+      p.maxMana = maxManaFor(p, t);
       // Everyone opens with one counterspell, so the first bluff is never free.
       giveSigil(t, p, { uid: nanoid(8), defId: 'nullify' });
       giveSigil(t, p, randomSigil(this.rng));
@@ -216,11 +222,14 @@ export class Engine {
       p.hole = [];
       p.lastAction = undefined;
       p.shopDone = false;
-      p.maxMana = maxManaFor(p);
+      p.maxMana = maxManaFor(p, t);
       p.mana = Math.min(p.maxMana, p.mana + 3);
 
-      const extra = relicNumber(p.relics, (r) => r.sigils?.drawPerHand);
-      const draws = 1 + extra;
+      // Two a hand, not one: the spell layer is the reason to play, and one
+      // draw meant most sigils never came up in a whole run.
+      const extra = relicNumber(p.relics, (r) => r.sigils?.drawPerHand)
+        + omenNumber(t.omens, (o) => o.sigilDraw);
+      const draws = 2 + extra;
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) giveSigil(t, p, randomSigil(this.rng));
       }
@@ -254,7 +263,20 @@ export class Engine {
       }
     }
 
-    const perPlayer = players.map((p) => 2 + relicNumber(p.relics, (r) => r.deal?.extraHole));
+    // Omens that change the shape of the deal itself.
+    for (const a of t.omens) {
+      const def = OMEN_BY_ID[a.id];
+      const seal = def?.deal?.sealRank;
+      if (seal && !t.sealedRanks.includes(seal)) {
+        t.sealedRanks.push(seal);
+        t.modNotes.push(`${RANK_NAME[seal]}s are sealed`);
+      }
+    }
+
+    const omenHole = omenNumber(t.omens, (o) => o.deal?.extraHole);
+    const perPlayer = players.map(
+      (p) => 2 + omenHole + relicNumber(p.relics, (r) => r.deal?.extraHole),
+    );
     const maxCards = Math.max(...perPlayer, 0);
 
     for (let round = 0; round < maxCards; round++) {
@@ -266,8 +288,9 @@ export class Engine {
       });
     }
 
+    const omenQuantumHole = omenNumber(t.omens, (o) => o.deal?.quantumHole);
     for (const p of players) {
-      const quantum = relicNumber(p.relics, (r) => r.deal?.quantumHole);
+      const quantum = omenQuantumHole + relicNumber(p.relics, (r) => r.deal?.quantumHole);
       for (let i = 0; i < quantum && i < p.hole.length; i++) {
         const c = card(t, p.hole[i]);
         if (c) superposeCard(ctx, c);
@@ -335,7 +358,9 @@ export class Engine {
 
     for (const p of alive(t)) {
       if (p.severed) continue;
-      const regen = 1 + relicNumber(p.relics, (r) => r.mana?.regen);
+      const regen = Math.max(0,
+        1 + relicNumber(p.relics, (r) => r.mana?.regen)
+          + omenNumber(t.omens, (o) => o.mana?.regen));
       p.mana = Math.min(p.maxMana, p.mana + (first ? 0 : regen));
     }
 
@@ -352,6 +377,7 @@ export class Engine {
     const p = byId(t, t.actingId);
     if (!p) { this.advanceStreet(); return; }
 
+    this.castsThisTurn.delete(p.id);
     t.actingUntil = Date.now() + t.config.actionSeconds * 1000;
     this.wait(t.config.actionSeconds * 1000, () => {
       // Time is a fold, unless checking is free.
@@ -377,7 +403,8 @@ export class Engine {
   private dealStreet(phase: Phase): void {
     const t = this.table;
     const ctx = this.ctx();
-    const count = phase === 'flop' ? 3 : 1;
+    const extraBoard = phase === 'river' ? omenNumber(t.omens, (o) => o.deal?.extraBoard) : 0;
+    const count = (phase === 'flop' ? 3 : 1) + extraBoard;
     const dealt: string[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -390,7 +417,15 @@ export class Engine {
         if (c) superposeCard(ctx, c);
       }
     }
-    if (phase === 'flop') t.quantumFlop = false;
+    if (phase === 'flop') {
+      t.quantumFlop = false;
+      // Entropy Rising: one board card arrives undecided, every hand.
+      const undecided = omenNumber(t.omens, (o) => o.deal?.quantumBoard);
+      for (let i = 0; i < undecided && i < dealt.length; i++) {
+        const c = card(t, dealt[i]);
+        if (c) superposeCard(ctx, c);
+      }
+    }
 
     this.fx.push({ t: 'deal', cardIds: dealt, to: 'board', stagger: 140 });
     this.fx.push({ t: 'sfx', name: `street_${phase}` });
@@ -413,7 +448,7 @@ export class Engine {
     t.phase = next;
     this.dealStreet(next);
     this.flush();
-    this.wait(600, () => this.beginStreet());
+    this.wait(320, () => this.beginStreet());
   }
 
   /** Everyone is committed; deal the remaining board with a beat between cards. */
@@ -432,9 +467,9 @@ export class Engine {
       t.phase = next;
       this.dealStreet(next);
       this.flush();
-      this.wait(1100, step);
+      this.wait(750, step);
     };
-    this.wait(900, step);
+    this.wait(600, step);
   }
 
   private toShowdown(): void {
@@ -476,7 +511,7 @@ export class Engine {
 
     t.phase = 'payout';
     this.flush();
-    this.wait(live(t).length > 1 ? 5200 : 2600, () => this.endHand());
+    this.wait(live(t).length > 1 ? 3200 : 1400, () => this.endHand());
   }
 
   private bestFaceFor(faces: Face[]): number {
@@ -512,7 +547,7 @@ export class Engine {
 
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
-    this.wait(900, () => this.beginHand());
+    this.wait(520, () => this.beginHand());
   }
 
   private endGame(): void {
@@ -540,6 +575,7 @@ export class Engine {
     t.bb = Math.round((t.config.baseBlind * Math.pow(1.6, t.ante - 1)) / 50) * 50;
     t.sb = Math.floor(t.bb / 2);
 
+    this.rollOmen();
     payInterest(t);
     for (const p of alive(t)) {
       p.shopDone = false;
@@ -557,13 +593,56 @@ export class Engine {
     this.wait(t.config.shopSeconds * 1000, () => this.closeShop());
   }
 
+  /**
+   * One new permanent rule per ante. They stack and never come off, so the
+   * last hands of a run are played under a rulebook nobody sat down to.
+   */
+  private rollOmen(): void {
+    const t = this.table;
+    const taken = new Set(t.omens.map((o) => o.id));
+    const pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= t.ante);
+    if (pool.length === 0) return;
+
+    const bag: typeof pool = [];
+    for (const o of pool) for (let i = 0; i < o.weight; i++) bag.push(o);
+    const def = this.rng.pick(bag);
+
+    const omen: ActiveOmen = { id: def.id, ante: t.ante };
+    if (def.killsRank) {
+      // Strike a rank nobody is currently holding a pair of, for fairness.
+      const all: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      omen.rank = this.rng.pick(all);
+    }
+    t.omens.push(omen);
+
+    // Omens that permanently edit the shared deck do it once, on arrival.
+    const ins = def.deal?.inscribe;
+    if (ins) {
+      const plain = [...t.cards.values()].filter(
+        (c) => c.marks.length === 0 && c.origin !== 'conjured',
+      );
+      for (const c of this.rng.sample(plain, ins.count)) {
+        if (!c.marks.includes(ins.markId)) c.marks.push(ins.markId);
+      }
+    }
+
+    for (const p of t.players) p.maxMana = maxManaFor(p, t);
+
+    const detail = omen.rank ? `${RANK_NAME[omen.rank]}s` : '';
+    log(t, `OMEN — ${def.name}: ${def.text}${detail ? ` (${detail})` : ''}`, 'impossible');
+    this.fx.push({ t: 'banner', text: def.name.toUpperCase(), sub: 'A new rule, permanently', tone: 'impossible' });
+    this.fx.push({ t: 'sfx', name: 'seal' });
+    this.fx.push({ t: 'shake', power: 0.6 });
+    this.fx.push({ t: 'flash', color: '#b98cff', power: 0.45 });
+  }
+
   private closeShop(): void {
     const t = this.table;
     t.shop.clear();
     this.clearWait();
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
-    this.wait(500, () => this.beginHand());
+    this.wait(320, () => this.beginHand());
   }
 
   shopBuy(id: string, uid: string): { ok: boolean; error?: string } {
@@ -697,6 +776,7 @@ export class Engine {
     this.table.actingId = null;
     this.table.actingUntil = null;
     this.botClock.clear();
+    this.castsThisTurn.clear();
   }
 
   private afterAction(): void {
@@ -708,13 +788,13 @@ export class Engine {
     if (live(t).length <= 1) {
       this.standDown();
       this.flush();
-      this.wait(500, () => this.toShowdown());
+      this.wait(320, () => this.toShowdown());
       return;
     }
     if (this.roundComplete()) {
       this.standDown();
       this.flush();
-      this.wait(450, () => this.advanceStreet());
+      this.wait(260, () => this.advanceStreet());
       return;
     }
 
@@ -723,7 +803,7 @@ export class Engine {
     if (!next) {
       this.standDown();
       this.flush();
-      this.wait(450, () => this.advanceStreet());
+      this.wait(260, () => this.advanceStreet());
       return;
     }
     t.actingId = next.id;
@@ -753,8 +833,10 @@ export class Engine {
       }
       this.flush();
     } else {
+      // Nobody can answer this, so there is nothing to wait for. Magic is
+      // frequent; a fixed beat per cast is most of a hand's running time.
       this.flush();
-      this.wait(700, () => this.settleStack());
+      this.wait(140, () => this.settleStack());
     }
     return { ok: true };
   }
@@ -766,7 +848,7 @@ export class Engine {
     if (t.stack.pending.length === 0) {
       this.clearWait();
       this.flush();
-      this.wait(500, () => this.settleStack());
+      this.wait(300, () => this.settleStack());
     } else {
       this.flush();
     }
@@ -782,7 +864,7 @@ export class Engine {
     // Hand back to whoever was on the clock. Every branch here must either
     // schedule something or hand the clock to a player — an exit that does
     // neither wedges the table permanently.
-    this.wait(500, () => {
+    this.wait(180, () => {
       if (t.phase === 'showdown' || t.phase === 'payout' || t.phase === 'gameover'
         || t.phase === 'shop' || t.phase === 'lobby') {
         this.flush();
@@ -906,11 +988,15 @@ export class Engine {
     if (now < at) return;
     this.botClock.delete(acting.id);
 
-    const spell = decideCast(t, acting, this.rng);
+    // Two sigils in one window is a flourish; five is a cutscene.
+    const spell = (this.castsThisTurn.get(acting.id) ?? 0) < 2
+      ? decideCast(t, acting, this.rng)
+      : null;
     if (spell) {
       this.cast(acting.id, spell.uid, spell.targets);
+      this.castsThisTurn.set(acting.id, (this.castsThisTurn.get(acting.id) ?? 0) + 1);
       // They still owe the table a betting decision afterwards.
-      this.botClock.set(acting.id, Date.now() + 1600);
+      this.botClock.set(acting.id, Date.now() + 600);
       return;
     }
 
