@@ -40,11 +40,11 @@ function SeatBase({
   useCardAnchors(cardsRef, p.hole.map((c) => c.id));
 
   const handleTarget = (): void => {
-    spellFlight.release(document.querySelector(`[data-seat-id="${p.id}"]`));
+    spellFlight.release(document.querySelector(`[data-seat-id="${CSS.escape(p.id)}"]`));
     onTarget?.(p.id);
   };
   const handlePickCard = (id: string): void => {
-    spellFlight.release(document.querySelector(`[data-card-id="${id}"]`));
+    spellFlight.release(document.querySelector(`[data-card-id="${CSS.escape(id)}"]`));
     onPickCard?.(id);
   };
 

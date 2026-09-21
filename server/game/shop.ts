@@ -130,15 +130,41 @@ export function reroll(t: Table, p: Player, rng: Rng): BuyResult {
   return { ok: true };
 }
 
-/** Interest, paid once when the market opens. */
+/**
+ * Everything paid out when the market opens.
+ *
+ * A stipend that scales with the ante, so the expensive mythics are reachable
+ * late rather than theoretical, plus a rubber-band top-up for anyone below the
+ * average stack. Without the top-up the chip leader also wins the shop, and a
+ * player who is behind has nothing to do in the one phase that exists to give
+ * them a way back.
+ */
 export function payInterest(t: Table): void {
-  for (const p of t.players) {
-    const pct = relicNumber(p.relics, (r) => r.economy?.interestPct);
-    if (pct <= 0) continue;
-    const gain = Math.ceil((p.shards * pct) / 100);
-    if (gain > 0) {
-      p.shards += gain;
-      log(t, `${p.name} earns ${gain} shards in interest.`, 'magic', { playerId: p.id });
+  const standing = t.players.filter((p) => !p.eliminated);
+  if (standing.length === 0) return;
+
+  const average = standing.reduce((a, p) => a + p.chips, 0) / standing.length;
+  const stipend = 2 + t.ante;
+
+  for (const p of standing) {
+    let gain = stipend;
+
+    // Up to three extra for being behind, scaled by how far behind.
+    if (p.chips < average) {
+      const behind = Math.min(1, (average - p.chips) / Math.max(1, average));
+      gain += Math.round(behind * 3);
     }
+
+    const pct = relicNumber(p.relics, (r) => r.economy?.interestPct);
+    const interest = pct > 0 ? Math.ceil((p.shards * pct) / 100) : 0;
+    gain += interest;
+
+    p.shards += gain;
+    log(
+      t,
+      `${p.name} draws ${gain} shards${interest ? ` (${interest} of it interest)` : ''}.`,
+      'magic',
+      { playerId: p.id },
+    );
   }
 }

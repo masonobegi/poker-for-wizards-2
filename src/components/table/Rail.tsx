@@ -13,7 +13,7 @@ import type { Targeting } from '@/scenes/GameTable';
 import { RollingNumber } from '@/components/fx/RollingNumber';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight, SpellFlightLayer } from '@/components/fx/SpellFlight';
-import type { Vec2 } from '@/vfx';
+import type { Vec2 } from '@/vfx/particles';
 
 export interface RailProps {
   view: TableView;
@@ -64,7 +64,7 @@ function RailBase({
   const handleBeginCast = (uid: string): void => {
     const inst = sigils.find((s) => s.uid === uid);
     const def = inst ? SIGIL_BY_ID[inst.defId] : undefined;
-    const originEl = railRef.current?.querySelector(`[data-sigil-uid="${uid}"]`) ?? null;
+    const originEl = railRef.current?.querySelector(`[data-sigil-uid="${CSS.escape(uid)}"]`) ?? null;
     if (def) {
       if (def.target === 'none' || def.target === 'stack') {
         spellFlight.fireNow(originEl, immediateFlightTarget(), def.school, def.glyph);
@@ -76,7 +76,7 @@ function RailBase({
   };
 
   const handlePickCard = (id: string): void => {
-    spellFlight.release(document.querySelector(`[data-card-id="${id}"]`));
+    spellFlight.release(document.querySelector(`[data-card-id="${CSS.escape(id)}"]`));
     onPickCard(id);
   };
 

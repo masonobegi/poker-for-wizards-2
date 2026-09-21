@@ -13,8 +13,10 @@ import { SCHOOLS, SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
-import { vfx } from '@/vfx';
+// From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
+import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 
 export interface StackOverlayProps {
   view: TableView;
@@ -27,6 +29,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const stack = view.stack;
   const mayRespond = !!stack?.pending.includes(me.id);
   const panelRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotionPref();
 
   const responses = (me.sigils ?? []).filter((s) => {
     const def = SIGIL_BY_ID[s.defId];
@@ -41,7 +44,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const topId = view.stackEntries.length ? view.stackEntries[view.stackEntries.length - 1].id : null;
   const prevTopId = useRef<string | null>(null);
   useEffect(() => {
-    if (topId && topId !== prevTopId.current) vfx.shake(4, 140);
+    if (topId && topId !== prevTopId.current) shake(4, 140);
     prevTopId.current = topId;
   }, [topId]);
 
@@ -63,10 +66,12 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
           <motion.div
             className="stack-panel"
             ref={panelRef}
-            initial={{ y: 60, scale: 0.9 }}
-            animate={{ y: 0, scale: 1 }}
-            exit={{ y: 24, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 460, damping: 26, mass: 0.9 }}
+            initial={reducedMotion ? { opacity: 0 } : { y: 60, scale: 0.9 }}
+            animate={reducedMotion ? { opacity: 1 } : { y: 0, scale: 1 }}
+            exit={reducedMotion ? { opacity: 0 } : { y: 24, scale: 0.96 }}
+            transition={reducedMotion
+              ? { duration: 0.12 }
+              : { type: 'spring', stiffness: 460, damping: 26, mass: 0.9 }}
           >
             <header className="stack-head">
               <span className="eyebrow">The Stack</span>

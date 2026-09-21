@@ -5,6 +5,7 @@ import { Button, Range } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import { playSfx } from '@/lib/sound';
 import { TurnTimer } from '@/components/fx/TurnTimer';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 
 export interface ActionBarProps {
   view: TableView;
@@ -15,6 +16,7 @@ export interface ActionBarProps {
 function ActionBarBase({ view, me, blocked }: ActionBarProps) {
   const act = useGame((s) => s.act);
   const yourTurn = view.yourTurn && !blocked;
+  const reducedMotion = useReducedMotionPref();
 
   const maxTotal = me.bet + me.chips;
   const minRaise = view.currentBet > 0
@@ -80,10 +82,12 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
           <motion.div
             key="acting"
             className="ab-inner"
-            initial={{ opacity: 0, y: 42, scale: 0.96 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 42, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 480, damping: 28, mass: 0.9 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.98 }}
+            transition={reducedMotion
+              ? { duration: 0.12 }
+              : { type: 'spring', stiffness: 480, damping: 28, mass: 0.9 }}
           >
             <AnimatePresence>
               {raising ? (

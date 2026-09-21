@@ -9,18 +9,27 @@
  * `motion.*` element or animates layout-affecting CSS; it just changes text.
  */
 import { memo, useEffect, useRef, useState } from 'react';
-import { useMotionValue, useSpring, type SpringOptions } from 'framer-motion';
+import { useMotionValue, useSpring } from 'framer-motion';
 import { useReducedMotionPref } from './useReducedMotionPref';
+
+/** A minimal, structurally-compatible subset of framer-motion's own spring
+ *  config — framer-motion doesn't publicly export that type, so this is
+ *  declared locally rather than reaching into its internals. */
+export interface RollingSpring {
+  stiffness?: number;
+  damping?: number;
+  mass?: number;
+}
 
 export interface RollingNumberProps {
   value: number;
   className?: string;
   format?: (n: number) => string;
-  spring?: SpringOptions;
+  spring?: RollingSpring;
 }
 
-const DEFAULT_SPRING: SpringOptions = { stiffness: 170, damping: 15, mass: 1 };
-const CALM_SPRING: SpringOptions = { stiffness: 280, damping: 30, mass: 1 };
+const DEFAULT_SPRING: RollingSpring = { stiffness: 170, damping: 15, mass: 1 };
+const CALM_SPRING: RollingSpring = { stiffness: 280, damping: 30, mass: 1 };
 
 const defaultFormat = (n: number): string => n.toLocaleString();
 

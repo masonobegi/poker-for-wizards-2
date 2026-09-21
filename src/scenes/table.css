@@ -207,6 +207,25 @@
   z-index: -1;
 }
 
+/* --- turn timer (shared by Seat's opponent ring and ActionBar's own) ---- */
+
+.fx-turntimer-fill {
+  filter: drop-shadow(0 0 6px var(--gold));
+  transition: stroke 200ms, filter 200ms;
+}
+.fx-turntimer.is-urgent .fx-turntimer-fill {
+  animation: turntimer-glow 0.9s ease-in-out infinite;
+}
+/* transform/opacity/filter only — never touches the ring's own positioning transform. */
+@keyframes turntimer-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--bad)); opacity: 1; }
+  50%      { filter: drop-shadow(0 0 15px var(--bad)); opacity: 0.7; }
+}
+:root[data-reduced-motion='1'] .fx-turntimer.is-urgent .fx-turntimer-fill {
+  animation: none;
+  filter: drop-shadow(0 0 9px var(--bad));
+}
+
 .seat-relics {
   display: flex;
   gap: 3px;
@@ -391,7 +410,23 @@
   text-transform: uppercase;
   color: var(--text-4);
 }
-.pot-amount { font-size: var(--fs-lg); font-weight: 700; }
+.pot-amount {
+  display: inline-block;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--chip);
+  transition: color 320ms var(--ease-out);
+}
+.pot-amount.is-jumping {
+  color: var(--gold-hi);
+  animation: pot-jump 460ms var(--ease-snap);
+}
+@keyframes pot-jump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+:root[data-reduced-motion='1'] .pot-amount.is-jumping { animation: none; }
 .pot-side {
   font-size: 10px;
   color: var(--text-4);
@@ -594,6 +629,13 @@
   box-shadow: var(--e-lift), 0 0 34px color-mix(in srgb, var(--school) 60%, transparent);
 }
 .sigil.is-locked .sigil-frame { filter: grayscale(0.7) brightness(0.65); }
+.sigil.is-justcastable .sigil-frame { animation: sigil-pop 260ms var(--ease-snap); }
+@keyframes sigil-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+:root[data-reduced-motion='1'] .sigil.is-justcastable .sigil-frame { animation: none; }
 .sigil.is-selected .sigil-frame {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px var(--gold), 0 0 32px rgba(240, 196, 101, 0.6);
@@ -709,12 +751,20 @@
 /* --- action bar --------------------------------------------------------- */
 
 .actionbar {
+  position: relative;
   min-height: 74px;
   display: grid;
   place-items: center;
   padding: var(--s-2) var(--s-4) var(--s-4);
   background: rgba(8, 10, 20, 0.96);
   z-index: var(--z-ui);
+}
+
+.ab-clock {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-4);
+  pointer-events: none;
 }
 
 .ab-inner { display: grid; gap: var(--s-3); width: min(760px, 100%); }
@@ -839,8 +889,18 @@
   background: color-mix(in srgb, var(--school) 10%, rgba(5, 6, 12, 0.5));
   box-shadow: 0 0 20px color-mix(in srgb, var(--school) 30%, transparent);
 }
-.stack-item.is-countered { opacity: 0.45; }
+.stack-item.is-countered { opacity: 0.45; animation: stack-impact 320ms var(--ease-snap); }
 .stack-item.is-countered .stack-body strong { text-decoration: line-through; }
+
+/* A hard, violent punch rather than a crossfade — this is a counterspell hitting. */
+@keyframes stack-impact {
+  0%   { transform: translateX(0) scale(1); }
+  18%  { transform: translateX(-7px) scale(1.035); }
+  42%  { transform: translateX(5px) scale(0.985); }
+  68%  { transform: translateX(-2px) scale(1.01); }
+  100% { transform: translateX(0) scale(1); }
+}
+:root[data-reduced-motion='1'] .stack-item.is-countered { animation: none; }
 
 .stack-glyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
 .stack-body { display: grid; }

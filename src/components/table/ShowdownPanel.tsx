@@ -5,7 +5,9 @@ import { CAT_NAME } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
-import { vfx, type School } from '@/vfx';
+// From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
+import { burstAt } from '@/lib/visuals';
+import type { School } from '@/vfx/particles';
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
@@ -88,10 +90,10 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
     e.usedIds.forEach((id, idx) => {
       const t = window.setTimeout(() => {
         setRevealed((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        const el = rowRef.current?.querySelector(`[data-card-id="${id}"]`);
+        const el = rowRef.current?.querySelector(`[data-card-id="${CSS.escape(id)}"]`);
         if (!el) return;
-        if (e.impossible) vfx.burstAtEl('cast', el, { school: SCHOOL_CYCLE[idx % SCHOOL_CYCLE.length], scale: 1.1 });
-        else vfx.burstAtEl('sparkleTrail', el, { count: 5 });
+        if (e.impossible) burstAt('cast', el, { school: SCHOOL_CYCLE[idx % SCHOOL_CYCLE.length], scale: 1.1 });
+        else burstAt('sparkleTrail', el, { count: 5 });
       }, 320 + idx * stepMs);
       timers.push(t);
     });

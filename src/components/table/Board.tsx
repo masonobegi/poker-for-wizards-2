@@ -22,7 +22,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
   // A board card being picked as a target releases the armed spell flight
   // (see Rail.tsx) toward it, then does the actual target-pick as before.
   const handlePickCard = (id: string): void => {
-    spellFlight.release(document.querySelector(`[data-card-id="${id}"]`));
+    spellFlight.release(document.querySelector(`[data-card-id="${CSS.escape(id)}"]`));
     onPickCard?.(id);
   };
 

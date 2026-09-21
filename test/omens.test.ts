@@ -12,6 +12,7 @@ import { Engine } from '../server/game/engine';
 import { alive, modsFor } from '../server/game/table';
 import { OMENS, OMEN_BY_ID, omenMods, type ActiveOmen } from '../shared/omens';
 import { Cat } from '../shared/hand';
+import type { MarkId } from '../shared/cards';
 
 function table(players = 3) {
   const engine = new Engine('OMEN', 'host', {
@@ -127,7 +128,7 @@ test('deck-editing omens inscribe the shared deck exactly once', () => {
   t.ante = 9;
   for (let i = 0; i < 40; i++) roll();
 
-  const wanted = new Map<string, number>();
+  const wanted = new Map<MarkId, number>();
   for (const o of t.omens) {
     const ins = OMEN_BY_ID[o.id]?.deal?.inscribe;
     if (ins) wanted.set(ins.markId, (wanted.get(ins.markId) ?? 0) + ins.count);

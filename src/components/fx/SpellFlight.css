@@ -27,10 +27,14 @@
   font-family: var(--font-display);
   font-size: 20px;
   line-height: 1;
-  color: var(--fx-school-hi, #fff);
+  color: color-mix(in srgb, var(--fx-school, var(--gold)) 40%, #fff);
   text-shadow:
     0 0 10px var(--fx-school, var(--gold)),
     0 0 22px var(--fx-school, var(--gold));
+}
+
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .fx-spellflight-glyph { color: #fff; }
 }
 
 .fx-spellflight-tail {

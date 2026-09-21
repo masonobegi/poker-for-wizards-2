@@ -22,7 +22,12 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { centerOf, prefersReducedMotion, schoolColors, type School, type Vec2 } from '@/vfx';
+// `centerOf` and `SCHOOL_COLOR` come from the lazy-loading shim, and the
+// types/pure-function come from the dependency-free particle module — never
+// from the `@/vfx` barrel, which statically re-exports `VfxLayer` and would
+// pull the whole (deliberately code-split) particle engine into this chunk.
+import { centerOf, SCHOOL_COLOR } from '@/lib/visuals';
+import { prefersReducedMotion, type School, type Vec2 } from '@/vfx/particles';
 import './SpellFlight.css';
 
 interface Flight {
@@ -137,7 +142,7 @@ function FlightOrb({ flight }: { flight: Flight }) {
   const dx = flight.toX - flight.fromX;
   const dy = flight.toY - flight.fromY;
   const arc = -Math.min(140, Math.hypot(dx, dy) * 0.3 + 40);
-  const colors = schoolColors(flight.school);
+  const color = SCHOOL_COLOR[flight.school] ?? '#f0c465';
 
   useEffect(() => {
     const t = window.setTimeout(() => despawn(flight.id), 520);
@@ -150,8 +155,7 @@ function FlightOrb({ flight }: { flight: Flight }) {
       style={{
         left: flight.fromX,
         top: flight.fromY,
-        ['--fx-school' as string]: colors[0],
-        ['--fx-school-hi' as string]: colors[2] ?? colors[0],
+        ['--fx-school' as string]: color,
       }}
       initial={{ transform: 'translate3d(-50%,-50%,0) scale(0.5)', opacity: 0 }}
       animate={{

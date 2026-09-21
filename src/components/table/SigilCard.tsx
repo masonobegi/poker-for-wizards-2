@@ -18,9 +18,9 @@ function SigilCardBase({
   inst, castable, cost, affordable, selected, onCast, onDiscard, index = 0, compact,
 }: SigilCardProps) {
   const def = SIGIL_BY_ID[inst.defId];
-  if (!def) return null;
-  const school = SCHOOLS[def.school];
-  const usable = castable && affordable;
+  // `usable` must be computed before any early return so the hooks below
+  // always run in the same order, whether or not `def` resolves.
+  const usable = !!def && castable && affordable;
 
   // A quick pop the instant a sigil crosses from locked to castable (mana
   // just filled the last pip) — a "you can act now" cue, not a loop.
@@ -36,6 +36,9 @@ function SigilCardBase({
     wasUsable.current = usable;
     return undefined;
   }, [usable]);
+
+  if (!def) return null;
+  const school = SCHOOLS[def.school];
 
   return (
     <motion.div
