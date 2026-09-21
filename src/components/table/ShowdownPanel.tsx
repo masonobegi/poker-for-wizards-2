@@ -47,7 +47,7 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
 
         <ul className="showdown-list">
           {shown.map((e, i) => (
-            <ShowdownRow key={e.playerId} e={e} i={i} nameOf={nameOf} />
+            <ShowdownRow key={e.playerId} e={e} i={i} nameOf={nameOf} shards={payout.shards[e.playerId]} />
           ))}
         </ul>
       </div>
@@ -64,7 +64,14 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
  * this stays a quieter, localized "here's why" that follows it rather than
  * repeating it.
  */
-function ShowdownRow({ e, i, nameOf }: { e: ShowdownEntry; i: number; nameOf: (id: string) => string }) {
+interface ShowdownRowProps {
+  e: ShowdownEntry;
+  i: number;
+  nameOf: (id: string) => string;
+  shards?: number;
+}
+
+function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   useCardAnchors(rowRef, e.cards.map((c) => c.id));
   const reduced = useReducedMotionPref();
@@ -143,7 +150,7 @@ function ShowdownRow({ e, i, nameOf }: { e: ShowdownEntry; i: number; nameOf: (i
           transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 420, damping: 20 }}
         >
           +{e.won.toLocaleString()}
-          {/* shard reward, when present, is looked up by the parent via payout.shards */}
+          {shards ? <em className="showdown-shards">◆{shards}</em> : null}
         </motion.span>
       ) : (
         <span className="showdown-lost">{CAT_NAME[e.cat as keyof typeof CAT_NAME] ? '' : ''}</span>
