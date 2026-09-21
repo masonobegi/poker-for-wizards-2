@@ -14,7 +14,14 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false || tsc -p tsconfig.app.json --noEmit",
     "test": "node --import tsx --test test/hand.test.ts test/sigils.test.ts test/render.test.tsx test/net.test.ts",
-    "sim": "tsx test/sim.ts"
+    "sim": "tsx test/sim.ts",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist-server/index.mjs --external:bufferutil --external:utf-8-validate --banner:js=\"import{createRequire as __hxcr}from'node:module';const require=__hxcr(import.meta.url);\"",
+    "build:all": "npm run build && npm run build:server",
+    "electron:dev": "concurrently -n server,vite,electron -c magenta,cyan,yellow \"npm:dev:server\" \"npm:dev:client\" \"wait-on tcp:5173 && electron .\"",
+    "package": "npm run icon && npm run build:all && electron-builder --publish never",
+    "package:win": "npm run icon && npm run build:all && electron-builder --win --publish never",
+    "package:linux": "npm run icon && npm run build:all && electron-builder --linux --publish never",
+    "icon": "node electron/make-icon.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -34,9 +41,75 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
-  }
+    "vite": "^6.0.7",
+    "wait-on": "^9.1.0"
+  },
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.hexhold.game",
+    "productName": "HEXHOLD",
+    "copyright": "HEXHOLD",
+    "directories": {
+      "output": "release",
+      "buildResources": "electron"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "client"
+      },
+      {
+        "from": "dist-server",
+        "to": "server"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Game",
+      "icon": "electron/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.card-games",
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "HEXHOLD"
+    }
+  },
+  "author": "Mason Obegi"
 }

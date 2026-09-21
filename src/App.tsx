@@ -47,6 +47,23 @@ export default function App() {
     return () => fxRoot(null);
   }, []);
 
+  // F11 toggles fullscreen: through the desktop shell when there is one, and
+  // through the Fullscreen API in a browser.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'F11') return;
+      e.preventDefault();
+      const shell = (window as unknown as {
+        hexhold?: { toggleFullscreen?: (on?: boolean) => Promise<boolean> };
+      }).hexhold;
+      if (shell?.toggleFullscreen) { void shell.toggleFullscreen(); return; }
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      else void document.documentElement.requestFullscreen().catch(() => {});
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Browsers will not start audio until the player touches something.
   useEffect(() => {
     const go = () => {

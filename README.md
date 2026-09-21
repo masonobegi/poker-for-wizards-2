@@ -20,11 +20,23 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 69 tests: hand evaluation, every sigil, end-to-end sockets
+npm test           # 77 tests: hand eval, every sigil, DOM mounts, sockets
 npm run sim -- 120 6   # headless bot-vs-bot game, 120 seconds, 6 players
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
+
+### Desktop builds
+
+```bash
+npm run electron:dev   # the desktop shell against the Vite dev server
+npm run package:win    # installer + zip into release/
+npm run package:linux  # AppImage + tarball
+```
+
+The desktop build starts the game server in a child process on a free port and points a chromeless window at it, so a single binary plays offline against bots and can also host a table for people on the same network with nothing to deploy. F11 toggles fullscreen.
+
+The app icon is generated too — `npm run icon` draws it and encodes the PNG by hand, because committing a binary would be the one asset in the repo.
 
 ---
 
@@ -100,13 +112,16 @@ test/hand.test.ts     Hand evaluation: standard hands, the impossible ones,
                       wilds, superposition, and every rule modifier
 test/sigils.test.ts   All 37 sigils cast and resolved, plus teardown,
                       counterspelling, mana gating and ward protection
+test/render.test.tsx  Mounts the real components in a real DOM: every card
+                      state, the court art, the menu, and the whole app with
+                      no canvas and no AudioContext
 test/net.test.ts      Two real clients over a real socket: dealing, redaction,
                       showdown, and out-of-turn rejection
 test/sim.ts           Headless bot game asserting chip conservation, no
                       negative stacks, and that hands always advance
 ```
 
-The simulation harness is the one that earns its keep — it found a betting-round deadlock where a completed round left a player on the clock, letting the bot loop act on them forever.
+Between them these found the three bugs worth mentioning: a betting-round deadlock where a completed round left a player on the clock and the bot loop kept acting on them; a redaction failure that sent every opponent's hole cards to every client; and three modules reading `import.meta.env` at module scope, which only exists under Vite.
 
 ---
 

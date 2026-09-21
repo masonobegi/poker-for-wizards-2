@@ -10,3 +10,6 @@ release/
 *.log
 .vite/
 coverage/
+dist-server/
+electron/icon.png
+electron/icon@512.png

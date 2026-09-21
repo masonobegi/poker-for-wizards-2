@@ -32,8 +32,11 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, ...rooms.stats(), uptime: Math.round(process.uptime()) });
 });
 
-// In production the built client is served from the same origin.
-const dist = path.resolve(__dirname, '..', 'dist');
+// In production the built client is served from the same origin. The desktop
+// shell relocates both, so allow an explicit override.
+const dist = process.env.CLIENT_DIR
+  ? path.resolve(process.env.CLIENT_DIR)
+  : path.resolve(__dirname, '..', 'dist');
 app.use(express.static(dist, { maxAge: DEV ? 0 : '1h', index: false }));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(dist, 'index.html'), (err) => {
