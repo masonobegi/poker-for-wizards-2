@@ -1,0 +1,173 @@
+.shop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+  background: rgba(3, 4, 9, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.shop-panel {
+  width: min(980px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.16), transparent 70%),
+    linear-gradient(180deg, #1b2140, #0b0e1f);
+  border: 1px solid var(--line);
+  box-shadow: var(--e-4), 0 0 80px rgba(124, 58, 237, 0.2);
+}
+
+.shop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.shop-title {
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6dd, var(--gold) 55%, var(--gold-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.shop-sub { font-size: var(--fs-sm); color: var(--text-3); margin-top: 2px; }
+
+.shop-purse { display: flex; align-items: center; gap: var(--s-4); }
+.shop-shards {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--veil);
+  text-shadow: 0 0 20px rgba(110, 200, 255, 0.5);
+}
+.shop-clock {
+  font-size: var(--fs-md);
+  color: var(--text-4);
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: var(--s-3);
+}
+
+.shopcard {
+  --accent: var(--text-3);
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: var(--s-4) var(--s-3) var(--s-3);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--accent) 13%, #101427),
+      #0a0c18);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  box-shadow: var(--e-2);
+  transition: box-shadow var(--t-fast), border-color var(--t-fast), filter var(--t-fast);
+}
+.shopcard:not(.is-sold):not(.is-locked):hover {
+  border-color: var(--accent);
+  box-shadow: var(--e-lift), 0 0 36px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.shopcard.is-sold { opacity: 0.35; filter: grayscale(0.85); }
+.shopcard.is-locked { filter: grayscale(0.45) brightness(0.8); }
+
+.shopcard-kind {
+  position: absolute;
+  top: 8px; left: 12px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.shopcard-glyph {
+  text-align: center;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--accent);
+  filter: drop-shadow(0 0 16px var(--accent));
+  margin-top: var(--s-2);
+}
+
+.shopcard-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.shopcard-text {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+  text-align: center;
+  min-height: 46px;
+}
+
+.shopcard-impossible {
+  font-size: 9px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--text-4);
+  text-align: center;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-soft);
+}
+.shopcard-impossible span { color: var(--accent); font-style: normal; margin-right: 3px; }
+
+.shopcard-foot { display: grid; place-items: center; margin-top: var(--s-1); }
+.shopcard-sold {
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.shop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.shop-ready { display: flex; gap: 5px; }
+.shop-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  transition: all var(--t-base);
+}
+.shop-dot.is-done {
+  background: var(--good);
+  border-color: var(--good);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+}
+
+@media (max-width: 620px) {
+  .shop-grid { grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); }
+  .shopcard-text { min-height: 0; }
+  .shopcard-impossible { display: none; }
+}

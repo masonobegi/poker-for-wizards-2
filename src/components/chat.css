@@ -1,0 +1,89 @@
+.chat {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  min-height: 0;
+}
+.chat.is-compact { grid-template-rows: minmax(0, 1fr) auto auto; }
+
+.chat-list {
+  overflow-y: auto;
+  padding: var(--s-3);
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  min-height: 0;
+}
+
+.chat-empty {
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  font-style: italic;
+  text-align: center;
+  padding: var(--s-4) 0;
+}
+
+.chat-msg {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.chat-msg.is-system {
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  font-style: italic;
+  text-align: center;
+}
+
+.chat-who {
+  font-weight: 700;
+  color: var(--text-3);
+  margin-right: 6px;
+}
+.chat-msg.is-you .chat-who { color: var(--gold); }
+.chat-text { color: var(--text-2); }
+
+.chat-emotes {
+  display: flex;
+  gap: 3px;
+  padding: 0 var(--s-3) 6px;
+  flex-wrap: wrap;
+}
+.chat-emote {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  font-size: 15px;
+  line-height: 1;
+  transition: background var(--t-fast), transform var(--t-fast) var(--ease-snap);
+}
+.chat-emote:hover { background: rgba(255, 255, 255, 0.07); transform: scale(1.18); }
+.chat-emote:active { transform: scale(0.94); }
+
+.chat-form {
+  display: flex;
+  gap: 6px;
+  padding: var(--s-3);
+  border-top: 1px solid var(--line-soft);
+}
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: rgba(5, 6, 12, 0.55);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+.chat-input:focus { outline: none; border-color: var(--gold-deep); }
+.chat-input::placeholder { color: var(--text-4); }
+
+.chat-send {
+  width: 34px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 16px;
+  transition: all var(--t-fast);
+}
+.chat-send:hover:not(:disabled) { color: var(--gold); border-color: var(--gold-deep); }
+.chat-send:disabled { opacity: 0.35; }

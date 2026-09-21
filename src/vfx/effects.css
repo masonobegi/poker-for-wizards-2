@@ -1,0 +1,395 @@
+/* ===========================================================================
+   HEXHOLD — vfx overlay styles
+   ---------------------------------------------------------------------------
+   Everything here is either driven by a CSS custom property that VfxLayer
+   writes once per frame, or by a keyframe that runs for a fixed burst. None of
+   it ever accepts pointer events, and none of it ever sits above a modal
+   by accident — it lives on --z-fx.
+   =========================================================================== */
+
+/* --- the layer itself ---------------------------------------------------- */
+
+.vfx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx, 90);
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+  /* Nothing in here should ever be selectable or draggable. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vfx-layer > * {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vfx-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- full screen colour flash -------------------------------------------- */
+
+.vfx-flash {
+  opacity: 0;
+  background: var(--vfx-flash-color, #ffffff);
+  mix-blend-mode: screen;
+  will-change: opacity;
+}
+
+/* --- pulsing coloured vignette ------------------------------------------- */
+
+.vfx-vignette {
+  opacity: 0;
+  background:
+    radial-gradient(
+      120% 92% at 50% 50%,
+      transparent 42%,
+      color-mix(in srgb, var(--vfx-vignette-color, #ff7a8a) 55%, transparent) 88%,
+      var(--vfx-vignette-color, #ff7a8a) 122%
+    );
+  mix-blend-mode: screen;
+}
+
+/* Browsers without color-mix still get a readable vignette. */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .vfx-vignette {
+    background: radial-gradient(
+      120% 92% at 50% 50%,
+      transparent 44%,
+      var(--vfx-vignette-color, #ff7a8a) 118%
+    );
+  }
+}
+
+.vfx-vignette.is-on {
+  animation: vfx-vignette-pulse var(--vfx-vignette-ms, 900ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+/* --- film grain ----------------------------------------------------------- */
+
+.vfx-grain {
+  inset: -80px;
+  opacity: var(--vfx-grain-opacity, 0.045);
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  mix-blend-mode: overlay;
+  animation: vfx-grain-shift 900ms steps(6, end) infinite;
+  will-change: transform;
+}
+
+/* If the runtime noise tile could not be generated, this is still grain-ish. */
+.vfx-grain:not([style*='background-image']) {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 4px);
+}
+
+/* --- scanlines ------------------------------------------------------------ */
+
+.vfx-scanlines {
+  opacity: var(--vfx-scanline-opacity, 0.05);
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0 2px,
+    rgba(0, 0, 0, 0.55) 2px 3px
+  );
+  mix-blend-mode: multiply;
+  animation: vfx-scanline-drift 7s linear infinite;
+}
+
+/* --- the inline SVG filter holder ---------------------------------------- */
+
+.vfx-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ===========================================================================
+   Root-level effects — applied to whatever element was handed to vfx.setRoot()
+   =========================================================================== */
+
+/* Camera shake. The transform reads three custom properties that the RAF loop
+   writes; the class is only present while a shake is actually running, so we
+   never leave a compositing layer behind. */
+.vfx-shaking {
+  transform: translate3d(var(--vfx-shake-x, 0px), var(--vfx-shake-y, 0px), 0)
+    rotate(var(--vfx-shake-rot, 0deg));
+  will-change: transform;
+}
+
+/* RGB split. `filter` establishes a containing block for fixed-position
+   descendants, which is why the vfx layer is portalled to <body> and never
+   lives inside the shake/chromatic root. */
+.vfx-chromatic {
+  filter: url(#vfx-rgb-split);
+}
+
+/* Cheap fallback for engines where the SVG filter is unavailable or slow. */
+.vfx-chromatic-cheap {
+  text-shadow:
+    calc(var(--vfx-ab, 0px) * -1) 0 rgba(255, 0, 64, 0.65),
+    var(--vfx-ab, 0px) 0 rgba(0, 180, 255, 0.65);
+}
+
+/* ===========================================================================
+   Keyframes
+   =========================================================================== */
+
+@keyframes vfx-vignette-pulse {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  46% { opacity: 0.55; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+@keyframes vfx-grain-shift {
+  0%   { transform: translate3d(0, 0, 0); }
+  20%  { transform: translate3d(-12px, 6px, 0); }
+  40%  { transform: translate3d(8px, -10px, 0); }
+  60%  { transform: translate3d(-6px, -6px, 0); }
+  80%  { transform: translate3d(10px, 8px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes vfx-scanline-drift {
+  0%   { background-position-y: 0; }
+  100% { background-position-y: 96px; }
+}
+
+/* A single screen-wide heartbeat, for wins and reveals. */
+@keyframes vfx-screen-pulse {
+  0%   { opacity: 0; transform: scale(1); }
+  18%  { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+/* An expanding shock ring for DOM-level shockwaves. */
+@keyframes vfx-shockwave {
+  0%   { opacity: 0.85; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+
+/* ===========================================================================
+   Presentational components — <Aura>, <Shimmer>, <Runes>, <Pulse>
+   All CSS-driven. React never re-renders these per frame.
+   =========================================================================== */
+
+/* --- Aura ----------------------------------------------------------------- */
+
+.vfx-aura {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+}
+
+.vfx-aura::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--aura-glow, 18px) * -0.75);
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    closest-side,
+    var(--aura-color, #f0c465) 0%,
+    color-mix(in srgb, var(--aura-color, #f0c465) 45%, transparent) 55%,
+    transparent 100%
+  );
+  filter: blur(calc(var(--aura-glow, 18px) * 0.55));
+  opacity: var(--aura-intensity, 0.55);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .vfx-aura::before {
+    background: radial-gradient(closest-side, var(--aura-color, #f0c465) 0%, transparent 72%);
+  }
+}
+
+.vfx-aura[data-shape='circle']::before { border-radius: 50%; }
+.vfx-aura[data-shape='pill']::before { border-radius: var(--r-pill, 999px); }
+.vfx-aura[data-shape='rounded']::before { border-radius: var(--r-md, 12px); }
+
+.vfx-aura[data-pulse='true']::before {
+  animation: vfx-aura-breathe var(--aura-speed, 2.6s) ease-in-out infinite;
+}
+
+@keyframes vfx-aura-breathe {
+  0%, 100% { opacity: calc(var(--aura-intensity, 0.55) * 0.62); transform: scale(0.965); }
+  50%      { opacity: var(--aura-intensity, 0.55); transform: scale(1.045); }
+}
+
+/* --- Shimmer -------------------------------------------------------------- */
+
+.vfx-shimmer {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: inherit;
+  isolation: isolate;
+}
+
+.vfx-shimmer-sweep {
+  position: absolute;
+  inset: -40% -60%;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    var(--shimmer-color, rgba(255, 255, 255, 0.55)) 48%,
+    var(--shimmer-hot, rgba(255, 255, 255, 0.9)) 51%,
+    var(--shimmer-color, rgba(255, 255, 255, 0.55)) 54%,
+    transparent 64%
+  );
+  mix-blend-mode: screen;
+  transform: translate3d(-130%, 0, 0);
+  animation: vfx-shimmer-sweep var(--shimmer-speed, 2.8s) var(--shimmer-ease, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+  animation-delay: var(--shimmer-delay, 0s);
+  will-change: transform;
+}
+
+.vfx-shimmer[data-active='false'] .vfx-shimmer-sweep {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+@keyframes vfx-shimmer-sweep {
+  0%   { transform: translate3d(-130%, 0, 0); }
+  55%  { transform: translate3d(130%, 0, 0); }
+  100% { transform: translate3d(130%, 0, 0); }
+}
+
+/* --- Runes ---------------------------------------------------------------- */
+
+.vfx-runes {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  animation: vfx-orbit var(--runes-speed, 14s) linear infinite;
+  will-change: transform;
+}
+
+.vfx-runes[data-dir='ccw'] { animation-direction: reverse; }
+
+.vfx-rune {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: rotate(var(--rune-a, 0deg)) translate(var(--runes-radius, 52px));
+}
+
+.vfx-rune-g {
+  display: block;
+  margin: calc(var(--rune-size, 13px) * -0.62) 0 0 calc(var(--rune-size, 13px) * -0.5);
+  font-family: var(--font-display, serif);
+  font-size: var(--rune-size, 13px);
+  line-height: 1;
+  color: var(--runes-color, #b98cff);
+  text-shadow: 0 0 calc(var(--rune-size, 13px) * 0.7) var(--runes-color, #b98cff);
+  opacity: var(--runes-opacity, 0.82);
+  /* Counter-rotate at the orbit's rate so glyphs stay upright. */
+  animation:
+    vfx-counter-orbit var(--runes-speed, 14s) linear infinite,
+    vfx-rune-twinkle calc(var(--runes-speed, 14s) / 3.5) ease-in-out infinite;
+  animation-delay: 0s, var(--rune-delay, 0s);
+  will-change: transform, opacity;
+}
+
+.vfx-runes[data-dir='ccw'] .vfx-rune-g { animation-direction: reverse, normal; }
+
+@keyframes vfx-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes vfx-counter-orbit {
+  from { transform: rotate(0deg) translateZ(0); }
+  to   { transform: rotate(-360deg) translateZ(0); }
+}
+
+@keyframes vfx-rune-twinkle {
+  0%, 100% { opacity: calc(var(--runes-opacity, 0.82) * 0.4); }
+  50%      { opacity: var(--runes-opacity, 0.82); }
+}
+
+/* --- Pulse ---------------------------------------------------------------- */
+
+.vfx-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.vfx-pulse i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--pulse-size, 46px);
+  height: var(--pulse-size, 46px);
+  margin: calc(var(--pulse-size, 46px) * -0.5) 0 0 calc(var(--pulse-size, 46px) * -0.5);
+  border: var(--pulse-width, 2px) solid var(--pulse-color, #5eead4);
+  border-radius: 50%;
+  opacity: 0;
+  animation: vfx-pulse-ring var(--pulse-speed, 2.2s) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) infinite;
+  will-change: transform, opacity;
+}
+
+.vfx-pulse i:nth-child(2) { animation-delay: calc(var(--pulse-speed, 2.2s) * 0.5); }
+.vfx-pulse i:nth-child(3) { animation-delay: calc(var(--pulse-speed, 2.2s) * 0.25); }
+
+@keyframes vfx-pulse-ring {
+  0%   { opacity: 0; transform: scale(0.55); }
+  12%  { opacity: var(--pulse-intensity, 0.75); }
+  100% { opacity: 0; transform: scale(1.75); }
+}
+
+/* --- anchor --------------------------------------------------------------- */
+
+/* Used by <Runes> and <Pulse> only when they are given children to wrap:
+   it establishes the positioned, zero-footprint box their absolutely
+   positioned overlay centres itself on. Layout-neutral otherwise. */
+.vfx-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ===========================================================================
+   Reduced motion
+   Nothing disappears — it just stops moving.
+   =========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .vfx-grain,
+  .vfx-scanlines,
+  .vfx-shimmer-sweep,
+  .vfx-runes,
+  .vfx-rune-g,
+  .vfx-pulse i,
+  .vfx-aura[data-pulse='true']::before,
+  .vfx-vignette.is-on {
+    animation: none !important;
+  }
+
+  .vfx-shimmer-sweep { opacity: 0; }
+  .vfx-pulse i { opacity: calc(var(--pulse-intensity, 0.75) * 0.5); transform: scale(1.1); }
+  .vfx-vignette.is-on { opacity: 0.35; }
+  .vfx-grain { opacity: calc(var(--vfx-grain-opacity, 0.045) * 0.6); }
+  .vfx-chromatic { filter: none; }
+  .vfx-shaking { transform: none; }
+}

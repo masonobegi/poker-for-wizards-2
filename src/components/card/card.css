@@ -1,0 +1,867 @@
+/* ===========================================================================
+   card.css — styling for CardArt, CardBack, Card and CardRow.
+
+   Every dimension derives from --card-w / --card-h (tokens.css) and the
+   --cs multiplier each component already computes per `size`. Nothing here
+   hardcodes a pixel size for xs/sm/md/lg; --hx-w/--hx-h/--hx-r are computed
+   once on .hx-card-slot and everything downstream reads them (directly, or
+   through the em-based font-size set on the same element).
+
+   Layering, front to back of the visual stack (see Card.tsx's own diagram):
+     .hx-card-slot     size + perspective
+       .hx-card-enter   deal-in / exit / selection lift        [framer]
+         .hx-card__lift   idle float, dim/desaturate            [css]
+           .hx-card__shadow  contact shadow                     [framer]
+           .hx-card          pointer tilt                        [framer]
+             .hx-card__flip    3D Y-rotation                     [framer]
+               .hx-card__side--front / --back
+             .hx-card__fx      clipped effects + rim
+             .hx-card__ov      unclipped badges / rings / ripples
+
+   Animation discipline: only transform, opacity and filter are ever
+   animated or transitioned. Nothing here triggers layout. Global
+   `prefers-reduced-motion` handling already collapses every animation- and
+   transition-duration to 1ms in tokens.css; the block at the end of this
+   file additionally kills the handful of `infinite` loops outright.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. Slot geometry — the single source of truth for size.
+   --------------------------------------------------------------------------- */
+
+.hx-card-slot {
+  --hx-w: calc(var(--card-w, 78px) * var(--cs, 1));
+  --hx-h: calc(var(--card-h, 112px) * var(--cs, 1));
+  --hx-r: calc(var(--r-card, 9px) * var(--cs, 1));
+  --hx-idx-ratio: 0.145;
+
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  width: var(--hx-w);
+  height: var(--hx-h);
+  font-size: calc(var(--hx-h) * 0.1);
+  perspective: 1000px;
+  perspective-origin: 50% 50%;
+  touch-action: manipulation;
+  outline: none;
+}
+
+/* Text (rank/suit indices) doesn't shrink linearly with the card — smaller
+   cards get a proportionally bigger index so "legible at sm" holds, and a
+   hard floor in the clamp() below covers anything smaller still. */
+.hx-card-slot--xs { --hx-idx-ratio: 0.19; }
+.hx-card-slot--sm { --hx-idx-ratio: 0.165; }
+.hx-card-slot--md { --hx-idx-ratio: 0.145; }
+.hx-card-slot--lg { --hx-idx-ratio: 0.13; }
+
+.hx-card-slot.is-interactive { cursor: pointer; }
+.hx-card-slot:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: var(--hx-r);
+}
+
+/* ---------------------------------------------------------------------------
+   2. The layer stack — sizing, positioning, the flip mechanics.
+   --------------------------------------------------------------------------- */
+
+.hx-card-enter {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hx-card__lift {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity var(--t-base, 260ms) var(--ease-out, ease),
+    filter var(--t-base, 260ms) var(--ease-out, ease);
+}
+
+.hx-card__shadow {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -8%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 72%);
+  filter: blur(3px);
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.hx-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  cursor: inherit;
+}
+
+.hx-card__flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.hx-card__side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.hx-card__side--back {
+  transform: rotateY(180deg);
+}
+
+.hx-card__surface {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--hx-r, 9px);
+  overflow: hidden;
+}
+
+.hx-card__surface--face {
+  background: linear-gradient(160deg, var(--card-face), var(--card-face-2));
+  box-shadow:
+    0 0 0 1px var(--card-edge),
+    var(--e-card),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.14),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.035);
+}
+
+.hx-card__surface--back {
+  background: linear-gradient(155deg, var(--card-back-1), var(--card-back-2));
+  box-shadow:
+    0 0 0 1px var(--card-edge),
+    var(--e-card),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Very low-opacity paper fibre, two crossed grains. Sits under the ink. */
+.hx-card__paper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image:
+    repeating-linear-gradient(11deg, rgba(23, 26, 36, 0.7) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-73deg, rgba(23, 26, 36, 0.5) 0 1px, transparent 1px 4px);
+}
+
+.hx-card__fx {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hx-card__ov {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hx-card__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Persistent frame. Base = a hairline. ::before/::after are glow layers
+   toggled purely by opacity so state changes never touch box-shadow. */
+.hx-card__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+.hx-card__rim::before,
+.hx-card__rim::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--t-base, 260ms) var(--ease-out, ease);
+}
+.hx-card__rim::before {
+  box-shadow: 0 0 0 1.5px var(--gold), 0 0 0.9em color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.hx-card__rim::after {
+  box-shadow: 0 0 0 1.5px var(--bind), 0 0 0.9em color-mix(in srgb, var(--bind) 55%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
+   3. CardArt — corner indices, pip grid, court-figure framing.
+   --------------------------------------------------------------------------- */
+
+.hx-art {
+  position: absolute;
+  inset: 0;
+  color: var(--card-black);
+}
+.hx-art[data-ink='red'] { color: var(--card-red); }
+.hx-art[data-ink='black'] { color: var(--card-black); }
+
+.hx-art__index {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.hx-art__index--tl { top: 5.5%; left: 7%; }
+.hx-art__index--br { bottom: 5.5%; right: 7%; transform: rotate(180deg); }
+
+.hx-art__rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(9px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145)), 26px);
+  letter-spacing: 0.01em;
+}
+.hx-art__rank[data-wide] {
+  font-size: clamp(8px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145) * 0.82), 21px);
+  letter-spacing: -0.03em;
+}
+
+.hx-art__index-suit {
+  width: 0.7em;
+  height: 0.7em;
+  margin-top: 0.05em;
+}
+
+.hx-art__centre {
+  position: absolute;
+  inset: 17% 7%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hx-art__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+/* Court figures read a hair crisper than a plain pip grid — a whisper of
+   engraved depth on the silhouette. */
+.hx-art__svg--court {
+  filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.08));
+}
+
+/* Court frame + engraving. */
+.hx-art__frame { fill: none; stroke: currentColor; stroke-width: 1.6; opacity: 0.55; }
+.hx-art__frame-2 { fill: none; stroke: currentColor; stroke-width: 0.8; opacity: 0.32; }
+.hx-art__hatch { fill: none; stroke: currentColor; stroke-width: 0.45; opacity: 0.14; }
+.hx-art__fill { fill: currentColor; opacity: 0.16; stroke: none; }
+.hx-art__line { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+.hx-art__gold-line { fill: none; stroke: var(--gold-deep); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.hx-art__gold-fill { fill: var(--gold); stroke: none; }
+
+/* ---------------------------------------------------------------------------
+   4. CardBack — the arcane deck back.
+   --------------------------------------------------------------------------- */
+
+.hx-back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--hx-r, 9px);
+  background: linear-gradient(155deg, var(--card-back-1), var(--card-back-2));
+}
+.hx-back--muted { filter: saturate(0.5) brightness(0.62); }
+/* The travelling gleam already implies polish; give the fixed engraving a
+   matching glint so the metal reads as one consistent surface. */
+.hx-back--sheen .hx-back__ring,
+.hx-back--sheen .hx-back__star {
+  filter: drop-shadow(0 0 1px rgba(240, 196, 101, 0.25));
+}
+
+.hx-back__svg { width: 100%; height: 100%; display: block; }
+
+.hx-back__rule { fill: none; stroke: var(--gold-deep); stroke-width: 1.4; }
+.hx-back__rule-fine { fill: none; stroke: var(--gold); stroke-width: 0.6; opacity: 0.85; }
+.hx-back__guilloche { fill: none; stroke: var(--gold); stroke-width: 0.35; opacity: 0.35; }
+.hx-back__teeth { fill: none; stroke: var(--gold); stroke-width: 0.5; opacity: 0.5; }
+.hx-back__ring { fill: none; stroke: var(--gold); stroke-width: 0.8; opacity: 0.8; }
+.hx-back__ring-fine { fill: none; stroke: var(--gold); stroke-width: 0.5; opacity: 0.6; }
+.hx-back__star { fill: none; stroke: var(--gold-hi); stroke-width: 0.6; opacity: 0.7; }
+.hx-back__seal { fill: var(--card-back-2); stroke: var(--gold-deep); stroke-width: 0.6; }
+.hx-back__mono { fill: none; stroke: var(--gold-hi); stroke-width: 1.6; stroke-linecap: round; }
+.hx-back__mono-fine { stroke: var(--gold); stroke-width: 0.8; stroke-linecap: round; }
+.hx-back__lozenge { fill: var(--gold-hi); }
+
+.hx-back__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.6) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 2px);
+  background-size: 3px 3px, 3px 3px;
+}
+
+.hx-back__gleam {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.22) 50%, transparent 58%);
+  transform: translateX(-55%);
+  animation: hx-gleam 7s ease-in-out infinite;
+}
+@keyframes hx-gleam {
+  0%, 100% { transform: translateX(-55%); }
+  50% { transform: translateX(55%); }
+}
+
+/* ---------------------------------------------------------------------------
+   Shared keyframes, reused across several states below.
+   --------------------------------------------------------------------------- */
+
+@keyframes hx-ring-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes hx-ring-spin-rev { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+@keyframes hx-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes hx-pulse-op {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.025); }
+}
+
+/* ---------------------------------------------------------------------------
+   5. Quantum — the flagship state. Two things happen at once: the holder
+   sees stacked, phasing faces (.hx-q); every viewer sees a chromatic edge,
+   an interference field and a slow ring of glyphs (all in .hx-card__fx /
+   .hx-card__ov, so they render even over the QuantumField "unknown" back).
+   --------------------------------------------------------------------------- */
+
+.hx-q { position: absolute; inset: 0; }
+
+.hx-q__layer {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(calc(var(--qdx, 0) * 1px), calc(var(--qdy, 0) * 1px), 0);
+  animation: hx-q-phase 3.6s ease-in-out infinite; /* keep in sync with Q_PHASE in Card.tsx */
+  will-change: opacity, filter;
+}
+@keyframes hx-q-phase {
+  0% { opacity: 0.85; filter: blur(0px); }
+  35% { opacity: 0.2; filter: blur(0.5px); }
+  65% { opacity: 0.2; filter: blur(0.5px); }
+  100% { opacity: 0.85; filter: blur(0px); }
+}
+
+/* Two independently-drifting diagonal gratings = a genuinely shifting
+   moiré, not just a static crosshatch. */
+.hx-q__moire {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(58deg, color-mix(in srgb, var(--entropy) 30%, transparent) 0 2px, transparent 2px 7px);
+  animation: hx-moire-a 5s ease-in-out infinite;
+}
+.hx-q__moire::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(-58deg, color-mix(in srgb, var(--veil) 26%, transparent) 0 2px, transparent 2px 7px);
+  animation: hx-moire-b 6.5s ease-in-out infinite;
+}
+@keyframes hx-moire-a { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(3%, -2%); } }
+@keyframes hx-moire-b { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-3%, 2%); } }
+
+/* Violet chromatic-aberration edge, on every quantum card regardless of
+   who can see the cloud. */
+.hx-fx--chroma {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 1.6px 0 0 0 color-mix(in srgb, var(--entropy) 60%, transparent),
+    inset -1.6px 0 0 0 color-mix(in srgb, var(--veil) 55%, transparent),
+    inset 0 1.6px 0 0 color-mix(in srgb, var(--entropy) 35%, transparent),
+    inset 0 -1.6px 0 0 color-mix(in srgb, var(--veil) 35%, transparent);
+  animation: hx-breathe 4.2s ease-in-out infinite;
+}
+
+/* Fine horizontal interference lines, breathing slowly — distinct from the
+   diagonal moiré so a card in superposition reads as "unstable" even when
+   its cloud is hidden. */
+.hx-fx--interference {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--entropy) 10%, transparent) 0 1px, transparent 1px 4px);
+  mix-blend-mode: overlay;
+  opacity: 0.4;
+  animation: hx-breathe 5s ease-in-out infinite;
+}
+
+/* The back an observer gets when a card is quantum but not theirs to read. */
+.hx-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 50% 35%, color-mix(in srgb, var(--entropy) 22%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--card-back-1), var(--card-back-2));
+}
+.hx-field__blob {
+  position: absolute;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(14px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+}
+.hx-field__blob--a { top: -10%; left: -10%; background: radial-gradient(circle, var(--entropy), transparent 70%); animation: hx-blob-a 9s ease-in-out infinite; }
+.hx-field__blob--b { bottom: -14%; right: -8%; background: radial-gradient(circle, var(--veil), transparent 70%); opacity: 0.45; animation: hx-blob-b 11s ease-in-out infinite; }
+.hx-field__blob--c { top: 30%; left: 24%; width: 40%; background: radial-gradient(circle, var(--gold), transparent 70%); opacity: 0.3; animation: hx-blob-c 13s ease-in-out infinite; }
+@keyframes hx-blob-a { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(8%, 10%); } }
+@keyframes hx-blob-b { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-8%, -10%); } }
+@keyframes hx-blob-c { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-6%, 8%) scale(1.1); } }
+
+.hx-field__rings { position: absolute; inset: 8%; opacity: 0.35; overflow: visible; }
+.hx-field__rings circle { fill: none; stroke: var(--entropy); stroke-width: 0.6; }
+.hx-field__drift { transform-origin: 39px 56px; animation: hx-ring-spin 26s linear infinite; }
+
+.hx-field__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 8px);
+}
+
+/* Slow rotating ring of glyphs, orbiting just outside the card edge. */
+.hx-qring {
+  position: absolute;
+  inset: -16%;
+  opacity: 0.55;
+  pointer-events: none;
+  overflow: visible;
+}
+.hx-qring text {
+  font-size: 9px;
+  font-family: var(--font-display);
+  fill: var(--entropy);
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--entropy) 70%, transparent));
+}
+.hx-qring__spin { transform-origin: 50px 50px; animation: hx-ring-spin 22s linear infinite; }
+
+/* ---------------------------------------------------------------------------
+   6. Veiled — leaked information punched through the back, glowing gold.
+   --------------------------------------------------------------------------- */
+
+.hx-veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em;
+  color: var(--gold-hi);
+  text-shadow: 0 0 0.5em rgba(240, 196, 101, 0.65);
+}
+.hx-veil__sigil {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 196, 101, 0.35), rgba(240, 196, 101, 0.05) 60%, transparent 72%);
+  filter: blur(1px);
+  pointer-events: none;
+}
+.hx-veil__rank {
+  position: relative;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.9em;
+  line-height: 1;
+}
+.hx-veil__suit {
+  position: relative;
+  width: 1em;
+  height: 1em;
+  display: flex;
+}
+.hx-veil__mark { width: 100%; height: 100%; color: var(--gold-hi); }
+.hx-veil__q { position: relative; font-family: var(--font-display); font-weight: 800; font-size: 1em; opacity: 0.6; }
+
+/* ---------------------------------------------------------------------------
+   7. Mark full-card effects (clipped, in .hx-card__fx) + diverged split.
+   Each pulls its colour from the game's own "schools of magic" tokens
+   rather than duplicating the MARKS hex constants.
+   --------------------------------------------------------------------------- */
+
+.hx-fx--split {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--veil) 24%, transparent) 0%,
+    transparent 46%,
+    transparent 54%,
+    color-mix(in srgb, var(--chronos) 24%, transparent) 100%
+  );
+}
+
+.hx-fx--cursed {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 108%, color-mix(in srgb, var(--entropy-deep) 55%, black), transparent 62%),
+    radial-gradient(90% 70% at 50% -8%, color-mix(in srgb, var(--entropy-deep) 35%, black), transparent 66%);
+  animation: hx-creep 5.5s ease-in-out infinite;
+}
+@keyframes hx-creep {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+.hx-fx--burning {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at 6% 10%, color-mix(in srgb, var(--warn) 40%, var(--ruin) 35%), transparent 24%),
+    radial-gradient(circle at 92% 16%, color-mix(in srgb, var(--warn) 35%, var(--ruin) 30%), transparent 22%),
+    radial-gradient(circle at 12% 90%, color-mix(in srgb, var(--warn) 35%, var(--ruin) 30%), transparent 24%),
+    radial-gradient(circle at 88% 86%, color-mix(in srgb, var(--warn) 30%, var(--ruin) 30%), transparent 22%);
+  animation: hx-burn-flicker 1.4s steps(6) infinite;
+}
+@keyframes hx-burn-flicker {
+  0% { opacity: 0.5; filter: brightness(1); }
+  16% { opacity: 0.9; filter: brightness(1.3); }
+  33% { opacity: 0.4; filter: brightness(0.9); }
+  50% { opacity: 0.85; filter: brightness(1.2); }
+  66% { opacity: 0.5; filter: brightness(1); }
+  83% { opacity: 0.95; filter: brightness(1.35); }
+  100% { opacity: 0.5; filter: brightness(1); }
+}
+
+.hx-fx--blooded {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(80% 60% at 50% 50%, color-mix(in srgb, var(--ruin) 45%, transparent), transparent 68%);
+  animation: hx-pulse-op 2.1s ease-in-out infinite;
+}
+
+.hx-fx--target {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 2px solid var(--info);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--info) 55%, transparent);
+  animation: hx-breathe 1.4s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   8. Mark full-card effects (unclipped, in .hx-card__ov) — these are meant
+   to spill past the card's own edge.
+   --------------------------------------------------------------------------- */
+
+.hx-fx--wild {
+  position: absolute;
+  inset: -4%;
+  border-radius: calc(var(--hx-r, 9px) * 1.25);
+  pointer-events: none;
+  padding: 2px;
+  opacity: 0.85;
+  background: conic-gradient(from 0deg, var(--ruin), var(--chronos), var(--weave), var(--bind), var(--veil), var(--entropy), var(--ruin));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: hx-ring-spin 4.5s linear infinite;
+}
+
+.hx-fx--echo {
+  position: absolute;
+  inset: -4%;
+  border-radius: calc(var(--hx-r, 9px) * 1.15);
+  pointer-events: none;
+  border: 1.5px solid var(--weave);
+  opacity: 0;
+  animation: hx-echo-ripple 2.4s ease-out infinite;
+}
+@keyframes hx-echo-ripple {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  70% { transform: scale(1.22); opacity: 0; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   9. Mark badges — the small seals along the top edge. Each MarkBadge sets
+   --mk to its own MARKS colour inline, so the plain badges (prism, leaden,
+   mirrored, bound) get a correct ring/glow for free from the base rule.
+   --------------------------------------------------------------------------- */
+
+.hx-marks {
+  position: absolute;
+  top: -0.35em;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.28em;
+  z-index: 2;
+}
+
+.hx-mark {
+  position: relative;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.22), rgba(10, 10, 16, 0.85) 72%);
+  box-shadow: 0 0 0 1px var(--mk, var(--gold)), 0 0 0.45em -0.05em var(--mk, var(--gold)), var(--e-1);
+  color: var(--mk, var(--gold));
+  cursor: default;
+}
+.hx-mark__glyph {
+  font-size: 0.85em;
+  line-height: 1;
+  filter: drop-shadow(0 0 0.15em var(--mk, transparent));
+}
+
+.hx-mark--wild {
+  background: conic-gradient(from 0deg, var(--ruin), var(--chronos), var(--weave), var(--bind), var(--veil), var(--entropy), var(--ruin));
+  animation: hx-ring-spin 5s linear infinite;
+}
+.hx-mark--wild .hx-mark__glyph {
+  display: inline-block;
+  color: #171a24;
+  filter: none;
+  text-shadow: 0 0 0.2em rgba(255, 255, 255, 0.6);
+  animation: hx-ring-spin-rev 5s linear infinite;
+}
+
+.hx-mark--blooded { animation: hx-pulse-op 2s ease-in-out infinite; }
+
+.hx-mark--cursed {
+  background: radial-gradient(circle at 35% 30%, rgba(139, 92, 246, 0.4), rgba(8, 4, 16, 0.92) 75%);
+  animation: hx-breathe 3.2s ease-in-out infinite;
+}
+
+.hx-mark--burning { animation: hx-burn-flicker 1.3s steps(6) infinite; }
+
+.hx-mark--echo { overflow: visible; }
+.hx-mark--echo::after {
+  content: '';
+  position: absolute;
+  inset: -0.2em;
+  border-radius: 50%;
+  border: 1px solid var(--mk, var(--gold));
+  animation: hx-echo-ripple 2.2s ease-out infinite;
+}
+
+.hx-mark__tip {
+  position: absolute;
+  bottom: calc(100% + 0.4em);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 9em;
+  max-width: 13em;
+  padding: 0.5em 0.65em;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, rgba(23, 28, 53, 0.98), rgba(11, 14, 27, 0.98));
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--e-2);
+  font-size: 0.62em;
+  line-height: 1.35;
+  color: var(--text-2);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  white-space: normal;
+  transition: opacity var(--t-fast, 160ms) var(--ease-out, ease);
+}
+.hx-mark:hover .hx-mark__tip,
+.hx-mark:focus-visible .hx-mark__tip { opacity: 1; }
+.hx-mark__name { color: var(--mk, var(--gold)); font-family: var(--font-display); font-size: 1.05em; letter-spacing: 0.02em; }
+.hx-mark__blurb { color: var(--text-3); font-style: normal; }
+
+/* ---------------------------------------------------------------------------
+   10. Diverged / entangled badges + memory dots.
+   --------------------------------------------------------------------------- */
+
+.hx-badges {
+  position: absolute;
+  top: 0.3em;
+  right: 0.3em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2em;
+  z-index: 2;
+}
+.hx-badge {
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62em;
+  line-height: 1;
+  font-weight: 700;
+  background: rgba(8, 10, 20, 0.72);
+  box-shadow: var(--e-1);
+}
+.hx-badge--diverged { color: var(--veil); box-shadow: 0 0 0 1px var(--veil), 0 0 0.5em -0.1em var(--veil); }
+.hx-badge--entangled { color: var(--bind); box-shadow: 0 0 0 1px var(--bind), 0 0 0.5em -0.1em var(--bind); }
+
+.hx-mem {
+  position: absolute;
+  bottom: 0.3em;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.18em;
+  z-index: 2;
+}
+.hx-mem__dot {
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  display: block;
+  background: radial-gradient(circle at 32% 28%, var(--gold-hi), var(--gold-deep) 75%);
+  box-shadow: 0 0 0.35em rgba(240, 196, 101, 0.7);
+}
+.hx-mem__count {
+  display: flex;
+  align-items: center;
+  gap: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.62em;
+  font-weight: 700;
+  color: var(--gold-hi);
+  background: rgba(8, 10, 20, 0.55);
+  border: 1px solid rgba(240, 196, 101, 0.35);
+  border-radius: var(--r-pill);
+  padding: 0.08em 0.4em;
+}
+
+/* ---------------------------------------------------------------------------
+   11. Highlights — winning / used / target / dimmed / selected / entangled.
+   .hx-fx--target already covers "target"; the rest toggle the rim glow
+   and/or the lift wrapper's float.
+   --------------------------------------------------------------------------- */
+
+@keyframes hx-float {
+  0%, 100% { transform: translateY(calc(var(--hx-h, 112px) * -0.045)); }
+  50% { transform: translateY(calc(var(--hx-h, 112px) * -0.09)); }
+}
+
+.is-winning .hx-card__lift { animation: hx-float 3.1s ease-in-out infinite; }
+.is-used .hx-card__lift { transform: translateY(calc(var(--hx-h, 112px) * -0.045)); }
+
+.is-winning .hx-card__rim::before,
+.is-used .hx-card__rim::before,
+.is-selected .hx-card__rim::before { opacity: 1; }
+
+.is-entangled .hx-card__rim::after { opacity: 1; }
+
+.is-dimmed .hx-card__lift {
+  opacity: 0.45;
+  filter: saturate(0.35) brightness(0.85);
+}
+
+/* ---------------------------------------------------------------------------
+   12. CardRow — straight overlap and fan geometry. Cards keep their own
+   flip/tilt/fx; this only owns spacing and the fan's pivot.
+   --------------------------------------------------------------------------- */
+
+.hx-row {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+.hx-row--fan {
+  align-items: center;
+  padding-top: calc(var(--card-h, 112px) * var(--csr, 1) * 0.08);
+}
+.hx-row__seat {
+  position: relative;
+  display: inline-block;
+}
+.hx-row--straight .hx-row__seat + .hx-row__seat {
+  margin-left: calc(var(--card-w, 78px) * var(--csr, 1) * -1 * var(--hx-overlap, 0.16));
+}
+.hx-row--fan .hx-row__seat {
+  transform-origin: 50% 210%;
+  transition: transform var(--t-base, 260ms) var(--ease-out, ease);
+}
+.hx-row--fan .hx-row__seat + .hx-row__seat {
+  margin-left: calc(var(--card-w, 78px) * var(--csr, 1) * -1 * var(--hx-overlap, 0.34));
+}
+
+/* ---------------------------------------------------------------------------
+   13. Reduced motion — belt and braces on top of the global 1ms collapse
+   in tokens.css: explicitly kill every `infinite` loop and the flip
+   transition so nothing so much as flickers.
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-card__lift,
+  .hx-card__rim::before,
+  .hx-card__rim::after,
+  .hx-fx,
+  .hx-mark,
+  .hx-mark__glyph,
+  .hx-mark--echo::after,
+  .hx-q__layer,
+  .hx-q__moire,
+  .hx-q__moire::after,
+  .hx-qring__spin,
+  .hx-back__gleam,
+  .hx-field__blob,
+  .hx-field__drift {
+    animation: none !important;
+  }
+  .hx-card__flip,
+  .hx-row--fan .hx-row__seat {
+    transition: none !important;
+  }
+}
