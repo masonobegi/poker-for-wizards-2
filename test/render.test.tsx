@@ -218,3 +218,55 @@ test('the sigil card shows its cost and school', async () => {
   assert.ok(text.includes('2'), 'the mana cost is missing');
   assert.ok(/Entropy/i.test(text), 'the school is missing');
 });
+
+// ------------------------------------------------- the fun layer renders
+
+test('the omen bar shows the rules in force', async () => {
+  const OmenBar = (await import('../src/components/OmenBar')).default;
+  const { text } = await mount(
+    <OmenBar
+      omens={[
+        { id: 'blurred', ante: 2 },
+        { id: 'unmade', ante: 4, rank: 9 },
+        { id: 'inversion', ante: 5 },
+      ]}
+    />,
+  );
+  assert.match(text, /Blurred/i, 'an active omen is not named');
+  assert.match(text, /Inversion/i, 'an active omen is not named');
+  assert.match(text, /Nines/i, 'a struck rank is not shown');
+});
+
+test('the omen bar renders nothing before the first ante', async () => {
+  const OmenBar = (await import('../src/components/OmenBar')).default;
+  const { html } = await mount(<OmenBar omens={[]} />);
+  assert.equal(html.trim(), '', 'the omen bar should be invisible with no omens');
+});
+
+test('the profile card stays hidden until a run has been played', async () => {
+  const ProfileCard = (await import('../src/components/profile/ProfileCard')).default;
+  const { html } = await mount(<ProfileCard />);
+  assert.equal(html.trim(), '', 'an empty profile should render nothing');
+});
+
+test('the profile card reports a finished run', async () => {
+  const { recordRun } = await import('../src/components/profile/profile');
+  recordRun({
+    at: Date.now(), placement: 1, players: 4, handsWon: 7, antesSurvived: 5,
+    bestHand: 'Flush House, Fives over Aces', bestCat: 10, impossible: 1,
+    omens: ['blurred', 'inversion'], relics: ['deep_well'], won: true,
+  });
+
+  const ProfileCard = (await import('../src/components/profile/ProfileCard')).default;
+  const { text } = await mount(<ProfileCard />);
+  assert.match(text, /Flush House/i, 'the best hand is missing');
+  assert.match(text, /impossible/i, 'an impossible hand is not called out');
+  assert.match(text, /took the table/i, 'the last run result is missing');
+});
+
+test('the intro flow opens on its first panel', async () => {
+  const IntroFlow = (await import('../src/components/onboarding/IntroFlow')).default;
+  const { text, html } = await mount(<IntroFlow open onClose={() => {}} />);
+  assert.ok(html.length > 400, 'the intro rendered nothing');
+  assert.match(text, /skip/i, 'the intro cannot be skipped');
+});

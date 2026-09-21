@@ -7,6 +7,7 @@ import { RELICS } from '@shared/relics';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
+import ProfileCard from '@/components/profile/ProfileCard';
 import './menu.css';
 
 type Pane = 'home' | 'host' | 'join';
@@ -126,6 +127,8 @@ export default function Menu() {
                   </Button>
                 </div>
               </div>
+
+              <ProfileCard />
 
               <div className="menu-links">
                 <Button tone="ghost" size="sm" onClick={() => setIntro(true)}>

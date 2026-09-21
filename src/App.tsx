@@ -12,6 +12,7 @@ import BannerLayer from '@/components/BannerLayer';
 import ConnectionBadge from '@/components/ConnectionBadge';
 import SystemMenu from '@/components/shell/SystemMenu';
 import IntroFlow from '@/components/onboarding/IntroFlow';
+import RunRecorder from '@/components/profile/RunRecorder';
 
 /**
  * The particle layer is decoration — load it after the first paint, and if the
@@ -105,6 +106,7 @@ export default function App() {
       <Toasts />
       <ConnectionBadge />
       <SystemMenu />
+      <RunRecorder />
       <IntroFlow open={howTo} onClose={() => setHowTo(false)} />
 
       <Suspense fallback={null}>
