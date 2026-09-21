@@ -20,8 +20,9 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 77 tests: hand eval, every sigil, DOM mounts, sockets
-npm run sim -- 120 6   # headless bot-vs-bot game, 120 seconds, 6 players
+npm test           # 87 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
+npm run metrics -- 150 5  # balance report: pacing, magic rate, action spread
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
@@ -53,7 +54,15 @@ The rest is **mana** and **sigils**.
 
 Above a Straight Flush sit three categories a fifty-two card deck cannot produce — **Five of a Kind**, **Flush House** and **Flush Five**. Wild marks, mirrored cards and superposition make them reachable.
 
-Blinds climb every few hands. Between antes the **Market** opens and you spend **shards** earned from won pots.
+Blinds climb every few hands. Between antes the **Market** opens and you spend **shards** — earned from pots, plus a stipend that scales with the ante and leans toward whoever is behind, because the shop is the one phase that exists to let a losing player change their situation.
+
+### Omens
+
+At every ante a new **omen** lands on the table. It is permanent, it applies to everyone, and it never comes off.
+
+Suits merge. Aces start bridging both ends of the rank order. Every King is dealt face down before anyone has seen it. Three cards in the shared deck quietly become Wild and nobody is told which. One rank is struck from the game entirely. At ante five, the worst hand starts winning every pot.
+
+They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory.
 
 ### The six schools
 
@@ -78,6 +87,7 @@ shared/     Pure game model — imported by both sides, no I/O
   hand.ts     Hand evaluation, including the three impossible categories
   sigils.ts   The 37 spells, as data
   relics.ts   The 24 passives, as data
+  omens.ts    The 18 permanent table rules, as data
   types.ts    Table and per-player view shapes
   protocol.ts Socket contract and the transient effect stream
 
@@ -93,7 +103,9 @@ server/     Authoritative. The client is a renderer and an input device.
 src/        Client
   audio/      ~50 sounds and 5 music beds, synthesised — zero audio files
   vfx/        Canvas particles, screen shake, chromatic aberration
-  components/card/  Card rendering: pips, SVG court figures, quantum states
+  components/card/        Pips, SVG court figures, quantum and veiled states
+  components/onboarding/  First-run intro, practice table, contextual hints
+  components/shell/       System menu, settings, prefs, connection recovery
   scenes/     Menu, Lobby, Table, Market
 ```
 
@@ -117,9 +129,16 @@ test/render.test.tsx  Mounts the real components in a real DOM: every card
                       no canvas and no AudioContext
 test/net.test.ts      Two real clients over a real socket: dealing, redaction,
                       showdown, and out-of-turn rejection
+test/omens.test.ts    Every omen well formed, mods merging, one landing per
+                      ante without repeating, deck edits applying once
 test/sim.ts           Headless bot game asserting chip conservation, no
                       negative stacks, and that hands always advance
+test/metrics.ts       Not a test — a balance report. Seconds per hand, where
+                      that time goes, sigils cast per hand, mana left unspent,
+                      showdown rate, action spread, impossible hands seen
 ```
+
+`metrics.ts` is the one that shaped the game. Its first run read 25s per hand, two sigils cast per hand, the mana pool sitting at its cap all game, nine of thirty-six sigils ever appearing, zero counterspells across eleven response windows, and not a single impossible hand in any run — a spell game where barely anyone cast anything. It now reads 16s per hand, six sigils per hand, thirty-one of thirty-six appearing, and impossible hands actually landing.
 
 Between them these found the three bugs worth mentioning: a betting-round deadlock where a completed round left a player on the clock and the bot loop kept acting on them; a redaction failure that sent every opponent's hole cards to every client; and three modules reading `import.meta.env` at module scope, which only exists under Vite.
 
@@ -127,6 +146,8 @@ Between them these found the three bugs worth mentioning: a betting-round deadlo
 
 ## Status
 
-Playable end to end: lobby, betting with side pots and all-ins, the full sigil stack with counterspells, showdown with the impossible categories, the Market, ante escalation, elimination and a winner. Bots fill empty seats and play a recognisable game of poker.
+Playable end to end: a first-run intro, one-click practice against bots, betting with side pots and all-ins, the full sigil stack with counterspells, showdown with the impossible categories, the Market, escalating omens, elimination and a winner. Bots fill empty seats and play a recognisable game of poker, including counterplay.
+
+A run lands at roughly 25-30 hands, or eight to twelve minutes.
 
 Rough edges worth knowing: the layout is built for desktop and is tight below about 760px; there is no persistence, so a server restart ends every table; and reconnection holds your seat only while the process lives.
