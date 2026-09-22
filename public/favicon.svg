@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- The same mark the menu draws: a hexagon with an H cut through it.
+       Vector rather than a .ico, so it stays the one thing this repo has no
+       binary of. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe6a8"/>
+      <stop offset="100%" stop-color="#a67c2a"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="#05060c"/>
+  <path d="M60 14 L99 37 L99 83 L60 106 L21 83 L21 37 Z" fill="none" stroke="url(#g)" stroke-width="5"/>
+  <path d="M42 40 V80 M78 40 V80 M42 60 H78" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+</svg>

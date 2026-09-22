@@ -72,8 +72,21 @@ page.on('requestfailed', (r) => {
   problem('ERROR', `request failed: ${u.slice(0, 140)} (${r.failure()?.errorText})`);
 });
 
-/** Anything wider than the viewport, or drawn off the left/top edge. */
+/**
+ * Anything wider than the viewport, or drawn off the left/top edge.
+ *
+ * Settles first. Every overlay here enters on a spring, and framer-motion's
+ * `layout` animations work by applying a transform between a measured before
+ * and after — so an element sampled mid-flight reports a box it never paints
+ * at and never had. Measuring the shop the instant it appeared produced
+ * exactly that: a board card behind an opaque backdrop, briefly claiming to
+ * be 1724px wide. test/responsive.mjs already waits before the same checks,
+ * which is why it sees the same screens clean at all seven resolutions.
+ */
+const SETTLE_MS = 600;
+
 async function checkLayout(page, where) {
+  await page.waitForTimeout(SETTLE_MS).catch(() => {});
   const bad = await page.evaluate(() => {
     const out = [];
     const vw = window.innerWidth;

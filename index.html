@@ -8,6 +8,11 @@
     <title>HEXHOLD — Impossible Poker</title>
     <meta name="description" content="Online multiplayer Texas Hold'em where the deck breaks the laws of physics. Cards in superposition, per-player truth, timeline rewinds, counterspells." />
 
+    <!-- Vector, so the one binary this repo does not have stays not-had.
+         The browser asks for /favicon.ico regardless; declaring one stops
+         that request 404ing in the console on every launch. -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
     <!--
       Typography is vendored into the build (scripts/vendor-fonts.mjs), not
       fetched. HEXHOLD ships as a desktop binary and has to look like itself
