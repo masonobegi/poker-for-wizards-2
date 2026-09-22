@@ -62,7 +62,7 @@ Honest list, worst first.
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
 4. **Audio has never been heard by a human.** It is verified to be non-silent, non-clipping and correctly shaped; that is not the same as sounding good.
-5. **No crash reporting.** Worth adding a service before a wide release.
+5. **Crash reporting is local only.** The desktop shell writes a plain-text `crash.log` in the user data folder and offers a reload, which means a player whose game died has one file you can ask for. A hosted service would tell you without asking; that is worth adding before a wide release.
 6. **Content depth.** 46 sigils, 24 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
 7. **One language.** No localisation framework; all copy is inline English.
 

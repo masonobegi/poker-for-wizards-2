@@ -15,6 +15,38 @@ const steam = require('./steam.cjs');
 
 const isDev = !app.isPackaged;
 
+/**
+ * Crash reporting, the version that does not need a service.
+ *
+ * A player whose game died can be asked for one file. Without this, a crash on
+ * someone else's machine is a forum post saying "it closed" and nothing to act
+ * on. Kept local and plain text on purpose — nothing leaves the machine unless
+ * the person chooses to send it.
+ */
+function crashLogPath() {
+  return path.join(app.getPath('userData'), 'crash.log');
+}
+
+function recordCrash(kind, detail) {
+  try {
+    const line = [
+      '',
+      `--- ${new Date().toISOString()} — ${kind} ---`,
+      `version ${app.getVersion()}  ${process.platform} ${process.arch}  electron ${process.versions.electron}`,
+      String(detail && detail.stack ? detail.stack : detail),
+    ].join('\n');
+    fs.appendFileSync(crashLogPath(), line);
+  } catch { /* if we cannot even log, there is nothing further to do */ }
+}
+
+process.on('uncaughtException', (err) => {
+  recordCrash('uncaught exception in the shell', err);
+  console.error(err);
+});
+process.on('unhandledRejection', (reason) => {
+  recordCrash('unhandled rejection in the shell', reason);
+});
+
 // Two copies of a game fighting over one Steam session and one save file is a
 // support ticket waiting to happen.
 if (!app.requestSingleInstanceLock()) {
@@ -77,7 +109,10 @@ function startServer(port) {
       process.stdout.write(`[server] ${line}`);
       if (line.includes('listening')) done();
     });
-    server.stderr?.on('data', (b) => process.stderr.write(`[server] ${b}`));
+    server.stderr?.on('data', (b) => {
+      process.stderr.write(`[server] ${b}`);
+      recordCrash('game server stderr', String(b).slice(0, 2000));
+    });
     server.on('error', done);
     server.on('exit', (code) => {
       server = null;
@@ -207,6 +242,26 @@ function createWindow() {
     }
   });
 
+  // A renderer that dies takes the game with it; say so rather than showing a
+  // white rectangle, and leave a record behind.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    recordCrash('renderer gone', `${details.reason} (exit ${details.exitCode})`);
+    if (details.reason === 'clean-exit') return;
+    dialog.showMessageBox({
+      type: 'error',
+      title: 'HEXHOLD stopped',
+      message: 'The game window stopped unexpectedly.',
+      detail: `A record was written to:\n${crashLogPath()}\n\nReason: ${details.reason}`,
+      buttons: ['Reload', 'Quit'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0 && win && !win.isDestroyed()) win.reload();
+      else app.quit();
+    }).catch(() => app.quit());
+  });
+
+  win.webContents.on('unresponsive', () => recordCrash('window unresponsive', 'no detail'));
+
   win.on('closed', () => { win = null; });
   return win;
 }
@@ -242,6 +297,11 @@ app.whenReady().then(async () => {
 });
 
 ipcMain.handle('hexhold:port', () => serverPort);
+ipcMain.handle('hexhold:crashLog', () => crashLogPath());
+ipcMain.handle('hexhold:reportCrash', (_e, detail) => {
+  recordCrash('reported by the game', detail);
+  return crashLogPath();
+});
 
 // --- Steam ----------------------------------------------------------------
 ipcMain.handle('steam:status', () => steam.status());

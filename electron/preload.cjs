@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('hexhold', {
   port: () => ipcRenderer.invoke('hexhold:port'),
   version: () => ipcRenderer.invoke('hexhold:version'),
   toggleFullscreen: (on) => ipcRenderer.invoke('hexhold:fullscreen', on),
+  crashLogPath: () => ipcRenderer.invoke('hexhold:crashLog'),
+  reportCrash: (detail) => ipcRenderer.invoke('hexhold:reportCrash', String(detail).slice(0, 8000)),
 
   /**
    * Steam. Every method resolves to a harmless value when Steam is absent, so
