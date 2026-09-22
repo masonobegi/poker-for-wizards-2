@@ -159,9 +159,7 @@ class VfxEngine {
     const r = this.root();
     if (r === null) return;
     r.classList.remove('vfx-shaking', 'vfx-chromatic');
-    r.style.removeProperty('--vfx-shake-x');
-    r.style.removeProperty('--vfx-shake-y');
-    r.style.removeProperty('--vfx-shake-rot');
+    r.style.transform = '';
   }
 
   private defer(fn: () => void): void {
@@ -206,7 +204,16 @@ class VfxEngine {
 
   shake(power: number, ms = 420): void {
     if (power <= 0 || ms <= 0) return;
-    const p = prefersReducedMotion() ? power * 0.2 : power;
+    // Camera shake is the one effect with no calm version: it moves the entire
+    // viewport, which is precisely the vestibular trigger reduced motion
+    // exists for. Suppressed outright rather than attenuated.
+    //
+    // This check lives here, not in CSS, because the shake transform is now
+    // written to `root.style.transform` inline — an inline declaration beats
+    // any author rule, so the `.vfx-shaking { transform: none }` that used to
+    // do this job could no longer reach it.
+    if (prefersReducedMotion()) return;
+    const p = power;
     if (p < 0.05) return;
     // Find a free slot, otherwise steal the weakest — repeated calls stack.
     let slot: ShakeSlot | null = null;
@@ -254,9 +261,7 @@ class VfxEngine {
     if (!any) {
       this.shakeActive = false;
       root.classList.remove('vfx-shaking');
-      root.style.setProperty('--vfx-shake-x', '0px');
-      root.style.setProperty('--vfx-shake-y', '0px');
-      root.style.setProperty('--vfx-shake-rot', '0deg');
+      root.style.transform = '';
       return;
     }
 
@@ -264,9 +269,13 @@ class VfxEngine {
     const cy = clamp(y, -SHAKE_CLAMP_PX, SHAKE_CLAMP_PX);
     const cr = clamp(rot, -SHAKE_CLAMP_DEG, SHAKE_CLAMP_DEG);
     root.classList.add('vfx-shaking');
-    root.style.setProperty('--vfx-shake-x', `${cx.toFixed(2)}px`);
-    root.style.setProperty('--vfx-shake-y', `${cy.toFixed(2)}px`);
-    root.style.setProperty('--vfx-shake-rot', `${cr.toFixed(3)}deg`);
+    // Written straight onto the element rather than routed through three
+    // inherited custom properties. Nothing but this element ever read them,
+    // and a custom property on the app root invalidates computed style for
+    // every descendant — six seats, ~17 cards, the rail and the action bar —
+    // on each of the 60 frames a shake runs for.
+    root.style.transform =
+      `translate3d(${cx.toFixed(2)}px, ${cy.toFixed(2)}px, 0) rotate(${cr.toFixed(3)}deg)`;
   }
 
   /* ------------------------------------------------------------- flash -- */
@@ -305,9 +314,10 @@ class VfxEngine {
     if (att === null) { this.defer(() => { this.vignette(color, ms); }); return; }
     const el = att.vignette;
     el.style.setProperty('--vfx-vignette-color', color);
-    el.style.setProperty('--vfx-vignette-ms', `${Math.max(1, ms)}ms`);
-    el.classList.remove('is-on');
-    void el.offsetWidth; // restart the keyframe
+    // In, then out over the same window. The fade-in is kept short so a long
+    // `ms` reads as a hold rather than a slow ramp, which is what the old
+    // three-stop keyframe did.
+    el.style.setProperty('--vfx-vignette-ms', `${Math.max(1, Math.min(220, ms * 0.3))}ms`);
     el.classList.add('is-on');
     this.vigT = ms / 1000;
     this.vigOn = true;
@@ -353,10 +363,13 @@ class VfxEngine {
   private setSplit(att: Attachment | null, d: number): void {
     if (att === null) return;
     const v = d.toFixed(2);
+    // The SVG filter's own offsets — the only live consumer. There used to be
+    // a `--vfx-ab` custom property written to the app root beside this, for a
+    // `.vfx-chromatic-cheap` text-shadow fallback; nothing in the codebase
+    // ever added that class, so it was a per-frame style invalidation of the
+    // entire table for a rule that could not match.
     att.splitA?.setAttribute('dx', v);
     att.splitB?.setAttribute('dx', `-${v}`);
-    const root = this.transformableRoot();
-    if (root !== null) root.style.setProperty('--vfx-ab', `${v}px`);
   }
 
   /* ----------------------------------------------------------- slow-mo -- */
@@ -378,12 +391,18 @@ class VfxEngine {
     this.applySlow(this.slowFrom + (1 - this.slowFrom) * e);
   }
 
+  /**
+   * The ramp still runs, so `vfx.slowmo()` keeps its shape and its callers
+   * (`fxbridge.ts` fires it on an impossible hand). It no longer publishes
+   * `--vfx-time-scale` on <html>: nothing in the app ever read that property —
+   * the usage documented in README.md was never written — and writing it per
+   * frame on the document root is the broadest style invalidation available.
+   *
+   * If a consumer is ever added, read it in one place rather than inheriting
+   * it to the whole document.
+   */
   private applySlow(v: number): void {
-    if (typeof document === 'undefined') return;
-    const r = Math.round(v * 1000) / 1000;
-    if (r === this.slowApplied) return;
-    this.slowApplied = r;
-    document.documentElement.style.setProperty('--vfx-time-scale', String(r));
+    this.slowApplied = Math.round(v * 1000) / 1000;
   }
 
   /* ------------------------------------------------------- compositions -- */
@@ -447,7 +466,9 @@ export interface VfxController {
   chromatic(ms?: number): void;
   /** The full rewind package: rings, split, slow-mo, a cold flash. */
   timeRipple(at: Vec2): void;
-  /** Publish `--vfx-time-scale`, eased back to 1 over `ms`. */
+  /** Run a slow-mo ramp back to 1 over `ms`. Currently has no consumer — see
+   *  the note on `applySlow`. Kept because `fxbridge` composes it into the
+   *  impossible-hand sequence. */
   slowmo(scale: number, ms: number): void;
   /** Celebration. Defaults to raining from the top of the viewport. */
   confetti(at?: Vec2): void;
