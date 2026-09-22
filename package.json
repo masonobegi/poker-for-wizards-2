@@ -23,7 +23,8 @@
     "package:linux": "npm run icon && npm run build:all && electron-builder --linux --publish never",
     "icon": "node electron/make-icon.mjs",
     "metrics": "tsx test/metrics.ts",
-    "play": "node test/playthrough.mjs"
+    "play": "node test/playthrough.mjs",
+    "play:pad": "node test/gamepad.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

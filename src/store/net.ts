@@ -10,13 +10,7 @@ import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
 import type { ChatMessage, FxEvent } from '@shared/protocol';
 import type { BetAction, RoomConfig, SigilTargets, TableView } from '@shared/types';
-
-// `import.meta.env` only exists under Vite; guard it so the module can also be
-// imported by tests and any non-bundled tooling.
-const DEV = !!import.meta.env?.DEV;
-const SERVER_URL = DEV
-  ? `http://${window.location.hostname}:3001`
-  : window.location.origin;
+import { readServerUrl, writeServerUrl } from '@/lib/server';
 
 const SEAT_KEY = 'hexhold.seat';
 const NAME_KEY = 'hexhold.name';
@@ -107,6 +101,8 @@ interface GameStore {
 
   say(text: string): void;
   emote(id: string): void;
+  /** Point this client at a different server and reconnect. */
+  useServer(url: string | null): void;
   toast(text: string, tone?: Toast['tone']): void;
   dismissToast(id: number): void;
   clearError(): void;
@@ -125,7 +121,7 @@ export const useGame = create<GameStore>((set, get) => ({
 
   connect() {
     if (get().socket) return;
-    const socket = io(SERVER_URL, {
+    const socket = io(readServerUrl(), {
       transports: ['websocket', 'polling'],
       reconnectionDelay: 600,
       reconnectionDelayMax: 4000,
@@ -246,6 +242,15 @@ export const useGame = create<GameStore>((set, get) => ({
   buy(uid) { get().socket?.emit('shop:buy', { uid }); },
   reroll() { get().socket?.emit('shop:reroll'); },
   shopDone() { get().socket?.emit('shop:done'); },
+
+  useServer(url) {
+    writeServerUrl(url);
+    const old = get().socket;
+    if (old) { old.removeAllListeners(); old.disconnect(); }
+    writeSeat(null);
+    set({ socket: null, connected: false, view: null, screen: 'menu', chat: [], error: null });
+    get().connect();
+  },
 
   say(text) { get().socket?.emit('chat:send', { text }); },
   emote(id) { get().socket?.emit('emote', { id }); },

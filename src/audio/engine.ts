@@ -25,9 +25,9 @@
  * this module must never be the thing that crashes the game.
  */
 
-import { SFX, type SfxName } from './sfx';
-import { clamp, type VoiceGraph } from './voices';
-import { createMusicController, type MusicController } from './music';
+import { SFX, SFX_NAMES, type SfxName } from './sfx';
+import { clamp, makeReverbImpulse, type VoiceGraph } from './voices';
+import { createMusicController, renderMoodOffline, type MusicController } from './music';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -123,28 +123,6 @@ function resolveAudioContextCtor(): (new () => AudioContext) | undefined {
   return legacy.webkitAudioContext;
 }
 
-/**
- * Render a ~2.2s stereo impulse response for the shared reverb: white noise
- * pushed through a one-pole lowpass (to keep the tail dark rather than
- * hissy) under an exponential-feeling amplitude envelope down to silence.
- */
-function makeImpulseResponse(ctx: AudioContext): AudioBuffer {
-  const duration = 2.2;
-  const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
-  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
-  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
-    const data = buffer.getChannelData(ch);
-    let lp = 0;
-    for (let i = 0; i < length; i++) {
-      const white = Math.random() * 2 - 1;
-      lp += (white - lp) * 0.22;
-      const env = Math.pow(1 - i / length, 2.4);
-      data[i] = lp * env;
-    }
-  }
-  return buffer;
-}
-
 function buildGraph(): EngineGraph {
   const Ctor = resolveAudioContextCtor();
   if (!Ctor) throw new Error('Web Audio API is not available in this environment.');
@@ -175,7 +153,7 @@ function buildGraph(): EngineGraph {
   reverbSend.gain.value = 1;
   const convolver = ctx.createConvolver();
   convolver.normalize = true;
-  convolver.buffer = makeImpulseResponse(ctx);
+  convolver.buffer = makeReverbImpulse(ctx);
   const reverbReturn = ctx.createGain();
   reverbReturn.gain.value = 0.9;
   reverbSend.connect(convolver);
@@ -399,3 +377,78 @@ export const audio: {
   getSettings,
   unlock,
 };
+
+// ---------------------------------------------------------------------------
+// TEST HOOK — offline rendering, used only by test/audio.mjs
+// ---------------------------------------------------------------------------
+//
+// Nothing below this line is reachable from normal play. `test/audio.mjs`
+// (a Playwright harness) is the only caller: it renders every `SfxName` and
+// every music `Mood` into an `OfflineAudioContext` so they can be measured
+// and asserted on — peak, RMS, DC offset, audible duration, spectral
+// centroid — since nothing in this synthesized-audio project has ever
+// actually been listened to. This exists so that harness doesn't have to
+// duplicate any synth code; it just calls back in here.
+
+/**
+ * Render one registered `SfxName` into an `OfflineAudioContext`. Builds the
+ * same *shape* of graph `play()` builds above — a dry destination plus a
+ * shared reverb send/return — but skips user settings, the per-play
+ * gain/pan node, `masterGain` and the safety compressor entirely, so what
+ * comes out is the synth's own signal, unmodified by anything downstream.
+ * That is deliberate: the compressor exists to protect the mix when several
+ * sounds stack up, and would quietly hide a single synth clipping on its
+ * own, which is exactly the bug this harness needs to be able to see.
+ *
+ * `OfflineAudioContext` does not extend `AudioContext` (both implement
+ * `BaseAudioContext`), but every method a voice actually calls —
+ * `createGain`, `createBiquadFilter`, `createOscillator`,
+ * `createBufferSource`, `createConvolver`, `createStereoPanner`,
+ * `createBuffer`, `currentTime`, `sampleRate` — is common to both, so the
+ * cast below is safe.
+ */
+export function renderOffline(name: SfxName, ctx: OfflineAudioContext, pitch = 1): void {
+  const def = SFX[name];
+  if (!def) return;
+
+  const dest = ctx.createGain();
+  dest.gain.value = 1;
+  dest.connect(ctx.destination);
+
+  const reverbSend = ctx.createGain();
+  reverbSend.gain.value = 1;
+  const convolver = ctx.createConvolver();
+  convolver.normalize = true;
+  convolver.buffer = makeReverbImpulse(ctx);
+  const reverbReturn = ctx.createGain();
+  reverbReturn.gain.value = 0.9;
+  reverbSend.connect(convolver);
+  convolver.connect(reverbReturn);
+  reverbReturn.connect(dest);
+
+  const voiceGraph: VoiceGraph = { ctx: ctx as unknown as AudioContext, dest, reverb: reverbSend };
+  def.play(voiceGraph, 0, pitch);
+}
+
+declare global {
+  interface Window {
+    /** Set only when this module has actually loaded — see `test/audio.mjs`. */
+    __hexholdAudioTest?: {
+      renderSfx: typeof renderOffline;
+      renderMood: typeof renderMoodOffline;
+      /** Every `SfxName` paired with its declared worst-case tail length. */
+      sfx: ReadonlyArray<{ name: SfxName; len: number }>;
+      /** Every real (non-`'none'`) `Mood`. */
+      moods: readonly Mood[];
+    };
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.__hexholdAudioTest = {
+    renderSfx: renderOffline,
+    renderMood: renderMoodOffline,
+    sfx: SFX_NAMES.map((name) => ({ name, len: SFX[name].len })),
+    moods: ['menu', 'table', 'tension', 'shop', 'showdown'],
+  };
+}

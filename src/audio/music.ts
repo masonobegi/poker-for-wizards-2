@@ -25,6 +25,7 @@ import {
   D_PENT,
   chance,
   fmBell,
+  makeReverbImpulse,
   mtof,
   noiseBuffer,
   noiseHit,
@@ -605,4 +606,49 @@ export function createMusicController(g: MusicGraph): MusicController {
   }
 
   return { setMood, stop };
+}
+
+// ---------------------------------------------------------------------------
+// TEST HOOK — offline rendering, used only by test/audio.mjs (via the
+// window global `engine.ts` attaches). Not reachable from normal play.
+// ---------------------------------------------------------------------------
+
+/**
+ * Render `duration` seconds of one `Mood`'s bed into an `OfflineAudioContext`.
+ *
+ * Builds the layer at `t = 0` via the same `BUILDERS[mood]` the live
+ * controller uses, but skips the crossfade-in — offline rendering has no
+ * "currently playing mood" to fade from, so the bed is simply set to its
+ * normal full level immediately. The one-shot event scheduler
+ * (`layer.tick`) only ever reasons about `ctx.currentTime`, never wall-clock
+ * time, so a single `tick(duration)` call schedules every bell/pluck/tick
+ * due across the whole render window up front — there is no need to pump it
+ * on an interval the way the live controller does.
+ */
+export function renderMoodOffline(mood: Mood, ctx: OfflineAudioContext, duration: number): void {
+  const build = BUILDERS[mood];
+  if (!build) return;
+
+  const dest = ctx.createGain();
+  dest.gain.value = 1;
+  dest.connect(ctx.destination);
+
+  const reverbSend = ctx.createGain();
+  reverbSend.gain.value = 1;
+  const convolver = ctx.createConvolver();
+  convolver.normalize = true;
+  convolver.buffer = makeReverbImpulse(ctx);
+  const reverbReturn = ctx.createGain();
+  reverbReturn.gain.value = 0.9;
+  reverbSend.connect(convolver);
+  convolver.connect(reverbReturn);
+  reverbReturn.connect(dest);
+
+  const g: MusicGraph = { ctx: ctx as unknown as AudioContext, dest, reverb: reverbSend };
+  const layer = build(g, 0);
+  if (!layer) return;
+
+  layer.out.gain.cancelScheduledValues(0);
+  layer.out.gain.setValueAtTime(Math.max(MOOD_LEVEL[mood], SILENCE), 0);
+  layer.tick(duration);
 }

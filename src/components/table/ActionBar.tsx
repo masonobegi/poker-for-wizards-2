@@ -135,16 +135,16 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
 
             <div className="ab-buttons">
               <Button tone="danger" size="lg" onClick={() => send(() => act({ kind: 'fold' }))}>
-                Fold <kbd>F</kbd>
+                Fold <kbd data-pad="LB">F</kbd>
               </Button>
 
               {view.canCheck ? (
                 <Button size="lg" onClick={() => send(() => act({ kind: 'check' }))}>
-                  Check <kbd>C</kbd>
+                  Check <kbd data-pad="A">C</kbd>
                 </Button>
               ) : (
                 <Button size="lg" onClick={() => send(() => act({ kind: 'call' }))}>
-                  Call <span className="mono">{view.toCall.toLocaleString()}</span> <kbd>C</kbd>
+                  Call <span className="mono">{view.toCall.toLocaleString()}</span> <kbd data-pad="A">C</kbd>
                 </Button>
               )}
 
@@ -158,7 +158,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                   </Button>
                 ) : (
                   <Button tone="primary" size="lg" onClick={() => setRaising(true)}>
-                    {isBet ? 'Bet' : 'Raise'} <kbd>R</kbd>
+                    {isBet ? 'Bet' : 'Raise'} <kbd data-pad="X">R</kbd>
                   </Button>
                 )
               ) : null}
@@ -167,7 +167,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                 <Button tone="ghost" size="lg" onClick={() => setRaising(false)}>Back</Button>
               ) : canRaise ? (
                 <Button tone="ghost" size="lg" onClick={() => send(() => act({ kind: 'allin' }))}>
-                  All In <kbd>A</kbd>
+                  All In <kbd data-pad="Y">A</kbd>
                 </Button>
               ) : null}
             </div>

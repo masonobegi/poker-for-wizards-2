@@ -1,0 +1,63 @@
+/* Controller mode.
+   Set on <html> by src/lib/gamepad.ts whenever a pad is being used. */
+
+/* Focus has to be unmissable on a handheld held at arm's length — the default
+   thin outline is not enough at Steam Deck's size and distance. */
+html[data-gamepad='1'] :focus-visible,
+html[data-gamepad='1'] button:focus,
+html[data-gamepad='1'] [data-pad-focus]:focus {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 6px rgba(240, 196, 101, 0.18), 0 0 26px rgba(240, 196, 101, 0.45);
+}
+
+/* Keyboard hints become controller glyphs. The label text is swapped with a
+   pseudo-element so no component has to know what is plugged in. */
+html[data-gamepad='1'] kbd { position: relative; color: transparent; }
+html[data-gamepad='1'] kbd::after {
+  content: attr(data-pad);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-weight: 800;
+}
+
+/* A pad has no pointer, so hover-only affordances must not hide information. */
+html[data-gamepad='1'] .sigil-tip { transition: none; }
+html[data-gamepad='1'] .sigil:focus-within .sigil-tip,
+html[data-gamepad='1'] .sigil:focus .sigil-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* The on-screen legend of what the buttons do. */
+.pad-legend {
+  position: fixed;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  z-index: var(--z-ui);
+  display: none;
+  align-items: center;
+  gap: var(--s-4);
+  padding: 4px 16px;
+  border-radius: var(--r-pill);
+  background: rgba(5, 6, 12, 0.85);
+  border: 1px solid var(--line-soft);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+html[data-gamepad='1'] .pad-legend { display: flex; }
+
+.pad-legend b {
+  color: var(--gold);
+  font-weight: 800;
+  margin-right: 4px;
+}

@@ -11,6 +11,7 @@ import Toasts from '@/components/Toasts';
 import BannerLayer from '@/components/BannerLayer';
 import ConnectionBadge from '@/components/ConnectionBadge';
 import SystemMenu from '@/components/shell/SystemMenu';
+import GamepadLayer from '@/components/shell/GamepadLayer';
 import IntroFlow from '@/components/onboarding/IntroFlow';
 import RunRecorder from '@/components/profile/RunRecorder';
 
@@ -130,6 +131,7 @@ export default function App() {
       <Toasts />
       <ConnectionBadge />
       <SystemMenu />
+      <GamepadLayer />
       <RunRecorder />
       <IntroFlow open={howTo} onClose={() => setHowTo(false)} />
 

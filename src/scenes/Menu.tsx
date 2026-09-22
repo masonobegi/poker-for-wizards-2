@@ -8,6 +8,7 @@ import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import ProfileCard from '@/components/profile/ProfileCard';
+import ServerPanel from '@/components/shell/ServerPanel';
 import './menu.css';
 
 type Pane = 'home' | 'host' | 'join';
@@ -18,6 +19,7 @@ export default function Menu() {
   const [code, setCode] = useState('');
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [server, setServer] = useState(false);
   const [intro, setIntro] = useState(() => !hasSeenIntro());
   const [practicing, setPracticing] = useState(false);
 
@@ -140,6 +142,9 @@ export default function Menu() {
                 <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>
                   Settings
                 </Button>
+                <Button tone="ghost" size="sm" onClick={() => setServer(true)}>
+                  Online
+                </Button>
               </div>
             </motion.div>
           ) : null}
@@ -217,6 +222,9 @@ export default function Menu() {
       </Modal>
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />
+      </Modal>
+      <Modal open={server} onClose={() => setServer(false)}>
+        <ServerPanel onClose={() => setServer(false)} />
       </Modal>
       <IntroFlow open={intro} onClose={() => setIntro(false)} />
     </div>

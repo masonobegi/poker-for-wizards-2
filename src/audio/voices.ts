@@ -217,6 +217,34 @@ export function noiseSource(ctx: AudioContext, seconds = 2): AudioBufferSourceNo
   return src;
 }
 
+/**
+ * Render a stereo impulse response for the shared convolution reverb: white
+ * noise pushed through a one-pole lowpass (to keep the tail dark rather than
+ * hissy) under an exponential-feeling amplitude envelope down to silence.
+ *
+ * Lives here (rather than in `engine.ts`, its only real caller) purely so
+ * the offline-rendering test hooks in `engine.ts` and `music.ts` can both
+ * build a faithful reverb send without importing from each other — `engine`
+ * already imports `music`, so `music` importing back from `engine` would be
+ * circular. Takes `BaseAudioContext` (not `AudioContext`) so it works
+ * identically for the real engine and for an `OfflineAudioContext`.
+ */
+export function makeReverbImpulse(ctx: BaseAudioContext, seconds = 2.2): AudioBuffer {
+  const length = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const data = buffer.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      lp += (white - lp) * 0.22;
+      const env = Math.pow(1 - i / length, 2.4);
+      data[i] = lp * env;
+    }
+  }
+  return buffer;
+}
+
 /** Filter options shared by most voices, including an optional cutoff sweep. */
 export interface FilterOpts {
   type?: BiquadFilterType;

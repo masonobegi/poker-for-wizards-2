@@ -7,6 +7,8 @@ import { nanoid } from 'nanoid';
 import type { Server, Socket } from 'socket.io';
 import type { BetAction, RoomConfig, SigilTargets } from '../../shared/types';
 import { Rooms, type Seatholder } from './rooms';
+import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
+import { config } from '../config';
 
 const MAX_NAME = 16;
 const CHAT_LIMIT = 200;
@@ -67,6 +69,14 @@ export function attach(io: Server): Rooms {
   const rooms = new Rooms(io);
 
   io.on('connection', (socket: Socket) => {
+    // Too many sockets from one address: refuse politely rather than serve them.
+    if (!acceptSocket(socket)) {
+      socket.emit('kicked', { reason: 'Too many connections from your network' });
+      socket.disconnect(true);
+      return;
+    }
+    rateLimit(socket);
+
     const seat = (): Seatholder | undefined => socket.data.seat as Seatholder | undefined;
     const engine = () => { const s = seat(); return s ? rooms.get(s.code) : undefined; };
     const fail = (cb: unknown, error: string) => {
@@ -84,6 +94,12 @@ export function attach(io: Server): Rooms {
     // ------------------------------------------------------------- rooms
 
     socket.on('room:create', (p: unknown, cb: unknown) => {
+      if (rooms.count >= config.limits.maxRooms) {
+        return fail(cb, 'The server is full. Try again shortly.');
+      }
+      if (!allowRoomCreate(socket)) {
+        return fail(cb, 'You have opened a lot of tables recently. Wait a little.');
+      }
       const payload = (p ?? {}) as Record<string, unknown>;
       const name = clean(payload.name, MAX_NAME) || 'Host';
       const id = `p_${nanoid(10)}`;
@@ -291,6 +307,7 @@ export function attach(io: Server): Rooms {
     });
 
     socket.on('disconnect', () => {
+      releaseSocket(socket);
       const s = seat();
       const e = engine();
       if (!s || !e) return;
