@@ -24,3 +24,4 @@ dist-respcheck/
 ov*-tmp.mjs
 probe-tmp.ts
 trace-tmp.ts
+*.tsbuildinfo
