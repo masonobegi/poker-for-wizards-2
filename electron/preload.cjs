@@ -10,4 +10,18 @@ contextBridge.exposeInMainWorld('hexhold', {
   port: () => ipcRenderer.invoke('hexhold:port'),
   version: () => ipcRenderer.invoke('hexhold:version'),
   toggleFullscreen: (on) => ipcRenderer.invoke('hexhold:fullscreen', on),
+
+  /**
+   * Steam. Every method resolves to a harmless value when Steam is absent, so
+   * the renderer never needs to branch on whether it is running through Steam.
+   */
+  steam: {
+    status: () => ipcRenderer.invoke('steam:status'),
+    playerName: () => ipcRenderer.invoke('steam:name'),
+    unlockAchievement: (name) => ipcRenderer.invoke('steam:unlock', name),
+    isUnlocked: (name) => ipcRenderer.invoke('steam:unlocked', name),
+    setRichPresence: (key, value) => ipcRenderer.invoke('steam:presence', key, value),
+    cloudRead: (file) => ipcRenderer.invoke('steam:cloudRead', file),
+    cloudWrite: (file, contents) => ipcRenderer.invoke('steam:cloudWrite', file, contents),
+  },
 });

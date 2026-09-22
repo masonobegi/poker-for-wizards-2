@@ -9,9 +9,12 @@ import { Button, Badge } from '@/components/ui/kit';
 import { SCHOOLS, SIGILS, RARITY_COLOR, type School } from '@shared/sigils';
 import { RELICS, RELIC_RARITY_COLOR } from '@shared/relics';
 import { MARKS } from '@shared/cards';
+import { ACHIEVEMENTS } from '@shared/achievements';
+import { earned } from '@/lib/achievements';
+import '@/components/achievements.css';
 import './codex.css';
 
-type Tab = 'sigils' | 'relics' | 'marks' | 'rules';
+type Tab = 'sigils' | 'relics' | 'marks' | 'rules' | 'feats';
 
 export default function Codex({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('rules');
@@ -30,7 +33,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
       </header>
 
       <nav className="codex-tabs" role="tablist">
-        {(['rules', 'sigils', 'relics', 'marks'] as Tab[]).map((t) => (
+        {(['rules', 'sigils', 'relics', 'marks', 'feats'] as Tab[]).map((t) => (
           <button
             key={t}
             role="tab"
@@ -44,6 +47,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
       </nav>
 
       {tab === 'rules' ? <Rules /> : null}
+      {tab === 'feats' ? <Feats /> : null}
 
       {tab === 'sigils' ? (
         <>
@@ -142,6 +146,35 @@ export default function Codex({ onClose }: { onClose: () => void }) {
         </ul>
       ) : null}
     </div>
+  );
+}
+
+function Feats() {
+  const got = earned();
+  const done = ACHIEVEMENTS.filter((a) => got.has(a.id)).length;
+
+  return (
+    <>
+      <p className="ach-progress">{done} of {ACHIEVEMENTS.length} earned</p>
+      <ul className="achlist">
+        {ACHIEVEMENTS.map((a) => {
+          const has = got.has(a.id);
+          const secret = a.hidden && !has;
+          return (
+            <li key={a.id} className={`achrow ${has ? 'is-earned' : ''}`}>
+              <span className="achrow-mark" aria-hidden>{has ? '✦' : '·'}</span>
+              <span className="achrow-body">
+                <span className="achrow-name">{secret ? 'Hidden' : a.name}</span>
+                <span className="achrow-text">
+                  {secret ? 'Earn it to find out what it was.' : a.text}
+                </span>
+              </span>
+              <span className="achrow-state">{has ? 'earned' : ''}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 

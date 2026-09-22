@@ -70,6 +70,7 @@ export function loadProfile(): Profile {
 function save(p: Profile): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(p));
+    window.dispatchEvent(new Event('hexhold:save-changed'));
   } catch { /* private mode, or the quota is full — the game still plays */ }
 }
 

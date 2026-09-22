@@ -1,0 +1,101 @@
+.ach {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px 20px 10px 14px;
+  min-width: 300px;
+  max-width: min(460px, 92vw);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(31, 24, 8, 0.97), rgba(8, 10, 20, 0.97));
+  border: 1px solid var(--gold-deep);
+  box-shadow: var(--e-4), 0 0 44px rgba(240, 196, 101, 0.3);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.ach-mark {
+  font-size: 26px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 12px var(--gold));
+  animation: ach-spin 4s var(--ease-both) 1;
+}
+@keyframes ach-spin {
+  0% { transform: rotate(-90deg) scale(0.4); opacity: 0; }
+  30% { transform: rotate(0deg) scale(1.15); opacity: 1; }
+  45% { transform: rotate(0deg) scale(1); }
+}
+
+.ach-body { display: grid; gap: 1px; min-width: 0; }
+
+.ach-eyebrow {
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.ach-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  color: var(--gold-hi);
+  line-height: 1.2;
+}
+
+.ach-text {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+/* --- the list in the codex ------------------------------------------------ */
+
+.achlist { display: grid; gap: 5px; }
+
+.achrow {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: rgba(5, 6, 12, 0.4);
+  border: 1px solid var(--line-soft);
+}
+.achrow.is-earned {
+  border-color: var(--gold-deep);
+  background: rgba(240, 196, 101, 0.07);
+}
+
+.achrow-mark { font-size: 16px; color: var(--text-4); text-align: center; }
+.achrow.is-earned .achrow-mark {
+  color: var(--gold);
+  filter: drop-shadow(0 0 7px var(--gold));
+}
+
+.achrow-body { display: grid; gap: 1px; min-width: 0; }
+.achrow-name { font-size: var(--fs-sm); font-weight: 700; color: var(--text-2); }
+.achrow.is-earned .achrow-name { color: var(--gold); }
+.achrow-text { font-size: var(--fs-xs); color: var(--text-4); line-height: 1.45; }
+
+.achrow-state {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.achrow.is-earned .achrow-state { color: var(--good); }
+
+.ach-progress {
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  text-align: center;
+  padding-bottom: var(--s-2);
+}

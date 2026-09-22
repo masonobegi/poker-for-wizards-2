@@ -1,0 +1,122 @@
+[
+  {
+    "name": "first_blood",
+    "displayName": "First Blood",
+    "description": "Win your first pot.",
+    "hidden": "0"
+  },
+  {
+    "name": "first_run",
+    "displayName": "Last One Standing",
+    "description": "Win a run.",
+    "hidden": "0"
+  },
+  {
+    "name": "five_of_a_kind",
+    "displayName": "Impossible",
+    "description": "Win with Five of a Kind — a hand fifty-two cards cannot make.",
+    "hidden": "0"
+  },
+  {
+    "name": "flush_house",
+    "displayName": "Two Impossibilities",
+    "description": "Win with a Flush House.",
+    "hidden": "0"
+  },
+  {
+    "name": "flush_five",
+    "displayName": "The Same Card, Five Times",
+    "description": "Win with a Flush Five.",
+    "hidden": "0"
+  },
+  {
+    "name": "counterspell",
+    "displayName": "Nullified",
+    "description": "Counter an opponent’s sigil.",
+    "hidden": "0"
+  },
+  {
+    "name": "counterspelled_twice",
+    "displayName": "The Last Word",
+    "description": "Counter a counterspell.",
+    "hidden": "1"
+  },
+  {
+    "name": "wildcard",
+    "displayName": "Anything At All",
+    "description": "Win a pot using a Wild card.",
+    "hidden": "0"
+  },
+  {
+    "name": "long_memory",
+    "displayName": "It Remembers",
+    "description": "Win with a card that has already won three pots.",
+    "hidden": "1"
+  },
+  {
+    "name": "quantum_win",
+    "displayName": "Collapsed In Your Favour",
+    "description": "Win a pot with a card that was undecided until the showdown.",
+    "hidden": "0"
+  },
+  {
+    "name": "sealed_win",
+    "displayName": "Nobody Saw It Coming",
+    "description": "Win a pot with a card that was sealed face down.",
+    "hidden": "1"
+  },
+  {
+    "name": "diverged_win",
+    "displayName": "Your Own Private Truth",
+    "description": "Win using a card that showed the rest of the table something else.",
+    "hidden": "1"
+  },
+  {
+    "name": "ante_five",
+    "displayName": "Deep Water",
+    "description": "Reach ante 5.",
+    "hidden": "0"
+  },
+  {
+    "name": "ante_eight",
+    "displayName": "The Far End",
+    "description": "Reach ante 8.",
+    "hidden": "0"
+  },
+  {
+    "name": "purist",
+    "displayName": "Purist",
+    "description": "Win a run without casting a single sigil.",
+    "hidden": "1"
+  },
+  {
+    "name": "archmage",
+    "displayName": "Archmage",
+    "description": "Cast 100 sigils.",
+    "hidden": "0"
+  },
+  {
+    "name": "the_inversion",
+    "displayName": "Upside Down",
+    "description": "Win a pot with the worst hand at the table.",
+    "hidden": "1"
+  },
+  {
+    "name": "six_omens",
+    "displayName": "A Rulebook Nobody Wrote",
+    "description": "Play a hand with six omens in force.",
+    "hidden": "0"
+  },
+  {
+    "name": "kingmaker",
+    "displayName": "Kingmaker",
+    "description": "Eliminate three players in one run.",
+    "hidden": "0"
+  },
+  {
+    "name": "whale",
+    "displayName": "Whale",
+    "description": "Win a pot worth a hundred big blinds.",
+    "hidden": "0"
+  }
+]

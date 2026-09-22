@@ -14,6 +14,9 @@ import SystemMenu from '@/components/shell/SystemMenu';
 import GamepadLayer from '@/components/shell/GamepadLayer';
 import IntroFlow from '@/components/onboarding/IntroFlow';
 import RunRecorder from '@/components/profile/RunRecorder';
+import AchievementToast from '@/components/AchievementToast';
+import { installAchievementWatcher } from '@/lib/achievements';
+import { installCloudSync, pullCloudSave } from '@/lib/cloud';
 
 /**
  * The particle layer is decoration — load it after the first paint, and if the
@@ -51,8 +54,12 @@ export default function App() {
 
   useEffect(() => {
     connect();
-    const teardown = installFxBridge();
-    return teardown;
+    const offFx = installFxBridge();
+    const offAch = installAchievementWatcher(() => useGame.getState().view);
+    const offCloud = installCloudSync();
+    // Pull before anything reads a save, so a second machine starts correct.
+    void pullCloudSave();
+    return () => { offFx(); offAch(); offCloud(); };
   }, [connect]);
 
   useEffect(() => {
@@ -133,6 +140,7 @@ export default function App() {
       <SystemMenu />
       <GamepadLayer />
       <RunRecorder />
+      <AchievementToast />
       <IntroFlow open={howTo} onClose={() => setHowTo(false)} />
 
       <Suspense fallback={null}>

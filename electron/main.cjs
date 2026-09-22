@@ -10,8 +10,22 @@ const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const { fork } = require('node:child_process');
 const net = require('node:net');
+const steam = require('./steam.cjs');
 
 const isDev = !app.isPackaged;
+
+// Two copies of a game fighting over one Steam session and one save file is a
+// support ticket waiting to happen.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+app.on('second-instance', () => {
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+});
 let win = null;
 let server = null;
 let serverPort = 0;
@@ -122,6 +136,13 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Optional, and silent when absent.
+  steam.init(process.resourcesPath);
+  if (steam.enabled) {
+    steam.setRichPresence('steam_display', '#Status_Playing');
+    setInterval(() => steam.runCallbacks(), 1000).unref?.();
+  }
+
   try {
     serverPort = await freePort();
     await startServer(serverPort);
@@ -145,6 +166,24 @@ app.whenReady().then(async () => {
 });
 
 ipcMain.handle('hexhold:port', () => serverPort);
+
+// --- Steam ----------------------------------------------------------------
+ipcMain.handle('steam:status', () => steam.status());
+ipcMain.handle('steam:name', () => steam.playerName());
+ipcMain.handle('steam:unlock', (_e, name) =>
+  typeof name === 'string' ? steam.unlockAchievement(name) : false);
+ipcMain.handle('steam:unlocked', (_e, name) =>
+  typeof name === 'string' ? steam.achievementUnlocked(name) : false);
+ipcMain.handle('steam:presence', (_e, key, value) => {
+  if (typeof key === 'string' && typeof value === 'string') steam.setRichPresence(key, value);
+  return true;
+});
+ipcMain.handle('steam:cloudRead', (_e, file) =>
+  typeof file === 'string' ? steam.cloudRead(file) : null);
+ipcMain.handle('steam:cloudWrite', (_e, file, contents) =>
+  typeof file === 'string' && typeof contents === 'string'
+    ? steam.cloudWrite(file, contents)
+    : false);
 ipcMain.handle('hexhold:version', () => app.getVersion());
 ipcMain.handle('hexhold:fullscreen', (_e, on) => {
   if (!win) return false;
@@ -156,5 +195,5 @@ app.on('window-all-closed', () => {
   stopServer();
   if (process.platform !== 'darwin') app.quit();
 });
-app.on('before-quit', stopServer);
+app.on('before-quit', () => { stopServer(); steam.shutdown(); });
 process.on('exit', stopServer);

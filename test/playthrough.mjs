@@ -356,6 +356,16 @@ for (const r of readable) problem('POLISH', r);
 
 async function finish() {
   finishing = true;
+  // Achievements are the visible half of progression; prove they fire.
+  let unlocked = [];
+  try {
+    if (!page.isClosed()) {
+      unlocked = await page.evaluate(() => {
+        try { return JSON.parse(localStorage.getItem('hexhold.achievements') ?? '[]'); }
+        catch { return []; }
+      });
+    }
+  } catch { /* page gone */ }
   let state = null;
   try { if (!page.isClosed()) state = await readState(page); } catch { state = null; }
   try { await browser.close(); } catch { /* already gone */ }
@@ -372,6 +382,10 @@ async function finish() {
   console.log(`  omens seen     ${sawOmen ? 'yes' : 'NO'}`);
   if (state) console.log(`  final state    ${JSON.stringify(state)}`);
   console.log(`  screenshots    ${shots.length} in playthrough/`);
+  console.log(`  achievements   ${unlocked.length ? unlocked.join(', ') : 'none'}`);
+  if (turnsSeen > 3 && unlocked.length === 0) {
+    problem('WARN', 'Played a whole session and unlocked nothing — check the achievement watcher.');
+  }
   if (heap.length) {
     console.log(`  JS heap MB     ${heap.join(' → ')}`);
     if (heap.length > 2 && heap[heap.length - 1] > heap[0] * 2.5 && heap[heap.length - 1] > 300) {

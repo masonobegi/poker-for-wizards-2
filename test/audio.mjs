@@ -37,14 +37,23 @@ const HEADROOM_PEAK = 0.8; // design guideline: leave room for several at once
 const DC_FAIL = 0.02; // a mean this far from zero reads as a thump
 const DC_WARN = 0.008;
 const QUIET_RATIO_FAIL = 0.025; // rms this many times below the loudest = inaudible in the mix
-const MOOD_STATIC_COV = 0.08; // segment-RMS coefficient of variation below this = static drone
+// A mood must clear one of these to count as "changes over time": either its
+// loudness moves (table's pulse, tension's ticks, showdown's swell) or its
+// tone does (menu's slow filter sweep, shop's arpeggio poking a bright
+// transient through a steady pad). Both are coefficients of variation across
+// ~0.4s segments, so 0 means dead flat; either metric legitimately runs low
+// for a bed whose only per-run-random event (e.g. menu's single bell, timed
+// and voiced by `rand()`) lands late/quiet/short in a given render, so the
+// bar is set well under what every mood clears on a normal run, not at the
+// midpoint of observed values.
+const MOOD_STATIC_COV = 0.08;
 
 // ---------------------------------------------------------------------------
 // Browser-side analysis (stringified into page.evaluate — plain JS only)
 // ---------------------------------------------------------------------------
 
 /** Runs entirely inside the page. Renders + measures every sound and mood. */
-async function collectInPage(sfxList, moods) {
+async function collectInPage({ sfxList, moods }) {
   const SR = 44100;
 
   function hannWindow(len) {
@@ -153,6 +162,13 @@ async function collectInPage(sfxList, moods) {
     return { peak, rms, dcOffset: dc, durationSec, spectralHz, renderSec: n / sr };
   }
 
+  /** Coefficient of variation (stddev / mean) of an array of non-negative numbers. */
+  function coV(values) {
+    const mean = values.reduce((a, b) => a + b, 0) / Math.max(1, values.length);
+    const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, values.length);
+    return mean > 0.0001 ? Math.sqrt(variance) / mean : 0;
+  }
+
   function measureMood(buffer) {
     const { mono, peak, n, sr } = mixdown(buffer);
     const skip = Math.floor(sr * 0.05);
@@ -167,16 +183,26 @@ async function collectInPage(sfxList, moods) {
     const rms = Math.sqrt(sumSq / count);
     const dc = sum / count;
 
+    // "Does this change over time?" is checked two ways, because a bed can
+    // change in loudness (table's pulse, tension's ticks) or purely in tone
+    // (menu's slow filter sweep, shop's arpeggio poking a bright transient
+    // through a steady pad) — a 400ms RMS window dilutes a brief transient,
+    // so it alone would wrongly call a genuinely eventful bed "static".
     const segLen = Math.floor(sr * 0.4);
     const segRms = [];
+    const segBright = [];
+    const winLen = Math.min(segLen, 4096);
+    const win = hannWindow(winLen);
     for (let s = skip; s + segLen <= n; s += segLen) {
       let sq = 0;
       for (let i = s; i < s + segLen; i++) sq += mono[i] * mono[i];
       segRms.push(Math.sqrt(sq / segLen));
+      let bright = 0;
+      for (const f of [1500, 3000, 5000]) bright += goertzelMag(mono, s, winLen, f, sr, win);
+      segBright.push(bright);
     }
-    const segMean = segRms.reduce((a, b) => a + b, 0) / Math.max(1, segRms.length);
-    const segVar = segRms.reduce((a, b) => a + (b - segMean) ** 2, 0) / Math.max(1, segRms.length);
-    const segCoV = segMean > 0.0001 ? Math.sqrt(segVar) / segMean : 0;
+    const segCoV = coV(segRms);
+    const brightCoV = coV(segBright);
 
     let peakIdx = 0;
     let peakVal = 0;
@@ -188,7 +214,7 @@ async function collectInPage(sfxList, moods) {
       }
     }
     const spectralHz = spectralCentroid(mono, sr, peakIdx, n);
-    return { peak, rms, dcOffset: dc, segCoV, spectralHz, renderSec: n / sr };
+    return { peak, rms, dcOffset: dc, segCoV, brightCoV, spectralHz, renderSec: n / sr };
   }
 
   const hook = window.__hexholdAudioTest;
@@ -233,6 +259,9 @@ page.on('pageerror', (e) => console.error('  page error:', String(e).slice(0, 20
 
 console.log(`\n▶ opening ${URL}`);
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+// Give React a moment to mount before the gesture below — App.tsx's
+// `window.addEventListener('pointerdown', ...)` isn't wired up until then.
+await page.waitForTimeout(2500);
 
 // The audio engine (src/audio/engine.ts) is a lazily-loaded chunk that only
 // evaluates after the player's first gesture (see App.tsx's unlockAudio()
@@ -249,7 +278,7 @@ const { sfx: sfxList, moods } = await page.evaluate(() => ({
 }));
 console.log(`▶ rendering ${sfxList.length} sfx + ${moods.length} music moods offline\n`);
 
-const { sfx, music } = await page.evaluate(collectInPage, [sfxList, moods]);
+const { sfx, music } = await page.evaluate(collectInPage, { sfxList, moods });
 
 await browser.close();
 
@@ -324,8 +353,10 @@ function gradeMood(m) {
   if (m.peak < SILENT_PEAK) fail(`silent (peak ${m.peak.toFixed(4)})`);
   if (m.peak > CLIP_PEAK) fail(`clipping (peak ${m.peak.toFixed(3)})`);
   if (Math.abs(m.dcOffset) > DC_FAIL) fail(`DC offset ${m.dcOffset.toFixed(4)}`);
-  if (m.segCoV < MOOD_STATIC_COV) {
-    fail(`segment-RMS coefficient of variation ${m.segCoV.toFixed(3)} < ${MOOD_STATIC_COV} — reads as a static drone`);
+  if (m.segCoV < MOOD_STATIC_COV && m.brightCoV < MOOD_STATIC_COV) {
+    fail(
+      `neither loudness (CoV ${m.segCoV.toFixed(3)}) nor tone (CoV ${m.brightCoV.toFixed(3)}) vary enough over 7s — reads as a static drone`,
+    );
   }
   return { status, notes };
 }
@@ -333,12 +364,14 @@ function gradeMood(m) {
 const musicGraded = music.map((m) => ({ ...m, ...gradeMood(m) }));
 
 console.log('\nMUSIC (7s render)');
-console.log(`  ${'mood'.padEnd(10)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dc'.padStart(8)}  ${'variation'.padStart(9)}  centroid  status`);
-console.log('  ' + '-'.repeat(70));
+console.log(
+  `  ${'mood'.padEnd(10)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dc'.padStart(8)}  ${'loud var'.padStart(8)}  ${'tone var'.padStart(8)}  centroid  status`,
+);
+console.log('  ' + '-'.repeat(80));
 for (const m of musicGraded) {
   const row = m.error
-    ? `  ${m.mood.padEnd(10)}  ${'—'.padStart(6)}  ${'—'.padStart(6)}  ${'—'.padStart(8)}  ${'—'.padStart(9)}  —  ${m.status}`
-    : `  ${m.mood.padEnd(10)}  ${m.peak.toFixed(3).padStart(6)}  ${m.rms.toFixed(3).padStart(6)}  ${m.dcOffset.toFixed(4).padStart(8)}  ${m.segCoV.toFixed(3).padStart(9)}  ${Math.round(m.spectralHz)}Hz  ${m.status}`;
+    ? `  ${m.mood.padEnd(10)}  ${'—'.padStart(6)}  ${'—'.padStart(6)}  ${'—'.padStart(8)}  ${'—'.padStart(8)}  ${'—'.padStart(8)}  —  ${m.status}`
+    : `  ${m.mood.padEnd(10)}  ${m.peak.toFixed(3).padStart(6)}  ${m.rms.toFixed(3).padStart(6)}  ${m.dcOffset.toFixed(4).padStart(8)}  ${m.segCoV.toFixed(3).padStart(8)}  ${m.brightCoV.toFixed(3).padStart(8)}  ${Math.round(m.spectralHz)}Hz  ${m.status}`;
   console.log(row);
   for (const n of m.notes) console.log(`  ${' '.repeat(10)}    · ${n}`);
 }

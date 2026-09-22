@@ -24,7 +24,8 @@
     "icon": "node electron/make-icon.mjs",
     "metrics": "tsx test/metrics.ts",
     "play": "node test/playthrough.mjs",
-    "play:pad": "node test/gamepad.mjs"
+    "play:pad": "node test/gamepad.mjs",
+    "steam:manifest": "tsx scripts/steam-manifest.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -115,5 +116,8 @@
       "shortcutName": "HEXHOLD"
     }
   },
-  "author": "Mason Obegi"
+  "author": "Mason Obegi",
+  "optionalDependencies": {
+    "steamworks.js": "^0.4.0"
+  }
 }
