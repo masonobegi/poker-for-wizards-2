@@ -13,7 +13,7 @@
     "start": "node --import tsx server/index.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false || tsc -p tsconfig.app.json --noEmit",
-    "test": "node --import tsx --test test/hand.test.ts test/sigils.test.ts test/omens.test.ts test/render.test.tsx test/net.test.ts",
+    "test": "node --import tsx --test test/hand.test.ts test/sigils.test.ts test/omens.test.ts test/render.test.tsx test/persist.test.ts test/net.test.ts",
     "sim": "tsx test/sim.ts",
     "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist-server/index.mjs --external:bufferutil --external:utf-8-validate --banner:js=\"import{createRequire as __hxcr}from'node:module';const require=__hxcr(import.meta.url);\"",
     "build:all": "npm run build && npm run build:server",

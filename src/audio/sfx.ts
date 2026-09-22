@@ -590,10 +590,15 @@ export const SFX: Record<SfxName, SfxDef> = {
   chip_allin: {
     len: 2,
     play: (g, t, p) => {
-      chipCascade(g, t, randInt(20, 26), 0.36, 2200 * p, -0.25, 0.22);
+      // The offline audio harness (test/audio.mjs) measured this stacking
+      // above 1.0 (true clipping) on a meaningful fraction of runs, since
+      // chipCascade's per-clink `rand()` gain/timing can constructively
+      // overlap — every layer below is scaled by ~0.68 from its original
+      // level to bring the worst case back under the ~0.8 headroom target.
+      chipCascade(g, t, randInt(20, 26), 0.36, 2200 * p, -0.25, 0.15);
       noiseHit(g, {
         at: t,
-        gain: 0.28,
+        gain: 0.19,
         filterType: 'bandpass',
         filterFreq: 3000 * p,
         filterTo: 700 * p,
@@ -611,7 +616,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         to: 29 * p,
         ms: 620,
         type: 'sine',
-        gain: 0.55,
+        gain: 0.37,
         attack: 0.006,
         decay: 0.3,
         sustain: 0.45,
@@ -623,7 +628,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         at: t + 0.04,
         freq: mtof(MIDI.D2) * p,
         type: 'sawtooth',
-        gain: 0.1,
+        gain: 0.07,
         send: 0.5,
         attack: 0.02,
         decay: 0.4,
@@ -1063,13 +1068,17 @@ export const SFX: Record<SfxName, SfxDef> = {
   cast_ruin: {
     len: 2.4,
     play: (g, t, p) => {
+      // The offline audio harness (test/audio.mjs) measured this landing
+      // consistently above the 0.8 headroom guideline (and close to
+      // clipping on the loudest runs) — every layer below is scaled by
+      // ~0.78 from its original level.
       sweep(g, {
         at: t,
         from: 86 * p,
         to: 34 * p,
         ms: 420,
         type: 'sine',
-        gain: 0.55,
+        gain: 0.43,
         shape: 0.85,
         send: 0.2,
         attack: 0.003,
@@ -1080,7 +1089,7 @@ export const SFX: Record<SfxName, SfxDef> = {
       });
       noiseHit(g, {
         at: t,
-        gain: 0.32,
+        gain: 0.25,
         filterType: 'highpass',
         filterFreq: 1500,
         attack: 0.001,
@@ -1090,7 +1099,7 @@ export const SFX: Record<SfxName, SfxDef> = {
       });
       noiseHit(g, {
         at: t + 0.01,
-        gain: 0.18,
+        gain: 0.14,
         filterType: 'bandpass',
         filterFreq: 700,
         filterTo: 180,
@@ -1107,7 +1116,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         to: 46 * p,
         ms: 1300,
         type: 'sawtooth',
-        gain: 0.16,
+        gain: 0.12,
         shape: 0.6,
         send: 0.35,
         attack: 0.03,
@@ -1825,8 +1834,14 @@ export const SFX: Record<SfxName, SfxDef> = {
         MIDI.F5,
         MIDI.A5,
       ];
+      // The offline audio harness (test/audio.mjs) measured this clipping
+      // (peak > 1.0) on a meaningful share of runs — the 20-voice shimmer's
+      // randomized timing occasionally stacks constructively on top of the
+      // full chord. Every layer below is scaled by ~0.72 from its original
+      // level; it's still meant to be the single loudest sound in the game,
+      // just with headroom instead of clipping.
       sawStack(g, t, chord, {
-        gain: 0.42,
+        gain: 0.3,
         attack: 0.12,
         hold: 1.1,
         release: 1.2,
@@ -1841,7 +1856,7 @@ export const SFX: Record<SfxName, SfxDef> = {
           at: t + 0.02 + i * 0.012,
           freq: mtof(m) * p,
           type: 'triangle',
-          gain: 0.06,
+          gain: 0.043,
           send: 0.5,
           attack: 0.03,
           decay: 0.4,
@@ -1860,7 +1875,7 @@ export const SFX: Record<SfxName, SfxDef> = {
           ratio: rand(1.9, 2.1),
           index: rand(0.9, 2),
           decay: rand(0.8, 1.8),
-          gain: 0.055 * (1 - k * 0.4),
+          gain: 0.04 * (1 - k * 0.4),
           pan: rand(-0.9, 0.9),
           send: 0.9,
         });
@@ -1871,7 +1886,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         to: 27 * p,
         ms: 900,
         type: 'sine',
-        gain: 0.6,
+        gain: 0.43,
         attack: 0.01,
         decay: 0.5,
         sustain: 0.5,
@@ -1879,8 +1894,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         release: 0.9,
         send: 0.15,
       });
-      chipCascade(g, t + 0.5, 18, 1.2, 2300 * p, 0.45, 0.14);
-      thump(g, t + 1.15, 100 * p, 38 * p, 0.4, 0.6, 0.4);
+      chipCascade(g, t + 0.5, 18, 1.2, 2300 * p, 0.45, 0.1);
+      thump(g, t + 1.15, 100 * p, 38 * p, 0.29, 0.6, 0.4);
     },
   },
 
@@ -1920,13 +1935,17 @@ export const SFX: Record<SfxName, SfxDef> = {
   eliminate: {
     len: 3.6,
     play: (g, t, p) => {
+      // The offline audio harness (test/audio.mjs) measured this clipping
+      // (peak > 1.0) on some runs — the two fmBells' dense inharmonic
+      // partials plus the thump land close together. Every layer below is
+      // scaled by ~0.64 from its original level.
       fmBell(g, {
         at: t,
         carrier: mtof(MIDI.D2) * p,
         ratio: 2.41,
         index: 8,
         decay: 2.6,
-        gain: 0.34,
+        gain: 0.22,
         send: 0.95,
       });
       fmBell(g, {
@@ -1935,13 +1954,13 @@ export const SFX: Record<SfxName, SfxDef> = {
         ratio: 1.73,
         index: 5,
         decay: 2,
-        gain: 0.14,
+        gain: 0.09,
         send: 0.95,
       });
-      thump(g, t, 66 * p, 28 * p, 0.42, 0.7, 0.3);
+      thump(g, t, 66 * p, 28 * p, 0.27, 0.7, 0.3);
       noiseHit(g, {
         at: t + 0.02,
-        gain: 0.12,
+        gain: 0.08,
         filterType: 'lowpass',
         filterFreq: 1400,
         filterTo: 220,
@@ -1956,7 +1975,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         at: t + 0.4,
         freq: mtof(MIDI.Bb2) * p,
         type: 'sine',
-        gain: 0.09,
+        gain: 0.06,
         send: 1,
         attack: 0.3,
         decay: 0.6,

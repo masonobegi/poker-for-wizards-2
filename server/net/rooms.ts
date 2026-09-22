@@ -7,6 +7,8 @@ import { Engine } from '../game/engine';
 import { viewFor } from '../game/table';
 import type { RoomConfig } from '../../shared/types';
 import type { FxEvent } from '../../shared/protocol';
+import { loadTables, saveTables } from './persist';
+import { config } from '../config';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const IDLE_MS = 1000 * 60 * 45;
@@ -22,16 +24,46 @@ export class Rooms {
   /** playerId -> reconnect token, so a dropped client cannot be impersonated. */
   private tokens = new Map<string, string>();
   private reaper: NodeJS.Timeout;
+  private saver: NodeJS.Timeout;
 
   constructor(private io: Server) {
     this.reaper = setInterval(() => this.reap(), 60_000);
     // Housekeeping should never be the reason the process stays alive.
     this.reaper.unref?.();
+
+    this.restore();
+    this.saver = setInterval(() => this.snapshot(), 20_000);
+    this.saver.unref?.();
+  }
+
+  /** Bring back whatever the last process was in the middle of. */
+  private restore(): void {
+    const { tables, tokens } = loadTables();
+    for (const [id, token] of tokens) this.tokens.set(id, token);
+    for (const table of tables) {
+      const engine = new Engine(
+        table.code,
+        table.hostId,
+        table.config,
+        (fx: FxEvent[]) => this.io.to(table.code).emit('fx', fx),
+        () => this.broadcast(table.code),
+        table,
+      );
+      this.engines.set(table.code, engine);
+    }
+  }
+
+  private snapshot(): void {
+    if (!config.persistence.enabled) return;
+    saveTables([...this.engines.values()].map((e) => e.table), this.tokens);
   }
 
   /** Close every table and release the timers holding the event loop open. */
   shutdown(): void {
     clearInterval(this.reaper);
+    clearInterval(this.saver);
+    // Write before tearing anything down, so a deploy loses nothing.
+    this.snapshot();
     for (const code of [...this.engines.keys()]) this.destroy(code);
   }
 

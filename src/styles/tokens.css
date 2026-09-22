@@ -119,8 +119,16 @@
   --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* --- layout ------------------------------------------------------------- */
-  --card-w: 78px;
-  --card-h: 112px;
+  /* Everything derives from these two. They scale with the viewport's short
+     side (vmin) so a Steam Deck at 1280x800 gets compact cards that leave the
+     rail and action bar room to breathe, and a 4K display gets cards large
+     enough that the table doesn't read as tiny UI marooned in a huge black
+     field. The floor and ceiling are deliberately close to the values this
+     table shipped with at 1440x900 (78x112) so that resolution is barely
+     affected; --card-h always derives from --card-w so the 78:112 aspect
+     ratio never drifts at any viewport size. */
+  --card-w: clamp(58px, 8vmin, 132px);
+  --card-h: calc(var(--card-w) * 112 / 78);
   --rail-h: 132px;
   --z-felt: 1;
   --z-cards: 20;

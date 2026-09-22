@@ -338,7 +338,7 @@
   box-shadow: 0 0 7px rgba(185, 140, 255, 0.85);
 }
 .mana.is-compact .mana-pip { width: 5px; height: 5px; }
-.mana-more { font-size: 9px; color: var(--text-4); margin-left: 2px; }
+.mana-more { font-size: 10px; color: var(--text-4); margin-left: 2px; }
 .mana-num { font-size: var(--fs-xs); color: var(--entropy); font-weight: 700; margin-left: 4px; }
 
 /* --- board -------------------------------------------------------------- */
@@ -585,7 +585,9 @@
   padding-bottom: var(--s-2);
   overflow-x: auto;
   overflow-y: visible;
-  min-height: 158px;
+  /* Scales with --card-h so a cramped Steam-Deck-height viewport doesn't
+     lose the rail's worth of felt to a fixed-size sigil hand. */
+  min-height: calc(var(--card-h) * 1.5);
 }
 .rail-nosigils {
   font-size: var(--fs-xs);
@@ -600,7 +602,9 @@
   --school: var(--entropy);
   position: relative;
   flex: none;
-  width: 124px;
+  /* 124px at the reference --card-w of 78px — scales with the same token
+     everything else on the table uses. */
+  width: calc(var(--card-w) * 1.59);
   cursor: default;
   transform-origin: bottom center;
 }
@@ -610,7 +614,8 @@
   display: grid;
   gap: 4px;
   padding: 9px 9px 7px;
-  height: 152px;
+  /* 152px at the reference --card-h of 112px. */
+  height: calc(var(--card-h) * 1.357);
   border-radius: var(--r-md);
   background:
     linear-gradient(180deg,
@@ -654,7 +659,7 @@
   box-shadow: 0 0 9px rgba(185, 140, 255, 0.7);
 }
 .sigil-school {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -664,7 +669,10 @@
 
 .sigil-glyph {
   text-align: center;
-  font-size: 30px;
+  /* Scales with the sigil frame (itself tied to --card-h) so a 4K frame
+     doesn't leave the glyph looking marooned, and a Steam Deck frame
+     doesn't clip it. */
+  font-size: clamp(22px, calc(var(--card-h) * 0.27), 40px);
   line-height: 1;
   color: var(--school);
   filter: drop-shadow(0 0 12px var(--school));
@@ -672,7 +680,7 @@
 
 .sigil-name {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: clamp(11px, calc(var(--card-h) * 0.105), 15px);
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -695,7 +703,7 @@
   justify-content: flex-end;
   align-items: center;
   margin-top: auto;
-  font-size: 7.5px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -774,7 +782,7 @@
 }
 .ab-clocklabel {
   font-family: var(--font-display);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--text-4);
@@ -788,7 +796,7 @@
 .ab-buttons .btn { min-width: 132px; }
 .ab-buttons kbd {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
   padding: 1px 4px;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.1);
@@ -922,7 +930,7 @@
 .stack-body strong { font-size: var(--fs-sm); }
 .stack-caster { font-size: var(--fs-xs); color: var(--text-4); }
 .stack-badge {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1171,8 +1179,8 @@
   align-items: center;
   gap: 6px;
 }
-.showdown-echo { color: var(--chronos); font-style: normal; font-size: 9px; }
-.showdown-alt { font-size: 9px; color: var(--text-4); font-style: italic; }
+.showdown-echo { color: var(--chronos); font-style: normal; font-size: 10px; }
+.showdown-alt { font-size: 10px; color: var(--text-4); font-style: italic; }
 .showdown-muck {
   font-size: var(--fs-xs);
   color: var(--text-4);

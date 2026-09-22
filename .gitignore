@@ -13,3 +13,9 @@ coverage/
 dist-server/
 electron/icon.png
 electron/icon@512.png
+hexhold*.db
+hexhold*.db.tmp
+playthrough/
+playthrough-pad/
+responsive/
+steam/

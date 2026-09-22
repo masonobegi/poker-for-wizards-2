@@ -10,7 +10,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 37 sigils, all 18 omens | `npm test` — 92 tests |
+| Game rules, hand evaluation, all 37 sigils, all 18 omens | `npm test` — 95 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -20,6 +20,7 @@ Each of these is checked by something you can run, not by assertion.
 | Achievements fire during real play | `npm run play` reports what unlocked |
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
 | Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
+| Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |
 
 ---
 
@@ -60,7 +61,6 @@ Honest list, worst first.
 
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
-3. **No server-side persistence yet.** `PERSIST` is read from the environment and threaded through config, but tables do not survive a restart. Profiles and achievements are client-side and do survive.
 4. **Audio has never been heard by a human.** It is verified to be non-silent, non-clipping and correctly shaped; that is not the same as sounding good.
 5. **No crash reporting.** Worth adding a service before a wide release.
 6. **Content depth.** 37 sigils, 24 relics, 18 omens is a solid opening hand for a roguelike but not a deep one. Replayability is the thing most likely to be criticised.

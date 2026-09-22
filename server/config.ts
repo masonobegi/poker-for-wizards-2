@@ -59,10 +59,16 @@ export const config = {
     idleRoomMinutes: int('IDLE_ROOM_MINUTES', 45, 1, 60 * 24),
   },
 
-  /** Persist tables and profiles so a restart does not end everyone's game. */
+  /**
+   * Persist tables so a restart does not end everyone's game.
+   *
+   * Read lazily rather than captured at import. A module-level snapshot of
+   * `process.env` is evaluated before anything that imports this module has had
+   * a chance to set it — which silently pointed the save at the wrong file.
+   */
   persistence: {
-    enabled: bool('PERSIST', true),
-    file: process.env.PERSIST_FILE ?? 'hexhold.db',
+    get enabled(): boolean { return bool('PERSIST', true); },
+    get file(): string { return process.env.PERSIST_FILE ?? 'hexhold.db'; },
   },
 
   /** Printed at boot so an operator can see what they actually started. */

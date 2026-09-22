@@ -55,10 +55,15 @@ export class Engine {
     config: Partial<RoomConfig>,
     private emit: Emit,
     private push: Push,
+    /** Adopt an existing table instead of dealing a fresh one (restore). */
+    restore?: Table,
   ) {
-    this.table = createTable(code, hostId, config);
+    this.table = restore ?? createTable(code, hostId, config);
     this.rng = new Rng(this.table.seed);
     this.timer = setInterval(() => this.tick(), TICK_MS);
+    // A restored hand has no scheduled work; let the stall guard pick it up
+    // rather than trying to reconstruct which timer was pending.
+    if (restore) this.idleSince = Date.now();
   }
 
   dispose(): void {
