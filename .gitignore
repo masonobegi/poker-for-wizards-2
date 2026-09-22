@@ -25,3 +25,8 @@ ov*-tmp.mjs
 probe-tmp.ts
 trace-tmp.ts
 *.tsbuildinfo
+
+# Emitted next to sources if tsc is ever run without --noEmit.
+src/**/*.js
+shared/**/*.js
+server/**/*.js
