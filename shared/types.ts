@@ -131,6 +131,8 @@ export interface PlayerView {
   ready: boolean;
   shopDone: boolean;
   handsWon: number;
+  /** Public — every pot is won in the open. Shown in the end-of-run recap. */
+  biggestPot: number;
   /** Set at showdown. */
   result?: ShowdownEntry;
 }

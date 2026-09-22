@@ -420,6 +420,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
       ready: p.ready,
       shopDone: p.shopDone,
       handsWon: p.handsWon,
+      biggestPot: p.biggestPot,
       result: t.payout?.entries.find((e) => e.playerId === p.id),
     };
   });

@@ -1351,6 +1351,64 @@
 }
 .gameover-winner p { font-size: var(--fs-sm); color: var(--text-3); }
 
+/* --- the run you just played -------------------------------------------- */
+
+/* A roguelike ends by showing you what you built. Here that is the rulebook:
+   by the last ante nobody sat down to the game you finished, and naming it
+   back is most of what makes somebody start another run. */
+.gameover-run {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.022);
+}
+.gameover-runstats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.gameover-runstats strong { color: var(--gold); font-weight: 700; }
+.gameover-runlabel {
+  margin: 6px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.gameover-omens,
+.gameover-relicrow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gameover-omens li,
+.gameover-relicrow li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  background: rgba(185, 140, 255, 0.12);
+  border: 1px solid rgba(185, 140, 255, 0.32);
+}
+.gameover-relicrow li {
+  background: rgba(240, 196, 101, 0.1);
+  border-color: var(--gold-deep);
+}
+.gameover-omenglyph { font-size: 13px; line-height: 1; opacity: 0.9; }
+
 .gameover-board { width: 100%; display: grid; gap: 3px; }
 .gameover-board li {
   display: grid;

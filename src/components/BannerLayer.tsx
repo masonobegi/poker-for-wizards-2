@@ -28,12 +28,31 @@ const HOLD_MS: Record<Banner['tone'], number> = {
 
 let seq = 0;
 
+/**
+ * When the screen is next free of announcements.
+ *
+ * The end-of-run banner and the game-over panel are both triggered by the
+ * same phase change, so they used to share the screen: "KESTREL WINS" drawn
+ * straight through the middle of the leaderboard it was announcing. They are
+ * a sequence, not a layer stack — the banner is the moment, the panel is the
+ * thing you read afterwards — and this is how the panel knows to wait.
+ */
+let bannerUntil = 0;
+
+/** Milliseconds until the screen is clear, 0 if it already is. */
+export function bannerBusyMs(): number {
+  return Math.max(0, bannerUntil - Date.now());
+}
+
 export default function BannerLayer() {
   const [banner, setBanner] = useState<Banner | null>(null);
 
   useEffect(() => onFx((e) => {
     if (e.t !== 'banner') return;
-    setBanner({ key: ++seq, text: e.text, sub: e.sub, tone: e.tone ?? 'neutral' });
+    const tone = e.tone ?? 'neutral';
+    // +300 covers the exit fade below.
+    bannerUntil = Date.now() + HOLD_MS[tone] + 300;
+    setBanner({ key: ++seq, text: e.text, sub: e.sub, tone });
   }), []);
 
   useEffect(() => {
