@@ -76,25 +76,60 @@ function tagOf(el) {
   return tag;
 }
 
+/**
+ * The visible extent of `el` after every clipping ancestor (`overflow` !=
+ * visible, on either axis) has cut it down — i.e. what a player would
+ * actually see, not the raw laid-out/transformed box. A `scaleX` overshoot
+ * on a decorative element sitting inside `overflow: hidden` is real geometry
+ * (`getBoundingClientRect` reports it) but never actually paints outside
+ * that ancestor, so it must not read as a viewport overflow.
+ */
+function clippedRect(el) {
+  let r = el.getBoundingClientRect();
+  let rect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  let p = el.parentElement;
+  while (p) {
+    const cs = getComputedStyle(p);
+    if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
+      const pr = p.getBoundingClientRect();
+      rect = {
+        left: Math.max(rect.left, pr.left),
+        right: Math.min(rect.right, pr.right),
+        top: Math.max(rect.top, pr.top),
+        bottom: Math.min(rect.bottom, pr.bottom),
+      };
+    }
+    p = p.parentElement;
+  }
+  return rect;
+}
+
 /** Nothing wider than the viewport, or drawn off the left edge. */
 async function checkOverflowX(page) {
-  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+  return page.evaluate(([isVisibleSrc, tagOfSrc, clippedRectSrc]) => {
     // eslint-disable-next-line no-eval
     const isVisible = eval(`(${isVisibleSrc})`);
     // eslint-disable-next-line no-eval
     const tagOf = eval(`(${tagOfSrc})`);
+    // eslint-disable-next-line no-eval
+    const clippedRect = eval(`(${clippedRectSrc})`);
     const out = [];
     const vw = window.innerWidth;
     for (const el of document.querySelectorAll('body *')) {
       if (!isVisible(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      if (r.right > vw + 2 || r.left < -2) {
-        out.push(`${tagOf(el)} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
+      if (r.right <= vw + 2 && r.left >= -2) continue;
+      // Raw box looks like it overflows — but if a clipping ancestor cuts
+      // that part away entirely, nothing is actually visible out there.
+      const c = clippedRect(el);
+      if (c.right <= c.left || c.bottom <= c.top) continue;
+      if (c.right > vw + 2 || c.left < -2) {
+        out.push(`${tagOf(el)} overflows horizontally (${Math.round(c.left)}..${Math.round(c.right)} vs ${vw})`);
       }
     }
     return [...new Set(out)].slice(0, 10);
-  }, [isVisible.toString(), tagOf.toString()]);
+  }, [isVisible.toString(), tagOf.toString(), clippedRect.toString()]);
 }
 
 /** No `position: fixed` element should run off the bottom of the viewport. */
@@ -121,11 +156,13 @@ async function checkFixedBottom(page) {
 
 /** No visible text smaller than 10px anywhere on screen. */
 async function checkTinyText(page) {
-  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+  return page.evaluate(([isVisibleSrc, tagOfSrc, clippedRectSrc]) => {
     // eslint-disable-next-line no-eval
     const isVisible = eval(`(${isVisibleSrc})`);
     // eslint-disable-next-line no-eval
     const tagOf = eval(`(${tagOfSrc})`);
+    // eslint-disable-next-line no-eval
+    const clippedRect = eval(`(${clippedRectSrc})`);
     const out = [];
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
     let el = walker.currentNode;
@@ -142,13 +179,17 @@ async function checkTinyText(page) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (r.bottom < 0 || r.right < 0 || r.top > window.innerHeight || r.left > window.innerWidth) continue;
+      // Clipped away by an ancestor (e.g. scrolled out of a panel) reads as
+      // "visible" by opacity/display alone but a player can't see it either.
+      const c = clippedRect(el);
+      if (c.right <= c.left || c.bottom <= c.top) continue;
       const px = parseFloat(getComputedStyle(el).fontSize);
       if (px && px < 9.9) {
         out.push(`${tagOf(el)} @ ${px.toFixed(1)}px ("${el.textContent.trim().slice(0, 24)}")`);
       }
     }
     return [...new Set(out)].slice(0, 12);
-  }, [isVisible.toString(), tagOf.toString()]);
+  }, [isVisible.toString(), tagOf.toString(), clippedRect.toString()]);
 }
 
 /** The action buttons must all be visible and at least 32px tall. */
