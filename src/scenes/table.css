@@ -54,7 +54,11 @@
      without a cap the felt stretches into a flat letterbox. 178vh keeps a
      roughly 16:9 ceiling on the whole play area (matching a normal desktop,
      where this is a no-op) and centres whatever room that leaves over. */
-  max-width: min(100%, 178vh);
+  /* 178vh caps an ultrawide, but a 4K display is tall enough that the same
+     rule lets the felt span all 3840px while the cards stay card-sized — the
+     table then reads as tiny UI marooned in a huge field. The absolute cap is
+     what actually holds at 2160p. */
+  max-width: min(100%, 178vh, 2400px);
   margin: 0 auto;
   width: 100%;
 }

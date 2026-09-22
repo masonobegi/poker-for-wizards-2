@@ -127,7 +127,7 @@
      table shipped with at 1440x900 (78x112) so that resolution is barely
      affected; --card-h always derives from --card-w so the 78:112 aspect
      ratio never drifts at any viewport size. */
-  --card-w: clamp(58px, 8vmin, 132px);
+  --card-w: clamp(58px, 8.2vmin, 168px);
   --card-h: calc(var(--card-w) * 112 / 78);
   --rail-h: 132px;
   --z-felt: 1;
