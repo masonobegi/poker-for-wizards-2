@@ -256,7 +256,7 @@
 .toasts {
   position: fixed;
   z-index: var(--z-toast);
-  top: 18px;
+  top: var(--toast-top, 62px);
   left: 50%;
   transform: translateX(-50%);
   display: grid;

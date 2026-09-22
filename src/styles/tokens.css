@@ -85,6 +85,11 @@
   --s-8: 64px;
 
   /* --- type --------------------------------------------------------------- */
+  /* Toasts drop from the top centre, which on the table screen is exactly
+     where the ante and blinds are printed. This clears the header rather
+     than landing on it. */
+  --toast-top: 62px;
+
   --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;

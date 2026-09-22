@@ -9,6 +9,8 @@ import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import ProfileCard from '@/components/profile/ProfileCard';
 import ServerPanel from '@/components/shell/ServerPanel';
+import { Card } from '@/components/card/Card';
+import { MENU_BACK, MENU_COURT, MENU_DIVERGED, MENU_QUANTUM, MENU_VEILED, MENU_WILD } from '@/scenes/menuCards';
 import { getHexholdApi, isDesktop } from '@/components/shell/desktop';
 import { appVersion } from '@/components/shell/version';
 import './menu.css';
@@ -253,7 +255,24 @@ const paneMotion = {
   transition: { duration: 0.34, ease: [0.16, 1, 0.3, 1] as const },
 };
 
-/** Six slowly drifting school glyphs — the schools introduce themselves. */
+/**
+ * What sits behind the menu.
+ *
+ * Six drifting school glyphs used to be the whole of it, at six per cent
+ * opacity — too faint and too sparse to read as anything but specks, on a
+ * screen that was otherwise seven-tenths empty. This is the first thing a
+ * player sees and the frame a store page screenshot gets taken from, and it
+ * was not saying that this is a card game at all.
+ *
+ * So the cards themselves do the work now. They are the best-looking thing
+ * the project owns and they cost nothing to reuse, and every one of them is a
+ * state a normal deck cannot hold — a card in superposition, a card sealed by
+ * rank, a card that reads differently to the player opposite. The pitch is on
+ * the table before anybody has read the paragraph.
+ *
+ * Kept well back: blurred, low contrast, slow. It must never compete with the
+ * panel in front of it.
+ */
 function MenuBackdrop() {
   const glyphs = useMemo(() => {
     const entries = Object.values(SCHOOLS);
@@ -269,8 +288,37 @@ function MenuBackdrop() {
     }));
   }, []);
 
+  // Placed outside the middle third, which is where the panel sits.
+  const cards = useMemo(
+    () => [
+      { view: MENU_QUANTUM, left: '7%', top: '17%', rot: -14, dur: 34, delay: 0 },
+      { view: MENU_COURT, left: '80%', top: '11%', rot: 11, dur: 41, delay: 3 },
+      { view: MENU_VEILED, left: '13%', top: '62%', rot: 8, dur: 38, delay: 6 },
+      { view: MENU_DIVERGED, left: '84%', top: '58%', rot: -9, dur: 45, delay: 2 },
+      { view: MENU_BACK, left: '68%', top: '80%', rot: 17, dur: 37, delay: 8 },
+      { view: MENU_WILD, left: '24%', top: '86%', rot: -6, dur: 43, delay: 5 },
+    ],
+    [],
+  );
+
   return (
     <div className="menu-backdrop" aria-hidden>
+      {cards.map((c, i) => (
+        <span
+          key={i}
+          className="menu-bgcard"
+          style={{
+            left: c.left,
+            top: c.top,
+            ['--rot' as string]: `${c.rot}deg`,
+            animationDelay: `${c.delay}s`,
+            animationDuration: `${c.dur}s`,
+          }}
+        >
+          <Card view={c.view} size="md" tiltOnHover={false} />
+        </span>
+      ))}
+
       {glyphs.map((g) => (
         <span
           key={g.id}

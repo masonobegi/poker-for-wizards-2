@@ -136,6 +136,39 @@
 
 .menu-backdrop { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 
+/* The drifting cards. Held well back — blurred, desaturated and slow — so
+   they read as depth behind the panel rather than as content competing with
+   it. The panel itself sits at z-index 2 with its own backdrop blur. */
+.menu-bgcard {
+  position: absolute;
+  opacity: 0.2;
+  filter: blur(1.6px) saturate(0.5) brightness(0.8);
+  transform-origin: 50% 50%;
+  animation-name: bgcarddrift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes bgcarddrift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1); opacity: 0.16; }
+  50%      { transform: translate3d(14px, -30px, 0) rotate(calc(var(--rot, 0deg) + 5deg)) scale(1.04); opacity: 0.26; }
+}
+
+/* A held breath rather than a frozen frame: the cards stay, the drift stops. */
+:root[data-reduced-motion='1'] .menu-bgcard,
+:root[data-reduced-motion='1'] .menu-glyph { animation: none; }
+
+/* Pulls the eye back to the middle and keeps the backdrop off the panel's
+   edges, which a blurred card drifting past otherwise muddies. */
+.menu::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 46% 52% at 50% 46%, rgba(5, 6, 12, 0.82) 0%, rgba(5, 6, 12, 0.35) 55%, transparent 100%);
+}
+
 .menu-glyph {
   position: absolute;
   opacity: 0.09;
@@ -149,8 +182,8 @@
 }
 
 @keyframes glyphdrift {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: .06; }
-  50%      { transform: translate3d(28px, -42px, 0) rotate(22deg); opacity: .15; }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: .08; }
+  50%      { transform: translate3d(28px, -42px, 0) rotate(22deg); opacity: .18; }
 }
 
 @media (max-height: 640px) {
