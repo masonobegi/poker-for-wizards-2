@@ -9,7 +9,7 @@
  *
  * Run: node test/gamepad.mjs
  */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -22,7 +22,7 @@ const fails = [];
 const passes = [];
 const check = (ok, text) => (ok ? passes : fails).push(text);
 
-const browser = await chromium.launch({ headless: true });
+const browser = await launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); // Steam Deck
 const page = await ctx.newPage();
 

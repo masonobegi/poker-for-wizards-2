@@ -1,8 +1,8 @@
 /** Focused layout diagnostic: measures the things the playthrough screenshots suggested. */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:5173/';
-const browser = await chromium.launch({ headless: true });
+const browser = await launch({ headless: true });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 
 await page.goto(URL, { waitUntil: 'domcontentloaded' });

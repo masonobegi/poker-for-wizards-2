@@ -11,7 +11,7 @@
  *
  * Run: node test/responsive.mjs [--headed]
  */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -484,7 +484,7 @@ async function runResolution(browser, res) {
 
 // ---------------------------------------------------------------------------
 
-const browser = await chromium.launch({ headless: !HEADED });
+const browser = await launch({ headless: !HEADED });
 const results = [];
 for (const res of RESOLUTIONS) {
   console.log(`\n▶ ${res.name} — ${res.width}x${res.height} ${res.note ? `(${res.note})` : ''}`);

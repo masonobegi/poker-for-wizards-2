@@ -27,7 +27,8 @@
     "play:pad": "node test/gamepad.mjs",
     "steam:manifest": "tsx scripts/steam-manifest.mjs",
     "audio": "node test/audio.mjs",
-    "responsive": "node test/responsive.mjs"
+    "responsive": "node test/responsive.mjs",
+    "audio:calibrate": "node scripts/calibrate-audio.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

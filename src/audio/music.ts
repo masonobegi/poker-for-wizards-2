@@ -66,7 +66,8 @@ const SILENCE = 0.0001;
 const MOOD_LEVEL: Record<Mood, number> = {
   none: 0,
   menu: 0.55,
-  table: 0.38,
+  // Raised from 0.38 once the bed had something above 72 Hz to carry.
+  table: 0.45,
   tension: 0.55,
   shop: 0.5,
   showdown: 0.62,
@@ -200,9 +201,23 @@ function buildMenuLayer(g: MusicGraph, t0: number): Layer {
 }
 
 // ---------------------------------------------------------------------------
-// table — understated, tolerable for an hour
+// table — understated, tolerable for an hour, but actually there
 // ---------------------------------------------------------------------------
 
+/**
+ * This bed plays under almost the entire session, so every instinct here is
+ * to keep it quiet. Taken too far that stops being restraint and starts being
+ * absence: the first version was a 36 Hz sine and a pluck every ten seconds,
+ * which measured at a 72 Hz spectral centroid — nothing above the bass at all
+ * — and on a laptop or a Steam Deck, whose speakers do not reproduce 36 Hz,
+ * came out as silence with an occasional noise in it.
+ *
+ * So it is built in three registers instead of one. The sub still carries the
+ * pulse, but a soft filtered pad sits above it in the range small speakers
+ * actually reproduce, and a breathing band of air sits above that so the top
+ * of the spectrum is not dead. All three stay deliberately low; the point is
+ * that the table should feel like a room with something in it, not a concert.
+ */
 function buildTableLayer(g: MusicGraph, t0: number): Layer {
   const { ctx } = g;
   const out = ctx.createGain();
@@ -212,12 +227,12 @@ function buildTableLayer(g: MusicGraph, t0: number): Layer {
   const nodes: AudioNode[] = [out];
   const sources: AudioScheduledSourceNode[] = [];
 
-  // Soft pulsing sub at ~72 BPM.
+  // --- sub: the pulse, at ~72 BPM ------------------------------------------
   const sub = ctx.createOscillator();
   sub.type = 'sine';
   sub.frequency.setValueAtTime(mtof(MIDI.D1), t0);
   const subGain = ctx.createGain();
-  subGain.gain.setValueAtTime(0.14, t0);
+  subGain.gain.setValueAtTime(0.15, t0);
   sub.connect(subGain);
   subGain.connect(out);
   sub.start(t0);
@@ -228,34 +243,117 @@ function buildTableLayer(g: MusicGraph, t0: number): Layer {
   pulseLfo.type = 'sine';
   pulseLfo.frequency.setValueAtTime(72 / 60, t0);
   const pulseAmt = ctx.createGain();
-  pulseAmt.gain.setValueAtTime(0.09, t0);
+  pulseAmt.gain.setValueAtTime(0.08, t0);
   pulseLfo.connect(pulseAmt);
   pulseAmt.connect(subGain.gain);
   pulseLfo.start(t0);
   sources.push(pulseLfo);
   nodes.push(pulseAmt);
 
+  // --- pad: the body, where a laptop speaker lives -------------------------
+  // A D minor triad an octave and a half above the sub, run through a lowpass
+  // that breathes on a 25-second cycle so it never settles into a flat tone.
+  const padFilter = ctx.createBiquadFilter();
+  padFilter.type = 'lowpass';
+  padFilter.Q.setValueAtTime(0.7, t0);
+  padFilter.frequency.setValueAtTime(420, t0);
+  padFilter.connect(out);
+  nodes.push(padFilter);
+
+  const padGain = ctx.createGain();
+  padGain.gain.setValueAtTime(0.21, t0);
+  padGain.connect(padFilter);
+  nodes.push(padGain);
+
+  // Triangles rather than saws: the menu drone is the one allowed to have
+  // teeth, and two beds sharing a timbre would make the crossfade between
+  // them inaudible.
+  [MIDI.D2, MIDI.A2, MIDI.D3, MIDI.F3].forEach((m, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(mtof(m), t0);
+    osc.detune.setValueAtTime((i % 2 === 0 ? -1 : 1) * (4 + i * 3), t0);
+    const voice = ctx.createGain();
+    // The fifth and the third sit under the root, so the chord reads as
+    // colour rather than as a chord being played at anybody.
+    voice.gain.setValueAtTime(i === 0 ? 0.3 : 0.16, t0);
+    osc.connect(voice);
+    voice.connect(padGain);
+    osc.start(t0);
+    sources.push(osc);
+    nodes.push(voice);
+  });
+
+  const padLfo = ctx.createOscillator();
+  padLfo.type = 'sine';
+  padLfo.frequency.setValueAtTime(0.04, t0);
+  const padLfoAmt = ctx.createGain();
+  padLfoAmt.gain.setValueAtTime(190, t0);
+  padLfo.connect(padLfoAmt);
+  padLfoAmt.connect(padFilter.frequency);
+  padLfo.start(t0);
+  sources.push(padLfo);
+  nodes.push(padLfoAmt);
+
+  // --- air: the top, so the bed has a ceiling ------------------------------
+  // A hiss so quiet it reads as room tone rather than as noise, swelling on
+  // its own slow cycle that is deliberately coprime with the pad's.
+  // Built from `noiseBuffer` rather than `noiseSource` because the mood
+  // renderer also runs under an `OfflineAudioContext`, which `noiseSource`
+  // does not accept.
+  const airSrc = ctx.createBufferSource();
+  airSrc.buffer = noiseBuffer(ctx, 3);
+  airSrc.loop = true;
+  const airFilter = ctx.createBiquadFilter();
+  airFilter.type = 'bandpass';
+  airFilter.frequency.setValueAtTime(3400, t0);
+  airFilter.Q.setValueAtTime(0.8, t0);
+  const airGain = ctx.createGain();
+  airGain.gain.setValueAtTime(0.016, t0);
+  airSrc.connect(airFilter);
+  airFilter.connect(airGain);
+  airGain.connect(out);
+  airSrc.start(t0);
+  sources.push(airSrc);
+  nodes.push(airFilter, airGain);
+
+  const airLfo = ctx.createOscillator();
+  airLfo.type = 'sine';
+  airLfo.frequency.setValueAtTime(0.029, t0);
+  const airLfoAmt = ctx.createGain();
+  airLfoAmt.gain.setValueAtTime(0.008, t0);
+  airLfo.connect(airLfoAmt);
+  airLfoAmt.connect(airGain.gain);
+  airLfo.start(t0);
+  sources.push(airLfo);
+  nodes.push(airLfoAmt);
+
+  // --- reverb ---------------------------------------------------------------
   const send = ctx.createGain();
-  send.gain.setValueAtTime(0.15, t0);
+  send.gain.setValueAtTime(0.28, t0);
+  padGain.connect(send);
   subGain.connect(send);
   send.connect(g.reverb);
   nodes.push(send);
 
-  // Occasional muted pluck, sparse and low.
-  let nextPluck = t0 + rand(4, 8);
+  // --- plucks: the only thing that ever asks for attention ------------------
+  let nextPluck = t0 + rand(3, 6);
   const voiceGraph: VoiceGraph = { ctx, dest: out, reverb: g.reverb };
   function tick(windowEnd: number): void {
     while (nextPluck < windowEnd) {
+      // Mostly low and muted, occasionally an octave up and brighter, so the
+      // ear has something to catch on without a pattern forming.
+      const high = chance(0.28);
       pluck(voiceGraph, {
         at: nextPluck,
-        freq: mtof(pick(D_PENT)) / 2,
-        gain: rand(0.03, 0.06),
-        decay: rand(1.2, 2),
-        bright: rand(0.1, 0.25),
-        pan: rand(-0.4, 0.4),
-        send: 0.5,
+        freq: mtof(pick(D_PENT)) / (high ? 1 : 2),
+        gain: high ? rand(0.025, 0.045) : rand(0.04, 0.07),
+        decay: rand(1.4, 2.4),
+        bright: high ? rand(0.3, 0.5) : rand(0.12, 0.28),
+        pan: rand(-0.45, 0.45),
+        send: 0.55,
       });
-      nextPluck += rand(6, 14);
+      nextPluck += rand(5, 11);
     }
   }
 

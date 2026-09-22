@@ -22,7 +22,7 @@
  *
  * Run: node test/audio.mjs [--headed]
  */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 
 const HEADED = process.argv.includes('--headed');
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
@@ -158,8 +158,23 @@ async function collectInPage({ sfxList, moods }) {
       dc = sum / count;
       durationSec = count / sr;
     }
+    // Loudest 50ms window. Whole-span RMS cannot compare a 40ms card flick
+    // with a three-second victory pad; this can, so it is what the mix in
+    // src/audio/mix.ts is calibrated against.
+    let loud = 0;
+    const win = Math.min(n, Math.round(sr * 0.05));
+    if (win >= 8) {
+      let acc = 0;
+      for (let i = 0; i < win; i++) acc += mono[i] * mono[i];
+      let best = acc;
+      for (let i = win; i < n; i++) {
+        acc += mono[i] * mono[i] - mono[i - win] * mono[i - win];
+        if (acc > best) best = acc;
+      }
+      loud = Math.sqrt(best / win);
+    }
     const spectralHz = first !== -1 ? spectralCentroid(mono, sr, peakIdx, n) : 0;
-    return { peak, rms, dcOffset: dc, durationSec, spectralHz, renderSec: n / sr };
+    return { peak, rms, loud, dcOffset: dc, durationSec, spectralHz, renderSec: n / sr };
   }
 
   /** Coefficient of variation (stddev / mean) of an array of non-negative numbers. */
@@ -221,15 +236,25 @@ async function collectInPage({ sfxList, moods }) {
   if (!hook) throw new Error('window.__hexholdAudioTest is missing — the audio engine module never loaded.');
 
   const sfx = [];
-  for (const { name, len } of sfxList) {
+  for (const { name, len, target, trim } of sfxList) {
     try {
       const dur = Math.min(Math.max(len + 3, 2), 9);
-      const ctx = new OfflineAudioContext(2, Math.ceil(dur * SR), SR);
-      hook.renderSfx(name, ctx, 1);
-      const buffer = await ctx.startRendering();
-      sfx.push({ name, len, ...measureOneShot(buffer) });
+      const render = async () => {
+        // Rendered at the shipped trim, not raw: what this harness measures
+        // should be what a player hears.
+        const ctx = new OfflineAudioContext(2, Math.ceil(dur * SR), SR);
+        hook.renderSfx(name, ctx, 1);
+        return measureOneShot(await ctx.startRendering());
+      };
+      // A good share of the synths pick notes, timings and noise seeds per
+      // play. mix.ts is calibrated against the median of several renders, so
+      // the loudness compared against it here has to be a median too, or a
+      // single unlucky roll reads as the mix having drifted.
+      const takes = [await render(), await render(), await render()];
+      const louds = takes.map((t) => t.loud).sort((a, b) => a - b);
+      sfx.push({ name, len, target, trim, ...takes[0], loud: louds[1], peak: Math.max(...takes.map((t) => t.peak)) });
     } catch (err) {
-      sfx.push({ name, len, error: String(err && err.message ? err.message : err) });
+      sfx.push({ name, len, target, trim, error: String(err && err.message ? err.message : err) });
     }
   }
 
@@ -253,7 +278,7 @@ async function collectInPage({ sfxList, moods }) {
 // Node-side: drive the browser, then grade the numbers it sent back
 // ---------------------------------------------------------------------------
 
-const browser = await chromium.launch({ headless: !HEADED });
+const browser = await launch({ headless: !HEADED });
 const page = await (await browser.newContext()).newPage();
 page.on('pageerror', (e) => console.error('  page error:', String(e).slice(0, 200)));
 
@@ -376,12 +401,90 @@ for (const m of musicGraded) {
   for (const n of m.notes) console.log(`  ${' '.repeat(10)}    · ${n}`);
 }
 
+// --- the mix ------------------------------------------------------------------
+//
+// Every sound is rendered at the gain src/audio/mix.ts ships it at, so this
+// section answers the question the peak/rms table above cannot: is each sound
+// sitting where the mix says it should, relative to every other sound?
+//
+// Tolerance is +/-3 dB. Several synths voice themselves randomly per play, so
+// a single render legitimately moves by a decibel or two; 3 dB is under the
+// smallest gap between two adjacent tiers in mix.ts, so a sound cannot drift
+// into its neighbour's lane without failing here.
+
+const MIX_TOLERANCE_DB = 3;
+const dbOf = (x) => 20 * Math.log10(Math.max(1e-9, x));
+const mixRows = sfx
+  .filter((r) => !r.error && typeof r.target === 'number')
+  .map((r) => ({ ...r, offDb: dbOf(r.loud) - dbOf(r.target) }));
+const mixOff = mixRows.filter((r) => Math.abs(r.offDb) > MIX_TOLERANCE_DB);
+
+console.log('\nMIX');
+if (mixRows.length === 0) {
+  console.log('  (no targets exposed — is src/audio/mix.ts wired into the engine?)');
+} else {
+  const worst = mixRows.slice().sort((a, b) => Math.abs(b.offDb) - Math.abs(a.offDb)).slice(0, 5);
+  console.log('  loudest 50ms window vs the target in src/audio/mix.ts');
+  for (const r of worst) {
+    console.log(
+      `  ${r.name.padEnd(16)} ${dbOf(r.loud).toFixed(1).padStart(6)}dB  target ` +
+        `${dbOf(r.target).toFixed(1).padStart(6)}dB  ${(r.offDb >= 0 ? '+' : '') + r.offDb.toFixed(1)}dB` +
+        `${Math.abs(r.offDb) > MIX_TOLERANCE_DB ? '  ✘' : ''}`,
+    );
+  }
+  const lo = Math.min(...mixRows.map((r) => dbOf(r.loud)));
+  const hi = Math.max(...mixRows.map((r) => dbOf(r.loud)));
+  console.log(`  ${mixRows.length - mixOff.length}/${mixRows.length} on target` +
+    `, spread ${lo.toFixed(1)}dB … ${hi.toFixed(1)}dB`);
+}
+
 // --- design sanity checks (ear-equivalent reasoning) --------------------------
 
 const byName = Object.fromEntries(sfx.filter((s) => !s.error).map((s) => [s.name, s]));
 const sanity = [];
 function check(label, pass, detail) {
   sanity.push({ label, pass, detail });
+}
+
+check(
+  'every sound sits within 3dB of its target in mix.ts',
+  mixRows.length > 0 && mixOff.length === 0,
+  mixOff.length
+    ? `${mixOff.length} off target: ${mixOff.slice(0, 4).map((r) => `${r.name} ${(r.offDb >= 0 ? '+' : '') + r.offDb.toFixed(1)}dB`).join(', ')}` +
+      ' — run npm run audio:calibrate'
+    : `${mixRows.length} sounds on target`,
+);
+
+// The ladder mix.ts describes has to survive contact with the synths: a card
+// being dealt must not arrive louder than the pot it is being dealt for.
+if (byName.card_deal && byName.pot_collect && byName.win_impossible && byName.ui_hover) {
+  check(
+    'the mix ladder holds — hover < deal < pot < impossible win',
+    byName.ui_hover.loud < byName.card_deal.loud &&
+      byName.card_deal.loud < byName.pot_collect.loud &&
+      byName.pot_collect.loud < byName.win_impossible.loud,
+    `${byName.ui_hover.loud.toFixed(3)} < ${byName.card_deal.loud.toFixed(3)} < ` +
+      `${byName.pot_collect.loud.toFixed(3)} < ${byName.win_impossible.loud.toFixed(3)}`,
+  );
+}
+
+// The bed a player hears under almost the whole session. It was once a 36 Hz
+// sine and a pluck every ten seconds: measurably present, and inaudible on any
+// speaker smaller than a subwoofer. Both halves of that have to stay fixed.
+const tableMood = music.find((m) => m.mood === 'table' && !m.error);
+if (tableMood) {
+  check(
+    'the table bed has content small speakers can reproduce',
+    tableMood.spectralHz > 120,
+    `centroid ${Math.round(tableMood.spectralHz)}Hz`,
+  );
+  const otherBeds = music.filter((m) => m.mood !== 'table' && !m.error).map((m) => m.rms);
+  const quietest = Math.min(...otherBeds);
+  check(
+    'the table bed is not the quiet one',
+    otherBeds.length > 0 && tableMood.rms >= quietest,
+    `table ${tableMood.rms.toFixed(3)} rms vs quietest other bed ${quietest.toFixed(3)}`,
+  );
 }
 
 if (byName.chip_single && byName.card_place) {
@@ -393,9 +496,10 @@ if (byName.chip_single && byName.card_place) {
 }
 if (byName.ui_hover) {
   check(
-    'ui_hover is quiet (peak under 40% of the median)',
-    byName.ui_hover.peak <= [...okSfx].sort((a, b) => a.peak - b.peak)[Math.floor(okSfx.length / 2)].peak * 0.4,
-    `ui_hover peak ${byName.ui_hover.peak.toFixed(3)}`,
+    'ui_hover is the quietest thing in the game',
+    byName.ui_hover.loud <= Math.min(...sfx.filter((r) => !r.error).map((r) => r.loud)) + 1e-6 &&
+      byName.ui_hover.peak < 0.12,
+    `ui_hover ${byName.ui_hover.loud.toFixed(4)} loudness, peak ${byName.ui_hover.peak.toFixed(3)}`,
   );
   check('ui_hover is short (< 0.3s audible)', byName.ui_hover.durationSec < 0.3, `${byName.ui_hover.durationSec.toFixed(3)}s`);
 }

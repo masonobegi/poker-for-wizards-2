@@ -26,6 +26,7 @@
  */
 
 import { SFX, SFX_NAMES, type SfxName } from './sfx';
+import { TARGET_LOUDNESS, trimFor } from './mix';
 import { clamp, makeReverbImpulse, type VoiceGraph } from './voices';
 import { createMusicController, renderMoodOffline, type MusicController } from './music';
 
@@ -257,7 +258,11 @@ function play(name: SfxName, opts?: PlayOptions): void {
 
     const delaySec = Math.max(0, (opts?.delay ?? 0) / 1000);
     const t0 = nowSec + delaySec;
-    const vol = clamp(opts?.vol ?? 1, 0, 4);
+    // `trimFor` is the fader position from mix.ts; `opts.vol` is what the
+    // caller wants on top of it (a quieter deal for a bot, a louder pot for a
+    // bigger one). Keeping them separate means a gameplay call site never has
+    // to know how loud a synth happens to be.
+    const vol = clamp(opts?.vol ?? 1, 0, 4) * trimFor(name);
     const pan = clamp(opts?.pan ?? 0, -1, 1);
     const pitch = clamp(opts?.pitch ?? 1, 0.1, 8);
 
@@ -407,12 +412,14 @@ export const audio: {
  * `createBuffer`, `currentTime`, `sampleRate` — is common to both, so the
  * cast below is safe.
  */
-export function renderOffline(name: SfxName, ctx: OfflineAudioContext, pitch = 1): void {
+export function renderOffline(name: SfxName, ctx: OfflineAudioContext, pitch = 1, raw = false): void {
   const def = SFX[name];
   if (!def) return;
 
   const dest = ctx.createGain();
-  dest.gain.value = 1;
+  // `raw` renders the synth at unity so the calibrator can measure what it
+  // actually produces; everything else measures the shipped level.
+  dest.gain.value = raw ? 1 : trimFor(name);
   dest.connect(ctx.destination);
 
   const reverbSend = ctx.createGain();
@@ -436,8 +443,11 @@ declare global {
     __hexholdAudioTest?: {
       renderSfx: typeof renderOffline;
       renderMood: typeof renderMoodOffline;
-      /** Every `SfxName` paired with its declared worst-case tail length. */
-      sfx: ReadonlyArray<{ name: SfxName; len: number }>;
+      /**
+       * Every `SfxName` paired with its declared worst-case tail length, the
+       * gain mix.ts trims it by, and the loudness that trim is aiming at.
+       */
+      sfx: ReadonlyArray<{ name: SfxName; len: number; trim: number; target: number }>;
       /** Every real (non-`'none'`) `Mood`. */
       moods: readonly Mood[];
     };
@@ -448,7 +458,12 @@ if (typeof window !== 'undefined') {
   window.__hexholdAudioTest = {
     renderSfx: renderOffline,
     renderMood: renderMoodOffline,
-    sfx: SFX_NAMES.map((name) => ({ name, len: SFX[name].len })),
+    sfx: SFX_NAMES.map((name) => ({
+      name,
+      len: SFX[name].len,
+      trim: trimFor(name),
+      target: TARGET_LOUDNESS[name],
+    })),
     moods: ['menu', 'table', 'tension', 'shop', 'showdown'],
   };
 }

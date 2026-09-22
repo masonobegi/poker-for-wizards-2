@@ -10,7 +10,7 @@
  *
  * Run: node test/playthrough.mjs [seconds] [--headed]
  */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -42,7 +42,7 @@ async function shot(page, name) {
   } catch { /* page may be navigating */ }
 }
 
-const browser = await chromium.launch({ headless: !HEADED });
+const browser = await launch({ headless: !HEADED });
 const ctx = await browser.newContext({
   viewport: { width: 1440, height: 900 },
   deviceScaleFactor: 1,
