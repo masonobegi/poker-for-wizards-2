@@ -19,3 +19,8 @@ playthrough/
 playthrough-pad/
 responsive/
 steam/
+dist-respcheck/
+*.tmp.mjs
+ov*-tmp.mjs
+probe-tmp.ts
+trace-tmp.ts

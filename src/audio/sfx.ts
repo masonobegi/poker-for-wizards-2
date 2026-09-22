@@ -1334,19 +1334,22 @@ export const SFX: Record<SfxName, SfxDef> = {
     len: 1.8,
     play: (g, t, p) => {
       // The offline audio harness (test/audio.mjs) measured this ranging
-      // from ~0.17 up to ~0.99 across runs that otherwise share this synth's
+      // from ~0.17 up to ~0.98 across runs that otherwise share this synth's
       // fully deterministic dry signal — the two near-unison tones are
       // *designed* to beat, and how far that beat's peaks reach depends on
       // exactly where the (session-random) shared reverb IR happens to
-      // reinforce or cancel it. Trimmed gain and reverb send below so an
-      // unlucky IR can no longer push this close to clipping.
+      // reinforce or cancel it. A first, smaller trim still let an unlucky
+      // IR land within a couple percent of clipping over ~100 sampled runs,
+      // so gain and reverb send are both cut hard here rather than
+      // fine-tuned — this is a small "wrongness" sting, not a moment that
+      // needs headroom of its own.
       const f = mtof(MIDI.A4) * p;
       tone(g, {
         at: t,
         freq: f,
         type: 'triangle',
-        gain: 0.12,
-        send: 0.22,
+        gain: 0.085,
+        send: 0.15,
         attack: 0.03,
         decay: 0.1,
         sustain: 0.85,
@@ -1362,8 +1365,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         glideType: 'lin',
         type: 'triangle',
         pan: -0.4,
-        gain: 0.1,
-        send: 0.28,
+        gain: 0.075,
+        send: 0.16,
         attack: 0.02,
         decay: 0.15,
         sustain: 0.85,
@@ -1378,8 +1381,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         glideType: 'lin',
         type: 'triangle',
         pan: 0.4,
-        gain: 0.1,
-        send: 0.28,
+        gain: 0.075,
+        send: 0.16,
         attack: 0.02,
         decay: 0.15,
         sustain: 0.85,
@@ -1388,7 +1391,7 @@ export const SFX: Record<SfxName, SfxDef> = {
       });
       noiseHit(g, {
         at: split,
-        gain: 0.05,
+        gain: 0.035,
         filterType: 'highpass',
         filterFreq: 4000,
         attack: 0.004,

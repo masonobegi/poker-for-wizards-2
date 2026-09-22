@@ -59,7 +59,21 @@ function isVisible(el) {
 }
 function tagOf(el) {
   const cls = (el.getAttribute('class') || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.');
-  return el.tagName.toLowerCase() + (cls ? `.${cls}` : '');
+  let tag = el.tagName.toLowerCase() + (cls ? `.${cls}` : '');
+  // An unclassed element (an inline-styled div, an SVG text node) is
+  // otherwise impossible to identify from a bare tag name — a short text
+  // snippet, or the nearest classed ancestor, makes the report actionable.
+  if (!cls) {
+    const own = (el.textContent || '').trim().slice(0, 30);
+    if (own) tag += ` "${own}"`;
+    else {
+      let p = el.parentElement;
+      let hops = 0;
+      while (p && hops < 4 && !p.getAttribute('class')) { p = p.parentElement; hops++; }
+      if (p && p.getAttribute('class')) tag += ` (inside .${p.getAttribute('class').split(' ')[0]})`;
+    }
+  }
+  return tag;
 }
 
 /** Nothing wider than the viewport, or drawn off the left edge. */

@@ -58,6 +58,11 @@ export default function BannerLayer() {
             display: 'grid',
             placeItems: 'center',
             pointerEvents: 'none',
+            // The glow bar below animates scaleX with an ease that overshoots
+            // past 1 before settling — for a moment it is genuinely wider
+            // than the viewport. This container is already exactly
+            // viewport-sized, so clipping here is free and invisible.
+            overflow: 'hidden',
           }}
           role="status"
           aria-live="assertive"
