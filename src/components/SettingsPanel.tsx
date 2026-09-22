@@ -12,9 +12,12 @@ import {
   type ParticleDensity,
 } from '@/components/shell/videoPrefs';
 import { getHexholdApi } from '@/components/shell/desktop';
+import { SoundTest } from '@/audio/SoundTest';
 import './shell/shell.css';
 
-type TabId = 'audio' | 'video' | 'gameplay' | 'controls' | 'about';
+type TabId = 'audio' | 'video' | 'gameplay' | 'controls' | 'about' | 'sounds';
+
+const DEV = !!import.meta.env?.DEV;
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'audio', label: 'Audio' },
@@ -22,6 +25,9 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'gameplay', label: 'Gameplay' },
   { id: 'controls', label: 'Controls' },
   { id: 'about', label: 'About' },
+  // The synth bench. Every sound in the game is generated at runtime, so being
+  // able to audition them one at a time is how the audio gets tuned at all.
+  ...(DEV ? [{ id: 'sounds' as TabId, label: 'Sounds' }] : []),
 ];
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
@@ -92,6 +98,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         {tab === 'gameplay' ? <GameplayTab /> : null}
         {tab === 'controls' ? <ControlsTab /> : null}
         {tab === 'about' ? <AboutTab /> : null}
+        {tab === 'sounds' ? <SoundTest /> : null}
       </div>
     </div>
   );

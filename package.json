@@ -25,7 +25,9 @@
     "metrics": "tsx test/metrics.ts",
     "play": "node test/playthrough.mjs",
     "play:pad": "node test/gamepad.mjs",
-    "steam:manifest": "tsx scripts/steam-manifest.mjs"
+    "steam:manifest": "tsx scripts/steam-manifest.mjs",
+    "audio": "node test/audio.mjs",
+    "responsive": "node test/responsive.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
