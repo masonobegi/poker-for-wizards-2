@@ -6,6 +6,8 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { onFx } from '@/store/net';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { EASE_OUT, T_REDUCED } from '@/styles/motion';
 
 interface Banner {
   key: number;
@@ -30,6 +32,10 @@ let seq = 0;
 
 export default function BannerLayer() {
   const [banner, setBanner] = useState<Banner | null>(null);
+  // This layer owns the entire viewport: a full-width horizontal wipe plus a
+  // 26px lift on display-size text is the largest single piece of motion in
+  // the app.
+  const reduced = useReducedMotionPref();
 
   useEffect(() => onFx((e) => {
     if (e.t !== 'banner') return;
@@ -50,7 +56,7 @@ export default function BannerLayer() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, ease: EASE_OUT }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -58,26 +64,31 @@ export default function BannerLayer() {
             display: 'grid',
             placeItems: 'center',
             pointerEvents: 'none',
-            // The glow bar below animates scaleX with an ease that overshoots
-            // past 1 before settling — for a moment it is genuinely wider
-            // than the viewport. This container is already exactly
-            // viewport-sized, so clipping here is free and invisible.
+            // The glow bar's exit scales past 1, so it is briefly wider than
+            // the viewport. This container is already exactly viewport-sized,
+            // so clipping here is free and invisible.
             overflow: 'hidden',
           }}
           role="status"
           aria-live="assertive"
         >
           <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
+            // 0.04 rather than 0: a wipe should start as a sliver of the
+            // thing arriving, not as literally nothing. Under reduced motion
+            // the bar fades in at full width instead of sweeping.
+            initial={reduced ? { scaleX: 1, opacity: 0 } : { scaleX: 0.04, opacity: 0 }}
             animate={{ scaleX: 1, opacity: 1 }}
-            exit={{ scaleX: 1.2, opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            exit={reduced ? { opacity: 0 } : { scaleX: 1.2, opacity: 0 }}
+            transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.5, ease: EASE_OUT }}
             style={{
               position: 'absolute',
               inset: '0 0 auto',
               top: '50%',
               height: 170,
-              transform: 'translateY(-50%)',
+              // `translate`, not `transform`: this element animates scaleX, and
+              // framer-motion owns `transform` outright — a centring transform
+              // here is silently discarded. The longhand composes instead.
+              translate: '0 -50%',
               background:
                 'linear-gradient(90deg, transparent, rgba(5,6,12,.88) 18%, rgba(5,6,12,.92) 82%, transparent)',
               borderTop: '1px solid rgba(240,196,101,.2)',
@@ -99,15 +110,25 @@ export default function BannerLayer() {
               overflowWrap: 'break-word',
             }}
           >
+            {/* No `letterSpacing` tween. It is a text-layout property: every
+                frame re-shaped the run, re-measured the <h1> and re-laid-out
+                the width-capped wrapper above — so a long, server-authored
+                title could re-wrap between lines mid-animation, at display
+                size, full-screen, on exactly the beats where the particle
+                system is busiest. Opacity and a transform say the same thing
+                on the compositor. */}
             <motion.h1
-              initial={{ y: 26, opacity: 0, letterSpacing: '0.5em' }}
-              animate={{ y: 0, opacity: 1, letterSpacing: '0.16em' }}
-              exit={{ y: -14, opacity: 0 }}
-              transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(26px)' }}
+              animate={{ opacity: 1, transform: 'translateY(0px)' }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-14px)' }}
+              transition={reduced
+                ? { duration: T_REDUCED, ease: EASE_OUT }
+                : { duration: 0.62, ease: EASE_OUT, delay: 0.08 }}
               style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(30px, 7vw, var(--fs-3xl))',
                 fontWeight: 900,
+                letterSpacing: '0.16em',
                 color: TONE_COLOR[banner.tone],
                 textShadow: `0 0 40px ${TONE_COLOR[banner.tone]}, 0 6px 30px rgba(0,0,0,.8)`,
                 margin: 0,
@@ -117,10 +138,12 @@ export default function BannerLayer() {
             </motion.h1>
             {banner.sub ? (
               <motion.p
-                initial={{ y: 14, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
+                initial={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(14px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0px)' }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.5, delay: 0.24 }}
+                transition={reduced
+                  ? { duration: T_REDUCED, ease: EASE_OUT }
+                  : { duration: 0.5, ease: EASE_OUT, delay: 0.24 }}
                 style={{
                   marginTop: 12,
                   fontSize: 'var(--fs-sm)',

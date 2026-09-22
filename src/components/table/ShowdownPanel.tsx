@@ -8,10 +8,15 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { burstAt } from '@/lib/visuals';
 import type { School } from '@/vfx/particles';
+import { EASE_OUT, ENTER, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
 export default function ShowdownPanel({ view }: { view: TableView }) {
+  // Before any early return: a hook behind a conditional is one refactor away
+  // from "Rendered fewer hooks than expected".
+  const reduced = useReducedMotionPref();
+
   const payout = view.payout;
   if (!payout) return null;
 
@@ -27,13 +32,14 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
   return (
     <motion.div
       className="showdown"
-      // The CSS centres this with translateX(-50%); framer-motion writes the
-      // whole transform, so the centring has to travel with the animation or
-      // the panel lands half a width to the right.
-      initial={{ opacity: 0, y: 30, x: '-50%' }}
-      animate={{ opacity: 1, y: 0, x: '-50%' }}
-      exit={{ opacity: 0, y: 20, x: '-50%' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.25 }}
+      // Centring lives in the stylesheet as `translate: -50% 0`, which framer
+      // does not write, so it no longer has to be carried through every state.
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: 20 }}
+      transition={reduced
+        ? { duration: T_REDUCED, ease: EASE_OUT, delay: 0.25 }
+        : { ...SPRING_PLAYFUL, delay: 0.25 }}
     >
       <div className="showdown-inner">
         <header className="showdown-head">
@@ -41,9 +47,9 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
           {payout.bestImpossible ? (
             <motion.span
               className="showdown-impossible"
-              initial={{ scale: 0.7, opacity: 0 }}
+              initial={{ scale: 0.94, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.5, type: 'spring', stiffness: 380, damping: 18 }}
+              transition={{ ...SPRING_PLAYFUL, delay: 0.5 }}
             >
               ⧉ {payout.bestImpossible}
             </motion.span>
@@ -114,7 +120,7 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
       ].filter(Boolean).join(' ')}
       initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.35 + i * 0.1 }}
+      transition={{ ...ENTER, delay: 0.2 + Math.min(i * 0.06, 0.3) }}
     >
       <div className="showdown-who">
         <strong>{nameOf(e.playerId)}</strong>
@@ -150,9 +156,9 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
       {e.won > 0 ? (
         <motion.span
           className="showdown-won mono"
-          initial={{ scale: 0.6, opacity: 0 }}
+          initial={{ scale: 0.94, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 420, damping: 20 }}
+          transition={{ ...SPRING_PLAYFUL, delay: 0.3 + Math.min(i * 0.06, 0.3) }}
         >
           +{e.won.toLocaleString()}
           {shards ? <em className="showdown-shards">◆{shards}</em> : null}
