@@ -10,6 +10,7 @@ const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const { fork } = require('node:child_process');
 const net = require('node:net');
+const fs = require('node:fs');
 const steam = require('./steam.cjs');
 
 const isDev = !app.isPackaged;
@@ -94,10 +95,69 @@ function stopServer() {
   server = null;
 }
 
+/**
+ * Remember where the window was.
+ *
+ * A desktop game that opens in the middle of the wrong monitor at the wrong
+ * size every launch feels unfinished, and on a two-screen setup it is a real
+ * irritation. Stored next to the app's other settings, and validated on the
+ * way back in so a display that has since been unplugged cannot strand the
+ * window off-screen.
+ */
+function stateFile() {
+  return path.join(app.getPath('userData'), 'window-state.json');
+}
+
+function loadWindowState() {
+  const fallback = { width: 1440, height: 900, maximized: false, fullscreen: false };
+  try {
+    const raw = JSON.parse(fs.readFileSync(stateFile(), 'utf8'));
+    const { screen } = require('electron');
+    const bounds = {
+      width: Math.max(1024, Math.min(7680, raw.width | 0 || fallback.width)),
+      height: Math.max(680, Math.min(4320, raw.height | 0 || fallback.height)),
+      x: Number.isInteger(raw.x) ? raw.x : undefined,
+      y: Number.isInteger(raw.y) ? raw.y : undefined,
+      maximized: !!raw.maximized,
+      fullscreen: !!raw.fullscreen,
+    };
+    // Only keep a position that still lands on a display that exists.
+    if (bounds.x !== undefined && bounds.y !== undefined) {
+      const visible = screen.getAllDisplays().some((d) => {
+        const a = d.workArea;
+        return bounds.x < a.x + a.width && bounds.x + 200 > a.x
+          && bounds.y < a.y + a.height && bounds.y + 100 > a.y;
+      });
+      if (!visible) { delete bounds.x; delete bounds.y; }
+    }
+    return bounds;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveWindowState() {
+  if (!win || win.isDestroyed()) return;
+  try {
+    const normal = win.getNormalBounds();
+    fs.writeFileSync(stateFile(), JSON.stringify({
+      width: normal.width,
+      height: normal.height,
+      x: normal.x,
+      y: normal.y,
+      maximized: win.isMaximized(),
+      fullscreen: win.isFullScreen(),
+    }));
+  } catch { /* a settings write must never block quitting */ }
+}
+
 function createWindow() {
+  const state = loadWindowState();
   win = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
     minWidth: 1024,
     minHeight: 680,
     show: false,
@@ -113,6 +173,22 @@ function createWindow() {
       spellcheck: false,
     },
   });
+
+  if (state.maximized) win.maximize();
+  if (state.fullscreen) win.setFullScreen(true);
+
+  let saveTimer = null;
+  const rememberSoon = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveWindowState, 500);
+  };
+  win.on('resize', rememberSoon);
+  win.on('move', rememberSoon);
+  win.on('maximize', rememberSoon);
+  win.on('unmaximize', rememberSoon);
+  win.on('enter-full-screen', rememberSoon);
+  win.on('leave-full-screen', rememberSoon);
+  win.on('close', saveWindowState);
 
   win.once('ready-to-show', () => {
     win.show();

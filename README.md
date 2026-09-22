@@ -20,12 +20,28 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 87 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm test           # 92 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm run play       # plays a full run in a real browser and reports problems
+npm run play:pad   # proves the game is playable on a controller
 npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
 npm run metrics -- 150 5  # balance report: pacing, magic rate, action spread
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
+
+### Playing with other people
+
+The game plays offline against bots with no setup, and a desktop build hosts
+for anyone on the same network. To play with someone further away, one of you
+runs a server:
+
+```bash
+docker compose up -d --build
+```
+
+Players then enter that address under **Online** on the menu. Everything that
+protects a public server — room caps, per-address limits, message rate,
+allowed origins — is set by environment variable in one file, `server/config.ts`.
 
 ### Desktop builds
 
@@ -38,6 +54,14 @@ npm run package:linux  # AppImage + tarball
 The desktop build starts the game server in a child process on a free port and points a chromeless window at it, so a single binary plays offline against bots and can also host a table for people on the same network with nothing to deploy. F11 toggles fullscreen.
 
 The app icon is generated too — `npm run icon` draws it and encodes the PNG by hand, because committing a binary would be the one asset in the repo.
+
+Controller support is complete: d-pad or stick moves focus geometrically, the
+face buttons map onto the same actions as the keyboard, and every on-screen key
+hint swaps to controller glyphs while a pad is in use. `npm run play:pad`
+verifies it at 1280×800 by driving a synthetic gamepad.
+
+Steam integration — achievements, cloud saves, rich presence — is written and
+dormant until an App ID is configured. See [SHIPPING.md](SHIPPING.md).
 
 ---
 
@@ -144,10 +168,18 @@ Between them these found the three bugs worth mentioning: a betting-round deadlo
 
 ---
 
+## Shipping
+
+[SHIPPING.md](SHIPPING.md) has the honest state of things: what is verified and
+by which command, what only a Steam partner account can do, and the known gaps
+worst-first.
+
 ## Status
 
 Playable end to end: a first-run intro, one-click practice against bots, betting with side pots and all-ins, the full sigil stack with counterspells, showdown with the impossible categories, the Market, escalating omens, elimination and a winner. Bots fill empty seats and play a recognisable game of poker, including counterplay.
 
 A run lands at roughly 25-30 hands, or eight to twelve minutes.
 
-Rough edges worth knowing: the layout is built for desktop and is tight below about 760px; there is no persistence, so a server restart ends every table; and reconnection holds your seat only while the process lives.
+The biggest honest gap: nobody has played this against another human. Every
+balance number in the repository comes from bots, and bots do not bluff, tilt,
+or think about what you think they are holding.
