@@ -15,7 +15,7 @@ import { SIGIL_BY_ID } from '../../shared/sigils';
 import { OMENS, OMEN_BY_ID, omenNumber, type ActiveOmen } from '../../shared/omens';
 import {
   isStreet,
-  type BetAction, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
+  type BetAction, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
   actable, alive, buildPots, byId, card, createPlayer, createTable, describeCard,
@@ -523,7 +523,40 @@ export class Engine {
 
     t.phase = 'payout';
     this.flush();
-    this.wait(live(t).length > 1 ? 3200 : 1400, () => this.endHand());
+    this.wait(this.payoutHold(payout), () => this.endHand());
+  }
+
+  /**
+   * How long the table sits on the result before the next hand starts.
+   *
+   * This used to be a flat 3.2 seconds for anything contested, which was
+   * shorter than the client's own reveal: it deals the winning cards in one
+   * at a time, and an impossible hand does it slowly and deliberately, so the
+   * biggest moment in the game was reliably cut off part-way through and
+   * replaced by the next deal. The hold has to be at least as long as the
+   * animation it is holding for, plus enough time afterwards to actually read
+   * what happened.
+   */
+  private payoutHold(payout: PayoutInfo): number {
+    const revealed = payout.entries.filter((e) => e.cards.length > 0);
+    // Nobody showed a hand — everyone folded. There is nothing to read.
+    if (revealed.length === 0) return 1400;
+
+    // Matches ShowdownPanel: a 320ms lead-in, then one card every 90ms, or
+    // every 300ms when the hand is one of the impossible categories.
+    const impossible = payout.entries.some((e) => e.impossible);
+    const step = impossible ? 300 : 90;
+    const longestReveal = Math.max(0, ...payout.entries.map((e) => e.usedIds.length));
+    const revealMs = 320 + longestReveal * step;
+
+    // Each extra hand on screen is another line to read before the deal.
+    const readMs = 1500 + revealed.length * 450;
+
+    // The impossible categories are the payoff the whole deck exists for.
+    // They get to breathe.
+    const ceremony = impossible ? 1800 : 0;
+
+    return Math.min(9000, revealMs + readMs + ceremony);
   }
 
   private bestFaceFor(faces: Face[]): number {

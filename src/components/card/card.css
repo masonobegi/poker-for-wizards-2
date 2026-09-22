@@ -794,7 +794,20 @@
   50% { transform: translateY(calc(var(--hx-h, 112px) * -0.09)); }
 }
 
-.is-winning .hx-card__lift { animation: hx-float 3.1s ease-in-out infinite; }
+/* A winning card has to be legible as a winner across the table, on a face
+   that is already the brightest thing on screen. A 1.5px ring alone is not;
+   it lifts, warms, and carries a real halo, and at showdown everything that
+   did not win is dimmed underneath it (see Board.tsx). */
+.is-winning .hx-card__lift {
+  animation: hx-float 3.1s ease-in-out infinite;
+  filter: brightness(1.06) saturate(1.05);
+}
+.is-winning .hx-card__surface {
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 1.4em color-mix(in srgb, var(--gold) 70%, transparent),
+    0 0.5em 1.4em rgba(0, 0, 0, 0.5);
+}
 .is-used .hx-card__lift { transform: translateY(calc(var(--hx-h, 112px) * -0.045)); }
 
 .is-winning .hx-card__rim::before,
@@ -806,6 +819,8 @@
 .is-dimmed .hx-card__lift {
   opacity: 0.45;
   filter: saturate(0.35) brightness(0.85);
+  transition: opacity var(--t-slow, 420ms) var(--ease-out, ease),
+    filter var(--t-slow, 420ms) var(--ease-out, ease);
 }
 
 /* ---------------------------------------------------------------------------

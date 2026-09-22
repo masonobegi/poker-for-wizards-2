@@ -18,6 +18,11 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
   const winningIds = new Set(
     (view.payout?.entries ?? []).filter((e) => e.won > 0).flatMap((e) => e.usedIds),
   );
+  // "Which five cards won?" is the question the showdown has to answer, and a
+  // gold ring on an already-bright card face is not loud enough to answer it.
+  // Once a winning hand is known, the board cards that are *not* part of it
+  // drop back, so the ones that are read as the only lit thing on the felt.
+  const dimLosers = view.phase === 'payout' && winningIds.size > 0;
 
   // A board card being picked as a target releases the armed spell flight
   // (see Rail.tsx) toward it, then does the actual target-pick as before.
@@ -90,7 +95,9 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
                 view={c}
                 size="md"
                 index={i}
-                highlight={winningIds.has(c.id) ? 'winning' : 'none'}
+                highlight={
+                  winningIds.has(c.id) ? 'winning' : dimLosers ? 'dimmed' : 'none'
+                }
                 selectable={targetable}
                 selected={pickedIds.includes(c.id)}
                 onClick={targetable ? handlePickCard : undefined}

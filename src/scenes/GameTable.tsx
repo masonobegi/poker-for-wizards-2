@@ -199,6 +199,15 @@ export default function GameTable() {
             pickedIds={targeting?.picked ?? []}
             onPickCard={pickCard}
           />
+
+          {/* Inside the felt, not fixed to the viewport, so it lands in the
+              band under the pot at every resolution instead of being placed
+              by an offset that only held at one window size. */}
+          <AnimatePresence>
+            {view.phase === 'payout' && view.payout
+              ? <ShowdownPanel key="showdown" view={view} />
+              : null}
+          </AnimatePresence>
         </div>
 
         <aside className="tbl-side">
@@ -256,12 +265,6 @@ export default function GameTable() {
       </AnimatePresence>
 
       <StackOverlay view={view} me={me} onBeginCast={beginCast} />
-
-      <AnimatePresence>
-        {view.phase === 'payout' && view.payout
-          ? <ShowdownPanel key="showdown" view={view} />
-          : null}
-      </AnimatePresence>
 
       <AnimatePresence>
         {view.phase === 'shop' ? <Shop key="shop" view={view} me={me} /> : null}

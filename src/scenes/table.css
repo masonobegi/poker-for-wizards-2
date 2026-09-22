@@ -1134,79 +1134,135 @@
 
 /* --- showdown ----------------------------------------------------------- */
 
+/* --- showdown ------------------------------------------------------------
+ *
+ * Sits in the band of felt under the pot, which is otherwise the emptiest
+ * part of the screen. It deliberately does not cover the board: at the exact
+ * moment a player is being told which five cards made their hand, hiding the
+ * community cards is the one thing the panel must not do.
+ *
+ * Height is content-driven and capped against the viewport rather than fixed.
+ * The previous fixed 300px silently clipped its own last row the moment a
+ * third player reached showdown.
+ */
 .showdown {
-  position: fixed;
+  /* Absolute inside .felt, so it sits in the felt's own empty lower band at
+     every resolution rather than at a viewport offset tuned for one. */
+  position: absolute;
   left: 50%;
-  /* Clears the rail; sits in the open felt under the board. */
-  bottom: 278px;
+  bottom: 3%;
   transform: translateX(-50%);
   z-index: var(--z-overlay);
   pointer-events: none;
-  width: min(660px, 92vw);
-  max-height: 300px;
-  overflow: hidden;
+  width: min(660px, 88%);
 }
 .showdown-inner {
   display: grid;
-  gap: 4px;
-  padding: var(--s-3) var(--s-4);
+  gap: 6px;
+  padding: var(--s-3) var(--s-4) var(--s-4);
   border-radius: var(--r-xl);
-  background: rgba(5, 6, 12, 0.94);
+  background: linear-gradient(180deg, rgba(10, 12, 24, 0.95), rgba(5, 6, 12, 0.97));
   border: 1px solid var(--line);
-  box-shadow: var(--e-4);
+  box-shadow: var(--e-4), 0 0 48px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(14px);
+  min-height: 0;
 }
+.showdown.is-impossible .showdown-inner {
+  border-color: var(--gold-deep);
+  box-shadow: var(--e-4), 0 0 64px rgba(240, 196, 101, 0.22);
+}
+
 .showdown-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
 .showdown-impossible {
   font-family: var(--font-display);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--gold);
   text-shadow: 0 0 20px var(--gold);
 }
 
-.showdown-list { display: grid; gap: 5px; }
+/* The name of the hand — the largest thing on the table, on purpose. */
+.showdown-title {
+  font-family: var(--font-display);
+  font-size: clamp(17px, 1.7vw, 24px);
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 0 30px rgba(240, 196, 101, 0.45), 0 2px 0 rgba(0, 0, 0, 0.6);
+  /* Long names ("Straight Flush, King high") must not wrap to a second line
+     and push the cards out of the panel. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.showdown.is-impossible .showdown-title {
+  color: #ffe9b0;
+  text-shadow: 0 0 44px rgba(240, 196, 101, 0.8), 0 0 14px rgba(255, 233, 176, 0.6);
+}
+
+.showdown-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; min-height: 0; }
 .showdown-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--s-3);
-  padding: 4px 12px;
+  padding: 6px 12px;
   border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid transparent;
+  border: 1px solid var(--gold-deep);
+  background: rgba(240, 196, 101, 0.08);
 }
-.showdown-row.is-winner { border-color: var(--gold-deep); background: rgba(240, 196, 101, 0.08); }
-.showdown-row.is-impossible { border-color: var(--gold); box-shadow: 0 0 26px rgba(240, 196, 101, 0.3); }
+.showdown-row.is-impossible {
+  border-color: var(--gold);
+  box-shadow: 0 0 26px rgba(240, 196, 101, 0.3);
+}
 
-.showdown-who { display: grid; min-width: 0; }
-.showdown-who strong { font-size: var(--fs-sm); }
-.showdown-hand {
+.showdown-who { display: grid; gap: 1px; min-width: 0; }
+.showdown-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
   font-size: var(--fs-xs);
   color: var(--text-3);
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
+.showdown-name strong {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.showdown-cards { display: flex; }
 .showdown-echo { color: var(--chronos); font-style: normal; font-size: 10px; }
 .showdown-alt { font-size: 10px; color: var(--text-4); font-style: italic; }
-.showdown-muck {
-  font-size: var(--fs-xs);
-  color: var(--text-4);
-  font-style: italic;
-}
+.showdown-muck { font-size: var(--fs-xs); color: var(--text-4); font-style: italic; }
 .showdown-won {
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--good);
   display: flex;
   align-items: baseline;
   gap: 6px;
+  white-space: nowrap;
 }
 .showdown-shards { font-size: 10px; color: var(--veil); font-style: normal; }
-.showdown-lost { font-size: var(--fs-xs); color: var(--text-4); }
+
+/* Everyone who lost, on one line. Their cards are already face-up at their
+   own seats, so this only has to name what they had. */
+.showdown-others {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  padding-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+}
+.showdown-other { display: flex; gap: 6px; }
+.showdown-other strong { color: var(--text-3); font-weight: 600; }
 
 /* --- game over ---------------------------------------------------------- */
 
@@ -1281,5 +1337,5 @@
   .seat { width: 116px; }
   .seat-pod { min-width: 106px; }
   .ab-buttons .btn { min-width: 96px; flex: 1; }
-  .showdown { bottom: auto; top: 76px; }
+  .showdown { bottom: 2%; width: 94%; }
 }
