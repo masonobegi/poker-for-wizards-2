@@ -158,3 +158,15 @@
   .menu-sigil { display: none; }
   .menu-pitch { display: none; }
 }
+
+/* The build string and the desktop-only way out. Both are deliberately the
+   quietest things on the menu — present when looked for, invisible otherwise. */
+.menu-version {
+  font-size: 10px;
+  color: var(--text-4);
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+.menu-quit { display: flex; justify-content: center; margin-top: var(--s-2); }
+.menu-quit .btn { color: var(--text-4); }
+.menu-quit .btn:hover { color: var(--text-2); }

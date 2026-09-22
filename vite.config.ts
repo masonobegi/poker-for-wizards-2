@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { createRequire } from 'node:module';
+
+const pkg = createRequire(import.meta.url)('./package.json') as { version: string };
 
 export default defineConfig({
   plugins: [react()],
+  // The version a player can read off the menu, so a bug report names a
+  // build. Read from package.json so the two cannot drift apart.
+  define: { __HEXHOLD_VERSION__: JSON.stringify(pkg.version) },
   base: './',
   resolve: {
     alias: {

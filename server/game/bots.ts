@@ -359,7 +359,18 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
  * Long enough to read as deliberation, short enough that a six-handed table
  * does not take a minute a hand. Responses on the stack are quicker, because
  * everyone is already staring at the spell.
+ *
+ * `actors` is how many players are still live in the betting round, and it
+ * matters more than it looks: this cost is paid once per player per street,
+ * so a pause that reads as thoughtful heads-up reads as six players stalling
+ * at a full table. Past three, each additional player shortens everyone's
+ * pause, down to a floor — the round keeps roughly the same length instead of
+ * growing linearly with the seat count.
  */
-export function thinkTime(rng: Rng, fast = false): number {
-  return fast ? 140 + rng.int(200) : 300 + rng.int(620);
+export function thinkTime(rng: Rng, opts: { fast?: boolean; actors?: number } = {}): number {
+  if (opts.fast) return 120 + rng.int(170);
+  const base = 260 + rng.int(500);
+  const actors = opts.actors ?? 2;
+  const crowd = actors > 3 ? Math.max(0.62, 1 - (actors - 3) * 0.12) : 1;
+  return Math.round(base * crowd);
 }

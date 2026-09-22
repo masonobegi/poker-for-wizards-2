@@ -390,7 +390,7 @@ export class Engine {
       this.applyAction(p, toCall > 0 ? { kind: 'fold' } : { kind: 'check' }, true);
     });
 
-    if (p.isBot) this.botClock.set(p.id, Date.now() + thinkTime(this.rng));
+    if (p.isBot) this.botClock.set(p.id, Date.now() + thinkTime(this.rng, { actors: live(t).length }));
     else this.fx.push({ t: 'sfx', name: 'your_turn' });
 
     this.flush();
@@ -908,14 +908,14 @@ export class Engine {
       this.wait(t.config.responseSeconds * 1000, () => this.settleStack());
       for (const rid of t.stack.pending) {
         const bot = byId(t, rid);
-        if (bot?.isBot) this.botClock.set(rid, Date.now() + thinkTime(this.rng, true));
+        if (bot?.isBot) this.botClock.set(rid, Date.now() + thinkTime(this.rng, { fast: true }));
       }
       this.flush();
     } else {
       // Nobody can answer this, so there is nothing to wait for. Magic is
       // frequent; a fixed beat per cast is most of a hand's running time.
       this.flush();
-      this.wait(140, () => this.settleStack());
+      this.wait(90, () => this.settleStack());
     }
     return { ok: true };
   }
@@ -927,7 +927,7 @@ export class Engine {
     if (t.stack.pending.length === 0) {
       this.clearWait();
       this.flush();
-      this.wait(300, () => this.settleStack());
+      this.wait(200, () => this.settleStack());
     } else {
       this.flush();
     }
@@ -943,7 +943,7 @@ export class Engine {
     // Hand back to whoever was on the clock. Every branch here must either
     // schedule something or hand the clock to a player — an exit that does
     // neither wedges the table permanently.
-    this.wait(180, () => {
+    this.wait(130, () => {
       if (t.phase === 'showdown' || t.phase === 'payout' || t.phase === 'gameover'
         || t.phase === 'shop' || t.phase === 'lobby') {
         this.flush();
@@ -1100,8 +1100,10 @@ export class Engine {
     if (spell) {
       this.cast(acting.id, spell.uid, spell.targets);
       this.castsThisTurn.set(acting.id, (this.castsThisTurn.get(acting.id) ?? 0) + 1);
-      // They still owe the table a betting decision afterwards.
-      this.botClock.set(acting.id, Date.now() + 600);
+      // They still owe the table a betting decision afterwards. This is a
+      // beat, not an animation wait — the client plays the cast from the
+      // effect stream on its own clock — and it is paid ten times a hand.
+      this.botClock.set(acting.id, Date.now() + 360);
       return;
     }
 

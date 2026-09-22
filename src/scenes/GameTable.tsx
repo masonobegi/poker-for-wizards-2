@@ -161,9 +161,12 @@ export default function GameTable() {
           )}
         </div>
 
-        <OmenBar omens={view.omens} />
-
+        {/* The omen bar lives inside the right-hand cell rather than beside
+            it. As a fourth child of a three-column grid it wrapped the whole
+            nav onto a second row the moment the first omen landed at ante 2,
+            which then overlapped the felt. */}
         <div className="tbl-top-r">
+          <OmenBar omens={view.omens} />
           <Button tone="ghost" size="sm" className="tbl-logbtn" onClick={() => setLogOpen(true)}>Log</Button>
           <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>Codex</Button>
           <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>Settings</Button>

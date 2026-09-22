@@ -273,6 +273,31 @@ async function checkSeatOverlap(page) {
   });
 }
 
+/**
+ * The rail packs three things into one row — your chips, your hole cards and
+ * your sigil hand — and the hole cards are fanned, so they rotate out of the
+ * box their un-rotated size reserved. That is how the outer hole card ended
+ * up sitting on top of the first sigil tile, at every resolution, for the
+ * whole of one release.
+ */
+async function checkRailCollision(page) {
+  return page.evaluate(() => {
+    const right = (sel) => {
+      const els = [...document.querySelectorAll(sel)];
+      return els.length ? Math.max(...els.map((e) => e.getBoundingClientRect().right)) : null;
+    };
+    const left = (sel) => {
+      const els = [...document.querySelectorAll(sel)];
+      return els.length ? Math.min(...els.map((e) => e.getBoundingClientRect().left)) : null;
+    };
+    const holeRight = right('.rail-hole .hx-card');
+    const sigilLeft = left('.rail-sigils .sigil');
+    if (holeRight === null || sigilLeft === null) return [];
+    const gap = sigilLeft - holeRight;
+    return gap < 2 ? [`hole cards overlap the sigil hand by ${Math.round(-gap)}px`] : [];
+  });
+}
+
 /** The felt should actually be used — not mostly dead air below the pot. */
 async function checkFeltUsage(page) {
   return page.evaluate(() => {
@@ -284,7 +309,10 @@ async function checkFeltUsage(page) {
     if (fr.height === 0) return { ok: true, note: 'felt has no height' };
     const emptyBelow = fr.bottom - pr.bottom;
     const pct = (emptyBelow / fr.height) * 100;
-    return { ok: pct <= 42, pct: Math.round(pct), feltH: Math.round(fr.height), emptyBelow: Math.round(emptyBelow) };
+    // Tightened from 42% once the board was moved down and grown: the felt
+    // used to carry a quarter of its own height as dead air under the pot,
+    // and 42% was loose enough to never say so.
+    return { ok: pct <= 32, pct: Math.round(pct), feltH: Math.round(fr.height), emptyBelow: Math.round(emptyBelow) };
   });
 }
 
@@ -443,6 +471,7 @@ async function runResolution(browser, res) {
             fail('table', await checkActionButtons(page));
             fail('table', await checkOwnCardsOnScreen(page));
             fail('table', await checkSeatOverlap(page));
+            fail('table', await checkRailCollision(page));
             const felt2 = await checkFeltUsage(page);
             if (!felt2.ok) {
               fail('table', [`felt is ${felt2.pct}% empty below the pot (felt height ${felt2.feltH}px, empty ${felt2.emptyBelow}px) — should be <=42%`]);

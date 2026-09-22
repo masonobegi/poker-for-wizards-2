@@ -321,6 +321,9 @@ ipcMain.handle('steam:cloudWrite', (_e, file, contents) =>
     ? steam.cloudWrite(file, contents)
     : false);
 ipcMain.handle('hexhold:version', () => app.getVersion());
+// A packaged game needs a way out that is not the window chrome — the shell
+// runs frameless in fullscreen, where there is none.
+ipcMain.handle('hexhold:quit', () => { app.quit(); });
 ipcMain.handle('hexhold:fullscreen', (_e, on) => {
   if (!win) return false;
   win.setFullScreen(typeof on === 'boolean' ? on : !win.isFullScreen());

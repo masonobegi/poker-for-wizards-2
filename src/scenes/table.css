@@ -14,6 +14,11 @@
 .tbl-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto;
+  /* Anything unexpected is clipped rather than allowed to push a second row
+     down over the felt. */
+  grid-auto-rows: 0;
+  overflow: hidden;
   align-items: center;
   gap: var(--s-3);
   padding: 8px var(--s-4);
@@ -22,8 +27,11 @@
   z-index: var(--z-ui);
 }
 .tbl-top-l { display: flex; align-items: center; gap: var(--s-3); }
-.tbl-top-r { display: flex; align-items: center; gap: 4px; justify-self: end; }
-.tbl-top .omens { justify-self: end; margin-right: var(--s-3); overflow: hidden; }
+.tbl-top-r { display: flex; align-items: center; gap: 4px; justify-self: end; min-width: 0; }
+/* The omen list is the one part of the header allowed to run out of room;
+   the nav buttons beside it never shrink and never wrap. */
+.tbl-top-r .omens { min-width: 0; overflow: hidden; margin-right: var(--s-3); }
+.tbl-top-r > .btn { flex: none; }
 .tbl-top-c { display: grid; justify-items: center; gap: 1px; }
 
 .tbl-code {
@@ -357,7 +365,9 @@
 .board {
   position: absolute;
   left: 50%;
-  top: 58%;
+  /* Sits below the seat arc, leaving the felt's lower band clear for the
+     showdown panel. */
+  top: 60%;
   transform: translate(-50%, -50%);
   display: grid;
   justify-items: center;
@@ -365,6 +375,9 @@
   z-index: var(--z-cards);
   width: max-content;
   max-width: 92%;
+  /* Must track Card.tsx's SCALE.lg — the board renders at `lg`, so the empty
+     slots have to match the cards that will land in them. */
+  --board-scale: 1.36;
 }
 
 .board-mods {
@@ -392,14 +405,29 @@
   color: var(--bad);
 }
 
-.board-cards { display: flex; align-items: center; gap: 9px; }
+.board-cards { display: flex; align-items: center; gap: 11px; }
 
+/* An undealt slot. Not a dashed placeholder box: it reads as a place on the
+   table where a card is going to be, with the corner radius and inner shadow
+   the real cards sit in, and a hex ghost echoing the card back. */
 .board-slot {
-  width: var(--card-w);
-  height: var(--card-h);
+  position: relative;
+  width: calc(var(--card-w) * var(--board-scale, 1));
+  height: calc(var(--card-h) * var(--board-scale, 1));
   border-radius: var(--r-card);
-  border: 1px dashed rgba(255, 255, 255, 0.07);
-  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255, 255, 255, 0.022), transparent 70%),
+    rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), inset 0 0 22px rgba(0, 0, 0, 0.35);
+}
+.board-slot::after {
+  content: '';
+  position: absolute;
+  inset: 26%;
+  border: 1px solid rgba(240, 196, 101, 0.07);
+  /* The same hexagon the logo and the card backs are cut from. */
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
 .board-pot { min-height: 46px; display: grid; place-items: center; }
@@ -587,7 +615,13 @@
   cursor: help;
 }
 
-.rail-hole { padding-bottom: var(--s-2); }
+/* A fanned row rotates its cards, and a rotated card overflows the layout box
+   its un-rotated size reserved — so the outer card's corner sat on top of the
+   first sigil tile. The overhang comes from swinging the card's *long* axis
+   out, so it scales with --card-h, not --card-w; sizing this off the width
+   left 4K still touching, where the cards are tallest.
+   test/responsive.mjs checks the resulting gap at every shipped resolution. */
+.rail-hole { padding: 0 calc(var(--card-h) * 0.32) var(--s-2); }
 
 .rail-sigils {
   display: flex;
@@ -879,20 +913,40 @@
 
 /* --- stack -------------------------------------------------------------- */
 
+/*
+ * The response window. A player has a few seconds to decide whether to
+ * counter a spell, and that decision is about the board — which card is being
+ * collapsed, what the street is, what they are holding.
+ *
+ * So this deliberately does not behave like a modal. It used to: a 62% black
+ * scrim with a 6px blur over the whole screen, and the panel centred right on
+ * top of the board, which meant the one moment a player most needs to read
+ * the table was the moment they could see it least. The scrim is now light
+ * enough to read the felt through, and the panel sits low, over the rail it
+ * has already made redundant — every response it offers is a button inside
+ * it — with the board left clear above.
+ */
 .stackview {
   position: fixed;
   inset: 0;
   z-index: var(--z-stack);
   display: grid;
-  place-items: center;
-  padding: var(--s-4);
-  background: rgba(3, 4, 9, 0.62);
-  backdrop-filter: blur(6px);
+  align-items: end;
+  justify-items: center;
+  padding: var(--s-4) var(--s-4) var(--s-5);
+  background: linear-gradient(
+    180deg,
+    rgba(3, 4, 9, 0.22) 0%,
+    rgba(3, 4, 9, 0.34) 46%,
+    rgba(3, 4, 9, 0.74) 100%
+  );
+  backdrop-filter: blur(2px);
 }
 
 .stack-panel {
   width: min(460px, 100%);
-  max-height: 84vh;
+  /* Capped so a deep stack scrolls rather than growing up over the board. */
+  max-height: min(56vh, 420px);
   overflow-y: auto;
   display: grid;
   gap: var(--s-3);

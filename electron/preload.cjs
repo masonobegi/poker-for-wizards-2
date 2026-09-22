@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('hexhold', {
   port: () => ipcRenderer.invoke('hexhold:port'),
   version: () => ipcRenderer.invoke('hexhold:version'),
   toggleFullscreen: (on) => ipcRenderer.invoke('hexhold:fullscreen', on),
+  quit: () => ipcRenderer.invoke('hexhold:quit'),
   crashLogPath: () => ipcRenderer.invoke('hexhold:crashLog'),
   reportCrash: (detail) => ipcRenderer.invoke('hexhold:reportCrash', String(detail).slice(0, 8000)),
 

@@ -93,7 +93,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
             <motion.div key={c.id} layout data-card-id={c.id}>
               <Card
                 view={c}
-                size="md"
+                size="lg"
                 index={i}
                 highlight={
                   winningIds.has(c.id) ? 'winning' : dimLosers ? 'dimmed' : 'none'

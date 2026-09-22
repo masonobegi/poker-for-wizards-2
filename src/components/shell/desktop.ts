@@ -7,6 +7,7 @@ export interface HexholdDesktopApi {
   port(): Promise<number>;
   version(): Promise<string>;
   toggleFullscreen(on?: boolean): Promise<boolean>;
+  quit(): Promise<void>;
 }
 
 export function getHexholdApi(): HexholdDesktopApi | undefined {

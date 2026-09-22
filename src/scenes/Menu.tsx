@@ -9,6 +9,8 @@ import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import ProfileCard from '@/components/profile/ProfileCard';
 import ServerPanel from '@/components/shell/ServerPanel';
+import { getHexholdApi, isDesktop } from '@/components/shell/desktop';
+import { appVersion } from '@/components/shell/version';
 import './menu.css';
 
 type Pane = 'home' | 'host' | 'join';
@@ -146,6 +148,17 @@ export default function Menu() {
                   Online
                 </Button>
               </div>
+
+              {/* A packaged build runs frameless and often fullscreen, where
+                  there is no window chrome to close. Browsers own their own
+                  tab, so this only appears on the desktop shell. */}
+              {isDesktop() ? (
+                <div className="menu-quit">
+                  <Button tone="ghost" size="sm" onClick={() => void getHexholdApi()?.quit()}>
+                    Quit
+                  </Button>
+                </div>
+              ) : null}
             </motion.div>
           ) : null}
 
@@ -214,6 +227,8 @@ export default function Menu() {
         <footer className="menu-foot">
           <span className={connected ? 'pulse-dot' : 'pulse-dot off'} />
           <span>{connected ? 'Connected' : 'Looking for the server'}</span>
+          {/* So a bug report can name the build it came from. */}
+          <span className="menu-version mono">v{appVersion()}</span>
         </footer>
       </div>
 

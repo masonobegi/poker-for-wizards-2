@@ -99,7 +99,7 @@ They stack. By the end of a run you are playing under a rulebook nobody sat down
 | **Ruin** | Removing things from existence | *Unmake* — a rank is struck from every hand at the table |
 | **Weave** | Editing the deck itself | *Inscribe* — write a permanent mark on one exact card, forever |
 
-46 sigils, 24 relics, 23 omens, 9 card inscriptions.
+45 sigils, 23 relics, 23 omens, 9 card inscriptions.
 
 ---
 
@@ -109,8 +109,8 @@ They stack. By the end of a run you are playing under a rulebook nobody sat down
 shared/     Pure game model — imported by both sides, no I/O
   cards.ts    Card entities: superposition, per-viewer divergence, marks, memory
   hand.ts     Hand evaluation, including the three impossible categories
-  sigils.ts   The 46 spells, as data
-  relics.ts   The 24 passives, as data
+  sigils.ts   The 45 spells, as data
+  relics.ts   The 23 passives, as data
   omens.ts    The 23 permanent table rules, as data
   types.ts    Table and per-player view shapes
   protocol.ts Socket contract and the transient effect stream
@@ -118,7 +118,7 @@ shared/     Pure game model — imported by both sides, no I/O
 server/     Authoritative. The client is a renderer and an input device.
   game/table.ts     Seating, pot maths, and per-player projection
   game/engine.ts    Phase machine and every clock, on one scheduler
-  game/magic.ts     The stack, and all 46 effects
+  game/magic.ts     The stack, and all 45 effects
   game/showdown.ts  Scoring, side pots, card memory
   game/bots.ts      Monte Carlo equity, pot odds, personalities, counterspells
   game/shop.ts      The Market
@@ -146,7 +146,7 @@ src/        Client
 ```
 test/hand.test.ts     Hand evaluation: standard hands, the impossible ones,
                       wilds, superposition, and every rule modifier
-test/sigils.test.ts   All 46 sigils cast and resolved, plus teardown,
+test/sigils.test.ts   All 45 sigils cast and resolved, plus teardown,
                       counterspelling, mana gating and ward protection
 test/render.test.tsx  Mounts the real components in a real DOM: every card
                       state, the court art, the menu, and the whole app with
