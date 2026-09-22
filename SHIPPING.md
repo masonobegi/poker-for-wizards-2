@@ -21,7 +21,8 @@ Each of these is checked by something you can run, not by assertion.
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
 | Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
 | Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |
-| Every sound renders, and none clip | `npm run audio` — 50 sounds and 5 music beds rendered offline and measured for peak, RMS, DC offset, duration and spectral centroid |
+| Every sound renders, none clip, and the mix holds | `npm run audio` — 50 sounds and 5 music beds rendered offline and measured for peak, RMS, DC offset, duration and spectral centroid, plus every sound checked against the level `src/audio/mix.ts` assigns it |
+| Typography survives with no network | `public/fonts/` is vendored into the build; `npm run build` output contains no request to fonts.googleapis.com |
 | Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum window |
 
 ---
@@ -63,7 +64,10 @@ Honest list, worst first.
 
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
-4. **Audio has never been heard by a human.** It is measured — every sound renders, none clip, `ui_hover` is quiet and short, chips read brighter than felt, and the impossible-hand sound is the biggest in the set. Measuring is not listening.
+3. **The six-handed table is the slow configuration.** `npm run metrics -- 150 5` reads 17-23s a hand against a threshold that wants 12; the default practice table (you and three bots) runs about 15s. Bot think time already shortens as the table fills, and the remaining cost is real — six players, four streets, and six to nine spells a hand with a response window on each. It is worth another look, but not by making the spell layer quieter.
+4. **Audio has never been heard by a human.** It is now measured a good deal harder than it was — every sound renders, none clip, each one sits within 3 dB of a hand-authored target level, the ladder from `ui_hover` up to `win_impossible` is checked end to end, and the table bed has content above the bass where a laptop speaker can actually reproduce it. That last one was a real bug found purely by measurement: the bed under most of a session was a 36 Hz sine and a pluck every ten seconds, which is silence on any speaker smaller than a subwoofer.
+
+    None of that is listening. Measurement can tell you two sounds are 12 dB apart; it cannot tell you the counterspell sound is annoying by the fortieth time, that the table bed grates after an hour, or that the win sting is corny. Put headphones on before you ship.
 5. **Crash reporting is local only.** The desktop shell writes a plain-text `crash.log` in the user data folder and offers a reload, which means a player whose game died has one file you can ask for. A hosted service would tell you without asking; that is worth adding before a wide release.
 6. **Content depth.** 45 sigils, 23 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
 7. **One language.** No localisation framework; all copy is inline English.
@@ -83,3 +87,6 @@ Honest list, worst first.
 - [ ] Age rating survey
 - [ ] A build played end to end on actual Steam Deck hardware
 - [ ] At least one full session against real humans
+- [ ] The whole sound set listened to, on speakers and on headphones
+- [ ] A build launched with the network disconnected, to confirm it still
+      looks like itself
