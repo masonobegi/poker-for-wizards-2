@@ -495,11 +495,17 @@ if (byName.chip_single && byName.card_place) {
   );
 }
 if (byName.ui_hover) {
+  // "The quietest" and not "quieter than everything" on purpose: mix.ts puts
+  // ui_hover and ui_tick on the same `whisper` tier deliberately, so which of
+  // the two renders marginally quieter is a coin flip and demanding a strict
+  // minimum made this check fail about one run in three for no reason. What
+  // matters is that hover is down in the quietest tier and has no spike in it.
+  const quietest = Math.min(...sfx.filter((r) => !r.error).map((r) => r.loud));
   check(
-    'ui_hover is the quietest thing in the game',
-    byName.ui_hover.loud <= Math.min(...sfx.filter((r) => !r.error).map((r) => r.loud)) + 1e-6 &&
-      byName.ui_hover.peak < 0.12,
-    `ui_hover ${byName.ui_hover.loud.toFixed(4)} loudness, peak ${byName.ui_hover.peak.toFixed(3)}`,
+    'ui_hover is in the quietest tier in the game',
+    byName.ui_hover.loud <= quietest * 1.2 && byName.ui_hover.peak < 0.12,
+    `ui_hover ${byName.ui_hover.loud.toFixed(4)} loudness vs quietest ${quietest.toFixed(4)}, ` +
+      `peak ${byName.ui_hover.peak.toFixed(3)}`,
   );
   check('ui_hover is short (< 0.3s audible)', byName.ui_hover.durationSec < 0.3, `${byName.ui_hover.durationSec.toFixed(3)}s`);
 }
