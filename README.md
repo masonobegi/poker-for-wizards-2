@@ -189,6 +189,11 @@ Between them these found the bugs worth mentioning: a betting-round deadlock whe
 by which command, what only a Steam partner account can do, and the known gaps
 worst-first.
 
+[HANDOFF.md](HANDOFF.md) is the companion list: everything that cannot be
+checked from a headless cloud machine and needs a desktop, a pair of ears, or
+another person. The listening pass at the top of it is the single most valuable
+hour anybody could spend on this project.
+
 ## Status
 
 Playable end to end: a first-run intro, one-click practice against bots, betting with side pots and all-ins, the full sigil stack with counterspells, showdown with the impossible categories, the Market, escalating omens, elimination and a winner. Bots fill empty seats and play a recognisable game of poker, including counterplay.

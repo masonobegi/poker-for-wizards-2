@@ -2,6 +2,11 @@
 
 What is done, what is left, and which parts only you can do.
 
+For the parts that need a desktop, a pair of ears or another person — the
+listening pass, the Electron build, an offline launch, Docker, Steam Deck
+hardware — see [HANDOFF.md](HANDOFF.md), which is written as a run list rather
+than a status report.
+
 ---
 
 ## Done and verified
