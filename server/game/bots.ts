@@ -302,6 +302,15 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     if (p.sigils.length >= 4) want *= 1.6;
     // Mana at the cap is mana being thrown away every street.
     if (p.mana >= p.maxMana - 1) want *= 1.5;
+    // The river is the last street there is. Mana carries into the next hand,
+    // but the deal grants +3 on top and the pool is capped, so anything held
+    // past this point either spills or simply never gets used — a bot sitting
+    // on a full pool at the river has misplayed the hand, whatever it does
+    // with its chips.
+    if (t.phase === 'river') {
+      const spill = Math.max(0, p.mana + 3 - p.maxMana);
+      want *= spill > 0 ? 1 + spill * 0.3 : 1.25;
+    }
 
     if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
 
