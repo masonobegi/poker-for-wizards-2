@@ -7,7 +7,7 @@
 
 .omens-label {
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--text-4);
@@ -94,7 +94,7 @@
 .omen-since {
   display: block;
   margin-top: 6px;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-4);

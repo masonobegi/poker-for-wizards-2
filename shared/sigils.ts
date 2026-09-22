@@ -277,6 +277,73 @@ export const SIGILS: SigilDef[] = [
     impossible: 'Unshuffling and reshuffling between two bets.',
   },
 
+
+  // ------------------------------------------------- second wave: entropy
+  {
+    id: 'fracture', name: 'Fracture', school: 'entropy', glyph: '⟒', cost: 4,
+    timing: ['any'], target: 'any_card', rarity: 'rare', price: 9, botBias: 0.55,
+    text: 'The target card splits into three possible faces instead of settling on one.',
+    impossible: 'A single object holding three mutually exclusive identities at once.',
+  },
+  {
+    id: 'cascade', name: 'Cascade', school: 'entropy', glyph: '⋰', cost: 3,
+    timing: ['river', 'showdown'], target: 'none', rarity: 'rare', price: 8, botBias: 0.5,
+    text: 'Every undecided card on the table settles at once, each one landing on its highest face.',
+    impossible: 'Forcing a whole table of uncertainties to resolve in the same instant.',
+  },
+
+  // ---------------------------------------------------- second wave: veil
+  {
+    id: 'blind_spot', name: 'Blind Spot', school: 'veil', glyph: '◌', cost: 3,
+    timing: ['flop', 'turn'], target: 'player', rarity: 'rare', price: 9, botBias: 0.6,
+    text: 'The target cannot see the community cards for the rest of the hand. They still play them.',
+    impossible: 'Taking the board away from one player and leaving it for everyone else.',
+  },
+  {
+    id: 'the_ledger_sigil', name: 'Read the Room', school: 'veil', glyph: '⌸', cost: 2,
+    timing: ['any'], target: 'player', rarity: 'common', price: 6, botBias: 0.6,
+    text: 'See every sigil in the target’s hand until the hand ends.',
+    impossible: 'Reading cards somebody is holding against their chest.',
+  },
+
+  // ------------------------------------------------- second wave: chronos
+  {
+    id: 'amber', name: 'Amber', school: 'chronos', glyph: '❈', cost: 2,
+    timing: ['any'], target: 'any_card', rarity: 'common', price: 6, botBias: 0.5,
+    text: 'Set a card in amber. Nothing can burn it, collapse it, steal it, replace it or rewrite it for the rest of the hand.',
+    impossible: 'A card that time stops touching while the game goes on around it.',
+  },
+
+  // ---------------------------------------------------- second wave: bind
+  {
+    id: 'tessellate', name: 'Tessellate', school: 'bind', glyph: '⧖', cost: 2,
+    timing: ['any'], target: 'none', rarity: 'common', price: 5, botBias: 0.5,
+    text: 'Your hole cards trade ranks with each other, keeping their suits.',
+    impossible: 'Two cards exchanging half of what they are and staying themselves.',
+  },
+  {
+    id: 'doppelganger', name: 'Doppelgänger', school: 'bind', glyph: '⧅', cost: 4,
+    timing: ['turn', 'river'], target: 'player', rarity: 'rare', price: 11, botBias: 0.7,
+    text: 'Copy one of the target’s hole cards into your own hand. They keep theirs.',
+    impossible: 'Taking a card without the person holding it losing anything.',
+  },
+
+  // ---------------------------------------------------- second wave: ruin
+  {
+    id: 'tithe', name: 'Tithe', school: 'ruin', glyph: '⑃', cost: 1,
+    timing: ['any'], target: 'none', rarity: 'common', price: 6, botBias: 0.65,
+    text: 'Every other player pays you one mana. Those who cannot, pay a big blind instead.',
+    impossible: 'Levying a tax on a substance that does not exist.',
+  },
+
+  // --------------------------------------------------- second wave: weave
+  {
+    id: 'transmute', name: 'Transmute', school: 'weave', glyph: '⚗', cost: 3,
+    timing: ['any'], target: 'any_card', rarity: 'common', price: 7, botBias: 0.6,
+    text: 'Change a card’s suit. Permanently — it keeps the new suit in every hand after this one.',
+    impossible: 'Re-inking a card that is already in play, forever.',
+  },
+
   // ----------------------------------------------------------------- RESPONSE
   {
     id: 'nullify', name: 'Nullify', school: 'veil', glyph: '⊘', cost: 2,

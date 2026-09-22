@@ -432,6 +432,13 @@ export class Engine {
       }
     }
 
+    // The Amber Age puts one card beyond the reach of every sigil.
+    const amber = omenNumber(t.omens, (o) => o.deal?.amberBoard);
+    for (let i = 0; i < amber && i < dealt.length; i++) {
+      const c = card(t, dealt[i]);
+      if (c) c.amber = true;
+    }
+
     this.fx.push({ t: 'deal', cardIds: dealt, to: 'board', stagger: 140 });
     this.fx.push({ t: 'sfx', name: `street_${phase}` });
     log(t, `${phase[0].toUpperCase()}${phase.slice(1)}: ${dealt.map((id) => describeCard(t, id)).join(' ')}`, 'plain');
@@ -584,7 +591,9 @@ export class Engine {
   private openShop(): void {
     const t = this.table;
     t.ante += 1;
-    t.bb = Math.round((t.config.baseBlind * Math.pow(1.6, t.ante - 1)) / 50) * 50;
+    // Doubling Down adds steps to the climb, permanently.
+    const steps = (t.ante - 1) + omenNumber(t.omens, (o) => o.blindSteps) * Math.max(0, t.ante - 1);
+    t.bb = Math.round((t.config.baseBlind * Math.pow(1.6, steps)) / 50) * 50;
     t.sb = Math.floor(t.bb / 2);
 
     log(t, `Ante ${t.ante}. Blinds are now ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}.`, 'magic');

@@ -231,11 +231,11 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  font-size: clamp(9px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145)), 26px);
+  font-size: clamp(10px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145)), 26px);
   letter-spacing: 0.01em;
 }
 .hx-art__rank[data-wide] {
-  font-size: clamp(8px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145) * 0.82), 21px);
+  font-size: clamp(10px, calc(var(--hx-h, 112px) * var(--hx-idx-ratio, 0.145) * 0.82), 21px);
   letter-spacing: -0.03em;
 }
 
@@ -467,7 +467,7 @@
   overflow: visible;
 }
 .hx-qring text {
-  font-size: 9px;
+  font-size: 10px;
   font-family: var(--font-display);
   fill: var(--entropy);
   filter: drop-shadow(0 0 1px color-mix(in srgb, var(--entropy) 70%, transparent));
@@ -502,7 +502,7 @@
   position: relative;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.9em;
+  font-size: clamp(10px, 1.9em, 40px);
   line-height: 1;
 }
 .hx-veil__suit {
@@ -512,7 +512,7 @@
   display: flex;
 }
 .hx-veil__mark { width: 100%; height: 100%; color: var(--gold-hi); }
-.hx-veil__q { position: relative; font-family: var(--font-display); font-weight: 800; font-size: 1em; opacity: 0.6; }
+.hx-veil__q { position: relative; font-family: var(--font-display); font-weight: 800; font-size: clamp(10px, 1em, 20px); opacity: 0.6; }
 
 /* ---------------------------------------------------------------------------
    7. Mark full-card effects (clipped, in .hx-card__fx) + diverged split.
@@ -656,7 +656,7 @@
   cursor: default;
 }
 .hx-mark__glyph {
-  font-size: 0.85em;
+  font-size: clamp(10px, 0.85em, 20px);
   line-height: 1;
   filter: drop-shadow(0 0 0.15em var(--mk, transparent));
 }
@@ -707,7 +707,7 @@
   background: linear-gradient(180deg, rgba(23, 28, 53, 0.98), rgba(11, 14, 27, 0.98));
   border: 1px solid var(--line-soft);
   box-shadow: var(--e-2);
-  font-size: 0.62em;
+  font-size: clamp(10px, 0.62em, 14px);
   line-height: 1.35;
   color: var(--text-2);
   opacity: 0;
@@ -742,7 +742,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.62em;
+  font-size: clamp(10px, 0.62em, 16px);
   line-height: 1;
   font-weight: 700;
   background: rgba(8, 10, 20, 0.72);
@@ -774,7 +774,7 @@
   align-items: center;
   gap: 0.22em;
   font-family: var(--font-mono);
-  font-size: 0.62em;
+  font-size: clamp(10px, 0.62em, 16px);
   font-weight: 700;
   color: var(--gold-hi);
   background: rgba(8, 10, 20, 0.55);

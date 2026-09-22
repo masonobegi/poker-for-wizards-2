@@ -34,7 +34,8 @@ test('every omen is well formed', () => {
     assert.ok(o.impossible.length > 10, `${o.id} does not say why it is impossible`);
     assert.ok(o.weight > 0, `${o.id} can never be drawn`);
     assert.ok(o.minAnte >= 2, `${o.id} would land before the first market`);
-    const doesSomething = !!(o.mods || o.deal || o.mana || o.killsRank || o.sigilDraw);
+    const doesSomething = !!(o.mods || o.deal || o.mana || o.killsRank
+      || o.sigilDraw || o.sigilCost || o.blindSteps);
     assert.ok(doesSomething, `${o.id} has no effect at all`);
   }
 });

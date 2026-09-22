@@ -10,7 +10,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 37 sigils, all 18 omens | `npm test` — 95 tests |
+| Game rules, hand evaluation, all 46 sigils, all 23 omens | `npm test` — 104 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -63,7 +63,7 @@ Honest list, worst first.
 2. **The Docker image is unbuilt** (above).
 4. **Audio has never been heard by a human.** It is verified to be non-silent, non-clipping and correctly shaped; that is not the same as sounding good.
 5. **No crash reporting.** Worth adding a service before a wide release.
-6. **Content depth.** 37 sigils, 24 relics, 18 omens is a solid opening hand for a roguelike but not a deep one. Replayability is the thing most likely to be criticised.
+6. **Content depth.** 46 sigils, 24 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
 7. **One language.** No localisation framework; all copy is inline English.
 
 ---

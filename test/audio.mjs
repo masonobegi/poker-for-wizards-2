@@ -400,12 +400,16 @@ if (byName.ui_hover) {
   check('ui_hover is short (< 0.3s audible)', byName.ui_hover.durationSec < 0.3, `${byName.ui_hover.durationSec.toFixed(3)}s`);
 }
 if (byName.win_impossible) {
-  const substantiality = (s) => s.rms * s.durationSec;
+  // "Most substantial" is read as loud-and-full (peak × rms) rather than
+  // rms × duration — a long quiet fade (e.g. victory's fanfare tail) would
+  // otherwise out-rank a shorter, denser sound purely by running longer,
+  // which isn't what "the game's biggest moment" is asking for.
+  const substantiality = (s) => s.peak * s.rms;
   const rank = [...okSfx].sort((a, b) => substantiality(b) - substantiality(a));
   const place = rank.findIndex((s) => s.name === 'win_impossible') + 1;
   check(
-    'win_impossible is among the most substantial sounds in the set (rms × duration)',
-    place <= 3,
+    'win_impossible is the most substantial sound in the set (peak × rms)',
+    place === 1,
     `ranked #${place} of ${rank.length} (top: ${rank
       .slice(0, 3)
       .map((s) => s.name)

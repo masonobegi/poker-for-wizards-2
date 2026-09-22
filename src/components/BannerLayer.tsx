@@ -79,7 +79,21 @@ export default function BannerLayer() {
               borderBottom: '1px solid rgba(240,196,101,.2)',
             }}
           />
-          <div style={{ position: 'relative', textAlign: 'center', padding: '0 24px' }}>
+          <div
+            style={{
+              position: 'relative',
+              textAlign: 'center',
+              padding: '0 24px',
+              // Unlike everything else in this layer, the text here is
+              // server-authored and unbounded in length (an omen's name, a
+              // relic's text) — without a width cap it renders as one
+              // unbroken line and can run off both edges of the viewport at
+              // narrower resolutions.
+              width: 'min(94vw, 1100px)',
+              boxSizing: 'border-box',
+              overflowWrap: 'break-word',
+            }}
+          >
             <motion.h1
               initial={{ y: 26, opacity: 0, letterSpacing: '0.5em' }}
               animate={{ y: 0, opacity: 1, letterSpacing: '0.16em' }}

@@ -71,6 +71,8 @@ export interface Player {
   severed: boolean;
   /** Net category shift on this player's hand, from Hex and friends. */
   hexed: number;
+  /** Blind Spot: they cannot see the community cards, but still play them. */
+  blinded: boolean;
 
   lastAction?: { kind: ActionKind; amount: number; at: number };
   /** Private knowledge granted by sigils — never sent to anyone else. */
@@ -90,10 +92,12 @@ export interface Foreknowledge {
   divergedFrom: Record<string, Face>;
   /** Cards this player has been lied to about (False Face) — they see the lie. */
   lies: Record<string, Face>;
+  /** Opponents whose sigil hands this player can read. */
+  seenSigils: string[];
 }
 
 export const emptyForeknowledge = (): Foreknowledge => ({
-  deckPeek: [], seenHole: [], divergedFrom: {}, lies: {},
+  deckPeek: [], seenHole: [], divergedFrom: {}, lies: {}, seenSigils: [],
 });
 
 export interface PlayerView {
@@ -121,6 +125,7 @@ export interface PlayerView {
   warded: boolean;
   severed: boolean;
   hexed: number;
+  blinded: boolean;
   lastAction?: Player['lastAction'];
   isYou: boolean;
   ready: boolean;

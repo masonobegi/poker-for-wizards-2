@@ -18,7 +18,10 @@ import path from 'node:path';
 const HEADED = process.argv.includes('--headed');
 const OUT = path.resolve('responsive');
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
-const BUDGET_MS = 130_000; // per-resolution time budget for reaching table/market/showdown
+// Generous: a resolution needs three completed hands to reach the market
+// (handsPerAnte defaults to 3), and headless rendering at 4K/ultrawide is
+// meaningfully slower per frame than at 1280x800.
+const BUDGET_MS = 220_000;
 
 const RESOLUTIONS = [
   { name: 'steamdeck', width: 1280, height: 800, note: 'Steam Deck — critical' },
@@ -37,48 +40,78 @@ mkdirSync(OUT, { recursive: true });
 // In-page check functions (serialized into page.evaluate).
 // ---------------------------------------------------------------------------
 
+/**
+ * A robust "is this actually visible to a player" check, shared by every
+ * scan below. `checkVisibility()` (Chromium) walks the ancestor chain for
+ * display/visibility/opacity, unlike a one-element getComputedStyle read —
+ * without it, text inside a hover-only tooltip (opacity: 0 on an ancestor,
+ * not the text node itself) reads as "visible" and produces false failures.
+ * Defined as a source string and re-created inside each page.evaluate
+ * callback (Playwright serializes callbacks by their own source, so a
+ * closed-over function reference from Node isn't callable in-page).
+ */
+function isVisible(el) {
+  if (typeof el.checkVisibility === 'function') {
+    return el.checkVisibility({ opacityProperty: true, visibilityProperty: true, contentVisibilityAuto: true });
+  }
+  const cs = getComputedStyle(el);
+  return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
+}
+function tagOf(el) {
+  const cls = (el.getAttribute('class') || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.');
+  return el.tagName.toLowerCase() + (cls ? `.${cls}` : '');
+}
+
 /** Nothing wider than the viewport, or drawn off the left edge. */
 async function checkOverflowX(page) {
-  return page.evaluate(() => {
+  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+    // eslint-disable-next-line no-eval
+    const isVisible = eval(`(${isVisibleSrc})`);
+    // eslint-disable-next-line no-eval
+    const tagOf = eval(`(${tagOfSrc})`);
     const out = [];
     const vw = window.innerWidth;
     for (const el of document.querySelectorAll('body *')) {
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      if (!isVisible(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (r.right > vw + 2 || r.left < -2) {
-        const tag = `${el.tagName.toLowerCase()}.${(el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')}`;
-        out.push(`${tag} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
+        out.push(`${tagOf(el)} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
       }
     }
     return [...new Set(out)].slice(0, 10);
-  });
+  }, [isVisible.toString(), tagOf.toString()]);
 }
 
 /** No `position: fixed` element should run off the bottom of the viewport. */
 async function checkFixedBottom(page) {
-  return page.evaluate(() => {
+  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+    // eslint-disable-next-line no-eval
+    const isVisible = eval(`(${isVisibleSrc})`);
+    // eslint-disable-next-line no-eval
+    const tagOf = eval(`(${tagOfSrc})`);
     const out = [];
     const vh = window.innerHeight;
     for (const el of document.querySelectorAll('body *')) {
-      const cs = getComputedStyle(el);
-      if (cs.position !== 'fixed') continue;
-      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      if (getComputedStyle(el).position !== 'fixed') continue;
+      if (!isVisible(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (r.bottom > vh + 2) {
-        const tag = `${el.tagName.toLowerCase()}.${(el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')}`;
-        out.push(`${tag} fixed element runs off the bottom (${Math.round(r.bottom)} vs ${vh})`);
+        out.push(`${tagOf(el)} fixed element runs off the bottom (${Math.round(r.bottom)} vs ${vh})`);
       }
     }
     return [...new Set(out)].slice(0, 10);
-  });
+  }, [isVisible.toString(), tagOf.toString()]);
 }
 
 /** No visible text smaller than 10px anywhere on screen. */
 async function checkTinyText(page) {
-  return page.evaluate(() => {
+  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+    // eslint-disable-next-line no-eval
+    const isVisible = eval(`(${isVisibleSrc})`);
+    // eslint-disable-next-line no-eval
+    const tagOf = eval(`(${tagOfSrc})`);
     const out = [];
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
     let el = walker.currentNode;
@@ -91,19 +124,17 @@ async function checkTinyText(page) {
         if (child.nodeType === 3 && child.textContent && child.textContent.trim()) { hasText = true; break; }
       }
       if (!hasText) continue;
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      if (!isVisible(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (r.bottom < 0 || r.right < 0 || r.top > window.innerHeight || r.left > window.innerWidth) continue;
-      const px = parseFloat(cs.fontSize);
+      const px = parseFloat(getComputedStyle(el).fontSize);
       if (px && px < 9.9) {
-        const tag = `${el.tagName.toLowerCase()}.${(el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')}`;
-        out.push(`${tag} @ ${px.toFixed(1)}px ("${el.textContent.trim().slice(0, 24)}")`);
+        out.push(`${tagOf(el)} @ ${px.toFixed(1)}px ("${el.textContent.trim().slice(0, 24)}")`);
       }
     }
     return [...new Set(out)].slice(0, 12);
-  });
+  }, [isVisible.toString(), tagOf.toString()]);
 }
 
 /** The action buttons must all be visible and at least 32px tall. */
@@ -372,8 +403,8 @@ async function runResolution(browser, res) {
           continue;
         }
 
-        if (Date.now() - lastAct > 40_000) {
-          note('40s with no turn and no prompt — moving on for this resolution');
+        if (Date.now() - lastAct > 60_000) {
+          note('60s with no turn and no prompt — moving on for this resolution');
           break;
         }
         await page.waitForTimeout(300);

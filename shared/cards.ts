@@ -99,6 +99,8 @@ export interface CardEntity {
   /** Id of the card entity this one is entangled with. */
   entangledWith?: string;
   veil: Veil;
+  /** Set in amber: nothing may burn, collapse, replace or rewrite it. */
+  amber?: boolean;
   /** Pots this card has been part of a winning hand for. */
   memory: number;
   /** Set while the card is mid-flight so the client can animate its arrival. */

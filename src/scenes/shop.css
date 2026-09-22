@@ -92,7 +92,7 @@
 .shopcard-kind {
   position: absolute;
   top: 8px; left: 12px;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -127,7 +127,7 @@
 }
 
 .shopcard-impossible {
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.45;
   font-style: italic;
   color: var(--text-4);

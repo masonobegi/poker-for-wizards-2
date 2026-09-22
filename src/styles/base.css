@@ -161,3 +161,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   text-transform: uppercase;
   color: var(--text-2);
 }
+
+/* Avatar's inline SVG sets its own glyph/"AI" badge text via the `fontSize`
+   presentation attribute (8-9px, scaled for its 40-46px portrait). A CSS
+   rule — even one this unspecific — always outranks a presentation
+   attribute, so this is enough to float both back over the 10px floor
+   without touching the component. */
+.avatar text { font-size: 10px; }

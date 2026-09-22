@@ -42,7 +42,7 @@
   bottom: -14px;
   transform: translateX(-50%);
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -105,7 +105,7 @@
   white-space: nowrap;
 }
 .lobby-you {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;

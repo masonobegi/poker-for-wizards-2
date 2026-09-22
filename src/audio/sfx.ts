@@ -1333,13 +1333,20 @@ export const SFX: Record<SfxName, SfxDef> = {
   superpose: {
     len: 1.8,
     play: (g, t, p) => {
+      // The offline audio harness (test/audio.mjs) measured this ranging
+      // from ~0.17 up to ~0.99 across runs that otherwise share this synth's
+      // fully deterministic dry signal — the two near-unison tones are
+      // *designed* to beat, and how far that beat's peaks reach depends on
+      // exactly where the (session-random) shared reverb IR happens to
+      // reinforce or cancel it. Trimmed gain and reverb send below so an
+      // unlucky IR can no longer push this close to clipping.
       const f = mtof(MIDI.A4) * p;
       tone(g, {
         at: t,
         freq: f,
         type: 'triangle',
-        gain: 0.15,
-        send: 0.35,
+        gain: 0.12,
+        send: 0.22,
         attack: 0.03,
         decay: 0.1,
         sustain: 0.85,
@@ -1355,8 +1362,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         glideType: 'lin',
         type: 'triangle',
         pan: -0.4,
-        gain: 0.13,
-        send: 0.45,
+        gain: 0.1,
+        send: 0.28,
         attack: 0.02,
         decay: 0.15,
         sustain: 0.85,
@@ -1371,8 +1378,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         glideType: 'lin',
         type: 'triangle',
         pan: 0.4,
-        gain: 0.13,
-        send: 0.45,
+        gain: 0.1,
+        send: 0.28,
         attack: 0.02,
         decay: 0.15,
         sustain: 0.85,
@@ -1381,13 +1388,13 @@ export const SFX: Record<SfxName, SfxDef> = {
       });
       noiseHit(g, {
         at: split,
-        gain: 0.06,
+        gain: 0.05,
         filterType: 'highpass',
         filterFreq: 4000,
         attack: 0.004,
         decay: 0.06,
         release: 0.1,
-        send: 0.6,
+        send: 0.35,
       });
     },
   },
@@ -1856,17 +1863,20 @@ export const SFX: Record<SfxName, SfxDef> = {
           at: t + 0.02 + i * 0.012,
           freq: mtof(m) * p,
           type: 'triangle',
-          gain: 0.043,
+          gain: 0.055,
           send: 0.5,
           attack: 0.03,
           decay: 0.4,
           sustain: 0.55,
-          hold: 0.9,
-          release: 1,
+          hold: 1.1,
+          release: 1.2,
           pan: (i / (chord.length - 1)) * 1.4 - 0.7,
         });
       });
-      // Shimmer raining down over the chord.
+      // Shimmer raining down over the chord — this is win_impossible's tail,
+      // not its attack, so it can carry real sustain (rms × duration, per
+      // test/audio.mjs's "biggest moment in the set" check) without pushing
+      // the initial peak anywhere near the 0.8 headroom guideline.
       for (let i = 0; i < 20; i++) {
         const k = i / 20;
         fmBell(g, {
@@ -1874,8 +1884,8 @@ export const SFX: Record<SfxName, SfxDef> = {
           carrier: mtof(pick([MIDI.C5, MIDI.F5, MIDI.A5, MIDI.C6, MIDI.F6, MIDI.A6])) * p,
           ratio: rand(1.9, 2.1),
           index: rand(0.9, 2),
-          decay: rand(0.8, 1.8),
-          gain: 0.04 * (1 - k * 0.4),
+          decay: rand(1.1, 2.2),
+          gain: 0.05 * (1 - k * 0.4),
           pan: rand(-0.9, 0.9),
           send: 0.9,
         });
@@ -1990,6 +2000,10 @@ export const SFX: Record<SfxName, SfxDef> = {
   victory: {
     len: 4.6,
     play: (g, t, p) => {
+      // The offline audio harness (test/audio.mjs) measured this
+      // consistently at or above the 0.8 headroom guideline (four stacked
+      // hits, a wide held chord, bells and a chip cascade all overlap around
+      // t+1s) — every layer below is scaled by ~0.8 from its original level.
       const hits: ReadonlyArray<[number, readonly number[]]> = [
         [0, [MIDI.F3, MIDI.A3, MIDI.C4]],
         [0.22, [MIDI.F3, MIDI.A3, MIDI.C4]],
@@ -1998,7 +2012,7 @@ export const SFX: Record<SfxName, SfxDef> = {
       ];
       for (const [off, notes] of hits) {
         sawStack(g, t + off, notes, {
-          gain: 0.3,
+          gain: 0.24,
           attack: 0.014,
           hold: 0.1,
           release: 0.18,
@@ -2007,11 +2021,11 @@ export const SFX: Record<SfxName, SfxDef> = {
           send: 0.4,
           pitch: p,
         });
-        thump(g, t + off, 120 * p, 52 * p, 0.34, 0.24, 0.2);
+        thump(g, t + off, 120 * p, 52 * p, 0.27, 0.24, 0.2);
       }
       // The held chord the fanfare lands on.
       sawStack(g, t + 0.92, [MIDI.F2, MIDI.C3, MIDI.F3, MIDI.A3, MIDI.C4, MIDI.F4, MIDI.A4], {
-        gain: 0.34,
+        gain: 0.27,
         attack: 0.06,
         hold: 1.5,
         release: 1.4,
@@ -2027,19 +2041,19 @@ export const SFX: Record<SfxName, SfxDef> = {
           ratio: 2,
           index: 1.5,
           decay: 2,
-          gain: 0.075,
+          gain: 0.06,
           pan: i * 0.3 - 0.6,
           send: 0.85,
         });
       });
-      chipCascade(g, t + 1, 16, 1.1, 2200 * p, 0.4, 0.14);
+      chipCascade(g, t + 1, 16, 1.1, 2200 * p, 0.4, 0.11);
       sweep(g, {
         at: t + 0.9,
         from: 110 * p,
         to: 33 * p,
         ms: 800,
         type: 'sine',
-        gain: 0.5,
+        gain: 0.4,
         attack: 0.01,
         decay: 0.5,
         sustain: 0.45,

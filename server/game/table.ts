@@ -104,6 +104,7 @@ export function createPlayer(
     warded: false,
     severed: false,
     hexed: 0,
+    blinded: false,
     foreknowledge: emptyForeknowledge(),
     shopDone: false,
     ready: isBot,
@@ -238,8 +239,9 @@ export const maxManaFor = (p: Player, t?: Table): number =>
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
 
-export function manaCost(p: Player, def: SigilDef): number {
-  const delta = relicNumber(p.relics, (r) => r.sigils?.costDelta);
+export function manaCost(p: Player, def: SigilDef, t?: Table): number {
+  const delta = relicNumber(p.relics, (r) => r.sigils?.costDelta)
+    + (t ? omenNumber(t.omens, (o) => o.sigilCost) : 0);
   return Math.max(1, def.cost + delta);
 }
 
@@ -333,7 +335,7 @@ export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
   if (!def) return { ok: false, reason: 'Unknown sigil' };
   if (!t.config.magicEnabled) return { ok: false, reason: 'Magic is disabled at this table' };
   if (p.folded || p.eliminated) return { ok: false, reason: 'You are out of the hand' };
-  if (p.mana < manaCost(p, def)) return { ok: false, reason: 'Not enough mana' };
+  if (p.mana < manaCost(p, def, t)) return { ok: false, reason: 'Not enough mana' };
 
   const responding = !!t.stack;
   const isResponse = def.timing.includes('response');
@@ -404,7 +406,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
       eliminated: p.eliminated,
       mana: isYou || seesMana || p.isBot ? p.mana : p.mana,
       maxMana: p.maxMana,
-      sigils: isYou ? p.sigils : null,
+      sigils: isYou || viewer.foreknowledge.seenSigils.includes(p.id) ? p.sigils : null,
       sigilCount: p.sigils.length,
       relics: p.relics,
       shards: isYou ? p.shards : p.shards,
@@ -412,6 +414,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
       warded: p.warded,
       severed: p.severed,
       hexed: p.hexed,
+      blinded: p.blinded,
       lastAction: p.lastAction,
       isYou,
       ready: p.ready,
@@ -421,7 +424,10 @@ export function viewFor(t: Table, viewerId: string): TableView {
     };
   });
 
-  const board = t.board.map((id) => project(t, id, { viewer, reveal: true, showdown }));
+  // Blind Spot takes the board away from one player and leaves it for
+  // everyone else. They still score from it; they just cannot look.
+  const board = t.board.map((id) =>
+    project(t, id, { viewer, reveal: !viewer.blinded || showdown, showdown }));
   const acting = byId(t, t.actingId);
   const toCall = Math.max(0, t.currentBet - viewer.bet);
 

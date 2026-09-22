@@ -29,6 +29,8 @@ export interface OmenDef {
   mods?: RuleMods;
   /** Interpreted by the engine at deal time. */
   deal?: {
+    /** Set this many community cards in amber each hand. */
+    amberBoard?: number;
     extraHole?: number;
     sealRank?: Rank;
     /** Seal whichever rank the omen rolled. */
@@ -44,6 +46,10 @@ export interface OmenDef {
   killsRank?: boolean;
   /** Sigil draws per hand, table-wide. */
   sigilDraw?: number;
+  /** Added to the mana cost of every sigil, for everyone. */
+  sigilCost?: number;
+  /** Extra steps the blinds climb at each ante from now on. */
+  blindSteps?: number;
 }
 
 export const OMENS: OmenDef[] = [
@@ -153,6 +159,37 @@ export const OMENS: OmenDef[] = [
     text: 'Six cards in the shared deck become permanently Prismatic — they count as any suit.',
     impossible: 'A card wearing four suits at once.',
     deal: { inscribe: { markId: 'prism', count: 6 } },
+  },
+
+  {
+    id: 'sleight', name: 'Sleight of Hand', glyph: '⑃', minAnte: 2, weight: 8,
+    text: 'Everyone draws two extra sigils each hand. The table gets loud.',
+    impossible: 'A hand that refills faster than a deck can be cut.',
+    sigilDraw: 2,
+  },
+  {
+    id: 'the_weight', name: 'The Weight', glyph: '⚖', minAnte: 3, weight: 7,
+    text: 'Every sigil costs one more mana. Magic was always going to get expensive.',
+    impossible: 'Repricing a thing with no market and no supply.',
+    sigilCost: 1,
+  },
+  {
+    id: 'amber_age', name: 'The Amber Age', glyph: '❈', minAnte: 3, weight: 7,
+    text: 'One community card is set in amber every hand. Nothing can burn it, collapse it or rewrite it.',
+    impossible: 'A card that time stops touching while the game goes on around it.',
+    deal: { amberBoard: 1 },
+  },
+  {
+    id: 'court_of_prisms', name: 'The Court of Prisms', glyph: '◈', minAnte: 3, weight: 7,
+    text: 'Eight cards in the shared deck become permanently Prismatic — they count as any suit.',
+    impossible: 'A card wearing four suits at once.',
+    deal: { inscribe: { markId: 'prism', count: 8 } },
+  },
+  {
+    id: 'doubling_down', name: 'Doubling Down', glyph: '⇈', minAnte: 4, weight: 6,
+    text: 'The blinds climb an extra step at every ante from here. The clock just got shorter.',
+    impossible: 'Nothing — but it is the omen that ends runs, and it should be feared.',
+    blindSteps: 1,
   },
   {
     id: 'inversion', name: 'The Inversion', glyph: '⇅', minAnte: 5, weight: 5,

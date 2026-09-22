@@ -61,6 +61,9 @@ export default function GameTable() {
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
   const [side, setSide] = useState<'log' | 'chat'>('log');
+  // Below 1100px `.tbl-side` (the ledger/chat rail) is hidden for room — this
+  // gives it back as an on-demand drawer instead, so the log stays reachable.
+  const [logOpen, setLogOpen] = useState(false);
 
   // Any phase change invalidates a half-finished target selection.
   useEffect(() => { setTargeting(null); }, [view?.phase, view?.handNumber]);
@@ -114,6 +117,26 @@ export default function GameTable() {
   const targetableHole = cardTargetMode
     && targeting.def.target !== 'board_card';
 
+  const sideTabs = (
+    <div className="tbl-sidetabs">
+      <button
+        className={`tbl-sidetab ${side === 'log' ? 'is-on' : ''}`}
+        onClick={() => setSide('log')}
+      >
+        Ledger
+      </button>
+      <button
+        className={`tbl-sidetab ${side === 'chat' ? 'is-on' : ''}`}
+        onClick={() => setSide('chat')}
+      >
+        Talk
+      </button>
+    </div>
+  );
+  const sidePanel = side === 'log'
+    ? <LogPanel entries={view.log} players={view.players} />
+    : <ChatBox compact className="tbl-sidechat" />;
+
   return (
     <div className="table-scene">
       <header className="tbl-top">
@@ -141,6 +164,7 @@ export default function GameTable() {
         <OmenBar omens={view.omens} />
 
         <div className="tbl-top-r">
+          <Button tone="ghost" size="sm" className="tbl-logbtn" onClick={() => setLogOpen(true)}>Log</Button>
           <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>Codex</Button>
           <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>Settings</Button>
         </div>
@@ -178,23 +202,8 @@ export default function GameTable() {
         </div>
 
         <aside className="tbl-side">
-          <div className="tbl-sidetabs">
-            <button
-              className={`tbl-sidetab ${side === 'log' ? 'is-on' : ''}`}
-              onClick={() => setSide('log')}
-            >
-              Ledger
-            </button>
-            <button
-              className={`tbl-sidetab ${side === 'chat' ? 'is-on' : ''}`}
-              onClick={() => setSide('chat')}
-            >
-              Talk
-            </button>
-          </div>
-          {side === 'log'
-            ? <LogPanel entries={view.log} players={view.players} />
-            : <ChatBox compact className="tbl-sidechat" />}
+          {sideTabs}
+          {sidePanel}
         </aside>
       </main>
 
@@ -267,6 +276,12 @@ export default function GameTable() {
       </Modal>
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />
+      </Modal>
+      <Modal open={logOpen} onClose={() => setLogOpen(false)}>
+        <div className="tbl-logdrawer">
+          {sideTabs}
+          {sidePanel}
+        </div>
       </Modal>
 
       <Hints />

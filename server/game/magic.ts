@@ -36,6 +36,13 @@ export interface MagicCtx {
 // Deck plumbing shared with the dealer
 // ---------------------------------------------------------------------------
 
+/**
+ * A card set in amber is out of reach of everything - burning, collapsing,
+ * replacing, rewriting. Checked at every site that changes a card rather than
+ * trusted to callers, because the one that forgets is the one that matters.
+ */
+export const canAlter = (c: CardEntity | undefined): c is CardEntity => !!c && !c.amber;
+
 /** Seal a card if its rank is currently under a Sealed Rank effect. */
 export function applySeal(t: Table, id: string): void {
   const c = card(t, id);
@@ -153,7 +160,7 @@ function respondersFor(t: Table, excludeId: string): string[] {
     .filter((p) => p.id !== excludeId && !p.folded)
     .filter((p) => p.sigils.some((s) => {
       const def = SIGIL_BY_ID[s.defId];
-      return def?.timing.includes('response') && p.mana >= manaCost(p, def);
+      return def?.timing.includes('response') && p.mana >= manaCost(p, def, t);
     }))
     .map((p) => p.id);
 }
@@ -172,7 +179,7 @@ export function castSigil(
   const targetError = validateTargets(t, p, def, targets);
   if (targetError) return { ok: false, error: targetError };
 
-  const cost = manaCost(p, def);
+  const cost = manaCost(p, def, t);
   p.mana -= cost;
   p.sigils = p.sigils.filter((s) => s.uid !== uid);
 
@@ -309,13 +316,13 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
   switch (def.id) {
     // ------------------------------------------------------------- ENTROPY
     case 'superpose': {
-      if (!firstCard) break;
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
       superposeCard(ctx, firstCard);
       note(`${caster.name} splits a card into two possibilities.`);
       break;
     }
     case 'collapse': {
-      if (!firstCard) break;
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
       if (!isQuantum(firstCard)) { note('The card was already decided.', 'warn'); break; }
       const f = collapse(firstCard, rng);
       ctx.fx.push({ t: 'collapse', cardId: firstCard.id, face: f });
@@ -413,8 +420,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
 
     // ------------------------------------------------------------- CHRONOS
     case 'rewind': {
-      const id = t.board.pop();
+      const id = t.board[t.board.length - 1];
       if (!id) { note('There is nothing to take back.', 'warn'); break; }
+      if (!canAlter(card(t, id))) { note('The river is set in amber.', 'warn'); break; }
+      t.board.pop();
       t.discard.push(id);
       const fresh = drawId(ctx);
       if (fresh) t.board.push(fresh);
@@ -483,6 +492,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       const src = firstCard ?? card(t, t.board[0]);
       const dst = secondCard ?? card(t, t.board[t.board.length - 1]);
       if (!src || !dst || src.id === dst.id) { note('Nothing to mirror.', 'warn'); break; }
+      if (!canAlter(dst)) { note('That card is set in amber.', 'warn'); break; }
       dst.faces = src.faces.map((f) => ({ ...f }));
       dst.collapsed = src.collapsed;
       dst.veil = src.veil;
@@ -526,7 +536,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
 
     // ---------------------------------------------------------------- RUIN
     case 'burn': {
-      if (!firstCard) break;
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
       const slot = t.board.indexOf(firstCard.id);
       if (slot < 0) { note('That card is not on the board.', 'warn'); break; }
       t.board.splice(slot, 1);
@@ -638,6 +648,128 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       break;
     }
 
+
+    // ------------------------------------------------------ second wave
+    case 'fracture': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      const base = firstCard.collapsed !== null
+        ? firstCard.faces[firstCard.collapsed]
+        : firstCard.faces[0];
+      firstCard.faces = [base, unseenFace(ctx), unseenFace(ctx)];
+      firstCard.collapsed = null;
+      ctx.fx.push({ t: 'superpose', cardId: firstCard.id });
+      note(caster.name + ' fractures a card into three possibilities.', 'impossible');
+      break;
+    }
+
+    case 'cascade': {
+      let settled = 0;
+      for (const id of [...t.board, ...live(t).flatMap((p) => p.hole)]) {
+        const c = card(t, id);
+        if (!c || !isQuantum(c) || c.amber) continue;
+        let best = 0;
+        for (let i = 1; i < c.faces.length; i++) if (c.faces[i].rank > c.faces[best].rank) best = i;
+        const f = collapse(c, rng, best);
+        ctx.fx.push({ t: 'collapse', cardId: id, face: f });
+        settled++;
+      }
+      ctx.fx.push({ t: 'sfx', name: 'collapse' });
+      note(
+        settled
+          ? 'Everything undecided settles at once - ' + settled + ' card' + (settled === 1 ? '' : 's') + '.'
+          : 'Nothing was undecided.',
+        settled ? 'impossible' : 'warn',
+      );
+      break;
+    }
+
+    case 'blind_spot': {
+      if (!targetPlayer) break;
+      targetPlayer.blinded = true;
+      ctx.fx.push({ t: 'flash', color: SCHOOLS.veil.accent, power: 0.35 });
+      note(targetPlayer.name + ' can no longer see the board. They still play it.', 'impossible');
+      break;
+    }
+
+    case 'the_ledger_sigil': {
+      if (!targetPlayer) break;
+      if (!caster.foreknowledge.seenSigils.includes(targetPlayer.id)) {
+        caster.foreknowledge.seenSigils.push(targetPlayer.id);
+      }
+      note(caster.name + ' reads every sigil ' + targetPlayer.name + ' is holding.');
+      break;
+    }
+
+    case 'amber': {
+      if (!firstCard) break;
+      firstCard.amber = true;
+      ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: 'bound' });
+      note(caster.name + ' sets a card in amber. Nothing reaches it now.', 'impossible');
+      break;
+    }
+
+    case 'tessellate': {
+      const a = card(t, caster.hole[0]);
+      const b = card(t, caster.hole[1]);
+      if (!canAlter(a) || !canAlter(b)) { note('Those cards cannot be rewritten.', 'warn'); break; }
+      const fa = a.collapsed !== null ? a.faces[a.collapsed] : a.faces[0];
+      const fb = b.collapsed !== null ? b.faces[b.collapsed] : b.faces[0];
+      a.faces = [{ rank: fb.rank, suit: fa.suit }];
+      a.collapsed = 0;
+      b.faces = [{ rank: fa.rank, suit: fb.suit }];
+      b.collapsed = 0;
+      note(caster.name + ' makes two cards trade ranks and keep their suits.', 'impossible');
+      break;
+    }
+
+    case 'doppelganger': {
+      if (!targetPlayer || targetPlayer.hole.length === 0) { note('Nothing to copy.', 'warn'); break; }
+      const source = card(t, rng.pick(targetPlayer.hole));
+      if (!source) break;
+      const copy: CardEntity = {
+        id: nextCardId(),
+        faces: source.faces.map((f) => ({ ...f })),
+        collapsed: source.collapsed,
+        marks: [...source.marks],
+        veil: source.veil,
+        memory: source.memory,
+        origin: 'conjured',
+      };
+      t.cards.set(copy.id, copy);
+      caster.hole.push(copy.id);
+      ctx.fx.push({ t: 'deal', cardIds: [copy.id], to: caster.id });
+      note(caster.name + ' copies a card out of another hand. Its owner keeps theirs.', 'impossible');
+      break;
+    }
+
+    case 'tithe': {
+      let mana = 0;
+      let chips = 0;
+      for (const p of live(t)) {
+        if (p.id === caster.id) continue;
+        if (p.mana > 0) { p.mana -= 1; mana += 1; }
+        else {
+          const paid = Math.min(t.bb, p.chips);
+          p.chips -= paid;
+          caster.chips += paid;
+          chips += paid;
+        }
+      }
+      caster.mana = Math.min(caster.maxMana, caster.mana + mana);
+      note(caster.name + ' levies a tithe - ' + mana + ' mana'
+        + (chips ? ' and ' + chips.toLocaleString() + ' chips' : '') + '.');
+      break;
+    }
+
+    case 'transmute': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      const suit = tg.suit ?? rng.pick(SUITS);
+      firstCard.faces = firstCard.faces.map((f) => ({ rank: f.rank, suit }));
+      ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: 'prism' });
+      note(caster.name + ' transmutes a card. It keeps that suit for good.', 'impossible');
+      break;
+    }
+
     // ------------------------------------------------------------ RESPONSE
     case 'nullify': {
       const target = below();
@@ -706,6 +838,7 @@ export function clearHandMagic(t: Table): void {
     c.divergent = undefined;
     c.entangledWith = undefined;
     c.veil = 'open';
+    c.amber = undefined;
     if (c.faces.length > 1) {
       c.faces = [c.faces[c.collapsed ?? 0]];
       c.collapsed = 0;
@@ -727,7 +860,8 @@ export function clearHandMagic(t: Table): void {
     p.hexed = 0;
     p.sharedWith = undefined;
     p.betVeiled = false;
-    p.foreknowledge = { deckPeek: [], seenHole: [], divergedFrom: {}, lies: {} };
+    p.blinded = false;
+    p.foreknowledge = { deckPeek: [], seenHole: [], divergedFrom: {}, lies: {}, seenSigils: [] };
   }
 }
 
