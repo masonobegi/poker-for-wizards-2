@@ -5,7 +5,7 @@
  * Rites are the interesting purchase: they inscribe a card in the *shared* deck,
  * which means the upgrade you paid for can land in someone else's hand later.
  */
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, ShopItem, TableView } from '@shared/types';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR } from '@shared/sigils';
@@ -106,19 +106,21 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
   );
 }
 
-function ShopCard({ item, index, sold, affordable, owned, onBuy }: {
+/** Forwards a ref because `AnimatePresence mode="popLayout"` clones with one. */
+const ShopCard = forwardRef<HTMLElement, {
   item: ShopItem;
   index: number;
   sold: boolean;
   affordable: boolean;
   owned: boolean;
   onBuy: () => void;
-}) {
+}>(function ShopCard({ item, index, sold, affordable, owned, onBuy }, ref) {
   const info = describe(item);
   const locked = sold || !affordable || owned;
 
   return (
     <motion.article
+      ref={ref}
       className={`shopcard ${sold ? 'is-sold' : ''} ${locked && !sold ? 'is-locked' : ''}`}
       style={{ ['--accent' as string]: info.accent }}
       initial={{ opacity: 0, y: 24, rotateZ: -2 }}
@@ -154,7 +156,7 @@ function ShopCard({ item, index, sold, affordable, owned, onBuy }: {
       </footer>
     </motion.article>
   );
-}
+});
 
 interface Described {
   kind: string; name: string; text: string; glyph: string;

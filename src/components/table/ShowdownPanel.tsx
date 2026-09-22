@@ -27,9 +27,12 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
   return (
     <motion.div
       className="showdown"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
+      // The CSS centres this with translateX(-50%); framer-motion writes the
+      // whole transform, so the centring has to travel with the animation or
+      // the panel lands half a width to the right.
+      initial={{ opacity: 0, y: 30, x: '-50%' }}
+      animate={{ opacity: 1, y: 0, x: '-50%' }}
+      exit={{ opacity: 0, y: 20, x: '-50%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.25 }}
     >
       <div className="showdown-inner">

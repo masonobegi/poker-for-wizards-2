@@ -259,7 +259,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   startingChips: 20000,
   startingShards: 12,
   baseBlind: 200,
-  handsPerAnte: 4,
+  handsPerAnte: 3,
   actionSeconds: 30,
   responseSeconds: 5,
   shopSeconds: 45,

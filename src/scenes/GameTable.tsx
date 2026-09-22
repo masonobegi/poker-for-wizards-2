@@ -23,15 +23,27 @@ import Hints from '@/components/onboarding/Hints';
 
 import './table.css';
 
-/** Where an opponent sits on the arc above the felt, by count and index. */
+/**
+ * Where an opponent sits on the arc above the felt.
+ *
+ * A seat is anchored at its centre and is about 165px tall, so the vertical
+ * radius has to leave half of that above the topmost seat — otherwise the
+ * player sitting directly opposite has their cards cropped off the top of the
+ * screen, which is exactly what happened before these numbers were measured
+ * against a real 900px viewport.
+ */
+const ARC_TOP = 46;
+const ARC_RY = 28;
+const ARC_RX = 39;
+
 function arcPosition(i: number, n: number): { left: string; top: string } {
-  if (n === 1) return { left: '50%', top: '6%' };
+  if (n === 1) return { left: '50%', top: `${ARC_TOP - ARC_RY}%` };
   const spread = n <= 3 ? 130 : n === 4 ? 156 : 176;
   const start = 180 + (180 - spread) / 2;
   const angle = (start + (spread * i) / (n - 1)) * (Math.PI / 180);
   return {
-    left: `${50 + Math.cos(angle) * 40}%`,
-    top: `${44 + Math.sin(angle) * 36}%`,
+    left: `${50 + Math.cos(angle) * ARC_RX}%`,
+    top: `${ARC_TOP + Math.sin(angle) * ARC_RY}%`,
   };
 }
 

@@ -112,7 +112,7 @@ export default function Menu() {
                 <Button tone="primary" size="lg" display block
                   loading={practicing} disabled={!connected || practicing}
                   onClick={() => void practice()}>
-                  Practice vs Bots
+                  {connected ? 'Practice vs Bots' : 'Connecting…'}
                 </Button>
                 <p className="menu-practicenote">
                   One click. Three bots fill the table and the first hand deals itself.

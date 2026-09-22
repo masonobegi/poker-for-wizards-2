@@ -59,6 +59,30 @@ export default function App() {
     return () => fxRoot(null);
   }, []);
 
+  // The game is a fixed viewport, but anything that calls scrollIntoView — a
+  // focused button near an edge, a browser autoscroll, an automation tool —
+  // can still shove the whole table off the top of the screen, and nothing
+  // ever scrolls it back. Snap it home whenever that happens.
+  useEffect(() => {
+    const targets: Array<Element | null> = [
+      document.documentElement, document.body, document.getElementById('root'),
+    ];
+    const snap = () => {
+      for (const el of targets) {
+        if (!el) continue;
+        if (el.scrollTop !== 0) el.scrollTop = 0;
+        if (el.scrollLeft !== 0) el.scrollLeft = 0;
+      }
+      const shell = shellRef.current;
+      if (shell) {
+        if (shell.scrollTop !== 0) shell.scrollTop = 0;
+        if (shell.scrollLeft !== 0) shell.scrollLeft = 0;
+      }
+    };
+    window.addEventListener('scroll', snap, true);
+    return () => window.removeEventListener('scroll', snap, true);
+  }, []);
+
   // F11 toggles fullscreen: through the desktop shell when there is one, and
   // through the Fullscreen API in a browser.
   useEffect(() => {

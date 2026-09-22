@@ -568,14 +568,41 @@ export class Engine {
 
   // --------------------------------------------------------------------- shop
 
+  /**
+   * The ante break, staged rather than dumped all at once.
+   *
+   * Announcing the ante, revealing the new omen and opening the market in the
+   * same frame put two full-screen banners on top of the shop, hiding the
+   * prices behind them. Each beat now gets its own moment, and the market only
+   * opens once the screen is clear.
+   */
   private openShop(): void {
     const t = this.table;
-    t.phase = 'shop';
     t.ante += 1;
     t.bb = Math.round((t.config.baseBlind * Math.pow(1.6, t.ante - 1)) / 50) * 50;
     t.sb = Math.floor(t.bb / 2);
 
-    this.rollOmen();
+    log(t, `Ante ${t.ante}. Blinds are now ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}.`, 'magic');
+    this.fx.push({
+      t: 'banner', text: `ANTE ${t.ante}`,
+      sub: `Blinds ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}`, tone: 'magic',
+    });
+    this.fx.push({ t: 'sfx', name: 'level_up' });
+    this.fx.push({ t: 'music', mood: 'shop' });
+    this.flush();
+
+    this.wait(2000, () => {
+      this.rollOmen();
+      this.flush();
+      // Give the omen its own beat before the market covers the screen.
+      this.wait(t.omens.length ? 2400 : 200, () => this.openMarket());
+    });
+  }
+
+  private openMarket(): void {
+    const t = this.table;
+    t.phase = 'shop';
+
     payInterest(t);
     for (const p of alive(t)) {
       p.shopDone = false;
@@ -583,12 +610,7 @@ export class Engine {
       if (p.isBot) this.botClock.set(p.id, Date.now() + 800 + this.rng.int(1500));
     }
 
-    log(t, `Ante ${t.ante}. Blinds are now ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}.`, 'magic');
-    this.fx.push({ t: 'banner', text: `ANTE ${t.ante}`, sub: `Blinds ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}`, tone: 'magic' });
-    this.fx.push({ t: 'sfx', name: 'level_up' });
     this.fx.push({ t: 'sfx', name: 'shop_open' });
-    this.fx.push({ t: 'music', mood: 'shop' });
-
     this.flush();
     this.wait(t.config.shopSeconds * 1000, () => this.closeShop());
   }
@@ -636,8 +658,18 @@ export class Engine {
     this.fx.push({ t: 'flash', color: '#b98cff', power: 0.45 });
   }
 
+  /**
+   * Leave the market.
+   *
+   * The phase has to change *here*, not later in `beginHand`. While it stayed
+   * 'shop' the bot loop matched the market branch on every tick, called this
+   * again, and reset its own 320ms timer — so the timer could never elapse and
+   * the table span forever between two lines of code.
+   */
   private closeShop(): void {
     const t = this.table;
+    if (t.phase !== 'shop') return;
+    t.phase = 'deal';
     t.shop.clear();
     this.clearWait();
     this.fx.push({ t: 'music', mood: 'table' });
@@ -897,25 +929,47 @@ export class Engine {
 
     // Stack windows close on their own.
     if (t.stack && stackReady(t) && this.onDeadline) {
-      const due = this.onDeadline;
-      this.clearWait();
-      this.idleSince = 0;
-      due();
+      this.fire();
       return;
     }
 
     if (this.onDeadline && Date.now() >= this.deadline) {
-      const due = this.onDeadline;
-      this.clearWait();
-      this.idleSince = 0;
-      due();
+      this.fire();
       return;
     }
 
-    if (this.onDeadline) { this.idleSince = 0; this.runBots(); return; }
+    if (this.onDeadline) {
+      this.idleSince = 0;
+      this.safely(() => this.runBots());
+      return;
+    }
 
     this.guardStall();
-    this.runBots();
+    this.safely(() => this.runBots());
+  }
+
+  /** Run a scheduled callback, surviving anything it throws. */
+  private fire(): void {
+    const due = this.onDeadline;
+    this.clearWait();
+    this.idleSince = 0;
+    if (due) this.safely(due);
+  }
+
+  /**
+   * A throw inside a scheduled callback escapes setInterval and kills the
+   * process, taking every other table on the server with it. Contain it, log
+   * it, and let the stall guard push the hand forward.
+   */
+  private safely(fn: () => void): void {
+    try {
+      fn();
+    } catch (err) {
+      console.error(`[hexhold] table ${this.table.code} threw in phase ${this.table.phase}:`, err);
+      log(this.table, 'Something went wrong resolving that. The hand continues.', 'warn');
+      this.clearWait();
+      try { this.flush(); } catch { /* the emit path is already broken */ }
+    }
   }
 
   /**
@@ -925,17 +979,21 @@ export class Engine {
    */
   private guardStall(): void {
     const t = this.table;
-    const idle = t.phase !== 'lobby' && t.phase !== 'gameover' && t.phase !== 'shop' && !t.stack;
+    const idle = t.phase !== 'lobby' && t.phase !== 'gameover' && !t.stack;
     if (!idle) { this.idleSince = 0; return; }
 
     const now = Date.now();
     if (this.idleSince === 0) { this.idleSince = now; return; }
-    if (now - this.idleSince < 4000) return;
+    // The market legitimately sits still while people shop, so give it longer
+    // than a betting round before deciding it is wedged.
+    const grace = t.phase === 'shop' ? t.config.shopSeconds * 1000 + 4000 : 4000;
+    if (now - this.idleSince < grace) return;
 
     this.idleSince = 0;
     log(t, 'The table stalled and was nudged forward.', 'warn');
     console.warn(`[hexhold] stall recovered in phase=${t.phase} acting=${t.actingId ?? 'none'}`);
 
+    if (t.phase === 'shop') { this.closeShop(); return; }
     if (live(t).length <= 1) { this.toShowdown(); return; }
     if (t.actingId) { this.startActionClock(); return; }
     if (isStreet(t.phase)) { this.advanceStreet(); return; }

@@ -304,8 +304,10 @@
 /* `.hints-layer` already sits above z-stack and z-modal (it's on z-toast), so
    these only need to place each hint near the real UI it's talking about. */
 
-/* Just above the sigil rail (--rail-h), where a castable sigil lives. */
-.hint-mark--rail { bottom: calc(var(--rail-h) + 14px); }
+/* The rail is taller than --rail-h once sigils are in it, so anchoring to that
+   token put this bubble straight on top of the cards it is pointing at. Clear
+   the whole rail and the action bar instead. */
+.hint-mark--rail { bottom: calc(var(--rail-h) + 130px); }
 
 /* Near the top, like the response-window overlay it's commenting on. */
 .hint-mark--stack { top: 64px; border-color: var(--veil); box-shadow: var(--e-3), 0 0 26px rgba(110, 200, 255, 0.28); }

@@ -57,11 +57,15 @@
   border: 1px solid var(--line);
 }
 
+/* The market deals five items; auto-fit wrapped them 4 + 1 and left a hole.
+   Lay all five out in one row where there is room, and step down cleanly. */
 .shop-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--s-3);
 }
+@media (max-width: 1040px) { .shop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 720px)  { .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .shopcard {
   --accent: var(--text-3);

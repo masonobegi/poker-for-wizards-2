@@ -74,13 +74,13 @@
 /* --- film grain ----------------------------------------------------------- */
 
 .vfx-grain {
-  inset: -80px;
+  inset: 0;
   opacity: var(--vfx-grain-opacity, 0.045);
   background-repeat: repeat;
   background-size: 128px 128px;
   mix-blend-mode: overlay;
   animation: vfx-grain-shift 900ms steps(6, end) infinite;
-  will-change: transform;
+  will-change: background-position;
 }
 
 /* If the runtime noise tile could not be generated, this is still grain-ish. */
@@ -153,12 +153,12 @@
 }
 
 @keyframes vfx-grain-shift {
-  0%   { transform: translate3d(0, 0, 0); }
-  20%  { transform: translate3d(-12px, 6px, 0); }
-  40%  { transform: translate3d(8px, -10px, 0); }
-  60%  { transform: translate3d(-6px, -6px, 0); }
-  80%  { transform: translate3d(10px, 8px, 0); }
-  100% { transform: translate3d(0, 0, 0); }
+  0%   { background-position: 0 0; }
+  20%  { background-position: -14px 8px; }
+  40%  { background-position: 10px -12px; }
+  60%  { background-position: -8px -6px; }
+  80%  { background-position: 12px 10px; }
+  100% { background-position: 0 0; }
 }
 
 @keyframes vfx-scanline-drift {

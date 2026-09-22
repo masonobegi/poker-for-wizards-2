@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { forwardRef, memo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type SigilInstance } from '@shared/sigils';
 
@@ -14,9 +14,14 @@ export interface SigilCardProps {
   compact?: boolean;
 }
 
-function SigilCardBase({
+/**
+ * `AnimatePresence mode="popLayout"` clones its children with a ref, so this
+ * has to forward one. Without it React logs a "Function components cannot be
+ * given refs" error on every re-render of the sigil hand.
+ */
+const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilCardBase({
   inst, castable, cost, affordable, selected, onCast, onDiscard, index = 0, compact,
-}: SigilCardProps) {
+}: SigilCardProps, ref) {
   const def = SIGIL_BY_ID[inst.defId];
   // `usable` must be computed before any early return so the hooks below
   // always run in the same order, whether or not `def` resolves.
@@ -42,6 +47,7 @@ function SigilCardBase({
 
   return (
     <motion.div
+      ref={ref}
       className={[
         'sigil',
         usable ? 'is-castable' : 'is-locked',
@@ -69,7 +75,9 @@ function SigilCardBase({
       <div className="sigil-frame">
         <header className="sigil-head">
           <span className="sigil-cost mono">{cost}</span>
-          <span className="sigil-school">{school.name}</span>
+          <span className="sigil-school">
+            {def.timing.includes('response') ? 'Response' : school.name}
+          </span>
         </header>
 
         <div className="sigil-glyph">{def.glyph}</div>
@@ -80,9 +88,6 @@ function SigilCardBase({
 
         <footer className="sigil-foot">
           <span className="sigil-rarity">{def.rarity}</span>
-          {def.timing.includes('response') ? (
-            <span className="sigil-timing">response</span>
-          ) : null}
         </footer>
       </div>
 
@@ -106,6 +111,6 @@ function SigilCardBase({
       </div>
     </motion.div>
   );
-}
+});
 
 export default memo(SigilCardBase);

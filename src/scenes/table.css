@@ -581,11 +581,11 @@
 .rail-sigils {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: 7px;
   padding-bottom: var(--s-2);
   overflow-x: auto;
   overflow-y: visible;
-  min-height: 132px;
+  min-height: 158px;
 }
 .rail-nosigils {
   font-size: var(--fs-xs);
@@ -600,7 +600,7 @@
   --school: var(--entropy);
   position: relative;
   flex: none;
-  width: 104px;
+  width: 124px;
   cursor: default;
   transform-origin: bottom center;
 }
@@ -609,8 +609,8 @@
 .sigil-frame {
   display: grid;
   gap: 4px;
-  padding: 8px 8px 6px;
-  height: 126px;
+  padding: 9px 9px 7px;
+  height: 152px;
   border-radius: var(--r-md);
   background:
     linear-gradient(180deg,
@@ -654,7 +654,7 @@
   box-shadow: 0 0 9px rgba(185, 140, 255, 0.7);
 }
 .sigil-school {
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -672,7 +672,7 @@
 
 .sigil-name {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -680,19 +680,19 @@
 }
 
 .sigil-text {
-  font-size: 8.5px;
-  line-height: 1.35;
+  font-size: 10px;
+  line-height: 1.4;
   color: var(--text-3);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .sigil-foot {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: auto;
   font-size: 7.5px;
@@ -760,12 +760,27 @@
   z-index: var(--z-ui);
 }
 
+/* A ring alone in the bottom-right corner reads as a stray artefact. It
+   belongs beside the controls it is counting down, with a label saying so. */
 .ab-clock {
   position: absolute;
-  top: var(--s-2);
-  right: var(--s-4);
+  top: 50%;
+  left: max(var(--s-4), calc(50% - 470px));
+  transform: translateY(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
   pointer-events: none;
 }
+.ab-clocklabel {
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+@media (max-width: 1080px) { .ab-clock { display: none; } }
 
 .ab-inner { display: grid; gap: var(--s-3); width: min(760px, 100%); }
 
@@ -1103,16 +1118,19 @@
 .showdown {
   position: fixed;
   left: 50%;
-  bottom: 220px;
+  /* Clears the rail; sits in the open felt under the board. */
+  bottom: 278px;
   transform: translateX(-50%);
   z-index: var(--z-overlay);
   pointer-events: none;
-  width: min(680px, 94vw);
+  width: min(660px, 92vw);
+  max-height: 300px;
+  overflow: hidden;
 }
 .showdown-inner {
   display: grid;
-  gap: var(--s-2);
-  padding: var(--s-4);
+  gap: 4px;
+  padding: var(--s-3) var(--s-4);
   border-radius: var(--r-xl);
   background: rgba(5, 6, 12, 0.94);
   border: 1px solid var(--line);
@@ -1136,7 +1154,7 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--s-3);
-  padding: 7px 12px;
+  padding: 4px 12px;
   border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid transparent;

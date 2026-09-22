@@ -72,8 +72,9 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
   return (
     <div className="actionbar">
       {yourTurn ? (
-        <div className="ab-clock">
-          <TurnTimer until={view.actingUntil} total={view.config.actionSeconds} size={46} sound />
+        <div className="ab-clock" aria-hidden>
+          <TurnTimer until={view.actingUntil} total={view.config.actionSeconds} size={40} sound />
+          <span className="ab-clocklabel">your turn</span>
         </div>
       ) : null}
 
