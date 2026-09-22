@@ -90,6 +90,18 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   z-index: 0;
 }
 
+/* The starfield is a 200%-of-viewport layer painted with five stacked
+   gradients, and because it rotates, the compositor has to re-composite it
+   with a non-axis-aligned transform every frame for as long as it runs. That
+   is menu dressing, not table feedback — the table turns it off, which is
+   where the frame budget actually matters. */
+.app.is-table::before { animation: none; }
+
+/* And it stops everywhere under reduced motion — the table rule above exists
+   for the frame budget, which is a different question. The starfield stays
+   visible; it just holds still. */
+:root[data-reduced-motion='1'] .app::before { animation: none; }
+
 @keyframes drift {
   from { transform: translate3d(0, 0, 0) rotate(0deg); }
   to   { transform: translate3d(-120px, -80px, 0) rotate(360deg); }

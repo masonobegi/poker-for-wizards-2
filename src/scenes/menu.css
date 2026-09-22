@@ -24,6 +24,11 @@
   filter: drop-shadow(0 0 26px rgba(240, 196, 101, 0.35));
   animation: sigilbreathe 7s var(--ease-both) infinite;
 }
+/* Rests at full scale and opacity rather than mid-breath. */
+:root[data-reduced-motion='1'] .menu-sigil {
+  animation: none;
+  opacity: 1;
+}
 @keyframes sigilbreathe {
   0%, 100% { transform: scale(1) rotate(0deg); opacity: .92; }
   50%      { transform: scale(1.035) rotate(6deg); opacity: 1; }
@@ -146,6 +151,16 @@
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   will-change: transform, opacity;
+}
+/* `animation: none` rather than a duration override: Menu.tsx sets
+   `animationDuration` as an inline style, and an inline declaration beats any
+   stylesheet rule at any specificity. Resetting the shorthand clears the name
+   too, which is the only thing that actually stops it. The glyphs stay
+   visible at their resting opacity — they are the six schools introducing
+   themselves, not decoration. */
+:root[data-reduced-motion='1'] .menu-glyph {
+  animation: none;
+  will-change: auto;
 }
 
 @keyframes glyphdrift {

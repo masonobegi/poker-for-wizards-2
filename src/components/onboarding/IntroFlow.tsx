@@ -8,7 +8,8 @@
  * reachable any time afterwards from the menu.
  */
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Button } from '@/components/ui/kit';
 import { Card } from '@/components/card/Card';
 import { CardRow } from '@/components/card/CardRow';
@@ -20,6 +21,7 @@ import {
   FIVE_OF_A_KIND, FLUSH_HOUSE, FLUSH_FIVE,
 } from './demo';
 import './onboarding.css';
+import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
 
 // ---------------------------------------------------------------------------
 // Persistence
@@ -237,7 +239,7 @@ export interface IntroFlowProps {
 
 export default function IntroFlow({ open, onClose }: IntroFlowProps) {
   const [index, setIndex] = useState(0);
-  const reduced = useReducedMotion() === true;
+  const reduced = useReducedMotionPref();
 
   useEffect(() => { if (open) setIndex(0); }, [open]);
 
@@ -283,7 +285,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
       initial: { opacity: 0, x: 28 },
       animate: { opacity: 1, x: 0 },
       exit: { opacity: 0, x: -28 },
-      transition: { duration: 0.32, ease: [0.16, 1, 0.3, 1] as const },
+      transition: ENTER,
     }), [reduced]);
 
   return (
@@ -294,7 +296,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: reduced ? 0.01 : 0.2 }}
+          transition={{ duration: reduced ? 0.12 : 0.2, ease: EASE_OUT }}
           onPointerDown={(e) => { if (e.target === e.currentTarget) finish(); }}
         >
           <motion.div
@@ -305,7 +307,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
             initial={{ opacity: 0, y: 20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: reduced ? 0.01 : 0.28, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: reduced ? T_REDUCED : 0.28, ease: EASE_OUT }}
           >
             <header className="intro-head">
               <div className="intro-dots" aria-hidden="true">
@@ -317,7 +319,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
             </header>
 
             <div className="intro-body" aria-live="polite">
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 <motion.div key={panel.id} className="intro-page" {...panelMotion}>
                   <span className="intro-kicker">{panel.kicker}</span>
                   <h2 id="intro-panel-title" className="intro-title">{panel.title}</h2>

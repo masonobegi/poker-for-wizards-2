@@ -7,7 +7,8 @@ import {
   UI_SCALE_MAX,
   UI_SCALE_MIN,
   useParticleDensity,
-  useReducedMotionPref,
+  useReducedMotionSetting,
+  useSystemReducedMotion,
   useUiScale,
   type ParticleDensity,
 } from '@/components/shell/videoPrefs';
@@ -181,7 +182,12 @@ function Slider({ label, value, disabled, onChange, onRelease }: {
 const PARTICLE_OPTIONS: ParticleDensity[] = ['off', 'low', 'full'];
 
 function VideoTab() {
-  const [reduced, setReduced] = useReducedMotionPref();
+  const [reduced, setReduced] = useReducedMotionSetting();
+  // The attribute the app actually keys off is `manual || OS`, so the checkbox
+  // has to show the effective state or it lies on a machine where the OS
+  // preference is on — it would read unchecked while everything was reduced,
+  // and toggling it would appear to do nothing.
+  const systemReduced = useSystemReducedMotion();
   const [density, setDensity] = useParticleDensity();
   const [uiScale, setUiScale] = useUiScale();
   const [fullscreen, setFullscreen] = useState(() => !!document.fullscreenElement);
@@ -213,10 +219,17 @@ function VideoTab() {
       </div>
 
       <div>
-        <Toggle checked={reduced} onChange={setReduced} label="Reduce motion and particles" />
+        <Toggle
+          checked={reduced || systemReduced}
+          disabled={systemReduced}
+          onChange={setReduced}
+          label="Reduce motion and particles"
+        />
         <p className="hh-field-hint" style={{ marginTop: 6 }}>
-          Cuts screen shake, particle counts and card phasing. Your system
-          preference is respected automatically; this forces it on.
+          Cuts screen shake, particle counts and card phasing.
+          {systemReduced
+            ? ' Your system already asks for reduced motion, so this is on and cannot be turned off here.'
+            : ' Your system preference is respected automatically; this forces it on.'}
         </p>
       </div>
 

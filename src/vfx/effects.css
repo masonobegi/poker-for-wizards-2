@@ -39,13 +39,17 @@
   opacity: 0;
   background: var(--vfx-flash-color, #ffffff);
   mix-blend-mode: screen;
-  will-change: opacity;
 }
 
 /* --- pulsing coloured vignette ------------------------------------------- */
 
+/* Driven by a transition, not a keyframe: casts arrive in bursts, and a
+   keyframe restarts from zero, so each new vignette used to snap the screen
+   clear before fading in again. A transition retargets from wherever the
+   previous one had reached, and restarting it needs no forced reflow. */
 .vfx-vignette {
   opacity: 0;
+  transition: opacity var(--vfx-vignette-ms, 900ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   background:
     radial-gradient(
       120% 92% at 50% 50%,
@@ -67,9 +71,7 @@
   }
 }
 
-.vfx-vignette.is-on {
-  animation: vfx-vignette-pulse var(--vfx-vignette-ms, 900ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
-}
+.vfx-vignette.is-on { opacity: 1; }
 
 /* --- film grain ----------------------------------------------------------- */
 
@@ -79,8 +81,11 @@
   background-repeat: repeat;
   background-size: 128px 128px;
   mix-blend-mode: overlay;
-  animation: vfx-grain-shift 900ms steps(6, end) infinite;
-  will-change: background-position;
+  /* Static. `background-position` is a paint property, so animating it meant
+     repainting a full-viewport overlay-blended layer ~6.7 times a second for
+     the entire session — and `will-change: background-position` bought a
+     permanent full-screen compositing layer for a property that can never be
+     composited. The tile still reads as grain without moving. */
 }
 
 /* If the runtime noise tile could not be generated, this is still grain-ish. */
@@ -100,7 +105,8 @@
     rgba(0, 0, 0, 0.55) 2px 3px
   );
   mix-blend-mode: multiply;
-  animation: vfx-scanline-drift 7s linear infinite;
+  /* Static, for the same reason as the grain above: a second full-viewport
+     blended repaint layer that never idled out. */
 }
 
 /* --- the inline SVG filter holder ---------------------------------------- */
@@ -117,12 +123,10 @@
    Root-level effects — applied to whatever element was handed to vfx.setRoot()
    =========================================================================== */
 
-/* Camera shake. The transform reads three custom properties that the RAF loop
-   writes; the class is only present while a shake is actually running, so we
-   never leave a compositing layer behind. */
+/* Camera shake. The transform itself is written inline by VfxLayer's RAF loop;
+   this rule only carries the compositing hint, and the class is only present
+   while a shake is actually running, so we never leave a layer behind. */
 .vfx-shaking {
-  transform: translate3d(var(--vfx-shake-x, 0px), var(--vfx-shake-y, 0px), 0)
-    rotate(var(--vfx-shake-rot, 0deg));
   will-change: transform;
 }
 
@@ -133,51 +137,9 @@
   filter: url(#vfx-rgb-split);
 }
 
-/* Cheap fallback for engines where the SVG filter is unavailable or slow. */
-.vfx-chromatic-cheap {
-  text-shadow:
-    calc(var(--vfx-ab, 0px) * -1) 0 rgba(255, 0, 64, 0.65),
-    var(--vfx-ab, 0px) 0 rgba(0, 180, 255, 0.65);
-}
-
 /* ===========================================================================
    Keyframes
    =========================================================================== */
-
-@keyframes vfx-vignette-pulse {
-  0% { opacity: 0; }
-  14% { opacity: 1; }
-  46% { opacity: 0.55; }
-  70% { opacity: 0.8; }
-  100% { opacity: 0; }
-}
-
-@keyframes vfx-grain-shift {
-  0%   { background-position: 0 0; }
-  20%  { background-position: -14px 8px; }
-  40%  { background-position: 10px -12px; }
-  60%  { background-position: -8px -6px; }
-  80%  { background-position: 12px 10px; }
-  100% { background-position: 0 0; }
-}
-
-@keyframes vfx-scanline-drift {
-  0%   { background-position-y: 0; }
-  100% { background-position-y: 96px; }
-}
-
-/* A single screen-wide heartbeat, for wins and reveals. */
-@keyframes vfx-screen-pulse {
-  0%   { opacity: 0; transform: scale(1); }
-  18%  { opacity: 0.9; }
-  100% { opacity: 0; transform: scale(1.06); }
-}
-
-/* An expanding shock ring for DOM-level shockwaves. */
-@keyframes vfx-shockwave {
-  0%   { opacity: 0.85; transform: scale(0.2); }
-  100% { opacity: 0; transform: scale(2.6); }
-}
 
 /* ===========================================================================
    Presentational components — <Aura>, <Shimmer>, <Runes>, <Pulse>
@@ -207,7 +169,6 @@
   filter: blur(calc(var(--aura-glow, 18px) * 0.55));
   opacity: var(--aura-intensity, 0.55);
   pointer-events: none;
-  will-change: opacity, transform;
 }
 
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
@@ -220,8 +181,11 @@
 .vfx-aura[data-shape='pill']::before { border-radius: var(--r-pill, 999px); }
 .vfx-aura[data-shape='rounded']::before { border-radius: var(--r-md, 12px); }
 
+/* The hint belongs on the variant that actually animates — every non-pulsing
+   aura was holding a compositing layer it never used. */
 .vfx-aura[data-pulse='true']::before {
   animation: vfx-aura-breathe var(--aura-speed, 2.6s) ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 @keyframes vfx-aura-breathe {
@@ -253,7 +217,7 @@
   );
   mix-blend-mode: screen;
   transform: translate3d(-130%, 0, 0);
-  animation: vfx-shimmer-sweep var(--shimmer-speed, 2.8s) var(--shimmer-ease, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+  animation: vfx-shimmer-sweep var(--shimmer-speed, 2.8s) var(--shimmer-ease, var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1))) infinite;
   animation-delay: var(--shimmer-delay, 0s);
   will-change: transform;
 }
@@ -261,6 +225,9 @@
 .vfx-shimmer[data-active='false'] .vfx-shimmer-sweep {
   animation-play-state: paused;
   opacity: 0;
+  /* Release the layer: this rule is what turns the shimmer off, and it was
+     leaving a paused, zero-opacity element holding a GPU layer. */
+  will-change: auto;
 }
 
 @keyframes vfx-shimmer-sweep {
@@ -374,22 +341,25 @@
    Nothing disappears — it just stops moving.
    =========================================================================== */
 
-@media (prefers-reduced-motion: reduce) {
-  .vfx-grain,
-  .vfx-scanlines,
-  .vfx-shimmer-sweep,
-  .vfx-runes,
-  .vfx-rune-g,
-  .vfx-pulse i,
-  .vfx-aura[data-pulse='true']::before,
-  .vfx-vignette.is-on {
-    animation: none !important;
-  }
+/* Keyed off the attribute both the OS preference and the in-game toggle
+   resolve to (see videoPrefs.ts). There is no blanket rule in tokens.css to
+   outrank — every loop is named where it lives, and tokens.css explains why.
 
-  .vfx-shimmer-sweep { opacity: 0; }
-  .vfx-pulse i { opacity: calc(var(--pulse-intensity, 0.75) * 0.5); transform: scale(1.1); }
-  .vfx-vignette.is-on { opacity: 0.35; }
-  .vfx-grain { opacity: calc(var(--vfx-grain-opacity, 0.045) * 0.6); }
-  .vfx-chromatic { filter: none; }
-  .vfx-shaking { transform: none; }
+   `will-change: auto` matters as much as `animation: none` here. Without it
+   every aura, shimmer, rune glyph and pulse ring keeps the compositing layer
+   its animation asked for while animating nothing — reduced motion would cost
+   GPU memory instead of saving it. */
+:root[data-reduced-motion='1'] .vfx-shimmer-sweep,
+:root[data-reduced-motion='1'] .vfx-runes,
+:root[data-reduced-motion='1'] .vfx-rune-g,
+:root[data-reduced-motion='1'] .vfx-pulse i,
+:root[data-reduced-motion='1'] .vfx-aura[data-pulse='true']::before {
+  animation: none;
+  will-change: auto;
 }
+
+:root[data-reduced-motion='1'] .vfx-shimmer-sweep { opacity: 0; }
+:root[data-reduced-motion='1'] .vfx-pulse i { opacity: calc(var(--pulse-intensity, 0.75) * 0.5); transform: scale(1.1); }
+:root[data-reduced-motion='1'] .vfx-vignette.is-on { opacity: 0.35; }
+:root[data-reduced-motion='1'] .vfx-grain { opacity: calc(var(--vfx-grain-opacity, 0.045) * 0.6); }
+:root[data-reduced-motion='1'] .vfx-chromatic { filter: none; }

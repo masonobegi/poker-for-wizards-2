@@ -45,7 +45,7 @@
   filter: blur(2px);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fx-spellflight-layer { display: none; }
-}
+/* One condition. `videoPrefs.ts` folds the OS preference and the in-game
+   toggle into this attribute, so a media query here would only ever be a
+   second source of truth that could drift from it. */
 :root[data-reduced-motion='1'] .fx-spellflight-layer { display: none; }
