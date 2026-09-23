@@ -328,8 +328,11 @@
 }
 
 .deck-label {
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  /* 10px is the floor the responsive harness enforces, and it enforces it
+     because 9px is not readable at arm's length on a Deck. This shipped at
+     9px and failed at all seven resolutions. */
+  font-size: 10px;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--text-4);
   opacity: 0.65;
