@@ -189,7 +189,30 @@ else notes.push(`Menu became playable in ${(waited / 1000).toFixed(1)}s.`);
 
 console.log('▶ starting practice vs bots');
 await practice.click();
-await page.waitForTimeout(3500);
+
+// Wait for a real table rather than a fixed sleep, and say plainly when one
+// never arrives. The most likely reason is not a bug: the server refuses room
+// creation past `roomsPerIpPerHour` (40 by default), which a long session of
+// repeated runs will hit. Without this check the run reports a deadlock 70
+// seconds later and sends the next reader hunting a game bug that is not there.
+let joined = false;
+for (let i = 0; i < 40; i++) {
+  joined = await page.evaluate(() => !!window.__hexholdView).catch(() => false);
+  if (joined) break;
+  await page.waitForTimeout(250);
+}
+if (!joined) {
+  const refused = await page.evaluate(() => {
+    const t = document.body.innerText || '';
+    return /too many|rate|limit|refused|could not open/i.test(t) ? t.slice(0, 160) : null;
+  }).catch(() => null);
+  problem('ERROR', refused
+    ? `Never reached a table — the server refused it: ${refused.replace(/\s+/g, ' ')}`
+    : 'Never reached a table after clicking Practice vs Bots, and the server gave no reason.');
+  await shot(page, 'never-joined');
+  await finish();
+}
+await page.waitForTimeout(2500);
 await shot(page, 'table-dealt');
 await checkLayout(page, 'table');
 
@@ -306,20 +329,37 @@ while (Date.now() - playStart < SECONDS * 1000) {
     if (castsMade < 4 && await castable.isVisible().catch(() => false) && Math.random() < 0.5) {
       await castable.click().catch(() => {});
       await page.waitForTimeout(700);
-      // Targeted sigils ask for a target; give it a board card or an opponent.
+
+      // Targeted sigils ask for a target. Satisfy as many picks as the sigil
+      // actually wants — `two_cards` needs two, and preflop there are no
+      // community cards to click at all, so a card target has to fall back to
+      // our own hand rather than to a seat.
       const hint = page.locator('.tbl-targethint').first();
       if (await hint.isVisible().catch(() => false)) {
         await shot(page, `targeting-${castsMade}`);
-        const target = page.locator('.board-cards [data-card-id]').first();
-        const seat = page.locator('[data-seat-id]').first();
-        if (await target.isVisible().catch(() => false)) await target.click().catch(() => {});
-        else if (await seat.isVisible().catch(() => false)) await seat.click().catch(() => {});
-        else {
-          const cancel = page.locator('.tbl-targethint button').first();
-          await cancel.click().catch(() => {});
+        const wants = /choose two cards/i.test(await hint.innerText().catch(() => '')) ? 2 : 1;
+        const wantsPlayer = /choose an opponent/i.test(await hint.innerText().catch(() => ''));
+        for (let pick = 0; pick < wants; pick++) {
+          const candidates = wantsPlayer
+            ? [page.locator('[data-seat-id]').first()]
+            : [
+              page.locator('.board-cards [data-card-id]').nth(pick),
+              page.locator('.rail [data-card-id]').nth(pick),
+              page.locator('[data-card-id]').nth(pick),
+            ];
+          let picked = false;
+          for (const c of candidates) {
+            if (await c.isVisible().catch(() => false)) {
+              await c.click().catch(() => {});
+              picked = true;
+              break;
+            }
+          }
+          if (!picked) break;
+          await page.waitForTimeout(400);
         }
-        await page.waitForTimeout(600);
       }
+
       // A prompt for a rank/suit/mark.
       const promptBtn = page.locator('.prompt-rank, .prompt-suit, .prompt-mark').first();
       if (await promptBtn.isVisible().catch(() => false)) {
@@ -327,6 +367,25 @@ while (Date.now() - playStart < SECONDS * 1000) {
         await promptBtn.click().catch(() => {});
         await page.waitForTimeout(500);
       }
+
+      // Whatever happened above, do not leave the table in a targeting state:
+      // the action bar is replaced while targeting is armed, so a half-
+      // finished cast means this run never acts again and times out looking
+      // like a deadlock. This was the flake, not the game.
+      for (let i = 0; i < 3; i++) {
+        const stillTargeting = page.locator('.tbl-targethint').first();
+        if (!await stillTargeting.isVisible().catch(() => false)) break;
+        const cancel = stillTargeting.locator('button').filter({ hasText: /cancel/i }).first();
+        if (await cancel.isVisible().catch(() => false)) await cancel.click().catch(() => {});
+        await page.waitForTimeout(350);
+      }
+      const strandedPrompt = page.locator('.prompt').first();
+      if (await strandedPrompt.isVisible().catch(() => false)) {
+        const anyOption = page.locator('.prompt-rank, .prompt-suit, .prompt-mark').first();
+        if (await anyOption.isVisible().catch(() => false)) await anyOption.click().catch(() => {});
+        await page.waitForTimeout(350);
+      }
+
       castsMade++;
       continue;
     }
