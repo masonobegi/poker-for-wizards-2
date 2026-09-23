@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Button, Field, Modal } from '@/components/ui/kit';
 import { readName, useGame } from '@/store/net';
 import { SCHOOLS, SIGILS } from '@shared/sigils';
+import type { BotSkill, TableSpeed } from '@shared/types';
 import { RELICS } from '@shared/relics';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -17,6 +18,80 @@ import './menu.css';
 
 type Pane = 'home' | 'host' | 'join';
 
+/**
+ * The practice table's two knobs.
+ *
+ * They exist so the game can actually be *tested* — a run against three
+ * masters at blitz speed reaches ante four in the time a relaxed novice table
+ * reaches ante one, and the two tables teach completely different things about
+ * whether the game is any good.
+ *
+ * The descriptions say what changes, not how good it is. "Novice" that turns
+ * out to mean "plays randomly" would be a worse test than no setting at all,
+ * so the copy commits to the actual model: they misread their hands.
+ */
+const SKILLS: ReadonlyArray<{ id: BotSkill; label: string; blurb: string }> = [
+  { id: 'novice', label: 'Novice', blurb: 'Misjudge their hands, call too much, barely use magic.' },
+  { id: 'adept', label: 'Adept', blurb: 'Read the board honestly and punish a loose call.' },
+  { id: 'master', label: 'Master', blurb: 'Sharper reads, heavier aggression, magic at every opening.' },
+];
+
+const SPEEDS: ReadonlyArray<{ id: TableSpeed; label: string; blurb: string }> = [
+  { id: 'relaxed', label: 'Relaxed', blurb: 'Bots take their time. Room to watch a hand play out.' },
+  { id: 'standard', label: 'Standard', blurb: 'The pace the game is tuned for.' },
+  { id: 'blitz', label: 'Blitz', blurb: 'Bots act fast. For covering a lot of hands quickly.' },
+];
+
+/** Remembered between sessions, because a tester changes it once and plays ten runs. */
+function readPick<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
+  try {
+    const v = localStorage.getItem(key);
+    return allowed.includes(v as T) ? (v as T) : fallback;
+  } catch {
+    // Private windows and blocked site data both throw here.
+    return fallback;
+  }
+}
+
+function writePick(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* not worth failing a click over */ }
+}
+
+/**
+ * A segmented picker. Real buttons rather than a styled `<select>`, so
+ * controller navigation reaches every option directly instead of having to
+ * open a native dropdown it cannot drive.
+ */
+function Picker<T extends string>({
+  legend, value, options, onPick,
+}: {
+  legend: string;
+  value: T;
+  options: ReadonlyArray<{ id: T; label: string; blurb: string }>;
+  onPick: (v: T) => void;
+}) {
+  const current = options.find((o) => o.id === value) ?? options[0];
+  return (
+    <div className="menu-pick" role="group" aria-label={legend}>
+      <span className="menu-pick-legend">{legend}</span>
+      <div className="menu-pick-row">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            className={`menu-pick-btn ${o.id === value ? 'is-on' : ''}`}
+            aria-pressed={o.id === value}
+            onClick={() => onPick(o.id)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <p className="menu-pick-blurb">{current.blurb}</p>
+    </div>
+  );
+}
+
 export default function Menu() {
   const [pane, setPane] = useState<Pane>('home');
   const [name, setName] = useState(() => readName());
@@ -26,6 +101,12 @@ export default function Menu() {
   const [server, setServer] = useState(false);
   const [intro, setIntro] = useState(() => !hasSeenIntro());
   const [practicing, setPracticing] = useState(false);
+  const [skill, setSkill] = useState<BotSkill>(
+    () => readPick<BotSkill>('hexhold.botSkill', 'adept', ['novice', 'adept', 'master']),
+  );
+  const [speed, setSpeed] = useState<TableSpeed>(
+    () => readPick<TableSpeed>('hexhold.speed', 'standard', ['relaxed', 'standard', 'blitz']),
+  );
 
   const createRoom = useGame((s) => s.createRoom);
   const joinRoom = useGame((s) => s.joinRoom);
@@ -61,7 +142,9 @@ export default function Menu() {
     if (!connected || practicing) return;
     setPracticing(true);
     try {
-      const code = await createRoom(trimmed || 'Adept', { maxPlayers: 4, private: true });
+      const code = await createRoom(trimmed || 'Adept', {
+        maxPlayers: 4, private: true, botSkill: skill, speed,
+      });
       if (!code) return;
       addBot(true);
       addBot(true);
@@ -121,8 +204,23 @@ export default function Menu() {
                   {connected ? 'Practice vs Bots' : 'Connecting…'}
                 </Button>
                 <p className="menu-practicenote">
-                  One click. Three bots fill the table and the first hand deals itself.
+                  Three bots fill the table and the first hand deals itself.
                 </p>
+
+                <div className="menu-setup">
+                  <Picker
+                    legend="Opponents"
+                    value={skill}
+                    options={SKILLS}
+                    onPick={(v) => { setSkill(v); writePick('hexhold.botSkill', v); }}
+                  />
+                  <Picker
+                    legend="Table speed"
+                    value={speed}
+                    options={SPEEDS}
+                    onPick={(v) => { setSpeed(v); writePick('hexhold.speed', v); }}
+                  />
+                </div>
 
                 <div className="menu-actions-row">
                   <Button size="md" block disabled={!connected} onClick={() => setPane('host')}>

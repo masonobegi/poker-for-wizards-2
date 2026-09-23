@@ -28,7 +28,7 @@ import {
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
 import { buy, payInterest, reroll, rollShop } from './shop';
-import { decideAction, decideCast, decideResponse, decideShop, thinkTime } from './bots';
+import { decideAction, decideCast, decideResponse, decideShop, thinkTime, TEMPO } from './bots';
 
 export type Emit = (fx: FxEvent[]) => void;
 export type Push = () => void;
@@ -390,7 +390,7 @@ export class Engine {
       this.applyAction(p, toCall > 0 ? { kind: 'fold' } : { kind: 'check' }, true);
     });
 
-    if (p.isBot) this.botClock.set(p.id, Date.now() + thinkTime(this.rng, { actors: live(t).length }));
+    if (p.isBot) this.botClock.set(p.id, Date.now() + thinkTime(this.rng, { actors: live(t).length, speed: t.config.speed }));
     else this.fx.push({ t: 'sfx', name: 'your_turn' });
 
     this.flush();
@@ -538,6 +538,7 @@ export class Engine {
    * what happened.
    */
   private payoutHold(payout: PayoutInfo): number {
+    const t = this.table;
     const revealed = payout.entries.filter((e) => e.cards.length > 0);
     // Nobody showed a hand — everyone folded. There is nothing to read.
     if (revealed.length === 0) return 1400;
@@ -556,7 +557,17 @@ export class Engine {
     // They get to breathe.
     const ceremony = impossible ? 1800 : 0;
 
-    return Math.min(9000, revealMs + readMs + ceremony);
+    /*
+     * Speed scales the time spent *reading* the result. It deliberately does
+     * not scale `revealMs`: that is the length of an animation the client is
+     * already playing, and cutting the hold below it deals the next hand over
+     * the top of the winning hand being turned over — the exact bug this
+     * method was written to fix. A blitz table gets a shorter pause after the
+     * reveal, never a truncated reveal.
+     */
+    const tempo = TEMPO[t.config.speed] ?? TEMPO.standard;
+    const scaled = revealMs + Math.round((readMs + ceremony) * tempo.hold);
+    return Math.min(9000, Math.max(revealMs + 450, scaled));
   }
 
   private bestFaceFor(faces: Face[]): number {
@@ -908,7 +919,7 @@ export class Engine {
       this.wait(t.config.responseSeconds * 1000, () => this.settleStack());
       for (const rid of t.stack.pending) {
         const bot = byId(t, rid);
-        if (bot?.isBot) this.botClock.set(rid, Date.now() + thinkTime(this.rng, { fast: true }));
+        if (bot?.isBot) this.botClock.set(rid, Date.now() + thinkTime(this.rng, { fast: true, speed: this.table.config.speed }));
       }
       this.flush();
     } else {

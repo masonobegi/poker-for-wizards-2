@@ -263,6 +263,28 @@ export interface LogEntry {
 // Room / table
 // ---------------------------------------------------------------------------
 
+/**
+ * How well the bots play.
+ *
+ * The difference is deliberately *not* "the weak ones act randomly". A weak
+ * poker player is not a random poker player — they are someone who misreads
+ * their hand and then plays that misreading correctly. So skill is modelled
+ * where it actually lives: novices get a blurrier equity estimate and a looser
+ * personality, and then bet perfectly sensibly on a number that is wrong. The
+ * mistakes that come out the other side (calling a busted draw, folding the
+ * best hand to a scare card) are the mistakes people make, rather than noise.
+ */
+export type BotSkill = 'novice' | 'adept' | 'master';
+
+/**
+ * How fast the table runs.
+ *
+ * Scales bot thinking and the hold on a finished hand. It does not scale the
+ * player's own action clock — a fast table that also rushes *you* is a worse
+ * test, not a faster one.
+ */
+export type TableSpeed = 'relaxed' | 'standard' | 'blitz';
+
 export interface RoomConfig {
   name: string;
   maxPlayers: number;
@@ -277,6 +299,10 @@ export interface RoomConfig {
   magicEnabled: boolean;
   botFill: number;
   private: boolean;
+  /** How well the bots play. */
+  botSkill: BotSkill;
+  /** How fast the table runs. */
+  speed: TableSpeed;
 }
 
 export const DEFAULT_CONFIG: RoomConfig = {
@@ -292,6 +318,8 @@ export const DEFAULT_CONFIG: RoomConfig = {
   magicEnabled: true,
   botFill: 0,
   private: false,
+  botSkill: 'adept',
+  speed: 'standard',
 };
 
 /** Everything a single client is allowed to know, projected for that client. */

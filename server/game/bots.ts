@@ -14,7 +14,7 @@ import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards
 import { evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
-import type { BetAction, Player, SigilTargets, Table } from '../../shared/types';
+import type { BetAction, BotSkill, Player, SigilTargets, Table, TableSpeed } from '../../shared/types';
 import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
 
 interface Personality {
@@ -28,19 +28,93 @@ interface Personality {
   arcane: number;
 }
 
+/**
+ * The three skill bands.
+ *
+ * `adept` is exactly what every bot in the game used to be, so an unset table
+ * plays the way it always did.
+ *
+ * Each band is a range rather than a point, because three bots that all play
+ * identically are one bot sitting in three chairs. A novice table still has a
+ * spread of novices in it.
+ */
+interface SkillBand {
+  tight: [number, number];
+  aggro: [number, number];
+  bluff: [number, number];
+  arcane: [number, number];
+  /**
+   * How far this band's read on its own hand is dragged toward a coin flip.
+   * 0 is a true estimate. Higher means weak hands look playable and strong
+   * hands look beatable — the two errors that actually lose money.
+   */
+  blur: number;
+  /** Random error added on top of the drag, as a +/- range. */
+  jitter: number;
+  /** Multiplier on the Monte Carlo sample size. A sharper read costs more. */
+  sims: number;
+  /**
+   * Willingness to call without the odds. Above 1 is a calling station; below
+   * 1 folds marginal spots a novice talks themselves into.
+   */
+  loose: number;
+}
+
+const BANDS: Record<BotSkill, SkillBand> = {
+  novice: {
+    tight: [0.12, 0.40], aggro: [0.10, 0.42], bluff: [0.02, 0.10], arcane: [0.22, 0.55],
+    blur: 0.34, jitter: 0.16, sims: 0.45, loose: 1.9,
+  },
+  adept: {
+    tight: [0.30, 0.75], aggro: [0.25, 0.80], bluff: [0.06, 0.26], arcane: [0.55, 0.95],
+    blur: 0, jitter: 0, sims: 1, loose: 1,
+  },
+  master: {
+    tight: [0.44, 0.82], aggro: [0.46, 0.96], bluff: [0.15, 0.36], arcane: [0.78, 1],
+    blur: 0, jitter: 0, sims: 1.7, loose: 0.72,
+  },
+};
+
+export function skillOf(t: Table): SkillBand {
+  return BANDS[t.config.botSkill] ?? BANDS.adept;
+}
+
+/**
+ * How fast the table runs.
+ *
+ * `think` scales how long a bot deliberates. `hold` scales how long a
+ * finished hand stays on screen — but only the *reading* part of it: the
+ * reveal animation underneath has a fixed duration set by the client, and
+ * shortening the hold past it puts the next deal on top of the best moment in
+ * the game. See `Engine.payoutHold`, which enforces that floor.
+ *
+ * `standard` is 1.0 on both, so a table that never sets a speed runs exactly
+ * the way it always did.
+ */
+export const TEMPO: Record<TableSpeed, { think: number; hold: number }> = {
+  relaxed: { think: 1.75, hold: 1.3 },
+  standard: { think: 1, hold: 1 },
+  blitz: { think: 0.3, hold: 0.45 },
+};
+
+/** Personalities are cached per bot, so the band has to be part of the key. */
 const personalities = new Map<string, Personality>();
 
-function personalityOf(p: Player): Personality {
-  let pr = personalities.get(p.id);
+function personalityOf(p: Player, skill: BotSkill): Personality {
+  const key = `${skill}:${p.id}`;
+  let pr = personalities.get(key);
   if (!pr) {
-    const r = new Rng(`pers:${p.id}`);
+    const r = new Rng(`pers:${skill}:${p.id}`);
+    const b = BANDS[skill] ?? BANDS.adept;
+    const span = ([lo, hi]: [number, number]): number => lo + r.next() * (hi - lo);
     pr = {
-      tight: 0.3 + r.next() * 0.45,
-      aggro: 0.25 + r.next() * 0.55,
-      bluff: 0.06 + r.next() * 0.2,
-      arcane: 0.55 + r.next() * 0.4,
+      tight: span(b.tight),
+      aggro: span(b.aggro),
+      bluff: span(b.bluff),
+      arcane: span(b.arcane),
     };
-    personalities.set(p.id, pr);
+    if (personalities.size > 600) personalities.clear();
+    personalities.set(key, pr);
   }
   return pr;
 }
@@ -108,7 +182,12 @@ function computeEquity(t: Table, p: Player, rng: Rng): number {
   const base = t.board.length === 0 ? PREFLOP_SIMS : POSTFLOP_SIMS;
   // Each opponent costs a full evaluation per rollout, so scale the sample down
   // rather than letting a six-handed pot take six times as long.
-  const sims = exotic ? 16 : Math.max(24, Math.round(base / crowd));
+  // A sharper read costs more rollouts and a blurrier one costs fewer, which
+  // is also why a novice table is cheaper to run than a master one.
+  const band = skillOf(t);
+  const sims = exotic
+    ? Math.max(8, Math.round(16 * band.sims))
+    : Math.max(12, Math.round((base / crowd) * band.sims));
 
   let wins = 0;
   let ties = 0;
@@ -148,7 +227,22 @@ function computeEquity(t: Table, p: Player, rng: Rng): number {
     else if (mine.score === best) { ties++; void bestIsTie; }
   }
 
-  return (wins + ties * 0.5) / sims;
+  const truth = (wins + ties * 0.5) / sims;
+  if (band.blur <= 0 && band.jitter <= 0) return truth;
+
+  /*
+   * What a weaker player sees.
+   *
+   * Dragging the estimate toward 0.5 is the whole model: it makes a busted
+   * draw look like a coin flip worth calling, and the nuts look like
+   * something that can be outdrawn. Those are the two mistakes that actually
+   * separate a bad poker player from a good one, and betting correctly on a
+   * wrong number produces them for free — no special-case "blunder" code, and
+   * no behaviour that reads as a dice roll.
+   */
+  const dragged = truth * (1 - band.blur) + 0.5 * band.blur;
+  const noisy = dragged + (rng.next() - 0.5) * 2 * band.jitter;
+  return Math.max(0, Math.min(1, noisy));
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +250,8 @@ function computeEquity(t: Table, p: Player, rng: Rng): number {
 // ---------------------------------------------------------------------------
 
 export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
-  const pr = personalityOf(p);
+  const pr = personalityOf(p, t.config.botSkill);
+  const band = skillOf(t);
   const toCall = Math.max(0, t.currentBet - p.bet);
   const pot = Math.max(t.bb, totalPot(t));
   const eq = equity(t, p, rng);
@@ -193,13 +288,19 @@ export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
     if (amount > t.currentBet) return { kind: 'raise', amount };
   }
 
-  if (edge > -0.02) {
+  // How far past the odds they will still call. A novice talks themselves
+  // into marginal spots; a master lets them go. This is a nudge on top of the
+  // blurred read, not the main event — most of the skill gap is already in
+  // the fact that `eq` means something different to each of them.
+  if (edge > -0.025 * band.loose) {
     if (toCall >= p.chips) return eq > 0.5 ? { kind: 'allin' } : { kind: 'fold' };
     return { kind: 'call' };
   }
 
   // A cheap call against a big pot is worth the float.
-  if (toCall <= t.bb && eq > 0.22 && rng.chance(0.6)) return { kind: 'call' };
+  if (toCall <= t.bb * band.loose && eq > 0.22 && rng.chance(Math.min(0.95, 0.6 * band.loose))) {
+    return { kind: 'call' };
+  }
   // Occasional resteal so they are not pure calling stations.
   if (eq < 0.25 && rng.chance(pr.bluff * 0.5) && p.chips > toCall * 4) {
     return { kind: 'raise', amount: sizing(0.7) };
@@ -275,7 +376,7 @@ export interface BotCast { uid: string; targets: SigilTargets }
 /** A sigil to fire during this bot's own action window, or nothing. */
 export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
   if (!t.config.magicEnabled || t.stack) return null;
-  const pr = personalityOf(p);
+  const pr = personalityOf(p, t.config.botSkill);
 
   const options = p.sigils
     .map((s) => ({ s, def: SIGIL_BY_ID[s.defId] }))
@@ -324,7 +425,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
 /** Whether to answer whatever is currently on the stack. */
 export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
   if (!t.stack || t.stack.entries.length === 0) return null;
-  const pr = personalityOf(p);
+  const pr = personalityOf(p, t.config.botSkill);
   const top = t.stack.entries[t.stack.entries.length - 1];
   if (top.casterId === p.id) return null;
 
@@ -376,10 +477,14 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
  * pause, down to a floor — the round keeps roughly the same length instead of
  * growing linearly with the seat count.
  */
-export function thinkTime(rng: Rng, opts: { fast?: boolean; actors?: number } = {}): number {
-  if (opts.fast) return 120 + rng.int(170);
+export function thinkTime(
+  rng: Rng,
+  opts: { fast?: boolean; actors?: number; speed?: TableSpeed } = {},
+): number {
+  const tempo = TEMPO[opts.speed ?? 'standard'] ?? TEMPO.standard;
+  if (opts.fast) return Math.round((120 + rng.int(170)) * tempo.think);
   const base = 260 + rng.int(500);
   const actors = opts.actors ?? 2;
   const crowd = actors > 3 ? Math.max(0.62, 1 - (actors - 3) * 0.12) : 1;
-  return Math.round(base * crowd);
+  return Math.round(base * crowd * tempo.think);
 }

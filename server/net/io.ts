@@ -36,6 +36,14 @@ function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   if (c.shopSeconds !== undefined) out.shopSeconds = num(c.shopSeconds, 15, 300, 60);
   if (typeof c.magicEnabled === 'boolean') out.magicEnabled = c.magicEnabled;
   if (typeof c.private === 'boolean') out.private = c.private;
+  // Enumerated, so anything unrecognised falls through to the table's default
+  // rather than reaching the bot brain as an arbitrary string.
+  if (c.botSkill === 'novice' || c.botSkill === 'adept' || c.botSkill === 'master') {
+    out.botSkill = c.botSkill;
+  }
+  if (c.speed === 'relaxed' || c.speed === 'standard' || c.speed === 'blitz') {
+    out.speed = c.speed;
+  }
   return out;
 }
 

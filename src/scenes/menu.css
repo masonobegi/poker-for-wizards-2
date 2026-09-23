@@ -207,3 +207,67 @@
 .menu-quit { display: flex; justify-content: center; margin-top: var(--s-2); }
 .menu-quit .btn { color: var(--text-4); }
 .menu-quit .btn:hover { color: var(--text-2); }
+
+/* --- practice table setup -------------------------------------------------
+   Two segmented pickers under the Practice button. They sit below it, not
+   above, because the defaults are the right answer for almost everyone and
+   the button should stay the first thing both the eye and the controller
+   reach. */
+
+.menu-setup {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: rgba(9, 7, 6, 0.4);
+}
+
+.menu-pick-legend {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
+.menu-pick-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.menu-pick-btn {
+  padding: 7px 4px;
+  border-radius: var(--r-xs);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  transition: color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+}
+.menu-pick-btn:hover { color: var(--text); }
+.menu-pick-btn.is-on {
+  color: var(--void);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+.menu-pick-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.menu-pick-blurb {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-4);
+  min-height: 2.9em;
+}
