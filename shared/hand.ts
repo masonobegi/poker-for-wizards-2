@@ -344,6 +344,33 @@ const EMPTY: HandResult = {
   usedIds: [], usedFaces: [], name: 'No Hand', impossible: false,
 };
 
+/**
+ * Roughly how many five-card readings `evaluate` would have to score for this
+ * input: the sum, over every five-card subset, of the product of those five
+ * slots' candidate faces. Cheap to compute — it walks the same slots without
+ * scoring any of them.
+ *
+ * Wilds are what make this explode. A wild slot carries one candidate per rank
+ * per suit in play, so two wilds and two superposed cards in one nine-card
+ * hand is over a million readings and takes about a tenth of a second. That is
+ * fine once, at showdown, where the answer has to be exact and the table is
+ * waiting for it anyway. It is not fine on any hot path, and by ante five
+ * "three cards in the shared deck quietly become Wild" is a rule the game
+ * deals itself. This is how a caller checks the bill before committing.
+ */
+export function evalComplexity({ cards, viewerId, mods = {} }: EvalInput): number {
+  const slots = trimSlots(buildSlots(cards, viewerId, mods));
+  if (slots.length < 5) return 0;
+  const lens = slots.map((s) => s.candidates.length);
+  let total = 0;
+  for (const subset of combosOf(slots.length, 5)) {
+    let p = 1;
+    for (let i = 0; i < 5; i++) p *= lens[subset[i]];
+    total += p;
+  }
+  return total;
+}
+
 export function evaluate({ cards, viewerId, mods = {} }: EvalInput): HandResult {
   const slots = trimSlots(buildSlots(cards, viewerId, mods));
   if (slots.length < 5) return EMPTY;

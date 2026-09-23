@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
 import { SIGIL_BY_ID } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
@@ -132,6 +132,33 @@ function RailBase({
           selectedIds={pickedIds}
           onCardClick={targetableHole ? handlePickCard : undefined}
         />
+
+        {/*
+          What you are actually holding. Every poker client shows this; here it
+          does a second job, because the thing it names keeps changing under
+          you. "Pair of Kings" becoming "Three of a Kind" the moment a sigil
+          resolves is the spell layer explaining itself in the one place the
+          player is already looking.
+
+          Keyed on the name so it re-runs its entrance every time the reading
+          changes, and stays put when it does not.
+        */}
+        <div className="rail-read" aria-live="polite">
+          <AnimatePresence mode="wait" initial={false}>
+            {me.handRead ? (
+              <motion.span
+                key={me.handRead.name}
+                className={me.handRead.impossible ? 'rail-read-name is-impossible' : 'rail-read-name'}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {me.handRead.name}
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </div>
 
       <div className="rail-sigils">

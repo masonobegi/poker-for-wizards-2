@@ -141,6 +141,10 @@ test('a hand deals, redacts, and reaches a showdown', async () => {
   for (const other of dealt.players.filter((p) => !p.isYou)) {
     assert.equal(other.sigils, null, `${other.name}'s sigils leaked`);
     assert.ok(other.sigilCount >= 0);
+    // `handRead` names the hand a player is holding, and is derived from
+    // their hole cards. Saying "Pair of Kings" above an opponent's seat would
+    // leak the same secret as showing the cards.
+    assert.equal(other.handRead, undefined, `${other.name}'s hand reading leaked`);
     for (const c of other.hole) {
       assert.equal(c.face, null, `${other.name}'s hole card identity leaked`);
       assert.equal(c.state, 'facedown', `${other.name}'s hole card was not face down`);
@@ -159,6 +163,8 @@ test('a hand deals, redacts, and reaches a showdown', async () => {
   assert.ok(hostCardsAsSeenByGuest);
   assert.ok(hostCardsAsSeenByGuest.hole.every((c) => c.face === null),
     'the guest can read the host\'s cards');
+  assert.equal(hostCardsAsSeenByGuest.handRead, undefined,
+    'the guest can read what the host is holding');
 
   // --- play it out -------------------------------------------------------
   const drive = (s: Socket, meId: string) => {

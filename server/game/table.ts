@@ -12,12 +12,12 @@ import {
   type CardEntity, type CardView, type Face, type Rank,
   faceLabel, isQuantum, standardDeck, viewCard,
 } from '../../shared/cards';
-import { type RuleMods } from '../../shared/hand';
+import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
 import { hasVision, mergeRelicMods, relicNumber } from '../../shared/relics';
 import { SIGIL_BY_ID, type SigilDef, type SigilInstance } from '../../shared/sigils';
 import {
   DEFAULT_CONFIG, emptyForeknowledge, isStreet,
-  type LogEntry, type LogTone, type Phase, type Player, type PlayerView,
+  type HandRead, type LogEntry, type LogTone, type Phase, type Player, type PlayerView,
   type Pot, type RoomConfig, type StackEntry, type Table, type TableView,
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
@@ -382,6 +382,82 @@ export function stackEntryView(t: Table, e: StackEntry) {
   };
 }
 
+/**
+ * What the player is currently holding, in words.
+ *
+ * A poker client that does not tell you your own hand is missing the most
+ * basic thing it does, and here it is worse than that: a card opposite you can
+ * be two ranks at once, a rank can be struck from the game mid-street, and a
+ * relic can quietly bump your whole hand a category. Naming the result as it
+ * changes is how any of that becomes legible — the line reading "Pair of
+ * Kings" turning into "Three of a Kind" the instant a sigil resolves is the
+ * spell layer explaining itself.
+ *
+ * It has to come from the same `evaluate` the showdown scores with, or it
+ * would eventually disagree with the pot, and a readout that lies is worse
+ * than none. That is expensive: see `evalComplexity`. So it is computed at
+ * most once per actual change, for humans only, and it declines rather than
+ * stalls the table if a board ever gets pathological.
+ */
+
+/** ~2.2µs per reading measured, so this is about a fifth of a second. Nothing
+ *  in normal play comes close — a full board with one wild is under 800 — and
+ *  it exists so a freak table declines to answer instead of stopping. */
+const READ_BUDGET = 100_000;
+
+interface CachedRead {
+  sig: string;
+  read: HandRead | undefined;
+}
+
+/** Keyed by table so it dies with the table and never reaches persistence. */
+const readCache = new WeakMap<Table, Map<string, CachedRead>>();
+
+/**
+ * Everything that can change the answer, cheaply. Card ids alone are not
+ * enough — the same five cards read differently once one collapses, gains a
+ * mark, or starts showing this viewer a different face.
+ */
+function readSignature(t: Table, p: Player, cards: CardEntity[], mods: RuleMods): string {
+  const parts: string[] = [t.phase];
+  for (const c of cards) {
+    const d = c.divergent?.[p.id];
+    parts.push(
+      `${c.id}:${c.collapsed ?? 'q'}:${c.marks.join('')}:${c.veil}:${c.memory}` +
+      (d ? `:${d.rank}${d.suit}` : ''),
+    );
+  }
+  // RuleMods is a flat bag of primitives and one small array.
+  parts.push(JSON.stringify(mods));
+  return parts.join('|');
+}
+
+function handReadFor(t: Table, p: Player): HandRead | undefined {
+  // Before the flop there are not five cards to read, and the two in front of
+  // you speak for themselves.
+  if (t.board.length < 3 || p.folded || p.eliminated) return undefined;
+
+  const cards = handCards(t, p);
+  const mods = modsFor(t, p);
+  const sig = readSignature(t, p, cards, mods);
+
+  let byPlayer = readCache.get(t);
+  if (!byPlayer) { byPlayer = new Map(); readCache.set(t, byPlayer); }
+  const hit = byPlayer.get(p.id);
+  if (hit && hit.sig === sig) return hit.read;
+
+  let read: HandRead | undefined;
+  if (evalComplexity({ cards, viewerId: p.id, mods }) <= READ_BUDGET) {
+    const r = evaluate({ cards, viewerId: p.id, mods });
+    if (r.score >= 0) {
+      read = { name: r.name, cat: r.cat, usedIds: r.usedIds, impossible: r.impossible };
+    }
+  }
+
+  byPlayer.set(p.id, { sig, read });
+  return read;
+}
+
 export function viewFor(t: Table, viewerId: string): TableView {
   const viewer = byId(t, viewerId) ?? createPlayer(viewerId, 'Spectator', -1, t.config);
   const showdown = t.phase === 'showdown' || t.phase === 'payout';
@@ -421,6 +497,9 @@ export function viewFor(t: Table, viewerId: string): TableView {
       shopDone: p.shopDone,
       handsWon: p.handsWon,
       biggestPot: p.biggestPot,
+      // Yours only. It is derived from your own hole cards and your own
+      // reading of the board, so it must never travel to another seat.
+      handRead: isYou && !p.isBot ? handReadFor(t, p) : undefined,
       result: t.payout?.entries.find((e) => e.playerId === p.id),
     };
   });

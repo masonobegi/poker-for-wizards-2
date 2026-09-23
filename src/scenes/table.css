@@ -621,7 +621,34 @@
    out, so it scales with --card-h, not --card-w; sizing this off the width
    left 4K still touching, where the cards are tallest.
    test/responsive.mjs checks the resulting gap at every shipped resolution. */
-.rail-hole { padding: 0 calc(var(--card-h) * 0.32) var(--s-2); }
+.rail-hole {
+  padding: 0 calc(var(--card-h) * 0.32) var(--s-2);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+/* The hand you are holding, named, directly under the cards it is naming.
+   Reserves its own height so the cards above it never shift when the reading
+   appears on the flop or changes mid-street. */
+.rail-read {
+  min-height: 15px;
+  display: grid;
+  place-items: center;
+}
+.rail-read-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.rail-read-name.is-impossible {
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(240, 196, 101, 0.55);
+}
 
 .rail-sigils {
   display: flex;

@@ -100,6 +100,17 @@ export const emptyForeknowledge = (): Foreknowledge => ({
   deckPeek: [], seenHole: [], divergedFrom: {}, lies: {}, seenSigils: [],
 });
 
+/** A named reading of the hand a player is currently holding. */
+export interface HandRead {
+  /** e.g. "Pair of Kings", "Flush House". */
+  name: string;
+  cat: number;
+  /** The five card entity ids this reading uses, for highlighting them. */
+  usedIds: string[];
+  /** True when this reading needs the deck to have broken a physical law. */
+  impossible: boolean;
+}
+
 export interface PlayerView {
   id: string;
   name: string;
@@ -133,6 +144,14 @@ export interface PlayerView {
   handsWon: number;
   /** Public — every pot is won in the open. Shown in the end-of-run recap. */
   biggestPot: number;
+  /**
+   * What this player currently holds, named. Only ever set on your own seat —
+   * it is derived from your hole cards and your reading of the board, so it is
+   * exactly the kind of thing `viewFor` exists to keep off the wire.
+   * Undefined before the flop, once you have folded, and on the rare board too
+   * expensive to read (see `handReadFor`).
+   */
+  handRead?: HandRead;
   /** Set at showdown. */
   result?: ShowdownEntry;
 }
