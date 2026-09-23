@@ -7,7 +7,7 @@
  * scored on their own terms and then compared — which is the only way a table
  * running six different rulebooks at once can still settle a bet.
  */
-import { cardsOf, byId, live, alive, log, modsFor, scoringHole, totalPot } from './table';
+import { cardsOf, byId, live, alive, log, modsFor, scoringHole } from './table';
 import { viewCard } from '../../shared/cards';
 import { type HandResult, Cat, evaluate } from '../../shared/hand';
 import { RELIC_BY_ID, hasVision } from '../../shared/relics';
