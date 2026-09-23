@@ -148,9 +148,11 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
 .hh-tab:hover { color: var(--text); }
+.hh-tab:active { transform: scale(0.97); }
 .hh-tab.is-active {
   color: var(--gold);
   background: rgba(240, 196, 101, 0.08);
@@ -203,8 +205,10 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
-  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
+.hh-segmented-label:active { transform: scale(0.97); }
 .hh-segmented-input:checked + .hh-segmented-label {
   background: var(--gold);
   color: var(--void);

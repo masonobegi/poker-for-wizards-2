@@ -162,7 +162,9 @@
   border-radius: 50%;
   background: var(--surface-3);
   border: 1px solid var(--line);
-  transition: all var(--t-base);
+  transition: background var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out);
 }
 .shop-dot.is-done {
   background: var(--good);

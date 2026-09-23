@@ -85,8 +85,15 @@
   filter: drop-shadow(0 0 5px rgba(240, 196, 101, 0.4));
   transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-snap);
 }
-.profile-glyph:hover { opacity: 1; transform: translateY(-2px) scale(1.15); }
 .profile-glyph.is-omen {
   color: var(--entropy);
   filter: drop-shadow(0 0 5px rgba(185, 140, 255, 0.5));
+}
+
+/* Touch fires a hover on tap that sticks until the next tap elsewhere, and
+   this game ships on a Steam Deck with a touchscreen. Motion-bearing hovers
+   are gated; colour-only hovers stay ungated, because a stuck colour is
+   harmless and often useful. */
+@media (hover: hover) and (pointer: fine) {
+  .profile-glyph:hover { opacity: 1; transform: translateY(-2px) scale(1.15); }
 }

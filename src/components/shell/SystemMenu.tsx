@@ -10,12 +10,10 @@
  * (ConnectionBadge, Toasts, BannerLayer).
  */
 import { useEffect, useId, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useGame } from '@/store/net';
 import { Button } from '@/components/ui/kit';
 import SettingsPanel from '@/components/SettingsPanel';
 import { useFocusTrap } from './useFocusTrap';
-import { useMotionReduced, motionDuration } from './reducedMotion';
 import { getHexholdApi } from './desktop';
 import './shell.css';
 
@@ -43,7 +41,6 @@ export default function SystemMenu() {
   const [view, setView] = useState<MenuView>('menu');
   const headingId = useId();
   const subId = useId();
-  const reduceMotion = useMotionReduced();
   const trapRef = useFocusTrap<HTMLDivElement>(open);
 
   // Leaving the game scene (e.g. the table itself sent us back to the menu)
@@ -81,19 +78,22 @@ export default function SystemMenu() {
 
   const close = () => setOpen(false);
 
+  if (!open) return null;
+
+  /* No entrance or exit animation, deliberately. This opens only from Escape
+     or the pad's Start button, and it closes the same way — a control path
+     that is hit constantly, on a table that does not pause while it is open.
+     Animating it put a frame budget between the key and the menu in both
+     directions. */
   return (
-    <AnimatePresence>
+    <>
       {open ? (
-        <motion.div
+        <div
           className="hh-menu-overlay"
           role="presentation"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: motionDuration(0.18, reduceMotion) }}
           onPointerDown={(e) => { if (e.target === e.currentTarget) close(); }}
         >
-          <motion.div
+          <div
             ref={trapRef}
             className="hh-menu-panel"
             role="dialog"
@@ -101,10 +101,6 @@ export default function SystemMenu() {
             aria-labelledby={headingId}
             aria-describedby={view === 'menu' ? subId : undefined}
             tabIndex={-1}
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: motionDuration(0.22, reduceMotion) }}
           >
             {view === 'menu' ? (
               <>
@@ -151,9 +147,9 @@ export default function SystemMenu() {
             ) : (
               <SettingsPanel onClose={() => setView('menu')} />
             )}
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       ) : null}
-    </AnimatePresence>
+    </>
   );
 }

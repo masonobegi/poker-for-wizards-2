@@ -13,6 +13,7 @@ import { ACHIEVEMENTS } from '@shared/achievements';
 import { earned } from '@/lib/achievements';
 import '@/components/achievements.css';
 import './codex.css';
+import { ENTER } from '@/styles/motion';
 
 type Tab = 'sigils' | 'relics' | 'marks' | 'rules' | 'feats';
 
@@ -82,9 +83,9 @@ export default function Codex({ onClose }: { onClose: () => void }) {
                 key={s.id}
                 className="codex-entry"
                 style={{ ['--accent' as string]: SCHOOLS[s.school].accent }}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.015, 0.3), duration: 0.24 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
               >
                 <div className="codex-glyph">{s.glyph}</div>
                 <div className="codex-body">
