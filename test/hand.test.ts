@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { makeCard, type CardEntity, type Rank, type Suit } from '../shared/cards';
-import { Cat, evaluate, type RuleMods } from '../shared/hand';
+import { Cat, describe as describeHand, evaluate, type RuleMods } from '../shared/hand';
 
 const C = (s: string): CardEntity => {
   const rankMap: Record<string, Rank> = {
@@ -228,4 +228,21 @@ test('evaluation stays fast enough for a live showdown', () => {
   }
 
   assert.ok(best < 60, `a wild plus a superposed card took ${best.toFixed(1)}ms per hand`);
+});
+
+test('hand names pluralise every rank correctly', () => {
+  // "Six" + "s" gave "Sixs" on every full house, trip and quad made of sixes,
+  // in the showdown panel and in the ledger.
+  const sixes = describeHand({ cat: Cat.Trips, ranks: [6, 0], score: 0 } as never);
+  assert.match(sixes, /Sixes/, `expected "Sixes", got "${sixes}"`);
+  assert.doesNotMatch(sixes, /Sixs/);
+
+  for (const [rank, plural] of [
+    [2, 'Twos'], [3, 'Threes'], [4, 'Fours'], [5, 'Fives'], [6, 'Sixes'],
+    [7, 'Sevens'], [8, 'Eights'], [9, 'Nines'], [10, 'Tens'],
+    [11, 'Jacks'], [12, 'Queens'], [13, 'Kings'], [14, 'Aces'],
+  ] as Array<[number, string]>) {
+    const name = describeHand({ cat: Cat.Quads, ranks: [rank, 0], score: 0 } as never);
+    assert.match(name, new RegExp(plural), `rank ${rank}: expected "${plural}" in "${name}"`);
+  }
 });

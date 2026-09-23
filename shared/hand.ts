@@ -99,7 +99,11 @@ function scoreOf(cat: Cat, ranks: number[]): number {
 export function describe(r: HandResult): string {
   const [a, b] = r.ranks;
   const n = (x: number) => RANK_NAME[clampRank(x)] ?? String(x);
-  const p = (x: number) => `${n(x)}s`;
+  /** "Six" needs "es", every other rank name takes a bare "s". */
+  const p = (x: number) => {
+    const name = n(x);
+    return /(?:s|x|z|ch|sh)$/i.test(name) ? `${name}es` : `${name}s`;
+  };
   switch (r.cat) {
     case Cat.FlushFive: return `Flush Five, ${p(a)}`;
     case Cat.FlushHouse: return `Flush House, ${p(a)} over ${p(b)}`;

@@ -27,6 +27,9 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
   if (shown.length === 0) return null;
 
   const nameOf = (id: string) => view.players.find((p) => p.id === id)?.name ?? '???';
+  // Every board card that scored for anybody, so the row shows which of the
+  // five actually mattered and dims the rest.
+  const allWinningIds = payout.entries.filter((e) => e.won > 0).flatMap((e) => e.usedIds);
   const uncontested = shown.every((e) => e.cards.length === 0);
 
   return (
@@ -55,6 +58,31 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
             </motion.span>
           ) : null}
         </header>
+
+        {/* The board, inside the panel.
+
+            This panel is positioned over the felt and, at Steam Deck's
+            1280x800, lands squarely on top of the community cards — so the
+            one moment you most need to see the board is the one moment it is
+            covered. "Flush, King high" is unreadable without the four hearts
+            it was made from. There is no room to move the panel: the gap
+            between the pot and the rail is about 140px and the panel needs
+            290. So the board comes along with it, and the showdown explains
+            itself. */}
+        {!uncontested && view.board.length > 0 ? (
+          <div className="showdown-board">
+            <span className="showdown-boardlabel">Board</span>
+            <CardRow
+              views={view.board}
+              size="xs"
+              overlap={0.24}
+              highlightIds={allWinningIds}
+              highlight="winning"
+              restHighlight="dimmed"
+              tiltOnHover={false}
+            />
+          </div>
+        ) : null}
 
         <ul className="showdown-list">
           {shown.map((e, i) => (

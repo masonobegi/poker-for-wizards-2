@@ -25,7 +25,16 @@
  * market) is the bots.
  *
  * Run: npm run record [seconds] [width] [height]
- * Out: recordings/<timestamp>/*.webm  (Playwright writes webm)
+ * Out: recordings/<timestamp>/hexhold-<timestamp>.mp4
+ *
+ * To review it as stills rather than by scrubbing — which is how the showdown
+ * panel was found sitting on top of the board — pull a frame every few
+ * seconds:
+ *
+ *     ffmpeg -i recordings/<stamp>/hexhold-<stamp>.mp4 -vf fps=1/3 frames/f%03d.png
+ *
+ * At `fps=1/3` a three-minute game is about 60 images, which is roughly one
+ * per action at HEXHOLD_PACE=300 and small enough to flick through.
  */
 import { chromium } from 'playwright';
 import fs from 'node:fs';

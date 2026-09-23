@@ -38,7 +38,11 @@ const HINTS: HintDef[] = [
     id: 'castable_sigil',
     place: 'rail',
     text: 'That sigil is ready to cast — tap it to put it on the stack.',
-    match: (v) => v.castable.length > 0,
+    // Not while the stack is open. This one is anchored above the rail, which
+    // is where the response overlay's own options sit, so it landed on top of
+    // a counterspell choice during a timed window — and the stack has its own
+    // hint above anyway.
+    match: (v) => v.castable.length > 0 && !v.stack,
   },
   {
     id: 'shop_open',

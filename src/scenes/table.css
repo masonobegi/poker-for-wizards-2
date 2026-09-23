@@ -724,6 +724,11 @@
   text-transform: uppercase;
   color: var(--school);
   opacity: 0.85;
+  /* At the 1024x680 minimum window the card is ~74px of usable width and the
+     tracking pushes "BIND" past it, so it rendered as "BIN". Drop the tracking
+     rather than the letter. */
+  min-width: 0;
+  letter-spacing: clamp(0.02em, calc(var(--card-w) * 0.0018), 0.14em);
 }
 
 .sigil-glyph {
@@ -744,6 +749,11 @@
   line-height: 1.15;
   text-align: center;
   color: var(--text);
+  /* "Doppelgänger" is wider than the card at small sizes and was being cut to
+     "Doppelgänge". A name that wraps is readable; a name that is clipped is a
+     different sigil. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .sigil-text {
@@ -1227,14 +1237,38 @@
 .showdown {
   position: fixed;
   left: 50%;
-  /* Clears the rail; sits in the open felt under the board. */
-  bottom: 278px;
+  /* This sits ON the board, not under it — at 1280x800 the gap between the pot
+     and the rail is about 140px and this needs roughly 300, so there is
+     nowhere else for it to go. That is why the panel carries its own copy of
+     the board (see ShowdownPanel.tsx). Raised slightly from 278px to make room
+     for that row while still clearing the rail. */
+  bottom: 250px;
   translate: -50% 0;
   z-index: var(--z-overlay);
   pointer-events: none;
   width: min(660px, 92vw);
-  max-height: 300px;
+  /* Six seats plus the board row has to fit, or the last player's hand is
+     silently cropped and reads as though they never showed. The floor keeps
+     it clear of the rail at 1024x680. */
+  max-height: min(430px, calc(100vh - 330px));
   overflow: hidden;
+}
+
+/* The board row inside the panel. Cards that scored read at full strength;
+   the rest dim, so "Flush, King high" can be checked against the felt. */
+.showdown-board {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 2px var(--s-2) 6px;
+}
+.showdown-boardlabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  flex: none;
 }
 .showdown-inner {
   display: grid;
@@ -1263,7 +1297,7 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--s-3);
-  padding: 4px 12px;
+  padding: 2px 12px;
   border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid transparent;
