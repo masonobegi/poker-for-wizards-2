@@ -755,6 +755,12 @@
   line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* The card is a glance, not the rulebook — the tooltip carries the full
+     text. But the clamp lands wherever the wrap falls, and at Steam Deck's
+     1280x800 the card is narrow enough that most sigils lose three to seven
+     lines, cut mid-word with nothing to say so. Fading the last line reads
+     as "there is more here" rather than as a rendering bug. */
+  mask-image: linear-gradient(180deg, #000 calc(100% - 1.1em), transparent 100%);
 }
 
 .sigil-foot {
@@ -1386,4 +1392,19 @@
     transform: translateX(3px);
   }
   .sigil:hover .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Every input needs a route to the full text, because at Steam Deck's
+   1280x800 the card body loses three to seven lines of it. Hover covers a
+   mouse (above) and `data-gamepad` covers the pad (gamepad.css); focus covers
+   the keyboard and touch. Deliberately not behind `(pointer: coarse)` — a
+   focused sigil showing its own tooltip is right for every input, and a mouse
+   user never focuses one by hovering, so there is nothing to scope away.
+
+   Tapping a LOCKED sigil focuses it without casting, which is exactly the
+   moment you want to read one. */
+.sigil:focus .sigil-tip,
+.sigil:focus-within .sigil-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
