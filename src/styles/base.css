@@ -67,8 +67,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   width: 100%;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(76, 52, 140, 0.28), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 50% 110%, rgba(16, 37, 74, 0.35), transparent 60%),
+    radial-gradient(ellipse 120% 80% at 50% -10%, color-mix(in srgb, var(--entropy-deep) 28%, transparent), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--felt-core) 35%, transparent), transparent 60%),
     var(--void);
 }
 
@@ -89,6 +89,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   animation: drift 240s linear infinite;
   z-index: 0;
 }
+
+/* The starfield is the fallback's only texture, and a starfield says "space"
+   where the rest of the game now says "a room with a table in it". Where the
+   shader is running it draws its own dust, warmer and slower, so this gets
+   out of the way rather than laying a second, colder one over it. */
+:root[data-backdrop='1'] .app::before { display: none; }
 
 @keyframes drift {
   from { transform: translate3d(0, 0, 0) rotate(0deg); }
@@ -137,12 +143,23 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* --- panels ------------------------------------------------------------- */
 
+/* The shared panel. Flat ink with a rule around it and a hard shadow under
+   it — a printed card lying on the table, not a pane of tinted glass. */
 .panel {
-  background: linear-gradient(180deg, rgba(31, 37, 68, 0.82), rgba(17, 21, 42, 0.9));
+  position: relative;
+  background: var(--surface);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-lg);
-  box-shadow: var(--e-3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
+  box-shadow: var(--e-3);
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--grain);
+  opacity: 0.5;
 }
 
 .panel-head {

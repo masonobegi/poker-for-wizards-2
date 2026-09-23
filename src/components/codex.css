@@ -28,7 +28,7 @@
   transition: background var(--t-fast), color var(--t-fast);
 }
 .codex-tab:hover { color: var(--text-2); background: rgba(255, 255, 255, 0.04); }
-.codex-tab.is-on { color: var(--gold); background: rgba(240, 196, 101, 0.1); }
+.codex-tab.is-on { color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
 
 .codex-filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .codex-chip {
@@ -115,7 +115,7 @@
 .codex-note {
   padding: var(--s-3);
   border-radius: var(--r-md);
-  background: rgba(240, 196, 101, 0.06);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
   border: 1px dashed var(--gold-deep);
   font-size: var(--fs-xs);
   line-height: 1.6;

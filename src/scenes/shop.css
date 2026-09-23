@@ -6,7 +6,6 @@
   place-items: center;
   padding: var(--s-4);
   background: rgba(3, 4, 9, 0.86);
-  backdrop-filter: blur(14px);
 }
 
 .shop-panel {
@@ -18,10 +17,10 @@
   padding: var(--s-5);
   border-radius: var(--r-xl);
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.16), transparent 70%),
-    linear-gradient(180deg, #1b2140, #0b0e1f);
+    radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--entropy-deep) 16%, transparent), transparent 70%),
+    var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 80px rgba(124, 58, 237, 0.2);
+  box-shadow: var(--e-4), 0 0 80px color-mix(in srgb, var(--entropy-deep) 20%, transparent);
 }
 
 .shop-head {

@@ -9,7 +9,7 @@ html[data-gamepad='1'] [data-pad-focus]:focus {
   outline: 3px solid var(--gold);
   outline-offset: 3px;
   border-radius: var(--r-sm);
-  box-shadow: 0 0 0 6px rgba(240, 196, 101, 0.18), 0 0 26px rgba(240, 196, 101, 0.45);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent), 0 0 26px color-mix(in srgb, var(--gold) 45%, transparent);
 }
 
 /* Keyboard hints become controller glyphs. The label text is swapped with a

@@ -1,78 +1,119 @@
 /* ===========================================================================
    HEXHOLD — design tokens
-   A late-night table in a room that should not exist: void-blue felt, gold
-   leaf, and six schools of light. Everything else in the app reads from here.
+   ---------------------------------------------------------------------------
+   The reference is a printed object, not a piece of software: an engraved
+   plate, an oxblood-and-brass grimoire, a card table with a real felt on it.
+   Ink, paper and metal.
+
+   This replaces what was here before, which was the house style of every dark
+   interface built in the last few years — everything rounded to 26px, every
+   panel a violet gradient behind a backdrop blur, every edge defined by a
+   coloured glow instead of a line. It read as a settings screen, and for a
+   game whose whole subject is a physical deck behaving impossibly, looking
+   like software was the wrong end of the argument entirely.
+
+   Four rules the rest of the app inherits from here:
+
+     1. **Edges are lines, not glows.** A panel is defined by a hairline rule
+        and a hard shadow, the way printed matter sitting on a table is. Glow
+        is reserved for magic, where it means something.
+     2. **Corners are nearly square.** The largest radius in the system is
+        5px, and the only thing rounder than that is a playing card, which is
+        rounder in real life too.
+     3. **Fills are flat.** Gradients describe light falling on a curved
+        surface. Almost nothing here is curved.
+     4. **Colour is ink.** Desaturated, printed, slightly dirty. Nothing in
+        this file is a colour a screen invented.
    =========================================================================== */
 
 :root {
-  /* --- surfaces, darkest to lightest ------------------------------------ */
-  --void:        #05060c;
-  --abyss:       #080a14;
-  --bg:          #0b0e1b;
-  --bg-2:        #11152a;
-  --surface:     #171c35;
-  --surface-2:   #1f2544;
-  --surface-3:   #2a3158;
-  --line:        #2f3760;
-  --line-soft:   #232a4d;
+  /* --- surfaces, darkest to lightest -------------------------------------
+     Neutral charcoal with a trace of warmth, so the brass reads as metal
+     against it rather than as a second accent colour. Deliberately not blue:
+     blue-violet greys are the tell. */
+  --void:        #0a0a0c;
+  --abyss:       #0f0f12;
+  --bg:          #131318;
+  --bg-2:        #191921;
+  --surface:     #1e1f28;
+  --surface-2:   #262833;
+  --surface-3:   #31343f;
+  /* Higher contrast than before, because these now do the work the glows
+     used to. A rule you cannot see is not a rule. */
+  --line:        #474a57;
+  --line-soft:   #2b2d38;
 
-  /* --- felt -------------------------------------------------------------- */
-  --felt-core:   #10254a;
-  --felt-mid:    #0b1830;
-  --felt-edge:   #060b18;
-  --rail:        #1c1430;
-  --rail-hi:     #4a3a6b;
+  /* --- felt ---------------------------------------------------------------
+     A real card-table green, dirty and nearly black at the rail. This is the
+     single loudest signal in the whole interface that the thing on screen is
+     a table and not a dashboard. */
+  --felt-core:   #16352c;
+  --felt-mid:    #0e211c;
+  --felt-edge:   #071210;
+  --rail:        #1a1511;
+  --rail-hi:     #4a3a26;
 
-  /* --- text -------------------------------------------------------------- */
-  --text:        #eef1fb;
-  --text-2:      #b6bedb;
-  --text-3:      #7e88ad;
-  --text-4:      #545d80;
+  /* --- text ---------------------------------------------------------------
+     Bone, not blue-white. Paper that has been somewhere. */
+  --text:        #f1ece0;
+  --text-2:      #c3bcab;
+  --text-3:      #8c8576;
+  --text-4:      #635d51;
 
-  /* --- brand / metal ----------------------------------------------------- */
-  --gold:        #f0c465;
-  --gold-hi:     #ffe6a8;
-  --gold-deep:   #a67c2a;
-  --silver:      #cfd8ee;
+  /* --- brand / metal -----------------------------------------------------
+     Brass, off the plate. The old gold was a screen yellow. */
+  --gold:        #d4a24a;
+  --gold-hi:     #f0d69c;
+  --gold-deep:   #8a6420;
+  --silver:      #b9b3a4;
 
-  /* --- semantic ---------------------------------------------------------- */
-  --good:        #4ade80;
-  --warn:        #fbbf24;
-  --bad:         #f4576f;
-  --info:        #63b3ff;
-  --chip:        #f5d478;
+  /* --- semantic -----------------------------------------------------------
+     Printing inks: a bottle green, an ochre, an oxblood, a slate. */
+  --good:        #5f9155;
+  --warn:        #c8922f;
+  --bad:         #b24039;
+  --info:        #5a83a3;
+  --chip:        #d4a24a;
 
-  /* --- schools of magic --------------------------------------------------- */
-  --entropy:     #b98cff;
-  --entropy-deep:#5b21b6;
-  --veil:        #6ec8ff;
-  --veil-deep:   #0369a1;
-  --chronos:     #ffc861;
-  --chronos-deep:#b45309;
-  --bind:        #5eead4;
-  --bind-deep:   #0f766e;
-  --ruin:        #ff7a8a;
-  --ruin-deep:   #9f1239;
-  --weave:       #a8e063;
-  --weave-deep:  #4d7c0f;
+  /* --- schools of magic ---------------------------------------------------
+     Six inks rather than six neons. Each still reads instantly apart from the
+     others, which was the only job the saturation was doing. */
+  --entropy:     #9a7fc9;
+  --entropy-deep:#4a3579;
+  --veil:        #5f8fb5;
+  --veil-deep:   #2d5570;
+  --chronos:     #c79541;
+  --chronos-deep:#7d5a1c;
+  --bind:        #4f9a8c;
+  --bind-deep:   #2a5d54;
+  --ruin:        #b04a4f;
+  --ruin-deep:   #6e2528;
+  --weave:       #7f9a4c;
+  --weave-deep:  #4a5c2a;
 
-  /* --- card faces --------------------------------------------------------- */
-  --card-face:   #f7f4ee;
-  --card-face-2: #e6e0d4;
-  --card-red:    #cf2f45;
-  --card-black:  #171a24;
-  --card-back-1: #2b1d52;
-  --card-back-2: #150d2c;
-  --card-edge:   rgba(0, 0, 0, 0.55);
+  /* --- card faces ---------------------------------------------------------
+     Stock, not screen white. The red is a printed red — it has black in it. */
+  --card-face:   #efe8d8;
+  --card-face-2: #ded4bd;
+  --card-red:    #ad2f33;
+  --card-black:  #1b1a17;
+  --card-back-1: #1d2a32;
+  --card-back-2: #0c1418;
+  --card-edge:   rgba(0, 0, 0, 0.6);
 
-  /* --- radii -------------------------------------------------------------- */
-  --r-xs: 4px;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 18px;
-  --r-xl: 26px;
-  --r-card: 9px;
-  --r-pill: 999px;
+  /* --- radii ---------------------------------------------------------------
+     Nearly square, on purpose. The old scale topped out at 26px and was
+     applied to everything, which is the single most recognisable mark of an
+     interface nobody drew. A playing card is the one object here with a real
+     radius, because a real one has one. --r-pill is no longer a pill: every
+     badge in the app becomes a printed tag instead of a lozenge. */
+  --r-xs: 0px;
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 4px;
+  --r-xl: 5px;
+  --r-card: 6px;
+  --r-pill: 2px;
 
   /* --- spacing ------------------------------------------------------------ */
   --s-1: 4px;
@@ -103,13 +144,24 @@
   --fs-3xl: 58px;
   --fs-4xl: 84px;
 
-  /* --- elevation ---------------------------------------------------------- */
-  --e-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --e-2: 0 3px 10px rgba(0, 0, 0, 0.45);
-  --e-3: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --e-4: 0 24px 60px rgba(0, 0, 0, 0.6);
-  --e-card: 0 6px 14px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.6);
-  --e-lift: 0 18px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.5);
+  /* --- elevation -----------------------------------------------------------
+     Each one leads with a hard offset — the edge of a thing lying on a
+     surface — before any diffusion. Purely diffuse shadows read as glow, and
+     glow is reserved. */
+  --e-1: 0 1px 0 rgba(0, 0, 0, 0.55);
+  --e-2: 0 2px 0 rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.32);
+  --e-3: 0 3px 0 rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4);
+  --e-4: 0 4px 0 rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.5);
+  --e-card: 0 3px 0 rgba(0, 0, 0, 0.42), 0 7px 14px rgba(0, 0, 0, 0.35);
+  --e-lift: 0 6px 0 rgba(0, 0, 0, 0.42), 0 20px 34px rgba(0, 0, 0, 0.45);
+
+  /* --- print ---------------------------------------------------------------
+     Texture, so a flat fill is not a dead one. `--grain` is a hairline mesh
+     laid over panels at very low opacity; it is what stops the new flat
+     surfaces looking like untextured blocks of colour. */
+  --grain:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px);
 
   /* --- motion ------------------------------------------------------------- */
   --t-instant: 90ms;

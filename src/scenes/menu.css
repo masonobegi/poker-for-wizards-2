@@ -21,7 +21,7 @@
 .menu-brand { display: grid; justify-items: center; gap: var(--s-2); text-align: center; }
 
 .menu-sigil {
-  filter: drop-shadow(0 0 26px rgba(240, 196, 101, 0.35));
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--gold) 35%, transparent));
   animation: sigilbreathe 7s var(--ease-both) infinite;
 }
 @keyframes sigilbreathe {
@@ -29,17 +29,22 @@
   50%      { transform: scale(1.035) rotate(6deg); opacity: 1; }
 }
 
+/* Letterpress, not neon. A gradient clipped to text with a soft coloured
+   drop-shadow behind it is the most recognisable "generated" treatment there
+   is; this is flat brass with the hard offset of type pressed into stock,
+   plus one tight highlight along the top edge where the ink catches. */
 .menu-title {
   font-family: var(--font-display);
   font-size: clamp(44px, 11vw, var(--fs-3xl));
   font-weight: 900;
   letter-spacing: 0.2em;
   margin-right: -0.2em;
-  background: linear-gradient(180deg, #fff6dd 0%, var(--gold) 46%, var(--gold-deep) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 4px 24px rgba(240, 196, 101, 0.28));
+  color: var(--gold);
+  text-shadow:
+    0 1px 0 var(--gold-hi),
+    0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 3px 0 rgba(0, 0, 0, 0.55),
+    0 4px 1px rgba(0, 0, 0, 0.4);
 }
 
 .menu-tag {
@@ -59,10 +64,9 @@
   gap: var(--s-4);
   padding: var(--s-6);
   border-radius: var(--r-xl);
-  background: linear-gradient(180deg, rgba(27, 33, 64, 0.72), rgba(11, 14, 27, 0.86));
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--e-4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--e-4);
 }
 
 .menu-h2 {

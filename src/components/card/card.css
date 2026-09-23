@@ -301,7 +301,7 @@
    matching glint so the metal reads as one consistent surface. */
 .hx-back--sheen .hx-back__ring,
 .hx-back--sheen .hx-back__star {
-  filter: drop-shadow(0 0 1px rgba(240, 196, 101, 0.25));
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--gold) 25%, transparent));
 }
 
 .hx-back__svg { width: 100%; height: 100%; display: block; }
@@ -498,14 +498,14 @@
   justify-content: center;
   gap: 0.15em;
   color: var(--gold-hi);
-  text-shadow: 0 0 0.5em rgba(240, 196, 101, 0.65);
+  text-shadow: 0 0 0.5em color-mix(in srgb, var(--gold) 65%, transparent);
 }
 .hx-veil__sigil {
   position: absolute;
   width: 62%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(240, 196, 101, 0.35), rgba(240, 196, 101, 0.05) 60%, transparent 72%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 35%, transparent), color-mix(in srgb, var(--gold) 5%, transparent) 60%, transparent 72%);
   filter: blur(1px);
   pointer-events: none;
 }
@@ -778,7 +778,7 @@
   border-radius: 50%;
   display: block;
   background: radial-gradient(circle at 32% 28%, var(--gold-hi), var(--gold-deep) 75%);
-  box-shadow: 0 0 0.35em rgba(240, 196, 101, 0.7);
+  box-shadow: 0 0 0.35em color-mix(in srgb, var(--gold) 70%, transparent);
 }
 .hx-mem__count {
   display: flex;
@@ -789,7 +789,7 @@
   font-weight: 700;
   color: var(--gold-hi);
   background: rgba(8, 10, 20, 0.55);
-  border: 1px solid rgba(240, 196, 101, 0.35);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   border-radius: var(--r-pill);
   padding: 0.08em 0.4em;
 }

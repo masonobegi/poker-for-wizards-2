@@ -30,8 +30,8 @@
   gap: 5px;
   padding: 2px 9px 2px 6px;
   border-radius: var(--r-pill);
-  border: 1px solid rgba(185, 140, 255, 0.4);
-  background: rgba(185, 140, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--entropy) 40%, transparent);
+  background: color-mix(in srgb, var(--entropy) 10%, transparent);
   color: var(--entropy);
   font-size: 10px;
   font-weight: 700;
@@ -42,9 +42,9 @@
 .omen:hover,
 .omen.is-open {
   border-color: var(--entropy);
-  background: rgba(185, 140, 255, 0.2);
+  background: color-mix(in srgb, var(--entropy) 20%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 0 18px rgba(185, 140, 255, 0.35);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--entropy) 35%, transparent);
 }
 
 .omen-glyph {
@@ -56,7 +56,7 @@
 .omen-rank {
   padding-left: 5px;
   margin-left: 1px;
-  border-left: 1px solid rgba(185, 140, 255, 0.35);
+  border-left: 1px solid color-mix(in srgb, var(--entropy) 35%, transparent);
   color: var(--bad);
 }
 
@@ -69,8 +69,8 @@
   width: 270px;
   padding: 11px 13px;
   border-radius: var(--r-md);
-  background: linear-gradient(180deg, #1b2140, #0c0f21);
-  border: 1px solid rgba(185, 140, 255, 0.45);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--entropy) 45%, transparent);
   box-shadow: var(--e-4);
   pointer-events: none;
   text-align: left;

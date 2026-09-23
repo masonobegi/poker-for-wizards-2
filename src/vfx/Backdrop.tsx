@@ -92,30 +92,35 @@ void main() {
   float b = fbm(q * 3.1 - vec2(t * 0.72, t * 0.41) + 11.0);
   float weather = a * 0.65 + b * 0.35;
 
-  // The palette, straight off tokens.css: void, a deep indigo, and the violet
-  // the spell layer is built from.
-  vec3 deep = vec3(0.020, 0.024, 0.047);
-  vec3 indigo = vec3(0.090, 0.110, 0.232);
-  vec3 violet = vec3(0.232, 0.150, 0.470);
+  // The palette, straight off tokens.css: ink, a warm charcoal, and the dark
+  // bottle green the felt is cut from. There is deliberately no violet in
+  // here any more — an ambient purple wash over everything was most of what
+  // made the whole interface read as generated rather than designed. The only
+  // colour that enters this shader now is the school tint on a cast, which
+  // means something.
+  vec3 ink = vec3(0.039, 0.039, 0.047);
+  vec3 ash = vec3(0.090, 0.088, 0.098);
+  vec3 bottle = vec3(0.070, 0.140, 0.118);
 
-  vec3 col = mix(deep, indigo, smoothstep(0.22, 0.95, weather));
-  col = mix(col, violet, smoothstep(0.55, 1.0, weather) * (0.42 + 0.26 * uAtTable));
+  vec3 col = mix(ink, ash, smoothstep(0.22, 0.95, weather));
+  col = mix(col, bottle, smoothstep(0.58, 1.0, weather) * (0.30 + 0.34 * uAtTable));
 
-  // A soft pool of light under the middle of the screen, a little stronger at
-  // the table, where it reads as the lamp over the felt.
+  // The lamp over the table. Brass-warm rather than blue, and only really
+  // present once you are at the felt.
   float centre = 1.0 - smoothstep(0.0, 0.95, length(q * vec2(1.0, 1.25)));
-  col += vec3(0.070, 0.078, 0.160) * centre * (0.60 + 0.85 * uAtTable);
+  col += vec3(0.086, 0.070, 0.040) * centre * (0.45 + 0.95 * uAtTable);
 
-  // Motes. Sparse, slow, and never bright enough to be mistaken for a card.
+  // Dust in the lamplight. Warm, sparse, never bright enough to be mistaken
+  // for a card.
   vec2 g = q * 5.5;
   g.y += t * 1.7;
   vec2 cell = floor(g);
   float m = hash(cell);
-  if (m > 0.972) {
+  if (m > 0.976) {
     vec2 c = fract(g) - 0.5;
     float d = length(c);
     float twinkle = 0.55 + 0.45 * sin(uTime * 0.0013 + m * 90.0);
-    col += vec3(0.42, 0.38, 0.62) * smoothstep(0.24, 0.0, d) * 0.5 * twinkle;
+    col += vec3(0.46, 0.40, 0.28) * smoothstep(0.24, 0.0, d) * 0.42 * twinkle;
   }
 
   // The ripple a resolving sigil pushes out. One expanding ring that fades

@@ -21,7 +21,7 @@
   color: var(--text);
   line-height: 1;
 }
-.profile-value.is-good { color: var(--gold); text-shadow: 0 0 14px rgba(240, 196, 101, 0.4); }
+.profile-value.is-good { color: var(--gold); text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 40%, transparent); }
 .profile-label {
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -42,8 +42,8 @@
 }
 .profile-best.is-impossible {
   border-color: var(--gold-deep);
-  background: rgba(240, 196, 101, 0.08);
-  box-shadow: 0 0 22px rgba(240, 196, 101, 0.18);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--gold) 18%, transparent);
 }
 .profile-bestlabel {
   font-size: 10px;
@@ -60,7 +60,7 @@
   text-transform: uppercase;
   padding: 2px 7px;
   border-radius: var(--r-pill);
-  background: rgba(240, 196, 101, 0.16);
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
   color: var(--gold);
 }
 
@@ -82,11 +82,11 @@
   color: var(--gold);
   opacity: 0.7;
   cursor: help;
-  filter: drop-shadow(0 0 5px rgba(240, 196, 101, 0.4));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 40%, transparent));
   transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-snap);
 }
 .profile-glyph:hover { opacity: 1; transform: translateY(-2px) scale(1.15); }
 .profile-glyph.is-omen {
   color: var(--entropy);
-  filter: drop-shadow(0 0 5px rgba(185, 140, 255, 0.5));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--entropy) 50%, transparent));
 }

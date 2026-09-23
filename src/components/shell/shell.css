@@ -25,7 +25,6 @@
   place-items: center;
   padding: var(--s-5);
   background: rgba(3, 4, 9, 0.8);
-  backdrop-filter: blur(10px) saturate(0.8);
 }
 
 .hh-menu-panel {
@@ -34,9 +33,9 @@
   overflow: auto;
   padding: var(--s-6);
   border-radius: var(--r-xl);
-  background: linear-gradient(180deg, #1b2140, #0d1022);
+  background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 80px rgba(76, 52, 140, 0.25);
+  box-shadow: var(--e-4), 0 0 80px color-mix(in srgb, var(--entropy-deep) 25%, transparent);
 }
 .hh-menu-panel:focus { outline: none; }
 
@@ -82,7 +81,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
 }
 
 .hh-conn-overlay {
@@ -93,7 +91,6 @@
   place-items: center;
   padding: var(--s-5);
   background: rgba(3, 4, 9, 0.82);
-  backdrop-filter: blur(10px) saturate(0.8);
 }
 
 .hh-conn-panel {
@@ -153,7 +150,7 @@
 .hh-tab:hover { color: var(--text); }
 .hh-tab.is-active {
   color: var(--gold);
-  background: rgba(240, 196, 101, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
   border-color: var(--line-soft);
 }
 
