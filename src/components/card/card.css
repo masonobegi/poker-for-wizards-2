@@ -181,6 +181,28 @@
   pointer-events: none;
 }
 
+/* The turn highlight: a soft band the width of the card, swept across by
+   framer while the flip runs. No `transform` here — framer owns this
+   element's transform and would discard one. `screen` rather than `overlay`
+   so it reads as light on the dark back as well as on the pale face. */
+.hx-card__turn {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 246, 214, 0.5) 48%,
+    rgba(255, 255, 255, 0.9) 52%,
+    rgba(255, 246, 214, 0.5) 56%,
+    rgba(255, 255, 255, 0) 74%
+  );
+}
+
 /* Persistent frame. Base = a hairline. ::before/::after are glow layers
    toggled purely by opacity so state changes never touch box-shadow. */
 .hx-card__rim {

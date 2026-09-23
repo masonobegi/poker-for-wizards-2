@@ -172,7 +172,14 @@ export default function GameTable() {
 
       <main className="tbl-main">
         <div className="felt">
-          <div className="felt-surface" aria-hidden />
+          <div className="felt-surface" aria-hidden>
+            {/* Slow arcane light moving under the felt. Pure CSS with no
+                per-frame work, no canvas and no third layer of state — see
+                `.felt-haze` in table.css for why it is built the way it is. */}
+            <span className="felt-haze felt-haze--a" />
+            <span className="felt-haze felt-haze--b" />
+            <span className="felt-haze felt-haze--c" />
+          </div>
           <div className="felt-rail" aria-hidden />
 
           {opponents.map((p, i) => (

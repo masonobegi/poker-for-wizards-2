@@ -102,6 +102,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
               <Card
                 view={c}
                 size="md"
+                dealFlip
                 index={i}
                 highlight={winningIds.has(c.id) ? 'winning' : 'none'}
                 selectable={targetable}

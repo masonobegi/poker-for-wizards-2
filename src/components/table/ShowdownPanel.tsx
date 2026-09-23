@@ -4,6 +4,7 @@ import type { ShowdownEntry, TableView } from '@shared/types';
 import { CAT_NAME } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
+import { DecodeText } from '@/components/fx/DecodeText';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { burstAt } from '@/lib/visuals';
@@ -153,7 +154,13 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
       <div className="showdown-who">
         <strong>{nameOf(e.playerId)}</strong>
         <span className="showdown-hand">
-          {e.handName}
+          {/* Only the hand that won decodes. Every row doing it at once is a
+              wall of runes, and the point is to draw the eye to the line that
+              decided the pot — not to decorate five of them. */}
+          {/* The lead covers the panel's own 0.25s entrance delay and spring.
+              Without it a third of the decode happens behind an invisible
+              panel and the line is half-resolved by the time you can read it. */}
+          {isWinner ? <DecodeText text={e.handName} lead={430} step={42} /> : e.handName}
           {e.timelineUsed === 'echo' ? (
             <em className="showdown-echo" title="Scored from the second timeline">
               ⧖ echo

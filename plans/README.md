@@ -29,6 +29,7 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 | [019](019-let-the-winning-plaque-exit.md) | Let the winning-hand plaque exit | LOW | 8 | DONE |
 | [020](020-grow-the-target-prompt-from-its-sigil.md) | Grow the target prompt from the sigil that opened it | MEDIUM | 8 / 3 | DONE |
 | [021](021-animate-the-boards-empty-sockets.md) | Animate the board's empty sockets | LOW | 8 | DONE |
+| [022](022-port-the-webgl-demos-to-the-table.md) | Port the web demos' techniques to the table | MEDIUM | 8 | DONE |
 
 ## Recommended execution order
 
@@ -82,7 +83,9 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 
 ## Status
 
-All 21 plans are applied as of this pass, on top of commit `55ca0f0`. Every one
+All 22 plans are applied. `001`-`021` were the original audit, on top of
+commit `55ca0f0`; `022` is later work, porting techniques out of the
+`masonobegi_webpage` demos. Every one
 was verified with `npm run typecheck`, `npm test`, and — where it touches the
 table, the controller path or layout — `npm run play`, `npm run play:pad` and
 `npm run responsive`.
