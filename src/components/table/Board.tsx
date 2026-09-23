@@ -6,6 +6,7 @@ import { Card } from '@/components/card/Card';
 import { Tooltip } from '@/components/ui/kit';
 import { RollingNumber } from '@/components/fx/RollingNumber';
 import { spellFlight } from '@/components/fx/SpellFlight';
+import PotChips from '@/components/table/PotChips';
 
 export interface BoardProps {
   view: TableView;
@@ -113,6 +114,9 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
       </div>
 
       <div className="board-pot" data-fx-pot>
+        {/* The pile sits on the felt above its own label rather than inside
+            the pill, which had no room to make it read as money. */}
+        <PotChips pot={view.pot} bb={view.bb} />
         <AnimatePresence mode="wait">
           {view.pot > 0 ? (
             <motion.div

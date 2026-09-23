@@ -430,18 +430,62 @@
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
-.board-pot { min-height: 46px; display: grid; place-items: center; }
+.board-pot {
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
 
 .pot {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 5px 18px;
+  padding: 6px 20px;
   border-radius: var(--r-pill);
   background: rgba(5, 6, 12, 0.85);
   border: 1px solid var(--gold-deep);
   box-shadow: var(--e-2), 0 0 28px rgba(240, 196, 101, 0.18);
 }
+
+/* --- the pile ------------------------------------------------------------
+ *
+ * Drawn, not photographed: every chip is one element with a face, a rim and
+ * an edge shadow, which keeps the repo's no-image-assets rule and costs
+ * fifteen elements at the very most. PotChips.tsx explains why the count
+ * comes from the pot in big blinds rather than its raw total. */
+.potchips {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  min-height: 13px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+.potchips-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+}
+.potchip {
+  --chip-face: #4c5678;
+  --chip-rim: #7f8cb6;
+  display: block;
+  width: 31px;
+  height: 10px;
+  border-radius: 50%;
+  /* Stacked: each chip sits on the one below with only its edge showing. */
+  margin-top: -4.5px;
+  background:
+    radial-gradient(ellipse 60% 70% at 50% 35%, color-mix(in srgb, var(--chip-rim) 55%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--chip-rim) 0%, var(--chip-face) 42%, color-mix(in srgb, var(--chip-face) 60%, #000) 100%);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--chip-face) 50%, #000),
+    0 2px 3px rgba(0, 0, 0, 0.45);
+}
+.potchip.is-mid { --chip-face: #6b47b0; --chip-rim: #a688e4; }
+.potchip.is-high { --chip-face: #a67c2a; --chip-rim: #f0c465; }
 .pot-label {
   font-family: var(--font-display);
   font-size: 10px;
@@ -451,7 +495,7 @@
 }
 .pot-amount {
   display: inline-block;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-xl);
   font-weight: 700;
   color: var(--chip);
   transition: color 320ms var(--ease-out);
