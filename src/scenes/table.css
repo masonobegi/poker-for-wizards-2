@@ -159,12 +159,18 @@
    so the falloff is not a single linear ramp — real falloff never is. */
 .felt-lamp {
   position: absolute;
-  inset: -10%;
+  /* Not `inset: -10%`. The spill was drawn on an oversized box and then
+     clipped away by `.felt-surface`'s `overflow: hidden`, so the extra 20%
+     bought nothing visible — it just made an element wider than the viewport,
+     which the playthrough harness flags at every phase and is right to. The
+     ellipse percentages below are scaled by the same 1.2 the box lost, so the
+     pool of light is the size it was. */
+  inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(ellipse 34% 40% at var(--lamp-x) var(--lamp-y),
+    radial-gradient(ellipse 41% 48% at var(--lamp-x) var(--lamp-y),
       rgba(var(--lamp-warm), 0.115), rgba(var(--lamp-warm), 0.034) 46%, transparent 68%),
-    radial-gradient(ellipse 72% 78% at var(--lamp-x) var(--lamp-y),
+    radial-gradient(ellipse 86% 94% at var(--lamp-x) var(--lamp-y),
       rgba(var(--lamp-warm), 0.05), transparent 74%);
   mix-blend-mode: screen;
   pointer-events: none;
