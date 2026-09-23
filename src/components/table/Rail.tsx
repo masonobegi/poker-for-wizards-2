@@ -133,6 +133,7 @@ function RailBase({
         <CardRow
           views={me.hole}
           size="lg"
+          dealFlip
           fan
           fanSpread={10}
           overlap={0.16}

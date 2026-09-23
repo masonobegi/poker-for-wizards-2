@@ -22,19 +22,10 @@ import {
   useRef,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
 } from 'react';
-import {
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  type SpringOptions,
-  type Transition,
-} from 'framer-motion';
+import { motion, type Transition } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
-import { useFinePointer } from '@/components/fx/useFinePointer';
+import { usePointerFoil } from '@/components/fx/usePointerFoil';
 import type { CardView, Face, MarkId, Rank, Suit } from '@shared/cards';
 import { MARKS, RANK_LABEL, RANK_NAME, SUIT_NAME, faceKey, faceName } from '@shared/cards';
 import { CardArt, SuitShape } from './CardArt';
@@ -70,13 +61,20 @@ export interface CardProps {
   className?: string;
   /** 3D tilt following the pointer. Defaults on for interactive cards. */
   tiltOnHover?: boolean;
+  /**
+   * Land face-down and turn over, rather than arriving already face-up.
+   *
+   * Only true where a DEAL is what is actually happening — the board and your
+   * own hand. Every other card on screen (the codex, the shop, the top-of-deck
+   * peek, a showdown row) is a card being SHOWN, not dealt, and flipping those
+   * on mount turns a quiet panel into a flock of spinning rectangles.
+   */
+  dealFlip?: boolean;
 }
 
 const SCALE: Record<CardSize, number> = { xs: 0.52, sm: 0.74, md: 1, lg: 1.36 };
 
 const MAX_TILT = 10;
-const TILT_SPRING: SpringOptions = { stiffness: 260, damping: 26, mass: 0.5 };
-const GLARE_SPRING: SpringOptions = { stiffness: 190, damping: 30, mass: 0.4 };
 const FLIP: Transition = { duration: T_SLOW, ease: EASE_OUT };
 const STAGGER = 0.07;
 
@@ -215,9 +213,9 @@ function CardBase({
   index = 0,
   className,
   tiltOnHover,
+  dealFlip = false,
 }: CardProps) {
   const reduced = useReducedMotionPref();
-  const finePointer = useFinePointer();
   const scale = SCALE[size];
 
   const cloud = useMemo<Face[]>(
@@ -226,47 +224,25 @@ function CardBase({
   );
 
   const interactive = Boolean(onClick) || selectable;
-  const tiltEnabled = (tiltOnHover ?? interactive) && finePointer && !reduced;
 
   const isQuantum = view.state === 'quantum';
   const showBack =
     faceDown || view.state === 'facedown' || view.state === 'veiled' || (isQuantum && cloud.length === 0);
 
   // --- pointer tilt + specular -------------------------------------------
-  const px = useMotionValue(0.5);
-  const py = useMotionValue(0.5);
-  const hot = useMotionValue(0);
-  const sx = useSpring(px, TILT_SPRING);
-  const sy = useSpring(py, TILT_SPRING);
-  const sHot = useSpring(hot, GLARE_SPRING);
-  const rotateX = useTransform(sy, [0, 1], [MAX_TILT, -MAX_TILT]);
-  const rotateY = useTransform(sx, [0, 1], [-MAX_TILT, MAX_TILT]);
-  const glareX = useTransform(sx, (v: number) => `${(v * 100).toFixed(2)}%`);
-  const glareY = useTransform(sy, (v: number) => `${(v * 100).toFixed(2)}%`);
-  const glare = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%)`;
-
-  const handleMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!tiltEnabled) return;
-      const r = e.currentTarget.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) return;
-      px.set((e.clientX - r.left) / r.width);
-      py.set((e.clientY - r.top) / r.height);
-    },
-    [tiltEnabled, px, py],
-  );
+  // Shared with the sigils, so the two never drift apart. See usePointerFoil.
+  const foil = usePointerFoil({ tilt: MAX_TILT, strength: 0.5, enabled: tiltOnHover ?? interactive });
+  const tiltEnabled = foil.on;
 
   const handleEnter = useCallback(() => {
     onHoverChange?.(view.id);
-    if (tiltEnabled) hot.set(1);
-  }, [onHoverChange, view.id, tiltEnabled, hot]);
+    foil.onPointerEnter();
+  }, [onHoverChange, view.id, foil]);
 
   const handleLeave = useCallback(() => {
     onHoverChange?.(null);
-    px.set(0.5);
-    py.set(0.5);
-    hot.set(0);
-  }, [onHoverChange, px, py, hot]);
+    foil.onPointerLeave();
+  }, [onHoverChange, foil]);
 
   const handleClick = useCallback(() => onClick?.(view.id), [onClick, view.id]);
 
@@ -318,6 +294,14 @@ function CardBase({
 
   const delay = reduced ? 0 : index * STAGGER;
   const lift = selected ? -10 * scale : 0;
+
+  // --- the turn ------------------------------------------------------------
+  // `flipSeq` is still 0 for as long as the card has never changed face, so it
+  // doubles as "this is the mount animation" — which is the only flip that
+  // wants to wait for the deal arc to land first.
+  const firstTurn = flipSeq.current === 0;
+  const dealTurn = dealFlip && !reduced && !showBack;
+  const turnTransition: Transition = firstTurn && dealTurn ? { ...FLIP, delay: delay + 0.16 } : FLIP;
 
   const enterInitial = reduced
     ? { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1 }
@@ -380,7 +364,7 @@ function CardBase({
       className={classes}
       style={slotVars}
       layoutId={layoutId}
-      onPointerMove={handleMove}
+      onPointerMove={foil.onPointerMove}
       onPointerEnter={handleEnter}
       onPointerLeave={handleLeave}
       onClick={onClick ? handleClick : undefined}
@@ -413,20 +397,35 @@ function CardBase({
           />
           <motion.div
             className="hx-card"
-            style={{ rotateX: tiltEnabled ? rotateX : 0, rotateY: tiltEnabled ? rotateY : 0 }}
+            style={{ rotateX: tiltEnabled ? foil.rotateX : 0, rotateY: tiltEnabled ? foil.rotateY : 0 }}
           >
             <motion.div
               className="hx-card__flip"
               animate={{ rotateY: showBack ? 180 : 0 }}
-              initial={false}
-              transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : FLIP}
+              initial={dealTurn ? { rotateY: 180 } : false}
+              transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : turnTransition}
             >
               {front}
               {back}
             </motion.div>
 
             <div className="hx-card__fx">
-              {tiltEnabled && <motion.span className="hx-card__glare" style={{ backgroundImage: glare, opacity: sHot }} />}
+              {/* The light a real card catches as it turns. `hx-card__fx` is a
+                  sibling of the flip, so it keeps facing the viewer and the
+                  streak reads as a reflection passing over the card rather
+                  than a decal glued to one face. Keyed on the same counter as
+                  the shadow, and `initial={false}` on the first render so a
+                  card that arrives face-up does not flash. */}
+              {!reduced && (!firstTurn || dealTurn) && (
+                <motion.span
+                  key={`turn-${flipSeq.current}`}
+                  className="hx-card__turn"
+                  initial={{ opacity: 0, x: '-75%' }}
+                  animate={{ opacity: [0, 0.55, 0], x: ['-75%', '75%'] }}
+                  transition={turnTransition}
+                />
+              )}
+              {tiltEnabled && <motion.span className="hx-card__glare" style={{ backgroundImage: foil.sheen, opacity: foil.sheenOpacity }} />}
               {isQuantum && <span className="hx-fx hx-fx--chroma" />}
               {isQuantum && <span className="hx-fx hx-fx--interference" />}
               {view.diverged && <span className="hx-fx hx-fx--split" />}

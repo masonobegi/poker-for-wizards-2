@@ -87,6 +87,16 @@ than regexes that truncate, and checks transform pins by asking whether identity
 falls inside the animated range. Every assertion in it has been verified to fail
 on a reintroduced bug.
 
+**A blend mode is not a colour, and `overlay` leaves dark surfaces dark.** The
+specular highlight lifted out of `Card.tsx` into `usePointerFoil` was dropped
+onto the sigils with the playing cards' `mix-blend-mode: overlay`. Every
+computed style said it was working — mounted, correct opacity, gradient
+tracking the pointer across the frame — and it was invisible on all 45 sigils,
+because a sigil frame is near-black and overlay's entire job is to preserve
+that. The sigil foil uses `screen`. Found by cropping a screenshot; no amount
+of reading the DOM would have shown it. Anything that lights a surface needs
+proving on the darkest and the lightest surface it will ever sit on.
+
 ## Known remaining flakiness
 
 `npm run play` fails roughly 1 run in 5 with "the table looks stuck", in runs

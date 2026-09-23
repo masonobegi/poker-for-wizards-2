@@ -2,8 +2,19 @@ import { forwardRef, memo, useEffect, useRef } from 'react';
 import { motion, useAnimationControls } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { useFinePointer } from '@/components/fx/useFinePointer';
-import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type SigilInstance } from '@shared/sigils';
+import { usePointerFoil } from '@/components/fx/usePointerFoil';
+import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type Rarity, type SigilInstance } from '@shared/sigils';
 import { EASE_OUT, ENTER_PANEL, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
+
+/**
+ * How hard a sigil glints under the pointer. The playing cards have had a
+ * specular highlight since the start and the sigils — the things the game is
+ * named after — had none, so a rail of spells read flatter than the board it
+ * sits under. Scaling it by rarity does the job a foil finish does on a real
+ * card: you can tell a mythic from across the table without reading it.
+ */
+const FOIL: Record<Rarity, number> = { common: 0.16, rare: 0.26, mythic: 0.4 };
+const FOIL_TILT = 7;
 
 export interface SigilCardProps {
   inst: SigilInstance;
@@ -41,6 +52,11 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
   const pop = useAnimationControls();
   const reduced = useReducedMotionPref();
   const finePointer = useFinePointer();
+  const foil = usePointerFoil({
+    tilt: FOIL_TILT,
+    strength: FOIL[def?.rarity ?? 'common'],
+    spread: 64,
+  });
   useEffect(() => {
     const crossed = usable && !wasUsable.current;
     wasUsable.current = usable;
@@ -77,13 +93,27 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         : { ...SPRING_CRISP, delay: Math.min(index * 0.06, 0.3) }}
       whileHover={finePointer && !reduced ? (usable ? { y: -14, scale: 1.05, zIndex: 5 } : { y: -5 }) : undefined}
       whileTap={usable ? { y: -10, scale: 0.99 } : undefined}
+      onPointerMove={foil.onPointerMove}
+      onPointerEnter={foil.onPointerEnter}
+      onPointerLeave={foil.onPointerLeave}
       onClick={() => { if (usable) onCast?.(inst.uid); }}
       role={usable ? 'button' : undefined}
       tabIndex={usable ? 0 : -1}
       onKeyDown={(e) => { if (usable && e.key === 'Enter') onCast?.(inst.uid); }}
       aria-label={`${def.name}, ${cost} mana`}
     >
-      <motion.div className="sigil-frame" animate={pop}>
+      <motion.div
+        className="sigil-frame"
+        animate={pop}
+        style={foil.on ? { rotateX: foil.rotateX, rotateY: foil.rotateY } : undefined}
+      >
+        {foil.on ? (
+          <motion.span
+            className="sigil-foil"
+            aria-hidden
+            style={{ backgroundImage: foil.sheen, opacity: foil.sheenOpacity }}
+          />
+        ) : null}
         <header className="sigil-head">
           <span className="sigil-cost mono">{cost}</span>
           <span className="sigil-school">

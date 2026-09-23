@@ -76,6 +76,10 @@
   position: absolute;
   inset: 4%;
   border-radius: 50% / 34%;
+  /* Holds the haze inside the ellipse. The gradients fade out well before
+     their own edges, so this is belt and braces rather than the only thing
+     stopping a bright disc from hanging off the side of the table. */
+  overflow: hidden;
   background:
     radial-gradient(ellipse 70% 62% at 50% 44%, var(--felt-core), var(--felt-mid) 58%, var(--felt-edge) 100%);
   box-shadow:
@@ -83,6 +87,72 @@
     inset 0 2px 0 rgba(255, 255, 255, 0.04),
     0 30px 80px rgba(0, 0, 0, 0.6);
 }
+
+/* --- living felt --------------------------------------------------------
+
+   Three very soft discs of school-coloured light, drifting on cycles long
+   enough (46-74s, deliberately coprime-ish so they never line up) that you
+   never catch one moving. The felt was a fixed radial gradient, which is
+   exactly as alive as a printed page.
+
+   Built out of what costs nothing:
+
+     - No `filter: blur()`. A radial-gradient is already soft, and blurring a
+       third of the screen every frame is the one thing on this table that
+       would actually cost a Steam Deck frames.
+     - `translate` and `scale` LONGHANDS, not `transform`. Composited the
+       same, and they do not collide with anything framer writes.
+     - Nothing animates opacity, so stopping these under reduced motion
+       leaves a still, faintly-lit table rather than a dark one.
+
+   Each drift returns to where it started and passes through its own resting
+   position on the way, so `animation: none` parks it somewhere sane. */
+.felt-haze {
+  position: absolute;
+  width: 62%;
+  height: 78%;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: felt-drift 58s ease-in-out infinite;
+}
+
+.felt-haze--a {
+  left: 4%;
+  top: -8%;
+  background: radial-gradient(circle, rgba(185, 140, 255, 0.14), rgba(185, 140, 255, 0) 68%);
+  animation-duration: 74s;
+}
+.felt-haze--b {
+  right: 2%;
+  top: 6%;
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.11), rgba(94, 234, 212, 0) 68%);
+  animation-duration: 61s;
+  animation-direction: reverse;
+}
+.felt-haze--c {
+  left: 24%;
+  bottom: -14%;
+  width: 54%;
+  height: 62%;
+  background: radial-gradient(circle, rgba(240, 196, 101, 0.1), rgba(240, 196, 101, 0) 66%);
+  animation-duration: 46s;
+  animation-delay: -18s;
+}
+
+@keyframes felt-drift {
+  0%   { translate: -5% 3%;  scale: 1; }
+  33%  { translate: 6% -4%;  scale: 1.12; }
+  66%  { translate: 2% 5%;   scale: 0.94; }
+  100% { translate: -5% 3%;  scale: 1; }
+}
+
+/* A player who turned particles off wants a table that holds still, and this
+   is the only ambient motion left when the particle engine is silent. */
+:root[data-particles='off'] .felt-haze { display: none; }
+
+:root[data-reduced-motion='1'] .felt-haze { animation: none; }
 
 /* A faint arcane circle etched into the felt. */
 .felt-surface::after {
@@ -667,6 +737,11 @@
 .sigil {
   --school: var(--entropy);
   position: relative;
+  /* Depth for the frame's pointer tilt. On `.sigil` rather than on the frame
+     itself, because `perspective` on an element applies to its CHILDREN — set
+     on the frame it would project the frame's own contents and leave the
+     frame flat. */
+  perspective: 900px;
   flex: none;
   /* 124px at the reference --card-w of 78px — scales with the same token
      everything else on the table uses. */
@@ -677,6 +752,11 @@
 .sigil.is-castable { cursor: pointer; }
 
 .sigil-frame {
+  /* The containing block for `.sigil-foil`, so `overflow: hidden` below
+     actually clips the sheen to the rounded frame. Without it the sheen
+     resolves against `.sigil`, which is outside the clip, and a bright
+     rectangle sits over the rounded corners. */
+  position: relative;
   display: grid;
   gap: 4px;
   padding: 9px 9px 7px;
@@ -700,6 +780,24 @@
   box-shadow: var(--e-lift), 0 0 34px color-mix(in srgb, var(--school) 60%, transparent);
 }
 .sigil.is-locked .sigil-frame { filter: grayscale(0.7) brightness(0.65); }
+
+/* Foil: the specular the playing cards have always had, scaled by rarity in
+   SigilCard.tsx. framer owns the gradient and the opacity; nothing here may
+   set `transform`, which framer would discard. Mounted only for a fine
+   pointer with motion on — an always-present blended layer costs a composite
+   layer per sigil for nothing. */
+.sigil-foil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  /* `screen`, not the `overlay` the playing cards use. Overlay leaves a dark
+     surface dark — that is what it is for — and a sigil frame is near-black,
+     so the first version of this was invisible on every card in the rail.
+     The playing cards get away with overlay because their faces are pale. */
+  mix-blend-mode: screen;
+}
 .sigil.is-selected .sigil-frame {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px var(--gold), 0 0 32px rgba(240, 196, 101, 0.6);
