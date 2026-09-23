@@ -24,6 +24,7 @@
     "icon": "node electron/make-icon.mjs",
     "metrics": "tsx test/metrics.ts",
     "play": "node test/playthrough.mjs",
+    "record": "node test/record.mjs",
     "play:pad": "node test/gamepad.mjs",
     "steam:manifest": "tsx scripts/steam-manifest.mjs",
     "audio": "node test/audio.mjs",

@@ -53,6 +53,8 @@ app.get('/health', (_req, res) => {
     ok: true,
     ...stats,
     ...guardStats(),
+    /** Percent of normal table speed; 100 unless HEXHOLD_PACE was set. */
+    pace: config.pacePercent,
     uptime: Math.round(process.uptime()),
     version: process.env.npm_package_version ?? '0.9.0',
   });

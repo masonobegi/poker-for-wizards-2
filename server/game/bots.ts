@@ -16,6 +16,7 @@ import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
 import type { BetAction, Player, SigilTargets, Table } from '../../shared/types';
 import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
+import { config } from '../config';
 
 interface Personality {
   /** 0 = plays anything, 1 = only premium holdings. */
@@ -361,5 +362,8 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
  * everyone is already staring at the spell.
  */
 export function thinkTime(rng: Rng, fast = false): number {
-  return fast ? 140 + rng.int(200) : 300 + rng.int(620);
+  const base = fast ? 140 + rng.int(200) : 300 + rng.int(620);
+  // The other half of the pacing: this one is not scheduled through the
+  // engine's `wait()`, so it needs the multiplier applied here too.
+  return Math.round(base * (config.pacePercent / 100));
 }

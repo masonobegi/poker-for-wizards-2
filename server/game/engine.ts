@@ -7,6 +7,7 @@
  * two timers can ever race to advance the same street.
  */
 import { nanoid } from 'nanoid';
+import { config } from '../config';
 import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -83,7 +84,7 @@ export class Engine {
   }
 
   private wait(ms: number, then: () => void): void {
-    this.deadline = Date.now() + ms;
+    this.deadline = Date.now() + Math.round(ms * (config.pacePercent / 100));
     this.onDeadline = then;
   }
 
