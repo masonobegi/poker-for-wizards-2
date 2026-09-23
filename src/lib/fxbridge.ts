@@ -14,6 +14,25 @@ import {
 
 const screenCentre = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
+/** `#rrggbb` to the 0..1 triple the shader wants. */
+function rgbOf(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return [0.6, 0.4, 0.95];
+  const n = parseInt(m[1], 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+/**
+ * Ask the shader backdrop for a ripple. Loaded on demand and ignored if it is
+ * not there, exactly like the particle layer — the backdrop is decoration and
+ * must never be something the table waits on.
+ */
+function backdropRipple(x: number, y: number, hex: string): void {
+  void import('@/vfx/Backdrop')
+    .then((m) => m.backdropPulse(x, y, rgbOf(hex)))
+    .catch(() => { /* no backdrop on this machine */ });
+}
+
 /** Where the pot lives on screen — tagged by Board.tsx with `data-fx-pot`. */
 function elementForPot(): Element | null {
   return document.querySelector('[data-fx-pot]');
@@ -89,9 +108,16 @@ export function installFxBridge(): () => void {
       case 'cast': {
         const colour = SCHOOL_COLOR[e.school] ?? '#b98cff';
         const ids = e.targetIds ?? [];
+        const at = ids.length
+          ? (centerOf(elementForCard(ids[0])) ?? screenCentre())
+          : screenCentre();
         if (ids.length) ids.forEach((id) => whenCard(id, (el) => burstAt('cast', el, { school: e.school })));
         else burst('cast', screenCentre(), { school: e.school });
         vignette(colour, 700);
+        // A ring pushed out through the shader backdrop, in the school's
+        // colour. Fire-and-forget: it is decoration, and on a machine with no
+        // GL the import resolves to a module whose pulse goes nowhere.
+        backdropRipple(at.x, at.y, colour);
         duckMusic(0.5, 600);
         break;
       }

@@ -96,7 +96,18 @@ async function checkLayout(page, where) {
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      const tag = `${el.tagName.toLowerCase()}.${(el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')}`;
+      // A bare "div." names nothing and cost a debugging session once
+      // already. Where an element has no class of its own, walk up for the
+      // nearest ancestor that does, so the report points somewhere.
+      const own = (el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.');
+      let where = '';
+      if (!own) {
+        for (let p = el.parentElement, up = 1; p && up <= 3; p = p.parentElement, up++) {
+          const c = (p.className || '').toString().split(' ').filter(Boolean)[0];
+          if (c) { where = ` inside .${c}`; break; }
+        }
+      }
+      const tag = `${el.tagName.toLowerCase()}${own ? `.${own}` : ''}${where}`;
       if (r.right > vw + 2 || r.left < -2) {
         out.push(`${tag} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
       }

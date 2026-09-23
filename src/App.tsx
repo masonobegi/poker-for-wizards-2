@@ -22,6 +22,20 @@ import { installCloudSync, pullCloudSave } from '@/lib/cloud';
  * The particle layer is decoration — load it after the first paint, and if the
  * chunk fails to arrive, render nothing rather than taking the table down.
  */
+/**
+ * The shader backdrop is decoration too, and heavier than the particle layer,
+ * so it loads the same way: after first paint, and a failed chunk renders
+ * nothing while the CSS gradient underneath carries on being the background.
+ */
+const Backdrop = lazy(async (): Promise<{ default: React.ComponentType }> => {
+  try {
+    const m = await import('@/vfx/Backdrop');
+    return { default: m.default as React.ComponentType };
+  } catch {
+    return { default: () => null };
+  }
+});
+
 const VfxLayer = lazy(async (): Promise<{ default: React.ComponentType }> => {
   try {
     const m = await import('@/vfx/VfxLayer');
@@ -108,6 +122,15 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // The backdrop sits warmer and closer under the table than under the menu.
+  // Imported lazily for the same reason the layer itself is: it must never be
+  // on the path that renders the game.
+  useEffect(() => {
+    void import('@/vfx/Backdrop')
+      .then((m) => m.backdropScene(screen === 'game'))
+      .catch(() => { /* no backdrop; nothing to tell it */ });
+  }, [screen]);
+
   // Browsers will not start audio until the player touches something.
   useEffect(() => {
     const go = () => {
@@ -144,6 +167,7 @@ export default function App() {
       <IntroFlow open={howTo} onClose={() => setHowTo(false)} />
 
       <Suspense fallback={null}>
+        <Backdrop />
         <VfxLayer />
       </Suspense>
     </div>

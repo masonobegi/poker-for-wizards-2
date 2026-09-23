@@ -325,8 +325,17 @@ function CardBase({
     interactive ? 'is-interactive' : '',
     view.diverged ? 'is-diverged' : '',
     view.entangled ? 'is-entangled' : '',
+    // Every mark gets a hook. card.css turns these into the foil that makes a
+    // marked card read as precious from across the table — the payoff of the
+    // whole Weave school, which until now looked like an ordinary card with a
+    // small badge on it.
+    marks.length > 0 ? 'has-mark' : '',
     has('wild') ? 'has-wild' : '',
+    has('prism') ? 'has-prism' : '',
     has('blooded') ? 'has-blooded' : '',
+    has('leaden') ? 'has-leaden' : '',
+    has('mirrored') ? 'has-mirrored' : '',
+    has('bound') ? 'has-bound' : '',
     has('cursed') ? 'has-cursed' : '',
     has('burning') ? 'has-burning' : '',
     has('echo') ? 'has-echo' : '',

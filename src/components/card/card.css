@@ -891,3 +891,99 @@
     transition: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   12. Foil — what a marked card looks like.
+
+   A mark is the most valuable thing that can happen to a card in this game:
+   Rites cost shards, they are permanent, and they are written into the deck
+   everybody draws from. Until now a marked card was an ordinary card with a
+   small badge in the corner, which made the entire Weave school invisible at
+   a glance.
+
+   The foil is deliberately not a loop. A permanent shimmer on every marked
+   card at a six-handed table is noise, and it would be animating whether or
+   not anybody was looking at it. So: a fixed iridescent wash that says "this
+   one is different" from across the table, plus a single sweep when the card
+   arrives and again on hover, which is when a player is actually asking.
+   --------------------------------------------------------------------------- */
+
+.has-mark .hx-card__surface--face {
+  --foil: #ffd76e;
+  --foil-2: #7ee8fa;
+}
+.has-wild     .hx-card__surface--face { --foil: #ffd76e; --foil-2: #ffb03c; }
+.has-prism    .hx-card__surface--face { --foil: #7ee8fa; --foil-2: #b98cff; }
+.has-blooded  .hx-card__surface--face { --foil: #ff6b81; --foil-2: #ffb0a0; }
+.has-leaden   .hx-card__surface--face { --foil: #9aa4b2; --foil-2: #6b7382; }
+.has-mirrored .hx-card__surface--face { --foil: #c4a7ff; --foil-2: #7ee8fa; }
+.has-bound    .hx-card__surface--face { --foil: #5eead4; --foil-2: #34d399; }
+.has-cursed   .hx-card__surface--face { --foil: #8b5cf6; --foil-2: #4c1d95; }
+.has-burning  .hx-card__surface--face { --foil: #ff9a3c; --foil-2: #ff5e3a; }
+.has-echo     .hx-card__surface--face { --foil: #a3e635; --foil-2: #65a30d; }
+
+/* The wash. Multiply-free and low alpha so the pips and the court art stay
+   exactly as legible as they were — rule three of the fx layer applies here
+   too: never obscure the card. */
+.has-mark .hx-card__surface--face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 22% 12%, color-mix(in srgb, var(--foil) 34%, transparent), transparent 72%),
+    radial-gradient(ellipse 60% 40% at 82% 88%, color-mix(in srgb, var(--foil-2) 28%, transparent), transparent 72%),
+    linear-gradient(152deg, transparent 38%, color-mix(in srgb, var(--foil) 14%, transparent) 50%, transparent 62%);
+  /* Low on purpose. The gilt edge below does most of the "this one is
+     special" work, and it costs nothing in legibility — a wash heavy enough
+     to be obvious at a glance was heavy enough to make the pips harder to
+     count, which is the one thing a card may never do. */
+  opacity: 0.36;
+}
+
+/* A gilt edge, so the card is identifiable even face-on in a fanned row where
+   most of it is covered by the card in front. */
+.has-mark .hx-card__surface--face {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--foil) 70%, transparent),
+    var(--e-card),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 14px color-mix(in srgb, var(--foil) 26%, transparent),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.14);
+}
+
+/* The sweep. One pass on arrival, one on hover, never a loop. Driven by
+   background-position on a band that is mostly transparent, so there is
+   nothing to composite while it is idle. */
+.has-mark .hx-card__surface--face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    108deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.72) 48%,
+    color-mix(in srgb, var(--foil-2) 70%, transparent) 53%,
+    transparent 63%);
+  background-size: 260% 100%;
+  background-repeat: no-repeat;
+  background-position: 130% 0;
+}
+.has-mark .hx-card__surface--face::after { animation: hx-foil 1100ms var(--ease-out, ease) 220ms 1; }
+.has-mark:hover .hx-card__surface--face::after { animation: hx-foil 850ms var(--ease-out, ease) 1; }
+
+@keyframes hx-foil {
+  0%   { opacity: 0;    background-position: 130% 0; }
+  18%  { opacity: 0.95; }
+  100% { opacity: 0;    background-position: -30% 0; }
+}
+
+/* A cursed card is the one mark that is bad news, so it reads cold and sits
+   slightly lower than its neighbours rather than glittering. */
+.has-cursed .hx-card__surface--face::before { opacity: 0.46; }
+.has-cursed .hx-card__lift { filter: saturate(0.88) brightness(0.95); }

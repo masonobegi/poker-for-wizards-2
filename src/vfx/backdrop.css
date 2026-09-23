@@ -1,0 +1,26 @@
+/* The shader canvas sits behind everything and is never interactive.
+   It fades in only once GL has actually started, so a machine without it
+   simply keeps the gradient on <body> and nothing flickers. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  /* Upscaled from half resolution; let the GPU smooth it rather than
+     showing the rasterisation. */
+  image-rendering: auto;
+}
+.backdrop.is-live { opacity: 1; }
+/* A lost context just drops `is-live`, fading back to the gradient. */
+
+/* Everything the app draws sits above it. */
+#root { position: relative; z-index: 1; }
+
+/* The handover. `.app`'s own gradient is the fallback and stays untouched on
+   any machine where GL never started; where it did, the shader takes over
+   that job and the gradient would only be painting over it. */
+:root[data-backdrop='1'] .app { background: transparent; }
