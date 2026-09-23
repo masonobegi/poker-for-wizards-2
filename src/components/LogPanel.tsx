@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { LogEntry, PlayerView } from '@shared/types';
 import { SCHOOLS } from '@shared/sigils';
+import { ENTER } from '@/styles/motion';
 
 function LogPanelBase({ entries, players }: {
   entries: LogEntry[];
@@ -34,7 +35,7 @@ function LogPanelBase({ entries, players }: {
             style={accent ? { ['--accent' as string]: accent } : undefined}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.22 }}
+            transition={ENTER}
             data-avatar={seatOf(e.playerId)}
           >
             {e.tone === 'impossible' ? <span className="log-mark">⧉</span> : null}

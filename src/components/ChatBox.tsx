@@ -4,6 +4,7 @@ import { useGame } from '@/store/net';
 import { EMOTES } from '@shared/protocol';
 import { playSfx } from '@/lib/sound';
 import './chat.css';
+import { ENTER } from '@/styles/motion';
 
 export default function ChatBox({ className = '', compact }: {
   className?: string;
@@ -45,7 +46,7 @@ export default function ChatBox({ className = '', compact }: {
             className={`chat-msg ${m.system ? 'is-system' : ''} ${m.playerId === youId ? 'is-you' : ''}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={ENTER}
           >
             {!m.system ? <span className="chat-who">{m.name}</span> : null}
             <span className="chat-text">{m.text}</span>

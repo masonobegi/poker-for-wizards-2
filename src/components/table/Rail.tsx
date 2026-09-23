@@ -68,8 +68,19 @@ function RailBase({
     if (def) {
       if (def.target === 'none' || def.target === 'stack') {
         spellFlight.fireNow(originEl, immediateFlightTarget(), def.school, def.glyph);
-      } else {
+      } else if (def.target !== 'rank' && def.target !== 'suit') {
         spellFlight.arm(originEl, def.school, def.glyph);
+      } else {
+        // rank / suit: the target is a value, not an element, so an
+        // armed flight would only ever be cancelled. Publish where the cast
+        // came from instead, and let the prompt grow out of that card rather
+        // than teleporting in from screen centre.
+        const r = originEl?.getBoundingClientRect();
+        if (r) {
+          const root = document.documentElement;
+          root.style.setProperty('--prompt-origin-x', String(r.left + r.width / 2));
+          root.style.setProperty('--prompt-origin-y', String(r.top + r.height / 2));
+        }
       }
     }
     onBeginCast(uid);

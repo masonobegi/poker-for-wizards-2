@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGame } from '@/store/net';
+import { ENTER_PANEL } from '@/styles/motion';
 
 export default function Toasts() {
   const toasts = useGame((s) => s.toasts);
@@ -14,7 +15,7 @@ export default function Toasts() {
             initial={{ opacity: 0, y: -16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.96 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            transition={ENTER_PANEL}
             layout
           >
             {t.text}

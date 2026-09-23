@@ -18,10 +18,8 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
-  useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -30,17 +28,19 @@ import {
   motion,
   useMotionTemplate,
   useMotionValue,
-  useReducedMotion,
   useSpring,
   useTransform,
   type SpringOptions,
   type Transition,
 } from 'framer-motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { useFinePointer } from '@/components/fx/useFinePointer';
 import type { CardView, Face, MarkId, Rank, Suit } from '@shared/cards';
 import { MARKS, RANK_LABEL, RANK_NAME, SUIT_NAME, faceKey, faceName } from '@shared/cards';
 import { CardArt, SuitShape } from './CardArt';
 import { CardBack } from './CardBack';
 import './card.css';
+import { EASE_OUT, ENTER_PANEL, T_REDUCED, T_SLOW } from '@/styles/motion';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,7 +77,7 @@ const SCALE: Record<CardSize, number> = { xs: 0.52, sm: 0.74, md: 1, lg: 1.36 };
 const MAX_TILT = 10;
 const TILT_SPRING: SpringOptions = { stiffness: 260, damping: 26, mass: 0.5 };
 const GLARE_SPRING: SpringOptions = { stiffness: 190, damping: 30, mass: 0.4 };
-const FLIP: Transition = { duration: 0.42, ease: [0.34, 1.56, 0.64, 1] };
+const FLIP: Transition = { duration: T_SLOW, ease: EASE_OUT };
 const STAGGER = 0.07;
 
 /** Cross-fade offsets for stacked superposition faces, in px. */
@@ -94,24 +94,6 @@ const RING_GLYPHS = ['✶', '◈', '☾', '✦', '⟁', '☉', '✷', '⌖', '�
 // ---------------------------------------------------------------------------
 // Environment
 // ---------------------------------------------------------------------------
-
-function useFinePointer(): boolean {
-  const query = '(hover: hover) and (pointer: fine)';
-  const [fine, setFine] = useState<boolean>(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia(query).matches
-      : true,
-  );
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia(query);
-    const sync = (): void => setFine(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-  return fine;
-}
 
 // ---------------------------------------------------------------------------
 // Overlay pieces
@@ -234,7 +216,7 @@ function CardBase({
   className,
   tiltOnHover,
 }: CardProps) {
-  const reduced = useReducedMotion() === true;
+  const reduced = useReducedMotionPref();
   const finePointer = useFinePointer();
   const scale = SCALE[size];
 
@@ -312,7 +294,6 @@ function CardBase({
 
   const slotVars: StyleVars = {
     '--cs': scale,
-    '--hx-index': index,
   };
 
   const classes = [
@@ -343,7 +324,7 @@ function CardBase({
     : { opacity: 0, x: -34, y: -118, rotate: -20, scale: 0.84 };
 
   const enterTransition: Transition = reduced
-    ? { duration: 0 }
+    ? { duration: T_REDUCED, ease: EASE_OUT }
     : {
         default: { type: 'spring', stiffness: 240, damping: 26, mass: 0.8, delay },
         // A softer spring on y than on x bends the straight line into an arc.
@@ -413,15 +394,21 @@ function CardBase({
         className="hx-card-enter"
         initial={enterInitial}
         animate={{ opacity: 1, x: 0, y: lift, rotate: 0, scale: 1 }}
-        exit={reduced ? { opacity: 0 } : { opacity: 0, y: 22, rotate: 7, scale: 0.9, transition: { duration: 0.22 } }}
+        exit={reduced
+          ? { opacity: 0, transition: { duration: T_REDUCED, ease: EASE_OUT } }
+          : { opacity: 0, y: 22, rotate: 7, scale: 0.9, transition: ENTER_PANEL }}
         transition={enterTransition}
+        // Cards are pressable through every targeting flow and had nothing but
+        // a cursor change to say so. This sits on the inner element rather
+        // than the slot because the slot's transform belongs to `layoutId`.
+        whileTap={onClick ? { scale: 0.97 } : undefined}
       >
         <div className="hx-card__lift">
           <motion.span
             className="hx-card__shadow"
             initial={flipSeq.current === 0 ? false : undefined}
             animate={{ scaleX: [1, 1.16, 1], scaleY: [1, 1.26, 1], opacity: [0.6, 0.24, 0.6] }}
-            transition={reduced ? { duration: 0 } : FLIP}
+            transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : FLIP}
             key={flipSeq.current}
           />
           <motion.div
@@ -432,7 +419,7 @@ function CardBase({
               className="hx-card__flip"
               animate={{ rotateY: showBack ? 180 : 0 }}
               initial={false}
-              transition={reduced ? { duration: 0 } : FLIP}
+              transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : FLIP}
             >
               {front}
               {back}
