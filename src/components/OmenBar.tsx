@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { OMEN_BY_ID, type ActiveOmen } from '@shared/omens';
 import { RANK_NAME } from '@shared/cards';
 import './omens.css';
+import { ENTER, SPRING_SOFT } from '@/styles/motion';
 
 function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
   const [open, setOpen] = useState<string | null>(null);
@@ -21,7 +22,7 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
       <span className="omens-label">Omens</span>
       <ul className="omens-list">
         <AnimatePresence initial={false}>
-          {omens.map((o) => {
+          {omens.map((o, index) => {
             const def = OMEN_BY_ID[o.id];
             if (!def) return null;
             const showing = open === o.id;
@@ -29,10 +30,10 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
               <motion.li
                 key={o.id}
                 layout
-                initial={{ opacity: 0, scale: 0.7, y: -8 }}
+                initial={{ opacity: 0, scale: 0.94, y: -6 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 24 }}
+                transition={{ ...SPRING_SOFT, delay: Math.min(index * 0.06, 0.3) }}
               >
                 <button
                   className={`omen ${showing ? 'is-open' : ''}`}
@@ -56,7 +57,7 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.16 }}
+                      transition={ENTER}
                     >
                       <strong>{def.name}</strong>
                       <p>

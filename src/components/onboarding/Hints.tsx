@@ -11,11 +11,13 @@
  * Mount point: see the report for where to add `<Hints />` in `GameTable.tsx`.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { useView } from '@/store/net';
 import type { TableView } from '@shared/types';
 import { useHints } from './hintsStore';
 import './onboarding.css';
+import { EASE_OUT, T_REDUCED } from '@/styles/motion';
 
 interface HintDef {
   id: string;
@@ -52,7 +54,7 @@ export default function Hints() {
   const view = useView();
   const seen = useHints((s) => s.seen);
   const markSeen = useHints((s) => s.markSeen);
-  const reduced = useReducedMotion() === true;
+  const reduced = useReducedMotionPref();
   const [shown, setShown] = useState<HintDef | null>(null);
   const timer = useRef<number | undefined>(undefined);
 
@@ -84,7 +86,7 @@ export default function Hints() {
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: reduced ? 0.01 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: reduced ? T_REDUCED : 0.22, ease: EASE_OUT }}
           >
             <span className="hint-mark__text">{shown.text}</span>
             <button

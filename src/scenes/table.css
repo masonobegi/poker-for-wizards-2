@@ -147,18 +147,34 @@
   border: 1px solid var(--line-soft);
   box-shadow: var(--e-2);
   min-width: 132px;
+  transition: transform var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
 }
 .seat.is-acting .seat-pod {
   border-color: var(--gold-deep);
   box-shadow: var(--e-3), 0 0 26px rgba(240, 196, 101, 0.3);
 }
+/* The glow is static; a pseudo-element's opacity does the pulsing. Animating
+   `box-shadow` means re-rasterising a 60px blur every frame — never a
+   composite — and `targetpulse` below ran five of them at once. */
 .seat.is-winner .seat-pod {
   border-color: var(--gold);
   box-shadow: var(--e-3), 0 0 40px rgba(240, 196, 101, 0.55);
+}
+.seat.is-winner .seat-pod::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 60px rgba(240, 196, 101, 0.8);
+  opacity: 0;
+  pointer-events: none;
   animation: winpulse 1.4s var(--ease-both) infinite;
 }
 @keyframes winpulse {
-  50% { box-shadow: var(--e-3), 0 0 60px rgba(240, 196, 101, 0.8); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 .seat.is-allin .seat-pod { border-color: rgba(244, 87, 111, 0.55); }
 .seat.is-away .seat-pod { border-style: dashed; }
@@ -167,9 +183,22 @@
 .seat.is-targetable .seat-pod {
   border-color: var(--veil);
   box-shadow: 0 0 0 2px rgba(110, 200, 255, 0.28), 0 0 30px rgba(110, 200, 255, 0.4);
+}
+.seat.is-targetable .seat-pod::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 5px rgba(110, 200, 255, 0.16), 0 0 40px rgba(110, 200, 255, 0.55);
+  opacity: 0;
+  pointer-events: none;
   animation: targetpulse 1.1s var(--ease-both) infinite;
 }
-@keyframes targetpulse { 50% { box-shadow: 0 0 0 5px rgba(110, 200, 255, 0.16), 0 0 40px rgba(110, 200, 255, 0.55); } }
+@keyframes targetpulse {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
+}
+.seat.is-targetable:active .seat-pod { transform: scale(0.98); }
 
 .seat-av { position: relative; grid-row: span 2; }
 
@@ -222,18 +251,51 @@
 
 .fx-turntimer-fill {
   filter: drop-shadow(0 0 6px var(--gold));
-  transition: stroke 200ms, filter 200ms;
+  transition: stroke var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out);
 }
+
+/* The sweep. `linear` because this is constant motion — a clock that eased
+   would lie about how much time is left. The duration and endpoints come from
+   TurnTimer.tsx as custom properties, so a reconnect mid-turn resumes at the
+   right point instead of restarting from full. */
+.fx-turntimer-fill.is-running {
+  animation: turntimer-drain var(--turn-ms, 0ms) linear forwards;
+}
+@keyframes turntimer-drain {
+  from { stroke-dashoffset: var(--turn-from, 0); }
+  to   { stroke-dashoffset: var(--turn-to, 0); }
+}
+/* The urgent glow has to COMPOSE with the drain, not replace it. `animation`
+   is a shorthand, so a bare glow rule at higher specificity than
+   `.fx-turntimer-fill.is-running` wipes out animation-name and the ring stops
+   draining exactly when it matters most. Both are listed together instead. */
 .fx-turntimer.is-urgent .fx-turntimer-fill {
   animation: turntimer-glow 0.9s ease-in-out infinite;
+}
+.fx-turntimer.is-urgent .fx-turntimer-fill.is-running {
+  animation:
+    turntimer-drain var(--turn-ms, 0ms) linear forwards,
+    turntimer-glow 0.9s ease-in-out infinite;
 }
 /* transform/opacity/filter only — never touches the ring's own positioning transform. */
 @keyframes turntimer-glow {
   0%, 100% { filter: drop-shadow(0 0 6px var(--bad)); opacity: 1; }
   50%      { filter: drop-shadow(0 0 15px var(--bad)); opacity: 0.7; }
 }
-:root[data-reduced-motion='1'] .fx-turntimer.is-urgent .fx-turntimer-fill {
+/* Both pulse rings resolve to a steady glow rather than nothing: the base
+   state of each ::after is opacity:0, so stopping the animation without
+   pinning the opacity would delete the "this seat won" / "this seat can be
+   targeted" cue instead of calming it. */
+:root[data-reduced-motion='1'] .seat.is-winner .seat-pod::after,
+:root[data-reduced-motion='1'] .seat.is-targetable .seat-pod::after {
   animation: none;
+  opacity: 1;
+}
+
+:root[data-reduced-motion='1'] .fx-turntimer.is-urgent .fx-turntimer-fill {
+  /* The pulse goes; the drain stays. A countdown is information, and a static
+     ring that reads "no time left" is worse than one that moves. */
+  animation: turntimer-drain var(--turn-ms, 0ms) linear forwards;
   filter: drop-shadow(0 0 9px var(--bad));
 }
 
@@ -265,7 +327,7 @@
   position: absolute;
   left: 50%;
   bottom: -30px;
-  transform: translateX(-50%);
+  translate: -50% 0;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -290,7 +352,7 @@
   position: absolute;
   left: 50%;
   bottom: -26px;
-  transform: translateX(-50%);
+  translate: -50% 0;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.2em;
@@ -315,7 +377,7 @@
   position: absolute;
   left: 50%;
   bottom: -46px;
-  transform: translateX(-50%);
+  translate: -50% 0;
   padding: 3px 12px;
   border-radius: var(--r-pill);
   background: rgba(5, 6, 12, 0.95);
@@ -426,18 +488,8 @@
   font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--chip);
-  transition: color 320ms var(--ease-out);
+  transition: color var(--t-base) var(--ease-out);
 }
-.pot-amount.is-jumping {
-  color: var(--gold-hi);
-  animation: pot-jump 460ms var(--ease-snap);
-}
-@keyframes pot-jump {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.22); }
-  100% { transform: scale(1); }
-}
-:root[data-reduced-motion='1'] .pot-amount.is-jumping { animation: none; }
 .pot-side {
   font-size: 10px;
   color: var(--text-4);
@@ -490,10 +542,13 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-4);
-  transition: all var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
 .tbl-sidetab:hover { color: var(--text-2); }
 .tbl-sidetab.is-on { color: var(--gold); background: rgba(240, 196, 101, 0.1); }
+.tbl-sidetab:active { transform: scale(0.97); }
 
 .tbl-sidechat { min-height: 0; }
 
@@ -645,13 +700,6 @@
   box-shadow: var(--e-lift), 0 0 34px color-mix(in srgb, var(--school) 60%, transparent);
 }
 .sigil.is-locked .sigil-frame { filter: grayscale(0.7) brightness(0.65); }
-.sigil.is-justcastable .sigil-frame { animation: sigil-pop 260ms var(--ease-snap); }
-@keyframes sigil-pop {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
-}
-:root[data-reduced-motion='1'] .sigil.is-justcastable .sigil-frame { animation: none; }
 .sigil.is-selected .sigil-frame {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px var(--gold), 0 0 32px rgba(240, 196, 101, 0.6);
@@ -707,6 +755,12 @@
   line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* The card is a glance, not the rulebook — the tooltip carries the full
+     text. But the clamp lands wherever the wrap falls, and at Steam Deck's
+     1280x800 the card is narrow enough that most sigils lose three to seven
+     lines, cut mid-word with nothing to say so. Fading the last line reads
+     as "there is more here" rather than as a rendering bug. */
+  mask-image: linear-gradient(180deg, #000 calc(100% - 1.1em), transparent 100%);
 }
 
 .sigil-foot {
@@ -732,11 +786,15 @@
   color: var(--text-4);
   font-size: 11px;
   opacity: 0;
-  transition: all var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
   z-index: 2;
 }
 .sigil:hover .sigil-discard { opacity: 1; }
 .sigil-discard:hover { color: var(--bad); border-color: var(--bad); }
+.sigil-discard:active { transform: scale(0.94); }
 
 .sigil-tip {
   position: absolute;
@@ -754,7 +812,6 @@
   transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-out);
   z-index: var(--z-modal);
 }
-.sigil:hover .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
 .sigil-tip strong { display: block; font-size: var(--fs-sm); color: var(--school); margin-bottom: 4px; }
 .sigil-tip p { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
 .sigil-impossible {
@@ -815,6 +872,33 @@
   margin-left: 2px;
 }
 
+/* The reveal animates `grid-template-rows` from 0fr to 1fr rather than the
+   element's height. Animating height forced framer to measure the panel and
+   tween a pixel value, reflowing the action bar on every frame — the costliest
+   possible property on the control that is opened most often, and by a key
+   (`r`) and a pad button at that. */
+.ab-raisewrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  /* The panel stays mounted now, so `visibility` is what keeps the slider and
+     the preset buttons out of the tab order (and out of GamepadLayer's
+     candidate list) while it is closed. The 0s delay holds it visible for the
+     length of the collapse. */
+  visibility: hidden;
+  transition: grid-template-rows var(--t-fast) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out),
+              visibility 0s linear var(--t-fast);
+}
+.ab-raisewrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows var(--t-fast) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out),
+              visibility 0s;
+}
+
 .ab-raise {
   display: grid;
   gap: 6px;
@@ -823,6 +907,7 @@
   background: rgba(5, 6, 12, 0.6);
   border: 1px solid var(--line-soft);
   overflow: hidden;
+  min-height: 0;   /* a 0fr row only collapses if its item can shrink */
 }
 .ab-raisetop { display: flex; align-items: baseline; justify-content: space-between; }
 .ab-amount { font-size: var(--fs-xl); font-weight: 700; color: var(--chip); }
@@ -835,9 +920,13 @@
   font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--text-3);
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
 .ab-preset:hover { border-color: var(--gold-deep); color: var(--gold); }
+.ab-preset:active { transform: scale(0.97); }
 .ab-preset.is-on {
   border-color: var(--gold);
   color: var(--gold);
@@ -857,7 +946,7 @@
   position: fixed;
   top: 64px;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   z-index: var(--z-stack);
   display: flex;
   align-items: center;
@@ -923,18 +1012,10 @@
   background: color-mix(in srgb, var(--school) 10%, rgba(5, 6, 12, 0.5));
   box-shadow: 0 0 20px color-mix(in srgb, var(--school) 30%, transparent);
 }
-.stack-item.is-countered { opacity: 0.45; animation: stack-impact 320ms var(--ease-snap); }
+/* Opacity and the strike-through only. The punch itself is a framer animation
+   in StackOverlay.tsx — a keyframe here would fight it for `transform` and
+   restart from zero whenever a second entry was countered mid-flight. */
 .stack-item.is-countered .stack-body strong { text-decoration: line-through; }
-
-/* A hard, violent punch rather than a crossfade — this is a counterspell hitting. */
-@keyframes stack-impact {
-  0%   { transform: translateX(0) scale(1); }
-  18%  { transform: translateX(-7px) scale(1.035); }
-  42%  { transform: translateX(5px) scale(0.985); }
-  68%  { transform: translateX(-2px) scale(1.01); }
-  100% { transform: translateX(0) scale(1); }
-}
-:root[data-reduced-motion='1'] .stack-item.is-countered { animation: none; }
 
 .stack-glyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
 .stack-body { display: grid; }
@@ -963,6 +1044,12 @@
   background: linear-gradient(90deg, var(--veil), var(--entropy));
   transform-origin: left;
   will-change: transform;
+  /* Driven by StackOverlay.tsx's custom properties — see ResponseTimer. */
+  animation: stack-drain var(--stack-ms, 0ms) linear forwards;
+}
+@keyframes stack-drain {
+  from { transform: scaleX(var(--stack-from, 1)); }
+  to   { transform: scaleX(0); }
 }
 
 .stack-respond { display: grid; gap: var(--s-3); }
@@ -987,13 +1074,11 @@
   border: 1px solid color-mix(in srgb, var(--school) 40%, transparent);
   background: rgba(5, 6, 12, 0.5);
   text-align: left;
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
-.stack-option:hover {
-  border-color: var(--school);
-  background: color-mix(in srgb, var(--school) 12%, rgba(5, 6, 12, 0.5));
-  transform: translateX(3px);
-}
+.stack-option:active { transform: translateX(3px) scale(0.98); }
 .stack-optglyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
 .stack-option strong { display: block; font-size: var(--fs-sm); }
 .stack-option em {
@@ -1036,6 +1121,11 @@
   backdrop-filter: blur(8px);
 }
 .prompt-panel {
+  /* Grows from the sigil that opened it — Rail.tsx publishes that card's
+     centre, and TargetPrompt converts it to a panel-relative origin before the
+     first frame. The fallback is the panel's own centre, which is what a cast
+     with no resolvable origin gets. */
+  transform-origin: 50% 50%;
   --school: var(--entropy);
   width: min(480px, 100%);
   max-height: 86vh;
@@ -1078,13 +1168,11 @@
   font-family: var(--font-display);
   font-size: var(--fs-md);
   font-weight: 700;
-  transition: all var(--t-fast) var(--ease-snap);
+  transition: transform var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
 }
-.prompt-rank:hover {
-  transform: translateY(-4px) scale(1.06);
-  border-color: var(--gold);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 22px rgba(240, 196, 101, 0.4);
-}
+.prompt-rank:active { transform: translateY(1px) scale(0.97); }
 
 .prompt-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
 .prompt-suit {
@@ -1094,10 +1182,11 @@
   background: var(--card-face);
   color: var(--card-black);
   font-size: 34px;
-  transition: all var(--t-fast) var(--ease-snap);
+  transition: transform var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out);
 }
 .prompt-suit.is-red { color: var(--card-red); }
-.prompt-suit:hover { transform: translateY(-4px) scale(1.06); border-color: var(--gold); }
+.prompt-suit:active { transform: translateY(1px) scale(0.97); }
 
 .prompt-marks { display: grid; gap: 5px; }
 .prompt-mark {
@@ -1110,9 +1199,10 @@
   border: 1px solid color-mix(in srgb, var(--mark) 35%, transparent);
   background: rgba(5, 6, 12, 0.5);
   text-align: left;
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
-.prompt-mark:hover { border-color: var(--mark); transform: translateX(3px); }
+.prompt-mark:active { transform: translateX(3px) scale(0.98); }
 .prompt-markglyph {
   grid-row: span 2;
   font-size: 22px;
@@ -1139,7 +1229,7 @@
   left: 50%;
   /* Clears the rail; sits in the open felt under the board. */
   bottom: 278px;
-  transform: translateX(-50%);
+  translate: -50% 0;
   z-index: var(--z-overlay);
   pointer-events: none;
   width: min(660px, 92vw);
@@ -1282,4 +1372,39 @@
   .seat-pod { min-width: 106px; }
   .ab-buttons .btn { min-width: 96px; flex: 1; }
   .showdown { bottom: auto; top: 76px; }
+}
+
+/* Touch fires a hover on tap that sticks until the next tap elsewhere, and
+   this game ships on a Steam Deck with a touchscreen. Motion-bearing hovers
+   are gated; colour-only hovers stay ungated, because a stuck colour is
+   harmless and often useful. */
+@media (hover: hover) and (pointer: fine) {
+  .prompt-rank:hover {
+    transform: translateY(-4px) scale(1.06);
+    border-color: var(--gold);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 22px rgba(240, 196, 101, 0.4);
+  }
+  .prompt-suit:hover { transform: translateY(-4px) scale(1.06); border-color: var(--gold); }
+  .prompt-mark:hover { border-color: var(--mark); transform: translateX(3px); }
+  .stack-option:hover {
+    border-color: var(--school);
+    background: color-mix(in srgb, var(--school) 12%, rgba(5, 6, 12, 0.5));
+    transform: translateX(3px);
+  }
+  .sigil:hover .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Every input needs a route to the full text, because at Steam Deck's
+   1280x800 the card body loses three to seven lines of it. Hover covers a
+   mouse (above) and `data-gamepad` covers the pad (gamepad.css); focus covers
+   the keyboard and touch. Deliberately not behind `(pointer: coarse)` — a
+   focused sigil showing its own tooltip is right for every input, and a mouse
+   user never focuses one by hovering, so there is nothing to scope away.
+
+   Tapping a LOCKED sigil focuses it without casting, which is exactly the
+   moment you want to read one. */
+.sigil:focus .sigil-tip,
+.sigil:focus-within .sigil-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }

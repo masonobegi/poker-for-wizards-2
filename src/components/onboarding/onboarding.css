@@ -271,7 +271,7 @@
 .hint-mark {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -297,9 +297,11 @@
   color: var(--text-4);
   font-size: 13px;
   line-height: 1;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: background var(--t-fast), color var(--t-fast),
+              transform var(--t-fast) var(--ease-out);
 }
 .hint-mark__dismiss:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.hint-mark__dismiss:active { transform: scale(0.94); }
 
 /* `.hints-layer` already sits above z-stack and z-modal (it's on z-toast), so
    these only need to place each hint near the real UI it's talking about. */

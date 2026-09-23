@@ -39,13 +39,22 @@ function readParticleDensity(): ParticleDensity {
   return DEFAULT_PARTICLE_DENSITY;
 }
 
+/** Published as an attribute so `src/vfx/` can read it without importing from
+ *  the component tree — the same mechanism as data-reduced-motion. */
+function applyParticleDensity(v: ParticleDensity): void {
+  if (!hasDom()) return;
+  try { document.documentElement.dataset.particles = v; } catch { /* ignore */ }
+}
+
 let particleDensity: ParticleDensity = hasDom() ? readParticleDensity() : DEFAULT_PARTICLE_DENSITY;
+applyParticleDensity(particleDensity);
 const particleListeners = new Set<() => void>();
 
 export function getParticleDensity(): ParticleDensity { return particleDensity; }
 
 export function setParticleDensity(v: ParticleDensity): void {
   particleDensity = v;
+  applyParticleDensity(v);
   try { localStorage.setItem(PARTICLES_KEY, v); } catch { /* ignore */ }
   for (const l of particleListeners) l();
 }
@@ -101,22 +110,47 @@ export function useUiScale(): [number, (v: number) => void] {
 }
 
 // ---------------------------------------------------------------------------
-// Reduce motion (manual override — system preference is handled separately
-// by the `prefers-reduced-motion` media query in tokens.css)
+// Reduce motion. This is the manual override, but `applyReducedMotion` below
+// folds the OS preference into the same `data-reduced-motion` attribute, so
+// stylesheets key off one condition rather than a media query that the
+// in-game toggle could not reach.
 // ---------------------------------------------------------------------------
 
 function readReducedMotion(): boolean {
   try { return localStorage.getItem(REDUCED_KEY) === '1'; } catch { return false; }
 }
 
+function systemPrefersReduced(): boolean {
+  if (!hasDom()) return false;
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch { return false; }
+}
+
+/** The OS preference and the in-game toggle resolve to one attribute, so every
+ *  stylesheet has a single condition to key off instead of two that reach
+ *  different sets of rules. The toggle wins when it is on; otherwise we follow
+ *  the OS. */
 function applyReducedMotion(v: boolean): void {
   if (!hasDom()) return;
-  try { document.documentElement.dataset.reducedMotion = v ? '1' : ''; } catch { /* ignore */ }
+  const on = v || systemPrefersReduced();
+  try { document.documentElement.dataset.reducedMotion = on ? '1' : ''; } catch { /* ignore */ }
 }
 
 let reducedMotion = hasDom() ? readReducedMotion() : false;
 applyReducedMotion(reducedMotion);
 const reducedListeners = new Set<() => void>();
+
+// An OS-level change mid-session has to re-resolve the attribute, or the
+// stylesheets keep whatever was true at load.
+if (hasDom()) {
+  try {
+    window.matchMedia('(prefers-reduced-motion: reduce)')
+      .addEventListener('change', () => {
+        applyReducedMotion(reducedMotion);
+        for (const l of reducedListeners) l();
+      });
+  } catch { /* ignore */ }
+}
 
 export function getReducedMotion(): boolean { return reducedMotion; }
 
@@ -132,7 +166,18 @@ function subscribeReducedMotion(fn: () => void): () => void {
   return () => { reducedListeners.delete(fn); };
 }
 
-export function useReducedMotionPref(): [boolean, (v: boolean) => void] {
+/** Whether the OS asks for reduced motion, regardless of the in-game toggle.
+ *  The settings UI needs this to show the effective state rather than just the
+ *  manual override. */
+export function useSystemReducedMotion(): boolean {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => systemPrefersReduced(),
+    () => false,
+  );
+}
+
+export function useReducedMotionSetting(): [boolean, (v: boolean) => void] {
   const v = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
   return [v, setReducedMotion];
 }

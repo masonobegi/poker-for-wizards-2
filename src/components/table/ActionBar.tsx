@@ -6,6 +6,7 @@ import { useGame } from '@/store/net';
 import { playSfx } from '@/lib/sound';
 import { TurnTimer } from '@/components/fx/TurnTimer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { EASE_OUT, ENTER, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
 
 export interface ActionBarProps {
   view: TableView;
@@ -78,27 +79,25 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
         </div>
       ) : null}
 
-      <AnimatePresence mode="wait">
+      {/* No `mode="wait"`: serialising the idle text's exit before the buttons
+          mount put the whole entrance between the player and their own turn,
+          hundreds of times a session. The travel drops from 42px to 12px for
+          the same reason — at that frequency it is decoration, not
+          explanation. */}
+      <AnimatePresence>
         {yourTurn ? (
           <motion.div
             key="acting"
             className="ab-inner"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 42, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.98 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             transition={reducedMotion
-              ? { duration: 0.12 }
-              : { type: 'spring', stiffness: 480, damping: 28, mass: 0.9 }}
+              ? { duration: T_REDUCED, ease: EASE_OUT }
+              : SPRING_CRISP}
           >
-            <AnimatePresence>
-              {raising ? (
-                <motion.div
-                  className="ab-raise"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                >
+            <div className={`ab-raisewrap ${raising ? 'is-open' : ''}`}>
+              <div className="ab-raise">
                   <div className="ab-raisetop">
                     <span className="eyebrow">{isBet ? 'Bet' : 'Raise to'}</span>
                     <span className="ab-amount mono">{amount.toLocaleString()}</span>
@@ -129,9 +128,8 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                       Max
                     </button>
                   </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+              </div>
+            </div>
 
             <div className="ab-buttons">
               <Button tone="danger" size="lg" onClick={() => send(() => act({ kind: 'fold' }))}>
@@ -179,6 +177,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={ENTER}
           >
             {me.eliminated ? 'You are out of the game'
               : me.folded ? 'You folded this hand'

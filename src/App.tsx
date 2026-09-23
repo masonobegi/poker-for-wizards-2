@@ -17,6 +17,7 @@ import RunRecorder from '@/components/profile/RunRecorder';
 import AchievementToast from '@/components/AchievementToast';
 import { installAchievementWatcher } from '@/lib/achievements';
 import { installCloudSync, pullCloudSave } from '@/lib/cloud';
+import { ENTER } from '@/styles/motion';
 
 /**
  * The particle layer is decoration — load it after the first paint, and if the
@@ -31,11 +32,20 @@ const VfxLayer = lazy(async (): Promise<{ default: React.ComponentType }> => {
   }
 });
 
+/* Scene changes are keyboard- and pad-initiated (Leave Table, Take a Seat,
+   Practice vs Bots), so this is latency on a control path, not decoration.
+   `mode="wait"` used to serialise exit *then* enter — 420ms + 420ms of
+   non-interactive screen per change, paid twice on the menu -> lobby -> table
+   route. A short crossfade covers the swap without gating input, and the
+   scale goes because a scale on a full-screen crossfade reads as drift. */
 const sceneMotion = {
-  initial: { opacity: 0, scale: 0.985 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 1.01 },
-  transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1] as const },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, pointerEvents: 'auto' as const },
+  // Without `mode="wait"` the outgoing scene stays mounted for the length of
+  // the crossfade. It must not be clickable while it fades, or a click aimed
+  // at the incoming screen can land on the dying one.
+  exit: { opacity: 0, pointerEvents: 'none' as const },
+  transition: ENTER,
 };
 
 export default function App() {
@@ -125,8 +135,8 @@ export default function App() {
   }, [screen]);
 
   return (
-    <div className="app" ref={shellRef}>
-      <AnimatePresence mode="wait">
+    <div className={`app ${screen === 'game' ? 'is-table' : ''}`} ref={shellRef}>
+      <AnimatePresence>
         <motion.div key={screen} className="scene" {...sceneMotion}>
           {screen === 'menu' ? <Menu /> : null}
           {screen === 'lobby' ? <Lobby /> : null}

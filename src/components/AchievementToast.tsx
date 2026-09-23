@@ -11,11 +11,14 @@ import { ACHIEVEMENT_BY_ID, type AchievementId } from '@shared/achievements';
 import { onAchievement } from '@/lib/achievements';
 import { playSfx } from '@/lib/sound';
 import './achievements.css';
+import { EASE_OUT, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 
 interface Shown { key: number; id: AchievementId }
 let seq = 0;
 
 export default function AchievementToast() {
+  const reduced = useReducedMotionPref();
   const [queue, setQueue] = useState<Shown[]>([]);
 
   useEffect(() => onAchievement((id) => {
@@ -39,10 +42,10 @@ export default function AchievementToast() {
           key={current.key}
           className="ach"
           role="status"
-          initial={{ opacity: 0, y: -28, scale: 0.94 }}
+          initial={reduced ? { opacity: 0 } : { opacity: 0, y: -28, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -16, scale: 0.97 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, y: -16, scale: 0.97 }}
+          transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_PLAYFUL}
         >
           <span className="ach-mark" aria-hidden>✦</span>
           <span className="ach-body">

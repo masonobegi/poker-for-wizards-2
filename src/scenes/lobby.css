@@ -31,9 +31,8 @@
   margin-right: -0.3em;
   color: var(--gold);
   text-shadow: 0 0 30px rgba(240, 196, 101, 0.35);
-  transition: transform var(--t-fast) var(--ease-snap), text-shadow var(--t-fast);
+  transition: transform var(--t-fast) var(--ease-out), text-shadow var(--t-fast);
 }
-.lobby-code:hover { transform: scale(1.03); text-shadow: 0 0 46px rgba(240, 196, 101, 0.6); }
 .lobby-code:active { transform: scale(0.99); }
 
 .lobby-copy {
@@ -127,9 +126,12 @@
   font-size: 16px;
   line-height: 1;
   color: var(--text-4);
-  transition: all var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
 .lobby-kick:hover { color: var(--bad); background: rgba(244, 87, 111, 0.12); }
+.lobby-kick:active { transform: scale(0.94); }
 
 .lobby-actions {
   display: grid;
@@ -182,4 +184,12 @@
 @media (max-width: 860px) {
   .lobby-body { grid-template-columns: 1fr; grid-template-rows: auto auto; overflow-y: auto; }
   .lobby-side { grid-template-rows: auto 240px; }
+}
+
+/* Touch fires a hover on tap that sticks until the next tap elsewhere, and
+   this game ships on a Steam Deck with a touchscreen. Motion-bearing hovers
+   are gated; colour-only hovers stay ungated, because a stuck colour is
+   harmless and often useful. */
+@media (hover: hover) and (pointer: fine) {
+  .lobby-code:hover { transform: scale(1.03); text-shadow: 0 0 46px rgba(240, 196, 101, 0.6); }
 }

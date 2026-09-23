@@ -10,6 +10,7 @@ import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import ProfileCard from '@/components/profile/ProfileCard';
 import ServerPanel from '@/components/shell/ServerPanel';
 import './menu.css';
+import { EASE_OUT } from '@/styles/motion';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -77,7 +78,7 @@ export default function Menu() {
           className="menu-brand"
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_OUT }}
         >
           <div className="menu-sigil" aria-hidden>
             <svg viewBox="0 0 120 120" width="88" height="88">
@@ -100,7 +101,7 @@ export default function Menu() {
           <p className="menu-tag">Impossible Poker</p>
         </motion.header>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {pane === 'home' ? (
             <motion.div key="home" className="menu-panel" {...paneMotion}>
               <p className="menu-pitch">
@@ -231,11 +232,16 @@ export default function Menu() {
   );
 }
 
+/* Menu navigation is a pad/keyboard control path. `mode="wait"` plus 340ms
+   each way meant ~680ms of dead time per press, during which the autoFocus
+   field in the incoming pane did not exist yet. */
 const paneMotion = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -12 },
-  transition: { duration: 0.34, ease: [0.16, 1, 0.3, 1] as const },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, pointerEvents: 'auto' as const },
+  // Same reason as the scene crossfade in App.tsx: the outgoing pane overlaps
+  // the incoming one briefly and must not take a click meant for it.
+  exit: { opacity: 0, pointerEvents: 'none' as const },
+  transition: { duration: 0.12, ease: EASE_OUT },
 };
 
 /** Six slowly drifting school glyphs — the schools introduce themselves. */

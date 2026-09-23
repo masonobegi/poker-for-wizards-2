@@ -13,9 +13,13 @@ import { RELIC_BY_ID, RELIC_RARITY_COLOR } from '@shared/relics';
 import { MARKS } from '@shared/cards';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
+import { useFinePointer } from '@/components/fx/useFinePointer';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import './shop.css';
+import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
+  const reduced = useReducedMotionPref();
   const { buy, reroll, shopDone } = useGame();
   const shop = view.shop;
   const [left, setLeft] = useState(0);
@@ -38,13 +42,14 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={ENTER_PANEL}
     >
       <motion.div
         className="shop-panel"
-        initial={{ y: 40, scale: 0.96 }}
-        animate={{ y: 0, scale: 1 }}
-        exit={{ y: 30, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.97 }}
+        transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_SOFT}
       >
         <header className="shop-head">
           <div>
@@ -115,6 +120,8 @@ const ShopCard = forwardRef<HTMLElement, {
   owned: boolean;
   onBuy: () => void;
 }>(function ShopCard({ item, index, sold, affordable, owned, onBuy }, ref) {
+  const finePointer = useFinePointer();
+  const reduced = useReducedMotionPref();
   const info = describe(item);
   const locked = sold || !affordable || owned;
 
@@ -123,11 +130,13 @@ const ShopCard = forwardRef<HTMLElement, {
       ref={ref}
       className={`shopcard ${sold ? 'is-sold' : ''} ${locked && !sold ? 'is-locked' : ''}`}
       style={{ ['--accent' as string]: info.accent }}
-      initial={{ opacity: 0, y: 24, rotateZ: -2 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24, rotateZ: -2 }}
       animate={{ opacity: 1, y: 0, rotateZ: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ delay: index * 0.06, type: 'spring', stiffness: 300, damping: 26 }}
-      whileHover={locked ? undefined : { y: -8, scale: 1.03 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+      transition={reduced
+        ? { duration: T_REDUCED, ease: EASE_OUT }
+        : { ...SPRING_SOFT, delay: Math.min(index * 0.06, 0.3) }}
+      whileHover={locked || !finePointer || reduced ? undefined : { y: -8, scale: 1.03 }}
     >
       <span className="shopcard-kind">{info.kind}</span>
       <div className="shopcard-glyph">{info.glyph}</div>

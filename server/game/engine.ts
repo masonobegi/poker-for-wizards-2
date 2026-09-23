@@ -11,19 +11,18 @@ import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { SIGIL_BY_ID } from '../../shared/sigils';
 import { OMENS, OMEN_BY_ID, omenNumber, type ActiveOmen } from '../../shared/omens';
 import {
   isStreet,
   type BetAction, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
-  actable, alive, buildPots, byId, card, createPlayer, createTable, describeCard,
-  freeSeat, live, log, manaCost, maxManaFor, nextSeat, seated, sigilHandSize, totalPot,
+  actable, alive, byId, card, createPlayer, createTable, describeCard,
+  freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
 } from './table';
 import {
-  applySeal, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
-  randomSigil, reapConjured, resolveStack, stackReady, superposeCard, unseenFace,
+  castSigil, clearHandMagic, drawId, giveSigil, passResponse,
+  randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
   type MagicCtx,
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
