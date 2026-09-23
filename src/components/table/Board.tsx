@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { TableView } from '@shared/types';
 import { RANK_NAME } from '@shared/cards';
@@ -7,6 +7,7 @@ import { Tooltip } from '@/components/ui/kit';
 import { RollingNumber } from '@/components/fx/RollingNumber';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import PotChips from '@/components/table/PotChips';
+import { originFor, type DealOrigin } from '@/lib/dealOrigin';
 
 export interface BoardProps {
   view: TableView;
@@ -34,6 +35,27 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
 
   // A brief flash on the pot number for a "that was a real jump" cue,
   // separate from the RollingNumber's own count-up so the roll never restarts.
+  // Where the board's cards fly in from. The board lays its cards out itself
+  // rather than through `CardRow`, so it measures its own strip against the
+  // deck the same way a row does — see `lib/dealOrigin` for why this is taken
+  // from the container and not from the cards.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const dealFrom = useRef<DealOrigin | null>(null);
+  useLayoutEffect(() => {
+    const measure = (): void => { dealFrom.current = originFor(stripRef.current); };
+    measure();
+    // jsdom has no ResizeObserver. The one measurement above is what
+    // matters; only the re-measure on resize is lost, and nothing
+    // resizes in a unit test.
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, []);
+  // The strip widens with every street, so a vector measured against three
+  // cards is already wrong for the fourth.
+  useEffect(() => { dealFrom.current = originFor(stripRef.current); });
+
   const [jumping, setJumping] = useState(false);
   const prevPot = useRef(view.pot);
   useEffect(() => {
@@ -82,7 +104,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
         </AnimatePresence>
       </div>
 
-      <div className="board-cards">
+      <div className="board-cards" ref={stripRef}>
         <AnimatePresence mode="popLayout">
           {view.board.map((c, i) => (
             // `Card` already owns its full deck-to-slot arc, rotation, stagger
@@ -96,6 +118,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
                 view={c}
                 size="lg"
                 index={i}
+                dealFrom={dealFrom.current}
                 highlight={
                   winningIds.has(c.id) ? 'winning' : dimLosers ? 'dimmed' : 'none'
                 }

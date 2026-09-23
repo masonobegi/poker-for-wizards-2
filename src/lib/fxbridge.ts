@@ -74,7 +74,9 @@ export function installFxBridge(): () => void {
         e.cardIds.forEach((id, i) => {
           window.setTimeout(() => {
             playSfx('card_deal', { pitch: 0.96 + Math.random() * 0.08 });
-            whenCard(id, (el) => burstAt('sparkleTrail', el, { count: 4 }));
+            // Dust, not glitter — see the `cardLand` preset for why a dealt
+            // card is the one event in the game that must not sparkle.
+            whenCard(id, (el) => burstAt('cardLand', el, { count: 7 }));
           }, i * (e.stagger ?? 70));
         });
         break;
@@ -83,7 +85,7 @@ export function installFxBridge(): () => void {
         e.cardIds.forEach((id, i) => {
           window.setTimeout(() => {
             playSfx('card_flip');
-            whenCard(id, (el) => burstAt('sparkleTrail', el, { count: 3 }));
+            whenCard(id, (el) => burstAt('cardLand', el, { count: 5 }));
           }, i * 60);
         });
         break;

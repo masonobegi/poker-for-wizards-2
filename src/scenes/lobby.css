@@ -76,7 +76,7 @@
   gap: var(--s-3);
   padding: 9px 12px;
   border-radius: var(--r-md);
-  background: rgba(5, 6, 12, 0.35);
+  background: rgba(9, 7, 6, 0.35);
   border: 1px solid var(--line-soft);
   transition: border-color var(--t-fast), background var(--t-fast);
 }

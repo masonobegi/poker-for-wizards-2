@@ -31,17 +31,23 @@
      Neutral charcoal with a trace of warmth, so the brass reads as metal
      against it rather than as a second accent colour. Deliberately not blue:
      blue-violet greys are the tell. */
-  --void:        #0a0a0c;
-  --abyss:       #0f0f12;
-  --bg:          #131318;
-  --bg-2:        #191921;
-  --surface:     #1e1f28;
-  --surface-2:   #262833;
-  --surface-3:   #31343f;
+  /* These were written to this description and then set to blue-leaning
+     values anyway — `#1e1f28` carries ten more points of blue than red, and
+     `#262833` thirteen. Against a bottle-green felt under a brass lamp every
+     panel in the game therefore read as belonging to a different room from
+     the table it was sitting on. Same luminance, hue turned back to the warm
+     side it always claimed to be on. */
+  --void:        #0a0908;
+  --abyss:       #100e0d;
+  --bg:          #151312;
+  --bg-2:        #1b1917;
+  --surface:     #211e1c;
+  --surface-2:   #2a2624;
+  --surface-3:   #363130;
   /* Higher contrast than before, because these now do the work the glows
      used to. A rule you cannot see is not a rule. */
-  --line:        #474a57;
-  --line-soft:   #2b2d38;
+  --line:        #4d4741;
+  --line-soft:   #302b28;
 
   /* --- felt ---------------------------------------------------------------
      A real card-table green, dirty and nearly black at the rail. This is the
@@ -162,6 +168,34 @@
   --grain:
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 3px),
     repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px);
+
+  /* --- materials -----------------------------------------------------------
+     Two fractal-noise plates, inlined as SVG so the build stays asset-free.
+     `--nap` is fine and dense: the fibre of a cloth, laid over the felt under
+     a soft-light blend so it darkens the troughs and lifts the crests without
+     tinting anything. `--fibre` is coarser and more banded, for wood and
+     paper, where the grain runs.
+
+     These exist because a flat radial gradient is not a material. The felt is
+     the largest surface in the game and it was reading as a painted backdrop
+     rather than as cloth you could put a drink down on; every other fix — the
+     lamp, the contact shadows, the wear — only works once there is a surface
+     for the light to land on. */
+  --nap:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  --fibre:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.6' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23w)'/%3E%3C/svg%3E");
+
+  /* --- the lamp ------------------------------------------------------------
+     There is one light in this room and it hangs over the table. It is
+     deliberately *not* centred: a light source on the axis of symmetry is the
+     one arrangement that produces no modelling at all, which is why every
+     screen in this game used to look flat. Off-centre, the felt has a bright
+     side and a dark side, cards catch an edge, and the rail has a lit lip and
+     a shadowed one. */
+  --lamp-x: 44%;
+  --lamp-y: 33%;
+  --lamp-warm: 214, 168, 96;
 
   /* --- motion ------------------------------------------------------------- */
   --t-instant: 90ms;

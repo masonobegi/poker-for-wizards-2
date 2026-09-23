@@ -98,8 +98,8 @@ void main() {
   // made the whole interface read as generated rather than designed. The only
   // colour that enters this shader now is the school tint on a cast, which
   // means something.
-  vec3 ink = vec3(0.039, 0.039, 0.047);
-  vec3 ash = vec3(0.090, 0.088, 0.098);
+  vec3 ink = vec3(0.040, 0.036, 0.033);
+  vec3 ash = vec3(0.094, 0.086, 0.079);
   vec3 bottle = vec3(0.070, 0.140, 0.118);
 
   vec3 col = mix(ink, ash, smoothstep(0.22, 0.95, weather));

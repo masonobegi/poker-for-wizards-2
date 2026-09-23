@@ -12,7 +12,7 @@
   min-width: 300px;
   max-width: min(460px, 92vw);
   border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(31, 24, 8, 0.97), rgba(8, 10, 20, 0.97));
+  background: linear-gradient(180deg, rgba(31, 24, 8, 0.97), rgba(14, 11, 9, 0.97));
   border: 1px solid var(--gold-deep);
   box-shadow: var(--e-4), 0 0 44px color-mix(in srgb, var(--gold) 30%, transparent);
   pointer-events: none;
@@ -64,7 +64,7 @@
   gap: var(--s-3);
   padding: 8px 12px;
   border-radius: var(--r-md);
-  background: rgba(5, 6, 12, 0.4);
+  background: rgba(9, 7, 6, 0.4);
   border: 1px solid var(--line-soft);
 }
 .achrow.is-earned {

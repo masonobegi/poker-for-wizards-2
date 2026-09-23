@@ -67,6 +67,13 @@ export interface CardProps {
   layoutId?: string;
   /** Position in a deal, for the 70ms-per-card stagger. */
   index?: number;
+  /**
+   * Where this card flies in from, in pixels relative to where it lands.
+   * `CardRow` measures it once per row against the deck; without it the card
+   * falls back to a fixed offset, which is what everything off the table
+   * still uses.
+   */
+  dealFrom?: { x: number; y: number; rotate: number } | null;
   className?: string;
   /** 3D tilt following the pointer. Defaults on for interactive cards. */
   tiltOnHover?: boolean;
@@ -231,6 +238,7 @@ function CardBase({
   onHoverChange,
   layoutId,
   index = 0,
+  dealFrom,
   className,
   tiltOnHover,
 }: CardProps) {
@@ -347,17 +355,45 @@ function CardBase({
   const delay = reduced ? 0 : index * STAGGER;
   const lift = selected ? -10 * scale : 0;
 
+  // A real deal has a common origin; a fixed offset per card does not. When
+  // the row knows where the deck is, the card starts there, turned the way a
+  // card thrown in that direction would be. Off the table there is no deck,
+  // and the old fixed arc is still the right answer.
   const enterInitial = reduced
     ? { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1 }
-    : { opacity: 0, x: -34, y: -118, rotate: -20, scale: 0.84 };
+    : dealFrom
+      ? { opacity: 0, x: dealFrom.x, y: dealFrom.y, rotate: dealFrom.rotate, scale: 0.7 }
+      : { opacity: 0, x: -34, y: -118, rotate: -20, scale: 0.84 };
+
+  // Distance sets the spring, not the other way round: a card crossing the
+  // whole felt should not arrive at the same moment as one dropped two inches,
+  // and a stiff spring over 600px is a card teleporting with a wobble at the
+  // end. Softer and heavier the further it has to travel.
+  const reach = dealFrom ? Math.hypot(dealFrom.x, dealFrom.y) : 0;
+  const far = Math.min(1, reach / 520);
 
   const enterTransition: Transition = reduced
     ? { duration: 0 }
     : {
-        default: { type: 'spring', stiffness: 240, damping: 26, mass: 0.8, delay },
+        default: {
+          type: 'spring',
+          stiffness: 240 - far * 90,
+          damping: 26 - far * 4,
+          mass: 0.8 + far * 0.5,
+          delay,
+        },
         // A softer spring on y than on x bends the straight line into an arc.
-        y: { type: 'spring', stiffness: 170, damping: 21, mass: 0.95, delay },
-        opacity: { duration: 0.2, delay },
+        y: {
+          type: 'spring',
+          stiffness: 170 - far * 60,
+          damping: 21 - far * 3,
+          mass: 0.95 + far * 0.55,
+          delay,
+        },
+        // The card lands flat before it finishes settling into place, which is
+        // what stops a long throw reading as a slide.
+        rotate: { type: 'spring', stiffness: 210, damping: 19, mass: 0.7, delay },
+        opacity: { duration: 0.16, delay },
       };
 
   const front = (
@@ -433,6 +469,23 @@ function CardBase({
             transition={reduced ? { duration: 0 } : FLIP}
             key={flipSeq.current}
           />
+          {/* The landing.
+              A card that travels the width of the table and simply stops has
+              no weight — the arc says where it went, nothing says it arrived.
+              This is the shadow it casts while it is still in the air: wide
+              and faint at the start of the flight, collapsing onto the tight
+              contact shadow above as the card comes down. It is the cheapest
+              honest cue for height there is, and it is the one the eye reads
+              first. */}
+          {reduced ? null : (
+            <motion.span
+              className="hx-card__drop"
+              initial={{ opacity: 0.55, scale: 2.2 }}
+              animate={{ opacity: 0, scale: 1 }}
+              transition={{ duration: 0.46, delay, ease: [0.16, 1, 0.3, 1] }}
+              aria-hidden
+            />
+          )}
           <motion.div
             className="hx-card"
             style={{ rotateX: tiltEnabled ? rotateX : 0, rotateY: tiltEnabled ? rotateY : 0 }}

@@ -68,6 +68,7 @@ function SeatBase({
 
       <div className="seat-cards" ref={cardsRef}>
         <CardRow
+          dealFromDeck
           views={p.hole}
           size="sm"
           overlap={0.42}

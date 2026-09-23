@@ -295,6 +295,18 @@ here passed every harness in the repo; none of it has been judged by a person.
 | Card foil | `src/components/card/card.css` | Whether a marked card reads as precious at arm's length without making its pips harder to count. |
 | 15 new sigils | `server/game/magic.ts` | Each resolves and leaves the table coherent under test, and a run sees about 27 of the 60. Whether any of them is *broken as a play* — degenerate, dead, or a must-buy — needs a human. Watch Salt the Earth and Erase in particular: they are the first things in the game that can undo a Rite. |
 
+| The felt as a material | `src/scenes/table.css`, `src/styles/tokens.css` | Two fractal-noise plates at soft-light, an off-centre lamp, wear and a leather rail. Cheap on paper; the only GPU it has run on is SwiftShader. Check the nap does not shimmer or moiré on a real panel, and does not band on an OLED. |
+| Dust in the lamplight | `src/components/table/FeltDust.tsx` | 46 motes, 24fps, half-resolution canvas. Meant to be subliminal. If you *notice* it, it is too bright — drop the `0.34` in the alpha term. |
+| The lamp flicker | `src/scenes/table.css` `felt-lamp-flicker` | Under 5% brightness over 8.4s. Check it does not read as a failing monitor, and does not induce anything unpleasant over an hour. |
+| The twelve avatars | `src/components/Avatar.tsx` | Redrawn from scratch as woodcut plates. Judged at 40px and 120px on a monitor; the size that matters is a seat pod on a Deck at arm's length. Specifically: can you still tell the horned helm from the antlers, and the mask from the skull? |
+| Cards deal from the deck | `src/lib/dealOrigin.ts`, `src/components/card/CardRow.tsx`, `src/components/table/Board.tsx`, `src/components/table/Deck.tsx` | The origin is measured from each row's *container* while it is still empty. If a layout ever mounts a row with cards already in it and never resizes, that row falls back to the old fixed arc — visible as one row of cards that flies in from the wrong place. Worth watching on reconnect. |
+| The deck's position | `src/scenes/table.css` `.deck` | Fixed at 13%/64% of the felt and hidden under 1000px wide. Check it does not collide with the outermost seat at a six-handed table, or with the showdown panel. |
+| Sigils printed on paper | `src/scenes/table.css` `.sigil-frame` | They were dark tiles; they are now bone stock in the school's ink, to match the playing cards beside them. Check the unaffordable state (greyscale 0.85 / brightness 0.52) still reads as *unaffordable* rather than as *disabled forever*, and that the description is still comfortably legible on a Deck. |
+| The palette turned warm | `src/styles/tokens.css` | Every neutral surface was blue-leaning despite the file saying otherwise. Same luminance, warmer hue. Check nothing lost contrast — the greys under `--text-3`/`--text-4` on `--surface` are the ones to measure. |
+| A dealt card kicks dust, not sparks | `src/vfx/particles.ts` `cardLand` | Replaces `sparkleTrail` on every deal and flip. Check it is visible at all on a bright panel, and still invisible on a dark one. |
+| The held hand breathes | `src/scenes/table.css` `hand-breathe` | 2.5px over 7.5s on your own two cards. If you can consciously see it moving, it is too much. |
+| Scene transitions move through depth | `src/App.tsx` `sceneMotion` | Replaces a crossfade. Check it does not read as a zoom-bounce on a 60Hz panel. |
+
 ### The end-of-run recap, specifically
 
 This is the one I would check first. I could only reach the game-over screen by

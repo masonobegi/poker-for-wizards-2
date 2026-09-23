@@ -20,6 +20,8 @@ import Shop from '@/scenes/Shop';
 import GameOver from '@/components/table/GameOver';
 import OmenBar from '@/components/OmenBar';
 import Hints from '@/components/onboarding/Hints';
+import FeltDust from '@/components/table/FeltDust';
+import Deck from '@/components/table/Deck';
 
 import './table.css';
 
@@ -175,7 +177,13 @@ export default function GameTable() {
 
       <main className="tbl-main">
         <div className="felt">
-          <div className="felt-surface" aria-hidden />
+          <div className="felt-surface" aria-hidden>
+            <div className="felt-nap" />
+            <div className="felt-inlay" />
+            <div className="felt-lamp" />
+            <div className="felt-wear" />
+            <FeltDust />
+          </div>
           <div className="felt-rail" aria-hidden />
 
           {opponents.map((p, i) => (
@@ -195,6 +203,11 @@ export default function GameTable() {
               />
             </div>
           ))}
+
+          {/* The deck is the origin every dealt card now flies from, so it
+              lives inside the felt and moves with it. `cut` replays the
+              top-card lift on each new street and each new hand. */}
+          <Deck cut={view.handNumber * 8 + view.board.length} />
 
           <Board
             view={view}

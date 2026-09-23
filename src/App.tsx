@@ -45,11 +45,23 @@ const VfxLayer = lazy(async (): Promise<{ default: React.ComponentType }> => {
   }
 });
 
+/**
+ * Moving between the menu, the lobby and the table.
+ *
+ * A straight crossfade is what a web page does when it changes route, and it
+ * was reading as exactly that. What this game is doing instead is walking you
+ * to a different table in the same room, so the outgoing scene falls *away*
+ * from the viewer and the incoming one comes up to meet you — one continuous
+ * move through depth rather than two images dissolving into each other.
+ *
+ * `mode="wait"` means these never overlap, so the asymmetry is the whole
+ * effect: you see something leave, then something arrive.
+ */
 const sceneMotion = {
-  initial: { opacity: 0, scale: 0.985 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 1.01 },
-  transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1] as const },
+  initial: { opacity: 0, scale: 1.035, y: 10 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.955, y: -8 },
+  transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] as const },
 };
 
 export default function App() {

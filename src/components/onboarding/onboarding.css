@@ -117,7 +117,7 @@
   gap: var(--s-2) var(--s-3);
   padding: var(--s-3);
   border-radius: var(--r-md);
-  background: rgba(5, 6, 12, 0.4);
+  background: rgba(9, 7, 6, 0.4);
   border: 1px solid var(--line-soft);
 }
 .intro-mana__label {
@@ -163,7 +163,7 @@
   gap: 6px;
   padding: var(--s-3);
   border-radius: var(--r-lg);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(5, 6, 12, 0.55)), var(--surface);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(9, 7, 6, 0.55)), var(--surface);
   border: 1px solid color-mix(in srgb, var(--school) 45%, var(--line));
   box-shadow: var(--e-2), 0 0 24px color-mix(in srgb, var(--school) 20%, transparent);
 }
@@ -174,7 +174,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(5, 6, 12, 0.6);
+  background: rgba(9, 7, 6, 0.6);
   border: 1px solid var(--school);
   color: var(--school);
   font-size: var(--fs-xs);
@@ -254,7 +254,7 @@
   width: 132px;
   padding: var(--s-3);
   border-radius: var(--r-lg);
-  background: rgba(5, 6, 12, 0.4);
+  background: rgba(9, 7, 6, 0.4);
   border: 1px solid var(--line-soft);
 }
 .intro-shop__glyph { font-size: 26px; color: var(--gold); filter: drop-shadow(0 0 10px var(--gold-deep)); }
@@ -277,7 +277,7 @@
   max-width: min(420px, 90vw);
   padding: 9px 10px 9px 14px;
   border-radius: var(--r-pill);
-  background: rgba(8, 10, 20, 0.95);
+  background: rgba(14, 11, 9, 0.95);
   border: 1px solid var(--gold-deep);
   box-shadow: var(--e-3), 0 0 26px color-mix(in srgb, var(--gold) 22%, transparent);
   pointer-events: auto;

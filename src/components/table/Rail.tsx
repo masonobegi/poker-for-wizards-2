@@ -120,6 +120,7 @@ function RailBase({
 
       <div className="rail-hole" ref={holeRef}>
         <CardRow
+          dealFromDeck
           views={me.hole}
           size="lg"
           fan

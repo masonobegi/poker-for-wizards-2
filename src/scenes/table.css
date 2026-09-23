@@ -71,7 +71,22 @@
   width: 100%;
 }
 
-/* --- felt --------------------------------------------------------------- */
+/* --- felt ----------------------------------------------------------------
+   A lit object in a dark room, built in layers from the cloth up:
+
+     felt-surface  the dyed wool itself, dark, with almost no light of its own
+     felt-nap      the fibre — a fine noise plate, soft-light, so the weave
+                   catches the lamp instead of the colour looking painted on
+     felt-inlay    the house's mark, printed into the cloth rather than drawn
+                   over it: it takes the lamp like everything else does
+     felt-lamp     the single light source, off-centre on purpose
+     felt-wear     the years — a scuffed band where elbows and chips live
+     felt-rail     the padded leather lip, with a lit top and a shadowed face
+
+   The order matters. The lamp sits *above* the nap and the inlay so that both
+   are modelled by it, which is the whole difference between a texture and a
+   material.
+   --------------------------------------------------------------------------- */
 
 .felt {
   position: relative;
@@ -84,39 +99,246 @@
   position: absolute;
   inset: 4%;
   border-radius: 50% / 34%;
+  overflow: hidden;
+  /* Darker and flatter than it used to be. The felt no longer lights itself;
+     it is lit, which is why it can have a shadow side at all. */
   background:
-    radial-gradient(ellipse 70% 62% at 50% 44%, var(--felt-core), var(--felt-mid) 58%, var(--felt-edge) 100%);
+    radial-gradient(ellipse 78% 70% at var(--lamp-x) var(--lamp-y),
+      var(--felt-mid), var(--felt-edge) 72%, #050d0b 100%);
   box-shadow:
-    inset 0 0 120px rgba(0, 0, 0, 0.75),
-    inset 0 2px 0 rgba(255, 255, 255, 0.04),
-    0 30px 80px rgba(0, 0, 0, 0.6);
+    inset 0 0 140px rgba(0, 0, 0, 0.82),
+    inset 0 2px 0 rgba(255, 255, 255, 0.035),
+    0 34px 90px rgba(0, 0, 0, 0.66);
 }
 
-/* A faint arcane circle etched into the felt. */
-.felt-surface::after {
+/* The weave. Two plates at different scales so it never reads as one tiling
+   pattern: a fine fibre and a coarse slub. Soft-light keeps it colourless —
+   it modulates the light on the cloth, it does not tint the cloth. */
+.felt-nap {
+  position: absolute;
+  inset: 0;
+  background-image: var(--nap), var(--nap);
+  background-size: 220px 220px, 73px 73px;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* The house mark, pressed into the cloth. A double rule, a ring of ticks and
+   a centre line — the flat, symmetrical vocabulary of something stamped by a
+   machine, which is what stops it reading as decoration. */
+.felt-inlay {
+  position: absolute;
+  inset: 11% 9%;
+  border-radius: 50% / 42%;
+  border: 1px solid rgba(var(--lamp-warm), 0.10);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 7px transparent,
+    inset 0 0 0 8px rgba(var(--lamp-warm), 0.045);
+  pointer-events: none;
+}
+
+.felt-inlay::before {
+  /* Ticks around the ring, drawn as a masked conic sweep rather than 48
+     elements. */
   content: '';
   position: absolute;
-  inset: 12%;
-  border-radius: 50% / 40%;
-  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 4%, transparent);
+  inset: -1px;
+  border-radius: inherit;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(var(--lamp-warm), 0.11) 0deg 0.3deg,
+    transparent 0.3deg 6deg);
+  -webkit-mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
+  mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
 }
 
+/* The lamp. Everything above this line is cloth; everything this does is
+   light falling on it. The tight core and the wide spill are separate stops
+   so the falloff is not a single linear ramp — real falloff never is. */
+.felt-lamp {
+  position: absolute;
+  inset: -10%;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 34% 40% at var(--lamp-x) var(--lamp-y),
+      rgba(var(--lamp-warm), 0.115), rgba(var(--lamp-warm), 0.034) 46%, transparent 68%),
+    radial-gradient(ellipse 72% 78% at var(--lamp-x) var(--lamp-y),
+      rgba(var(--lamp-warm), 0.05), transparent 74%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  /* Filament flicker. Two-thirds of a percent of brightness, eight seconds
+     long — under the threshold of noticing and over the threshold of the
+     table feeling switched on. */
+  animation: felt-lamp-flicker 8.4s ease-in-out infinite;
+}
+
+@keyframes felt-lamp-flicker {
+  0%, 100% { opacity: 1; }
+  23%      { opacity: 0.955; }
+  41%      { opacity: 1.02; }
+  58%      { opacity: 0.972; }
+  79%      { opacity: 1.008; }
+}
+
+/* Wear. A cloth this old has a paler band where the chips get pushed and a
+   darker one under the rail where nothing ever moves. Both are elliptical and
+   both are off-axis, because symmetrical wear is not wear. */
+.felt-wear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    radial-gradient(ellipse 30% 15% at 62% 71%, rgba(210, 205, 180, 0.05), transparent 70%),
+    radial-gradient(ellipse 22% 11% at 34% 66%, rgba(210, 205, 180, 0.035), transparent 72%),
+    radial-gradient(ellipse 60% 36% at 50% 104%, rgba(0, 0, 0, 0.5), transparent 70%),
+    radial-gradient(ellipse 54% 30% at 50% -6%, rgba(0, 0, 0, 0.42), transparent 70%);
+}
+
+/* The motes' canvas. Screen-blended so a mote can only ever add light, which
+   is what keeps them from showing up as grey specks on the dark side. */
+.felt-dust {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* The rail: a padded leather lip, not a stroke. It has a lit top edge on the
+   lamp's side, a shadowed face on the other, and a seam where the leather is
+   stitched down over the cloth. */
 .felt-rail {
   position: absolute;
   inset: 0;
   border-radius: 50% / 30%;
-  border: 10px solid transparent;
+  border: 13px solid transparent;
   background:
-    linear-gradient(180deg, var(--rail-hi), var(--rail)) border-box;
+    linear-gradient(
+      172deg,
+      color-mix(in srgb, var(--rail-hi) 62%, var(--gold-hi)) 0%,
+      var(--rail-hi) 13%,
+      color-mix(in srgb, var(--rail) 60%, var(--rail-hi)) 38%,
+      var(--rail) 66%,
+      #0d0a07 100%) border-box;
   -webkit-mask:
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
   mask:
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
-  opacity: 0.6;
+  opacity: 0.92;
   pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.75),
+    0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* The leather's own grain, and the stitch seam along its inner edge. */
+.felt-rail::after {
+  content: '';
+  position: absolute;
+  inset: -13px;
+  border-radius: inherit;
+  border: 13px solid transparent;
+  background-image: var(--fibre);
+  background-size: 300px 300px;
+  background-clip: border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) padding-box exclude,
+    linear-gradient(#000 0 0);
+  mix-blend-mode: soft-light;
+  opacity: 0.62;
+}
+
+/* --- the deck ------------------------------------------------------------
+   Drawn as the *edge* of a stack rather than as a pile of card backs. From a
+   seated player's angle that is all you see of a deck anyway, it costs five
+   hairlines instead of five card faces, and it stays readable at the forty
+   pixels it occupies. The top card gets a real back so the stack has a face
+   to lift.
+   --------------------------------------------------------------------------- */
+
+.deck {
+  position: absolute;
+  left: 13%;
+  top: 64%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-felt);
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.deck-stack {
+  position: relative;
+  width: calc(var(--card-w) * 0.62);
+  height: calc(var(--card-h) * 0.62);
+}
+
+/* The cut edges. Each is a sliver offset down and right of the one above, so
+   the stack has a visible thickness lit from the same side as the felt. */
+.deck-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(170deg, #2a2f36, #10161b);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+  transform: translate(calc(var(--i) * 0.9px), calc(var(--i) * 1.5px));
+  opacity: calc(0.45 + var(--i) * 0.1);
+}
+
+.deck-top {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(46deg,
+      rgba(212, 162, 74, 0.10) 0 1px, transparent 1px 5px),
+    linear-gradient(155deg, var(--card-back-1), var(--card-back-2));
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 162, 74, 0.26),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.3),
+    0 2px 0 rgba(0, 0, 0, 0.5),
+    0 7px 14px rgba(0, 0, 0, 0.5);
+  transform-origin: 50% 90%;
+}
+
+/* Ground it. Without this the deck floats over the cloth like every other
+   element used to. */
+.deck-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: calc(var(--card-w) * 0.8);
+  height: calc(var(--card-w) * 0.3);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
+  filter: blur(4px);
+}
+
+.deck-label {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  opacity: 0.65;
+}
+
+@media (max-width: 1000px) {
+  /* No room for it beside the seat arc; the cards still fly from the same
+     point, they just fly from an unmarked one. */
+  .deck { display: none; }
 }
 
 /* --- seats -------------------------------------------------------------- */
@@ -142,6 +364,10 @@
 
 .seat-cards { min-height: 62px; display: grid; place-items: center; }
 
+/* A seat pod is a brass nameplate screwed to the rail, not a panel.
+   A flat fill with a hairline border is a div sitting on a photograph of a
+   table; what makes it an object on the cloth is that it is darker than the
+   felt, lit along its top edge only, and casts onto what it is lying on. */
 .seat-pod {
   position: relative;
   display: grid;
@@ -151,10 +377,28 @@
   gap: 2px var(--s-2);
   padding: 6px 12px 6px 6px;
   border-radius: var(--r-pill);
-  background: var(--surface);
+  background: linear-gradient(180deg, #23222b 0%, #16161c 62%, #101015 100%);
   border: 1px solid var(--line-soft);
-  box-shadow: var(--e-2);
+  border-top-color: color-mix(in srgb, var(--line) 70%, var(--gold-deep));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--e-2),
+    0 12px 22px rgba(0, 0, 0, 0.5);
   min-width: 132px;
+}
+/* What it casts on the felt. */
+.seat-pod::before {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -7px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 72%);
+  filter: blur(4px);
+  z-index: -1;
+  pointer-events: none;
 }
 .seat.is-acting .seat-pod {
   border-color: var(--gold-deep);
@@ -279,7 +523,7 @@
   gap: 5px;
   padding: 3px 10px 3px 5px;
   border-radius: var(--r-pill);
-  background: rgba(5, 6, 12, 0.92);
+  background: rgba(9, 7, 6, 0.92);
   border: 1px solid var(--gold-deep);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -326,7 +570,7 @@
   transform: translateX(-50%);
   padding: 3px 12px;
   border-radius: var(--r-pill);
-  background: rgba(5, 6, 12, 0.95);
+  background: rgba(9, 7, 6, 0.95);
   border: 1px solid var(--line);
   font-size: 10px;
   font-weight: 800;
@@ -446,7 +690,7 @@
   gap: var(--s-2);
   padding: 6px 20px;
   border-radius: var(--r-pill);
-  background: rgba(5, 6, 12, 0.85);
+  background: rgba(9, 7, 6, 0.85);
   border: 1px solid var(--gold-deep);
   box-shadow: var(--e-2), 0 0 28px color-mix(in srgb, var(--gold) 18%, transparent);
 }
@@ -461,8 +705,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 5px;
-  min-height: 13px;
+  gap: 6px;
+  min-height: 16px;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
 }
 .potchips-stack {
@@ -470,15 +714,20 @@
   flex-direction: column-reverse;
   align-items: center;
 }
+/* Clay chips, in the game's own inks. The old three were a blue-grey, a
+   violet and a screen yellow — the only violet left on the table and the one
+   thing on the felt still coloured like a web app. These are the colours a
+   real set is moulded in, which also happen to be the three the rest of the
+   game already prints in. */
 .potchip {
-  --chip-face: #4c5678;
-  --chip-rim: #7f8cb6;
+  --chip-face: #3d4a52;
+  --chip-rim: #6e828c;
   display: block;
-  width: 31px;
-  height: 10px;
+  width: 38px;
+  height: 12px;
   border-radius: 50%;
   /* Stacked: each chip sits on the one below with only its edge showing. */
-  margin-top: -4.5px;
+  margin-top: -5.5px;
   background:
     radial-gradient(ellipse 60% 70% at 50% 35%, color-mix(in srgb, var(--chip-rim) 55%, transparent), transparent 70%),
     linear-gradient(180deg, var(--chip-rim) 0%, var(--chip-face) 42%, color-mix(in srgb, var(--chip-face) 60%, #000) 100%);
@@ -486,7 +735,7 @@
     0 1px 0 color-mix(in srgb, var(--chip-face) 50%, #000),
     0 2px 3px rgba(0, 0, 0, 0.45);
 }
-.potchip.is-mid { --chip-face: #6b47b0; --chip-rim: #a688e4; }
+.potchip.is-mid { --chip-face: #7d3438; --chip-rim: #bd6a6c; }
 .potchip.is-high { --chip-face: #a67c2a; --chip-rim: #f0c465; }
 .pot-label {
   font-family: var(--font-display);
@@ -552,7 +801,7 @@
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-md);
-  background: rgba(5, 6, 12, 0.5);
+  background: rgba(9, 7, 6, 0.5);
   border: 1px solid var(--line-soft);
 }
 .tbl-sidetab {
@@ -605,15 +854,59 @@
 
 /* --- rail --------------------------------------------------------------- */
 
+/* The player's own ledge.
+ *
+ * This band and the action bar under it are a quarter of the screen, and
+ * until now both were flat black — the single largest area of the game with
+ * nothing in it. Everything above them had a light on it and a material under
+ * it, which made the bottom of the frame read as the place where the art
+ * stopped.
+ *
+ * They are one object: the near edge of the table, in the same room, under
+ * the same lamp. The lamp is overhead and behind, so the ledge catches a thin
+ * line of light along its top edge and falls away to nothing at the bottom of
+ * the screen — which is also why the action bar needs no border of its own.
+ * It is the same piece of wood, further from the light. */
 .rail {
+  position: relative;
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: end;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-4) 0;
-  border-top: 1px solid var(--line-soft);
-  background: var(--abyss);
+  background:
+    linear-gradient(180deg,
+      #2a2016 0%,
+      #1d160f 26%,
+      #140f0a 62%,
+      #0c0906 100%);
   z-index: var(--z-ui);
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* The grain, and the lit lip where the lamp clears the rail. */
+.rail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--fibre);
+  background-size: 300px 300px;
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.rail::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--rail-hi) 85%, var(--gold-hi)) 22%,
+    color-mix(in srgb, var(--rail-hi) 85%, var(--gold-hi)) 58%,
+    transparent);
+  opacity: 0.75;
+  pointer-events: none;
 }
 
 .rail-me {
@@ -674,6 +967,27 @@
   gap: 2px;
 }
 
+/* A held hand is never still.
+ *
+ * Everything else on the table now moves when something happens to it, which
+ * left the player's own two cards as the one object on screen that was
+ * genuinely frozen — and they are the object the player looks at most. This
+ * is not an effect; it is the small amount a hand moves because it is being
+ * held by someone. Seven and a half seconds, two and a half pixels, a third
+ * of a degree: under the threshold of being noticed, over the threshold of
+ * the hand being alive.
+ *
+ * The whole fan drifts together rather than each card separately, because
+ * that is what holding cards does, and because the fan's own rotation is
+ * already on each card's wrapper.
+ */
+.rail-hole { animation: hand-breathe 7.5s ease-in-out infinite; }
+@keyframes hand-breathe {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%      { transform: translateY(-2.5px) rotate(-0.35deg); }
+  66%      { transform: translateY(1.5px) rotate(0.3deg); }
+}
+
 /* The hand you are holding, named, directly under the cards it is naming.
    Reserves its own height so the cards above it never shift when the reading
    appears on the flop or changes mid-street. */
@@ -730,7 +1044,22 @@
 }
 .sigil.is-castable { cursor: pointer; }
 
+/* A sigil is a card.
+ *
+ * It was a dark tile with a coloured rule around it, sitting six inches from
+ * the player's own hole cards, which are bone paper with black ink on them.
+ * Two things in the same hand, drawn from the same deck of ideas, rendered in
+ * two unrelated materials — and four grey rectangles across the bottom of the
+ * screen were the largest remaining block of flat colour in the game.
+ *
+ * Same stock as the playing cards, then, printed in one colour: the school's
+ * ink. That is how a real card of this kind would be made, it ties the spell
+ * hand to the card hand at a glance, and it puts the brightest thing on the
+ * screen in the place the player is supposed to be looking. */
 .sigil-frame {
+  /* Positioned so the school's key rule below anchors to the card, not to
+     `.sigil`, which is a little taller than its own frame. */
+  position: relative;
   /* Column flex rather than grid so the description can take exactly the
      space the other rows leave, instead of being an auto-sized row that
      overflows the frame's fixed height and gets sliced by `overflow: hidden`
@@ -741,24 +1070,46 @@
   padding: 9px 9px 7px;
   /* Tall enough for the longest sigil text in the set at this width. */
   height: calc(var(--card-h) * 1.5);
-  border-radius: var(--r-md);
-  /* Flat ink, tinted by the school rather than graded into it. The school's
-     colour lives in the rule around the tile and the glyph inside it, which
-     is where a printed card would carry it. */
-  background: color-mix(in srgb, var(--school) 11%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--school) 48%, var(--line-soft));
-  box-shadow: var(--e-2);
+  border-radius: var(--r-card);
+  background:
+    var(--grain),
+    linear-gradient(168deg,
+      color-mix(in srgb, var(--school) 5%, var(--card-face)),
+      color-mix(in srgb, var(--school) 9%, var(--card-face-2)));
+  border: 1px solid color-mix(in srgb, var(--school) 55%, #2b2519);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.12),
+    var(--e-card);
   overflow: hidden;
   transition: box-shadow var(--t-fast), border-color var(--t-fast), filter var(--t-fast);
 }
+/* The school's rule, printed down the left edge the way a plate is keyed. */
+.sigil-frame::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--school);
+  opacity: 0.9;
+}
 .sigil.is-castable .sigil-frame {
-  box-shadow: var(--e-2), 0 0 18px color-mix(in srgb, var(--school) 35%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    var(--e-card),
+    0 0 16px color-mix(in srgb, var(--school) 32%, transparent);
 }
 .sigil.is-castable:hover .sigil-frame {
   border-color: var(--school);
-  box-shadow: var(--e-lift), 0 0 34px color-mix(in srgb, var(--school) 60%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    var(--e-lift),
+    0 0 30px color-mix(in srgb, var(--school) 55%, transparent);
 }
-.sigil.is-locked .sigil-frame { filter: grayscale(0.7) brightness(0.65); }
+/* Unaffordable: the card is still there, it is just out of the light. */
+.sigil.is-locked .sigil-frame { filter: grayscale(0.85) brightness(0.52) contrast(0.92); }
 .sigil.is-justcastable .sigil-frame { animation: sigil-pop 260ms var(--ease-snap); }
 @keyframes sigil-pop {
   0%   { transform: scale(1); }
@@ -777,19 +1128,20 @@
   place-items: center;
   width: 19px; height: 19px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #d8bbff, var(--entropy) 60%, var(--entropy-deep));
-  color: #150a24;
+  /* Struck in the school's ink, not lit from inside it. */
+  background: var(--school);
+  color: var(--card-face);
   font-size: 11px;
   font-weight: 800;
-  box-shadow: 0 0 9px color-mix(in srgb, var(--entropy) 70%, transparent);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 .sigil-school {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--school);
-  opacity: 0.85;
+  color: color-mix(in srgb, var(--school) 80%, #000);
+  opacity: 0.95;
 }
 
 .sigil-glyph {
@@ -801,7 +1153,9 @@
   font-size: clamp(20px, calc(var(--card-h) * 0.22), 34px);
   line-height: 1;
   color: var(--school);
-  filter: drop-shadow(0 0 12px var(--school));
+  /* No glow. Ink on paper does not emit — the shadow is the impression the
+     press left. */
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.18));
 }
 
 .sigil-name {
@@ -810,13 +1164,13 @@
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
-  color: var(--text);
+  color: var(--card-black);
 }
 
 .sigil-text {
   font-size: 10px;
   line-height: 1.4;
-  color: var(--text-3);
+  color: #4a443a;
   /* The clamp sets the height; the frame is sized to hold exactly this many
      lines, so the ellipsis comes from the clamp rather than the text being
      sliced off by the frame's overflow. */
@@ -841,15 +1195,15 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.sigil-rarity { color: var(--rarity); }
-.sigil-timing { color: var(--veil); }
+.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #201c14); }
+.sigil-timing { color: color-mix(in srgb, var(--info) 70%, #201c14); }
 
 .sigil-discard {
   position: absolute;
   top: -7px; right: -7px;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: rgba(5, 6, 12, 0.95);
+  background: rgba(9, 7, 6, 0.95);
   border: 1px solid var(--line);
   color: var(--text-4);
   font-size: 11px;
@@ -905,8 +1259,20 @@
   display: grid;
   place-items: center;
   padding: var(--s-2) var(--s-4) var(--s-4);
-  background: rgba(8, 10, 20, 0.96);
+  /* The same wood as `.rail`, further from the lamp. No border between them:
+     a rule there would cut one object into two panels. */
+  background: linear-gradient(180deg, #0c0906 0%, #080604 70%, #050403 100%);
   z-index: var(--z-ui);
+}
+.actionbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--fibre);
+  background-size: 300px 300px;
+  mix-blend-mode: soft-light;
+  opacity: 0.32;
+  pointer-events: none;
 }
 
 /* A ring alone in the bottom-right corner reads as a stray artefact. It
@@ -950,7 +1316,7 @@
   gap: 6px;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
-  background: rgba(5, 6, 12, 0.6);
+  background: rgba(9, 7, 6, 0.6);
   border: 1px solid var(--line-soft);
   overflow: hidden;
 }
@@ -994,7 +1360,7 @@
   gap: var(--s-3);
   padding: 9px 9px 9px 16px;
   border-radius: var(--r-pill);
-  background: rgba(8, 10, 20, 0.96);
+  background: rgba(14, 11, 9, 0.96);
   border: 1px solid var(--veil);
   box-shadow: var(--e-3), 0 0 32px rgba(110, 200, 255, 0.35);
   font-size: var(--fs-sm);
@@ -1063,12 +1429,12 @@
   gap: var(--s-3);
   padding: 9px 12px;
   border-radius: var(--r-md);
-  background: rgba(5, 6, 12, 0.5);
+  background: rgba(9, 7, 6, 0.5);
   border: 1px solid var(--line-soft);
   border-left: 3px solid var(--school);
 }
 .stack-item.is-top {
-  background: color-mix(in srgb, var(--school) 10%, rgba(5, 6, 12, 0.5));
+  background: color-mix(in srgb, var(--school) 10%, rgba(9, 7, 6, 0.5));
   box-shadow: 0 0 20px color-mix(in srgb, var(--school) 30%, transparent);
 }
 .stack-item.is-countered { opacity: 0.45; animation: stack-impact 320ms var(--ease-snap); }
@@ -1133,13 +1499,13 @@
   padding: 10px 13px;
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--school) 40%, transparent);
-  background: rgba(5, 6, 12, 0.5);
+  background: rgba(9, 7, 6, 0.5);
   text-align: left;
   transition: all var(--t-fast);
 }
 .stack-option:hover {
   border-color: var(--school);
-  background: color-mix(in srgb, var(--school) 12%, rgba(5, 6, 12, 0.5));
+  background: color-mix(in srgb, var(--school) 12%, rgba(9, 7, 6, 0.5));
   transform: translateX(3px);
 }
 .stack-optglyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
@@ -1255,7 +1621,7 @@
   padding: 10px 13px;
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--mark) 35%, transparent);
-  background: rgba(5, 6, 12, 0.5);
+  background: rgba(9, 7, 6, 0.5);
   text-align: left;
   transition: all var(--t-fast);
 }

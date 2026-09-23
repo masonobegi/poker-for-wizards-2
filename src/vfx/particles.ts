@@ -258,6 +258,16 @@ export function schoolColors(school: School): string[] {
 }
 
 const gold = (): string => token('--gold', '#f0c465');
+/**
+ * The colours a chip is, as opposed to the colour money is.
+ *
+ * Every chip particle in the game used to be drawn from the brass palette,
+ * which made a pot being pushed read as a shower of sparks rather than as a
+ * stack of clay being moved. `PotChips` moulds its pile in slate, oxblood and
+ * brass; these are the same three, so a chip in the air and a chip on the
+ * felt are recognisably the same object.
+ */
+const chipClay = (): string[] => ['#6e828c', '#3d4a52', '#bd6a6c', '#7d3438', '#f0c465', '#a67c2a'];
 const goldHi = (): string => token('--gold-hi', '#ffe6a8');
 const goldDeep = (): string => token('--gold-deep', '#a67c2a');
 
@@ -990,8 +1000,8 @@ export const PRESETS = {
   /* ---- chips: gold tumbling into the pot ---- */
   chips: (at, opts) => {
     const amount = opts?.amount ?? 100;
-    const count = opts?.count ?? Math.round(clamp(6 + amount / 22, 6, 40));
-    const col = paletteFor(opts, [gold(), goldHi(), goldDeep(), token('--chip', '#f5d478')]);
+    const count = opts?.count ?? Math.round(clamp(6 + amount / 22, 6, 26));
+    const col = paletteFor(opts, chipClay());
     const k = s(opts);
     const up = -Math.PI / 2;
     return [
@@ -1002,13 +1012,13 @@ export const PRESETS = {
         speed: [140 * k, 350 * k],
         area: [8, 4],
         life: [0.6, 1.05],
-        size: [4.5, 8.5],
+        size: [8, 14],
         colors: col,
         shape: 'coin',
         gravity: 980,
         drag: 1.15,
         spin: [-11, 11],
-        glow: 0.5,
+        glow: 0.16,
         fade: 'ease',
       },
       {
@@ -1032,7 +1042,7 @@ export const PRESETS = {
     const amount = opts?.amount ?? 100;
     const target = opts?.target ?? at;
     const n = Math.round(clamp(4 + amount / 45, 4, 13));
-    const col = paletteFor(opts, [gold(), goldHi(), goldDeep(), token('--chip', '#f5d478')]);
+    const col = paletteFor(opts, chipClay());
     const k = s(opts);
     const dx = target.x - at.x;
     const dy = target.y - at.y;
@@ -1050,7 +1060,10 @@ export const PRESETS = {
         spread: 0.12,
         speed: [dist * 0.9, dist * 1.3],
         life: [0.46, 0.62],
-        size: [4.2, 7.6],
+        // Big enough to be a chip. At four pixels these were sparks that
+        // happened to be gold, and a bet crossing the felt looked like a
+        // spell going off rather than like money being pushed in.
+        size: [8.5, 14],
         colors: col,
         shape: 'coin',
         gravity: 620 * k,
@@ -1058,7 +1071,9 @@ export const PRESETS = {
         attraction: 1500,
         drag: 0.35,
         spin: [-11, 11],
-        glow: 0.5,
+        // Clay does not glow. What little there is here is the lamp on the
+        // rim, not the chip lighting itself.
+        glow: 0.14,
         fade: 'ease',
         delay: i * STEP,
       });
@@ -1082,23 +1097,26 @@ export const PRESETS = {
   /* ---- potCollect: a dense gold stream pulled to a target ---- */
   potCollect: (at, opts) => {
     const target = opts?.target ?? at;
-    const col = paletteFor(opts, [gold(), goldHi(), token('--chip', '#f5d478')]);
+    const col = paletteFor(opts, chipClay());
     const k = s(opts);
     return [
       {
         origin: at,
-        count: opts?.count ?? 40,
+        // Fewer and larger. Forty small coins is a texture; twenty-six big
+        // ones is a pot being raked, and a pot being raked is the single most
+        // satisfying thing that happens in poker.
+        count: opts?.count ?? 26,
         area: [46 * k, 26 * k],
         speed: [30, 120],
-        life: [0.5, 0.85],
-        size: [3.5, 7],
+        life: [0.5, 0.9],
+        size: [8, 15],
         colors: col,
         shape: 'coin',
         target,
         attraction: 2600,
         drag: 1.1,
         spin: [-9, 9],
-        glow: 0.6,
+        glow: 0.16,
         fade: 'ease',
       },
       {
@@ -1278,6 +1296,40 @@ export const PRESETS = {
         drag: 3,
         gravity: 24,
         glow: 1,
+        fade: 'ease',
+      },
+    ];
+  },
+
+  /* ---- cardLand: the felt a card kicks up when it arrives ---- */
+  /*
+   * A dealt card used to emit `sparkleTrail` — gold dots with full glow. That
+   * is the sound a magic item makes, not the sound a piece of card makes
+   * hitting cloth, and it fired on every single card of every single deal,
+   * which made the most ordinary event in the game the most decorated one.
+   *
+   * What a card actually does is push a little dust out sideways. So: felt
+   * and bone coloured, no glow, almost no upward speed, heavy drag, gone in a
+   * third of a second. It is meant to be felt rather than seen, and on the
+   * cards that *are* special the mark's own foil is still there to carry it.
+   */
+  cardLand: (at, opts) => {
+    const k = s(opts);
+    return [
+      {
+        origin: at,
+        count: opts?.count ?? 7,
+        // Sideways and slightly down: dust squeezed out from under an edge.
+        angle: [0, Math.PI * 2],
+        speed: [18 * k, 74 * k],
+        area: [16, 5],
+        life: [0.18, 0.36],
+        size: [1.4, 3.6],
+        colors: paletteFor(opts, ['#2b4a3e', '#1b3229', '#6d6552', '#8d8471']),
+        shape: 'dot',
+        drag: 5.2,
+        gravity: 40,
+        glow: 0,
         fade: 'ease',
       },
     ];
