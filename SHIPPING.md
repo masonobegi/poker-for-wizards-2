@@ -15,7 +15,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 45 sigils, all 23 omens | `npm test` — 104 tests |
+| Game rules, hand evaluation, all 45 sigils, all 23 omens | `npm test` — 108 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -74,8 +74,19 @@ Honest list, worst first.
 
     None of that is listening. Measurement can tell you two sounds are 12 dB apart; it cannot tell you the counterspell sound is annoying by the fortieth time, that the table bed grates after an hour, or that the win sting is corny. Put headphones on before you ship.
 5. **Crash reporting is local only.** The desktop shell writes a plain-text `crash.log` in the user data folder and offers a reload, which means a player whose game died has one file you can ask for. A hosted service would tell you without asking; that is worth adding before a wide release.
-6. **Content depth.** 45 sigils, 23 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
-7. **One language.** No localisation framework; all copy is inline English.
+6. **`evaluate` is expensive on a wild board, and the omens deal wilds.** A
+   plain seven-card hand evaluates in 0.11ms; one wild takes 1.7ms, two wilds
+   with two superposed cards take 39ms, and nine cards can reach 122ms. A wild
+   slot carries one candidate face per rank per suit in play and the evaluator
+   walks the cartesian product of five of them. Showdown pays this per live
+   player, so a late-run table with three wilds in the deck can spend a
+   meaningful fraction of a second scoring one pot. Nothing is wrong today —
+   the table is waiting on the showdown anyway — but anything that wants a
+   hand evaluated more often than once per showdown has to price the call
+   first (`evalComplexity`), the way the hand readout does. Worth a look
+   before adding, say, live odds.
+7. **Content depth.** 45 sigils, 23 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
+8. **One language.** No localisation framework; all copy is inline English.
 
 ---
 

@@ -277,6 +277,9 @@ here passed every harness in the repo; none of it has been judged by a person.
 | End-of-run recap | `src/components/table/GameOver.tsx` | Only ever seen at ante 2 with one omen. At ante 6 there will be five or six omen pills plus relics — confirm it does not overflow the panel. |
 | Banner now precedes the game-over panel | `src/components/BannerLayer.tsx` | The wait is capped at 4.5s. If a banner never fires the panel should still appear promptly. |
 | Quit on desktop | `electron/*` | Never executed. See §2. |
+| The hand readout under your cards | `server/game/table.ts` | It must always agree with the pot. It shares `evaluate` with the showdown so it cannot drift, but on a board too expensive to read it shows nothing — check it does not vanish in normal late-run play. |
+| Redrawn court cards | `src/components/card/CardArt.tsx` | Judged on a monitor at three sizes. The size that matters is a hole card on a Deck at arm's length. |
+| The chip pile | `src/components/table/PotChips.tsx` | Whether it reads as money or as clutter, and whether the colour shift at 5 and 25 blinds lands. |
 
 ### The end-of-run recap, specifically
 
@@ -317,5 +320,7 @@ They are a better starting point for store screenshots than the old ones.
 - [ ] A full run on actual Steam Deck hardware
 - [ ] Menu frame rate acceptable on the Deck with the card backdrop
 - [ ] One run played to the end, to see the recap with a full set of omens
+- [ ] A late run reached with wilds in the deck, to confirm the hand readout
+      under your cards keeps answering (see gap 6 in SHIPPING.md)
 - [ ] At least one full session against real humans
 - [ ] Steam partner work, per SHIPPING.md

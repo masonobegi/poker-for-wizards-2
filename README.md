@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 104 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm test           # 108 tests: hand eval, sigils, omens, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
@@ -161,6 +161,8 @@ test/net.test.ts      Two real clients over a real socket: dealing, redaction,
                       showdown, and out-of-turn rejection
 test/omens.test.ts    Every omen well formed, mods merging, one landing per
                       ante without repeating, deck edits applying once
+test/pot.test.ts      The chip pile only ever grows with the pot, stays
+                      bounded, and survives a zero blind
 test/sim.ts           Headless bot game asserting chip conservation, no
                       negative stacks, and that hands always advance
 test/metrics.ts       Not a test — a balance report. Seconds per hand, where
