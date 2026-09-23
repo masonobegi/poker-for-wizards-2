@@ -138,7 +138,14 @@ const title = await page.title();
 if (!/HEXHOLD/i.test(title)) problem('ERROR', `wrong page title: "${title}"`);
 
 // --- the intro --------------------------------------------------------------
-const introVisible = await page.locator('text=/skip/i').first().isVisible().catch(() => false);
+// Wait for it rather than sampling once: the intro mounts after the first
+// paint, so a single immediate check races it and reported "no intro" on a
+// build where the intro was working fine.
+let introVisible = false;
+for (let i = 0; i < 20 && !introVisible; i++) {
+  introVisible = await page.locator('text=/skip/i').first().isVisible().catch(() => false);
+  if (!introVisible) await page.waitForTimeout(250);
+}
 if (introVisible) {
   notes.push('First-run intro appeared automatically.');
   await shot(page, 'intro-1');
@@ -208,6 +215,23 @@ let sawOmen = false;
 let castsMade = 0;
 let lastMem = 0;
 const heap = [];
+
+// Whether you ever actually won a pot. Latched page-side on its own interval:
+// the payout phase can be shorter than one turn of the loop below, so polling
+// it from here missed wins that the game itself saw. Without this the
+// achievement check cannot tell "the watcher is broken" from "the bots had
+// better cards", and it used to warn on both.
+await page.evaluate(() => {
+  window.__wonAPot = false;
+  window.setInterval(() => {
+    if (window.__wonAPot) return;
+    const v = window.__hexholdView;
+    if (!v?.payout) return;
+    const me = v.players.find((p) => p.isYou);
+    if (!me) return;
+    if (v.payout.entries.some((e) => e.playerId === me.id && e.won > 0)) window.__wonAPot = true;
+  }, 150);
+}).catch(() => {});
 
 while (Date.now() - playStart < SECONDS * 1000) {
   if (pageCrashed || page.isClosed()) break;
@@ -320,11 +344,22 @@ while (Date.now() - playStart < SECONDS * 1000) {
   }
 
   // Nothing to do: has the game stopped needing us for too long?
+  //
+  // Being eliminated is not being stuck. Once you are out you correctly get no
+  // turns and no prompts for the rest of the run, and reporting that as a
+  // stuck table turned an ordinary loss into a release-blocking ERROR.
   if (Date.now() - lastAct > 70_000) {
+    const now = await readState(page).catch(() => null);
+    if (now?.me?.out) {
+      notes.push('Knocked out — stopped acting because there was nothing left to do.');
+      await shot(page, 'eliminated');
+      break;
+    }
     problem('ERROR', 'Seventy seconds passed with no turn and no prompt — the table looks stuck.');
     await shot(page, 'stuck');
     break;
   }
+
   await page.waitForTimeout(400);
   } catch (err) {
     if (pageCrashed || page.isClosed()) break;
@@ -358,12 +393,14 @@ async function finish() {
   finishing = true;
   // Achievements are the visible half of progression; prove they fire.
   let unlocked = [];
+  let wonAPot = false;
   try {
     if (!page.isClosed()) {
       unlocked = await page.evaluate(() => {
         try { return JSON.parse(localStorage.getItem('hexhold.achievements') ?? '[]'); }
         catch { return []; }
       });
+      wonAPot = await page.evaluate(() => window.__wonAPot === true).catch(() => false);
     }
   } catch { /* page gone */ }
   let state = null;
@@ -383,8 +420,11 @@ async function finish() {
   if (state) console.log(`  final state    ${JSON.stringify(state)}`);
   console.log(`  screenshots    ${shots.length} in playthrough/`);
   console.log(`  achievements   ${unlocked.length ? unlocked.join(', ') : 'none'}`);
-  if (turnsSeen > 3 && unlocked.length === 0) {
-    problem('WARN', 'Played a whole session and unlocked nothing — check the achievement watcher.');
+  console.log(`  won a pot      ${wonAPot ? 'yes' : 'no'}`);
+  if (wonAPot && unlocked.length === 0) {
+    problem('WARN', 'Won a pot and unlocked nothing — check the achievement watcher.');
+  } else if (!wonAPot && turnsSeen > 3) {
+    problem('NOTE', 'Won no pot this session, so no achievement was due — `npm test` checks the watcher deterministically.');
   }
   if (heap.length) {
     console.log(`  JS heap MB     ${heap.join(' → ')}`);

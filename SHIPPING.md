@@ -10,14 +10,15 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 46 sigils, all 23 omens | `npm test` — 104 tests |
+| Game rules, hand evaluation, all 46 sigils, all 23 omens | `npm test` — 113 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
 | Server survives abuse | room caps, per-address socket and room-creation limits, token-bucket rate limiting |
 | Server bundles and runs standalone | `npm run build:server` → one 1.8MB `.mjs`, no `node_modules` |
 | Desktop installer builds with an icon | `npm run package:win` → `release/HEXHOLD Setup 0.9.0.exe` |
-| Achievements fire during real play | `npm run play` reports what unlocked |
+| Achievements fire during real play | `npm test` — the watcher is driven directly against a synthetic payout. `npm run play` also reports what unlocked, but only when the bots happen to lose you a pot, so it is a sample, not a proof |
+| Motion holds its invariants | `npm test` — reduced motion never deletes a cue or makes one louder; nothing framer animates relies on a CSS transform; no `transition: all`; every `whileHover` is gated |
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
 | Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
 | Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |

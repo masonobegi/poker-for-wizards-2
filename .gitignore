@@ -31,3 +31,4 @@ src/**/*.js
 shared/**/*.js
 server/**/*.js
 test/**/*.js
+vite.config.js
