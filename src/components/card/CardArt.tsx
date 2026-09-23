@@ -155,99 +155,164 @@ function CourtPips({ suit }: { suit: Suit }) {
   );
 }
 
-function Jack() {
-  const body = 'M50 80 C63 80 72 90 74 104 L78 150 L22 150 L26 104 C28 90 37 80 50 80 Z';
-  const cap = 'M34 58 C32 40 46 30 62 35 L74 41 C60 39 44 42 37 60 Z';
+/**
+ * A face, at the size a face actually has to work at.
+ *
+ * On a Steam Deck a hole card is about 90px wide, which makes the head in
+ * this 100x150 viewBox roughly ten screen pixels across. Anything more than a
+ * brow, two eyes and a nose turns to mud at that size — and anything less
+ * turns the court cards into the featureless grey circles they were, where a
+ * King and a Queen were the same silhouette with a different hat.
+ */
+function Face({ cy, brow = true }: { cy: number; brow?: boolean }) {
   return (
     <g aria-hidden="true">
-      {/* halberd, carried on the diagonal */}
-      <path className="hx-art__gold-line" d="M16 148 L82 30" />
-      <path className="hx-art__gold-fill" d="M68 42 L95 27 L88 57 Z" />
-      <path className="hx-art__gold-line" d="M68 42 L95 27 L88 57 Z" />
-      {/* torso */}
-      <path className="hx-art__fill" d={body} />
-      <path className="hx-art__line" d={body} />
-      <path className="hx-art__line" d="M33 88 C37 97 45 100 50 94 C55 100 63 97 67 88" />
-      <path className="hx-art__line" d="M27 120 H73" />
-      <circle className="hx-art__fill" cx={50} cy={120} r={4.5} />
-      {/* neck + head */}
-      <path className="hx-art__fill" d="M44 70 H56 V84 H44 Z" />
-      <circle className="hx-art__fill" cx={50} cy={62} r={13} />
-      <circle className="hx-art__line" cx={50} cy={62} r={13} />
-      {/* chaperon and feather */}
-      <path className="hx-art__fill" d={cap} />
-      <path className="hx-art__line" d={cap} />
-      <path className="hx-art__gold-line" d="M72 39 C84 24 95 21 99 25 C89 29 80 37 76 47" />
+      <circle className="hx-art__eye" cx={45.4} cy={cy} r={1.5} />
+      <circle className="hx-art__eye" cx={54.6} cy={cy} r={1.5} />
+      {brow ? <path className="hx-art__face" d={`M41.6 ${cy - 4.4} H48.4 M51.6 ${cy - 4.4} H58.4`} /> : null}
+      <path className="hx-art__face" d={`M50 ${cy - 1} V${cy + 3.4} h2.6`} />
+    </g>
+  );
+}
+
+/**
+ * The three courts.
+ *
+ * They have one job the rest of the deck does not: to be told apart instantly,
+ * at a glance, at the size a card is actually played at. So each one is built
+ * around a different silhouette rather than a different accessory — the King
+ * broad and square, the Queen tall and tapered, the Jack angled and off-centre
+ * — and the gold each carries (sword, lotus, halberd) reads as a shape at the
+ * card's outer edge rather than as detail in the middle where it would vanish.
+ */
+
+function Jack() {
+  // Turned, so the shoulder line is diagonal where the other two are level.
+  // Ends inside the medallion, not at the card's edge: these are busts, and
+  // a hem cut flat by the viewBox read as a figure standing behind a wall.
+  const doublet = 'M50 78 C64 78 74 88 77 104 L79 118 L72 128 L28 128 L21 118 L24 102 C27 87 37 78 50 78 Z';
+  const chaperon = 'M35 56 C31 42 40 31 54 32 C64 33 70 40 69 48 L64 46 C62 40 56 37 50 38 C43 39 38 46 38 57 Z';
+  return (
+    <g aria-hidden="true">
+      {/* halberd, carried across the body */}
+      <path className="hx-art__gold-line" d="M26 132 L84 26" />
+      <path className="hx-art__gold-fill" d="M70 38 L96 22 L90 54 Z" />
+      <path className="hx-art__gold-line" d="M70 38 L96 22 L90 54 Z" />
+
+      {/* doublet */}
+      <path className="hx-art__robe" d={doublet} />
+      <path className="hx-art__line" d={doublet} />
+      {/* slashed sleeve and belt, the period detail that reads as texture */}
+      <path className="hx-art__face" d="M31 96 L28 114 M39 92 L36 112" />
+      <path className="hx-art__line" d="M25 116 H77" />
+      <path className="hx-art__gold-fill" d="M45 111 h10 v10 h-10 Z" />
+
+      {/* collar, neck, head */}
+      <path className="hx-art__line" d="M39 84 C44 92 56 92 61 84" />
+      <path className="hx-art__robe" d="M45 66 H55 V82 H45 Z" />
+      <circle className="hx-art__robe" cx={50} cy={57} r={12.5} />
+      <circle className="hx-art__line" cx={50} cy={57} r={12.5} />
+      <Face cy={56} />
+
+      {/* chaperon, and the feather that gives him his outline */}
+      <path className="hx-art__robe" d={chaperon} />
+      <path className="hx-art__line" d={chaperon} />
+      <path className="hx-art__gold-line" d="M66 40 C80 22 93 18 98 22 C86 27 76 36 71 49" />
     </g>
   );
 }
 
 function Queen() {
-  const mantle = 'M50 82 C68 82 80 94 82 112 L86 150 L14 150 L18 112 C20 94 32 82 50 82 Z';
-  const crown = 'M33 50 L33 36 L41 45 L50 28 L59 45 L67 36 L67 50 Z';
+  // Tapered: narrow at the shoulder, wide at the hem, so she is an A where
+  // the King is a T.
+  const gown = 'M50 80 C64 80 74 92 77 110 L80 120 L72 129 L28 129 L20 120 L23 110 C26 92 36 80 50 80 Z';
+  // Springs from under the diadem and falls against the shoulders. The first
+  // version floated clear of the head on both sides and read as rabbit ears.
+  const hair = 'M38 44 C28 52 26 74 31 96 C33 104 37 108 40 108 C35 96 33 80 36 66 C37 58 39 50 42 46 Z';
+  const hair2 = 'M62 44 C72 52 74 74 69 96 C67 104 63 108 60 108 C65 96 67 80 64 66 C63 58 61 50 58 46 Z';
+  const diadem = 'M35 47 L35 34 L42 43 L50 26 L58 43 L65 34 L65 47 Z';
   return (
     <g aria-hidden="true">
-      <path className="hx-art__fill" d={mantle} />
-      <path className="hx-art__line" d={mantle} />
-      {/* falling hair */}
-      <path className="hx-art__line" d="M36 58 C27 74 27 98 34 114" />
-      <path className="hx-art__line" d="M64 58 C73 74 73 98 66 114" />
-      {/* neck + head */}
-      <path className="hx-art__fill" d="M44 70 H56 V86 H44 Z" />
-      <circle className="hx-art__fill" cx={50} cy={60} r={13} />
-      <circle className="hx-art__line" cx={50} cy={60} r={13} />
+      {/* gown */}
+      <path className="hx-art__robe" d={gown} />
+      <path className="hx-art__line" d={gown} />
+      {/* bodice seam and hem band */}
+      <path className="hx-art__face" d="M50 96 V126" />
+      <path className="hx-art__line" d="M24 118 H76" />
+
+      {/* hair falling either side — the tapered frame */}
+      <path className="hx-art__robe" d={hair} />
+      <path className="hx-art__line" d={hair} />
+      <path className="hx-art__robe" d={hair2} />
+      <path className="hx-art__line" d={hair2} />
+
+      {/* collar, neck, head */}
+      <path className="hx-art__line" d="M40 86 C44 94 56 94 60 86" />
+      <path className="hx-art__robe" d="M45 68 H55 V84 H45 Z" />
+      <circle className="hx-art__robe" cx={50} cy={58} r={12.5} />
+      <circle className="hx-art__line" cx={50} cy={58} r={12.5} />
+      <Face cy={57} />
+
       {/* diadem */}
-      <path className="hx-art__gold-fill" d={crown} />
-      <path className="hx-art__gold-line" d={crown} />
-      <circle className="hx-art__gold-fill" cx={33} cy={33} r={3} />
-      <circle className="hx-art__gold-fill" cx={50} cy={25} r={3.6} />
-      <circle className="hx-art__gold-fill" cx={67} cy={33} r={3} />
-      {/* collar and jewel */}
-      <path className="hx-art__line" d="M40 88 C44 96 56 96 60 88" />
-      <circle className="hx-art__fill" cx={50} cy={96} r={3.6} />
-      {/* lotus held at the left */}
-      <g transform="translate(23 122)">
-        <path className="hx-art__gold-line" d="M0 14 V-2" />
-        <path className="hx-art__gold-fill" d="M0 -2 C-9 -4 -11 -12 -7 -16 C-2 -13 0 -8 0 -2 Z" />
-        <path className="hx-art__gold-fill" d="M0 -2 C9 -4 11 -12 7 -16 C2 -13 0 -8 0 -2 Z" />
-        <path className="hx-art__gold-fill" d="M0 -2 C-4 -10 0 -19 0 -19 C0 -19 4 -10 0 -2 Z" />
+      <path className="hx-art__gold-fill" d={diadem} />
+      <path className="hx-art__gold-line" d={diadem} />
+      <circle className="hx-art__gold-fill" cx={35} cy={31} r={2.8} />
+      <circle className="hx-art__gold-fill" cx={50} cy={23} r={3.4} />
+      <circle className="hx-art__gold-fill" cx={65} cy={31} r={2.8} />
+      {/* pendant */}
+      <path className="hx-art__gold-line" d="M50 94 V100" />
+      <circle className="hx-art__gold-fill" cx={50} cy={103} r={3.4} />
+
+      {/* lotus, held out at the hem where it is still a shape at card size */}
+      <g transform="translate(24 110)">
+        <path className="hx-art__gold-line" d="M0 20 V0" />
+        <path className="hx-art__gold-fill" d="M0 0 C-10 -3 -13 -13 -8 -18 C-2 -14 0 -8 0 0 Z" />
+        <path className="hx-art__gold-fill" d="M0 0 C10 -3 13 -13 8 -18 C2 -14 0 -8 0 0 Z" />
+        <path className="hx-art__gold-fill" d="M0 0 C-5 -11 0 -22 0 -22 C0 -22 5 -11 0 0 Z" />
       </g>
     </g>
   );
 }
 
 function King() {
-  const mantle = 'M50 84 C72 84 86 96 88 114 L90 150 L10 150 L12 114 C14 96 28 84 50 84 Z';
-  const crown = 'M30 48 L30 30 L38 41 L44 26 L50 38 L56 26 L62 41 L70 30 L70 48 Z';
-  const beard = 'M37 62 C37 82 42 94 50 99 C58 94 63 82 63 62 Z';
+  // Broadest of the three, and level: a T against the Queen's A.
+  const mantle = 'M50 82 C74 82 88 94 91 112 L92 120 L80 130 L20 130 L8 120 L9 112 C12 94 26 82 50 82 Z';
+  const crown = 'M29 45 L29 26 L37 38 L43 22 L50 35 L57 22 L63 38 L71 26 L71 45 Z';
+  const beard = 'M37 60 C36 80 41 96 50 102 C59 96 64 80 63 60 Z';
   return (
     <g aria-hidden="true">
-      {/* sword at his shoulder */}
-      <path className="hx-art__gold-line" d="M84 150 V44" />
-      <path className="hx-art__gold-line" d="M74 54 H94" />
-      <circle className="hx-art__gold-fill" cx={84} cy={38} r={5} />
-      {/* mantle */}
-      <path className="hx-art__fill" d={mantle} />
+      {/* greatsword, planted point-down beside him */}
+      <path className="hx-art__gold-line" d="M86 128 V40" />
+      <path className="hx-art__gold-line" d="M76 52 H96" />
+      <circle className="hx-art__gold-fill" cx={86} cy={34} r={5} />
+
+      {/* mantle, with an ermine band along the shoulders */}
+      <path className="hx-art__robe" d={mantle} />
       <path className="hx-art__line" d={mantle} />
-      <path className="hx-art__line" d="M22 104 C34 94 66 94 78 104" />
-      <circle className="hx-art__fill" cx={25} cy={116} r={2.4} />
-      <circle className="hx-art__fill" cx={33} cy={126} r={2.4} />
-      <circle className="hx-art__fill" cx={75} cy={116} r={2.4} />
-      <circle className="hx-art__fill" cx={67} cy={126} r={2.4} />
-      {/* neck + head */}
-      <path className="hx-art__fill" d="M44 68 H56 V84 H44 Z" />
-      <circle className="hx-art__fill" cx={50} cy={58} r={13} />
-      <circle className="hx-art__line" cx={50} cy={58} r={13} />
-      {/* beard */}
-      <path className="hx-art__fill" d={beard} />
+      <path className="hx-art__line" d="M19 104 C33 93 67 93 81 104" />
+      <circle className="hx-art__eye" cx={24} cy={114} r={1.9} />
+      <circle className="hx-art__eye" cx={32} cy={124} r={1.9} />
+      <circle className="hx-art__eye" cx={76} cy={114} r={1.9} />
+      <circle className="hx-art__eye" cx={68} cy={124} r={1.9} />
+
+      {/* neck and head, sitting inside the beard */}
+      <path className="hx-art__robe" d="M45 66 H55 V80 H45 Z" />
+      <circle className="hx-art__robe" cx={50} cy={56} r={13} />
+      <circle className="hx-art__line" cx={50} cy={56} r={13} />
+
+      {/* beard — drawn under the face so the features stay on top of it */}
+      <path className="hx-art__robe" d={beard} />
       <path className="hx-art__line" d={beard} />
-      <path className="hx-art__line" d="M42 76 H58" />
-      <path className="hx-art__line" d="M44 86 H56" />
-      {/* crown with a cross */}
+      <path className="hx-art__face" d="M43 82 C46 88 54 88 57 82" />
+      <Face cy={54} />
+      {/* moustache, which is most of what makes him read as the King */}
+      <path className="hx-art__face" d="M43 62 C46 66 54 66 57 62" />
+
+      {/* crown, with the cross */}
       <path className="hx-art__gold-fill" d={crown} />
       <path className="hx-art__gold-line" d={crown} />
-      <path className="hx-art__gold-line" d="M30 48 H70" />
-      <path className="hx-art__gold-line" d="M50 26 V12 M44 19 H56" />
+      <path className="hx-art__gold-line" d="M29 45 H71" />
+      <path className="hx-art__gold-line" d="M50 22 V9 M44 15 H56" />
     </g>
   );
 }

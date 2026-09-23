@@ -674,20 +674,27 @@
   --school: var(--entropy);
   position: relative;
   flex: none;
-  /* 124px at the reference --card-w of 78px — scales with the same token
-     everything else on the table uses. */
-  width: calc(var(--card-w) * 1.59);
+  /* Wider than it was, because the tile has to hold a whole rules sentence.
+     At 1.59 every description wrapped past the frame and was cut mid-word by
+     the frame's overflow — no ellipsis, no warning, and no hover to recover
+     it on a controller. Six of these still fit the rail without scrolling. */
+  width: calc(var(--card-w) * 1.88);
   cursor: default;
   transform-origin: bottom center;
 }
 .sigil.is-castable { cursor: pointer; }
 
 .sigil-frame {
-  display: grid;
+  /* Column flex rather than grid so the description can take exactly the
+     space the other rows leave, instead of being an auto-sized row that
+     overflows the frame's fixed height and gets sliced by `overflow: hidden`
+     with no ellipsis and no clue anything was missing. */
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   padding: 9px 9px 7px;
-  /* 152px at the reference --card-h of 112px. */
-  height: calc(var(--card-h) * 1.357);
+  /* Tall enough for the longest sigil text in the set at this width. */
+  height: calc(var(--card-h) * 1.5);
   border-radius: var(--r-md);
   background:
     linear-gradient(180deg,
@@ -744,7 +751,8 @@
   /* Scales with the sigil frame (itself tied to --card-h) so a 4K frame
      doesn't leave the glyph looking marooned, and a Steam Deck frame
      doesn't clip it. */
-  font-size: clamp(22px, calc(var(--card-h) * 0.27), 40px);
+  /* Trimmed from 0.27 to buy the description its fourth line. */
+  font-size: clamp(20px, calc(var(--card-h) * 0.22), 34px);
   line-height: 1;
   color: var(--school);
   filter: drop-shadow(0 0 12px var(--school));
@@ -763,9 +771,16 @@
   font-size: 10px;
   line-height: 1.4;
   color: var(--text-3);
+  /* The clamp sets the height; the frame is sized to hold exactly this many
+     lines, so the ellipsis comes from the clamp rather than the text being
+     sliced off by the frame's overflow. */
+  flex: 0 0 auto;
   display: -webkit-box;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
+  /* Four lines, with an ellipsis. The longest sigil in the set runs to 178
+     characters and no tile this size will ever hold it, so the tile's job is
+     to summarise visibly and the tooltip's job is to carry the rest. */
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -815,7 +830,15 @@
   transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-out);
   z-index: var(--z-modal);
 }
-.sigil:hover .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* The tile is a summary; this is the whole rules text, and the longest sigil
+   in the set runs to 178 characters, which no card-sized tile is ever going
+   to hold. So it has to be reachable without a mouse: the tile is already
+   focusable, and on a controller or a Steam Deck focus is the only pointer
+   there is. Hover alone made the full text of your own spells unreadable on
+   the hardware this ships to. */
+.sigil:hover .sigil-tip,
+.sigil:focus-visible .sigil-tip,
+.sigil:focus-within .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
 .sigil-tip strong { display: block; font-size: var(--fs-sm); color: var(--school); margin-bottom: 4px; }
 .sigil-tip p { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
 .sigil-impossible {

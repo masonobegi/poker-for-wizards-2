@@ -268,8 +268,19 @@
 /* Court frame + engraving. */
 .hx-art__frame { fill: none; stroke: currentColor; stroke-width: 1.6; opacity: 0.55; }
 .hx-art__frame-2 { fill: none; stroke: currentColor; stroke-width: 0.8; opacity: 0.32; }
-.hx-art__hatch { fill: none; stroke: currentColor; stroke-width: 0.45; opacity: 0.14; }
+/* Engraving texture in the medallion. Kept very faint: at 0.14 the rows read
+   straight through the court figures' robes and the cards looked like they
+   were drawn on lined paper. */
+.hx-art__hatch { fill: none; stroke: currentColor; stroke-width: 0.45; opacity: 0.06; }
 .hx-art__fill { fill: currentColor; opacity: 0.16; stroke: none; }
+/* The court figures' own body fill. Heavier than `__fill`, because at 0.16 a
+   King read as a ghost with the medallion's hatching showing straight through
+   him, and the garment is what carries the silhouette at card size. */
+.hx-art__robe { fill: currentColor; opacity: 0.3; stroke: none; }
+/* Faces. Thin, so an eye stays an eye instead of blooming into a blob once the
+   card is 90px wide on a Steam Deck. */
+.hx-art__face { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.hx-art__eye { fill: currentColor; stroke: none; }
 .hx-art__line { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 .hx-art__gold-line { fill: none; stroke: var(--gold-deep); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .hx-art__gold-fill { fill: var(--gold); stroke: none; }
