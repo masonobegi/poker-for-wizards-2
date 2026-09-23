@@ -51,14 +51,25 @@ Run these first. If any of them is red on your machine and was green here,
 that is a finding in itself — say so rather than working around it.
 
 ```bash
-npm test             # 104 pass
+npm test             # 128 pass
 npm run play         # "nothing a player would notice went wrong"
-npm run play:pad     # 9 passed, 0 failed
+npm run play:pad     # 9 passed, 0 failed — but see below
 npm run responsive   # 7 resolutions, 0 failures
 npm run audio        # 55 pass, 0 warn, 0 fail, 8/8 sanity
-npm run sim -- 100 6 # all invariants held
+npm run sim -- 200 6 # a full six-handed run to completion, all invariants held
 npm run build        # clean
 ```
+
+**`play:pad` is timing-sensitive and will occasionally report a false
+failure.** It drives a synthetic pad against fixed waits, so on a loaded
+machine a press can land before the app is listening and a check fails for
+reasons that have nothing to do with controller support. This session made it
+wait on the app actually being mounted, poll its assertions instead of
+checking once, and clear any overlay before testing Start — which took it from
+a routine 6-of-9 in the cloud container to 9-of-9 most runs. It still is not
+100% there. On a quiet desktop it should be clean; if you see one check fail,
+re-run before believing it, and look at `playthrough-pad/` for what the screen
+actually looked like.
 
 ---
 
@@ -280,6 +291,9 @@ here passed every harness in the repo; none of it has been judged by a person.
 | The hand readout under your cards | `server/game/table.ts` | It must always agree with the pot. It shares `evaluate` with the showdown so it cannot drift, but on a board too expensive to read it shows nothing — check it does not vanish in normal late-run play. |
 | Redrawn court cards | `src/components/card/CardArt.tsx` | Judged on a monitor at three sizes. The size that matters is a hole card on a Deck at arm's length. |
 | The chip pile | `src/components/table/PotChips.tsx` | Whether it reads as money or as clutter, and whether the colour shift at 5 and 25 blinds lands. |
+| The shader backdrop | `src/vfx/Backdrop.tsx` | Frame cost on a Steam Deck, and whether the cast ripple reads or is lost. It renders at half resolution, caps at 30fps and degrades to the old CSS gradient — but the only GPU it has ever run on is SwiftShader on a CPU. |
+| Card foil | `src/components/card/card.css` | Whether a marked card reads as precious at arm's length without making its pips harder to count. |
+| 15 new sigils | `server/game/magic.ts` | Each resolves and leaves the table coherent under test, and a run sees about 27 of the 60. Whether any of them is *broken as a play* — degenerate, dead, or a must-buy — needs a human. Watch Salt the Earth and Erase in particular: they are the first things in the game that can undo a Rite. |
 
 ### The end-of-run recap, specifically
 

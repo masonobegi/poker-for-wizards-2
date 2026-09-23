@@ -15,7 +15,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 45 sigils, all 23 omens | `npm test` — 108 tests |
+| Game rules, hand evaluation, all 60 sigils, all 33 omens | `npm test` — 128 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -85,7 +85,7 @@ Honest list, worst first.
    hand evaluated more often than once per showdown has to price the call
    first (`evalComplexity`), the way the hand readout does. Worth a look
    before adding, say, live odds.
-7. **Content depth.** 45 sigils, 23 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
+7. **Content depth.** 60 sigils, 37 relics, 33 omens, up from 45/23/23. The second pass leaned on the fact that relics and omens are pure data over fields the engine already reads, so they were the cheap half; the fifteen new sigils each needed an effect. Still the pillar most likely to be criticised, and still the one worth growing first — `npm run metrics` sees about 27 of the 60 sigils in a single run, which is roughly where a roguelike wants to be.
 8. **One language.** No localisation framework; all copy is inline English.
 
 ---

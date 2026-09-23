@@ -815,6 +815,222 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       break;
     }
 
+    // ===================================================================
+    // Second pass. Everything below is built from the same primitives as
+    // everything above it — canAlter for amber, superposeCard, the
+    // burn/discard pattern, foreknowledge — so there is nothing new here
+    // for the rest of the engine to learn.
+    // ===================================================================
+
+    // ------------------------------------------------------------- ENTROPY
+    case 'unsettle': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      if (isQuantum(firstCard)) { note('That card had not decided anything yet.', 'warn'); break; }
+      // superposeCard already knows how to take a settled card and give it
+      // back its uncertainty, which is exactly the whole spell.
+      superposeCard(ctx, firstCard);
+      ctx.fx.push({ t: 'sfx', name: 'superpose' });
+      note(`${caster.name} unmakes a decision the table already watched being made.`, 'impossible');
+      break;
+    }
+    case 'decay': {
+      let n = 0;
+      for (const id of [...t.board, ...alive(t).flatMap((p) => p.hole)]) {
+        const c = card(t, id);
+        if (!canAlter(c) || !isQuantum(c) || c.faces.length < 2) continue;
+        // Down to one face is not "fewer futures", it is a collapse — so let
+        // it collapse, onto the face that survives.
+        const drop = rng.int(c.faces.length);
+        c.faces = c.faces.filter((_, i) => i !== drop);
+        if (c.faces.length === 1) {
+          c.collapsed = 0;
+          ctx.fx.push({ t: 'collapse', cardId: c.id, face: c.faces[0] });
+        }
+        n++;
+      }
+      ctx.fx.push({ t: 'sfx', name: 'collapse' });
+      note(n ? `${n} card(s) lose a possible future.` : 'Nothing was undecided.', n ? 'impossible' : 'warn');
+      break;
+    }
+    case 'observer_effect': {
+      if (!targetPlayer) break;
+      let n = 0;
+      for (const id of targetPlayer.hole) {
+        const c = card(t, id);
+        if (!canAlter(c) || !isQuantum(c)) continue;
+        // The worst face, not a random one — that is what makes it a Ruin
+        // spell wearing Entropy's colours.
+        let worst = 0;
+        for (let i = 1; i < c.faces.length; i++) if (c.faces[i].rank < c.faces[worst].rank) worst = i;
+        const f = collapse(c, rng, worst);
+        ctx.fx.push({ t: 'collapse', cardId: c.id, face: f });
+        n++;
+      }
+      note(n
+        ? `${targetPlayer.name} is made to look, and everything settles badly.`
+        : `${targetPlayer.name} had nothing left undecided.`, n ? 'impossible' : 'warn');
+      break;
+    }
+
+    // ---------------------------------------------------------------- VEIL
+    case 'mirror_mask': {
+      if (!targetPlayer) break;
+      const mine = rng.pick(caster.hole.filter((h) => card(t, h)?.veil !== 'sealed') ?? []);
+      if (!mine) { note('You had nothing to show them.', 'warn'); break; }
+      targetPlayer.foreknowledge.lies[mine] = unseenFace(ctx);
+      ctx.fx.push({ t: 'flash', color: SCHOOLS.veil.accent, power: 0.3 });
+      note(`${caster.name} shows ${targetPlayer.name} a card that is not there.`, 'impossible');
+      break;
+    }
+    case 'nightfall': {
+      for (const p of alive(t)) p.blinded = true;
+      ctx.fx.push({ t: 'flash', color: SCHOOLS.veil.accent, power: 0.5 });
+      ctx.fx.push({ t: 'sfx', name: 'seal' });
+      note('The table goes dark. Nobody can read the board, and everybody keeps betting on it.', 'impossible');
+      break;
+    }
+
+    // ------------------------------------------------------------- CHRONOS
+    case 'stall': {
+      // Everyone owes the table another decision on a street they had already
+      // finished. The engine's round-complete check reads this set, so
+      // emptying it is the whole effect.
+      t.actedThisStreet = new Set();
+      ctx.fx.push({ t: 'sfx', name: 'rewind' });
+      note('This street is not over. It was, and now it is not.', 'impossible');
+      break;
+    }
+    case 'premonition': {
+      const rank = tg.rank;
+      if (!rank) { note('No rank was named.', 'warn'); break; }
+      const held = alive(t).some((p) => p.id !== caster.id
+        && p.hole.some((h) => {
+          const c = card(t, h);
+          return !!c && c.faces.some((f) => f.rank === rank);
+        }));
+      if (held) {
+        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng));
+        note(`${caster.name} calls ${RANK_NAME[rank]} and is right. Two sigils.`, 'impossible');
+      } else {
+        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng));
+        note(`${caster.name} calls ${RANK_NAME[rank]} and is wrong. Everybody else draws.`, 'warn');
+      }
+      break;
+    }
+    case 'borrowed_time': {
+      const before = caster.mana;
+      caster.mana = Math.min(caster.maxMana, caster.mana + 4);
+      // `severed` already means "no mana for the rest of this hand", which is
+      // precisely the debt — no new field, and the hand teardown clears it.
+      caster.severed = true;
+      ctx.fx.push({ t: 'sfx', name: 'rewind' });
+      note(`${caster.name} spends ${caster.mana - before} mana from a street that has not happened yet.`, 'impossible');
+      break;
+    }
+
+    // ---------------------------------------------------------------- BIND
+    case 'weld': {
+      if (!canAlter(firstCard) || !canAlter(secondCard)) { note('One of those is set in amber.', 'warn'); break; }
+      if (firstCard.id === secondCard.id) { note('A card cannot be welded to itself.', 'warn'); break; }
+      const faces = [...firstCard.faces, ...secondCard.faces].slice(0, 3);
+      firstCard.faces = faces;
+      firstCard.collapsed = null;
+      // The second card leaves by the same route a burn takes, so anything
+      // watching the board sees a shape it already understands.
+      const slot = t.board.indexOf(secondCard.id);
+      if (slot >= 0) { t.board.splice(slot, 1); t.burnedSlots.push(slot); }
+      else for (const p of t.players) {
+        const h = p.hole.indexOf(secondCard.id);
+        if (h >= 0) p.hole.splice(h, 1);
+      }
+      t.discard.push(secondCard.id);
+      ctx.fx.push({ t: 'burn', cardId: secondCard.id });
+      ctx.fx.push({ t: 'superpose', cardId: firstCard.id });
+      note(`${caster.name} welds two cards into one that counts as either.`, 'impossible');
+      break;
+    }
+    case 'yoke': {
+      if (!targetPlayer) break;
+      const mine = rng.pick(caster.hole);
+      const theirs = rng.pick(targetPlayer.hole);
+      if (!mine || !theirs) { note('One of you had nothing to trade.', 'warn'); break; }
+      caster.hole[caster.hole.indexOf(mine)] = theirs;
+      targetPlayer.hole[targetPlayer.hole.indexOf(theirs)] = mine;
+      ctx.fx.push({ t: 'sfx', name: 'card_slide' });
+      note(`${caster.name} and ${targetPlayer.name} trade a card. Neither is told which.`, 'impossible');
+      break;
+    }
+
+    // ---------------------------------------------------------------- RUIN
+    case 'erase': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      const label = describeCard(t, firstCard.id);
+      const slot = t.board.indexOf(firstCard.id);
+      if (slot >= 0) { t.board.splice(slot, 1); t.burnedSlots.push(slot); }
+      else for (const p of t.players) {
+        const h = p.hole.indexOf(firstCard.id);
+        if (h >= 0) p.hole.splice(h, 1);
+      }
+      // Unlike Burn, this does not reach the discard — there is nothing left
+      // to reshuffle back in, which is the entire difference between them.
+      const deckAt = t.deck.indexOf(firstCard.id);
+      if (deckAt >= 0) t.deck.splice(deckAt, 1);
+      t.cards.delete(firstCard.id);
+      ctx.fx.push({ t: 'burn', cardId: firstCard.id });
+      ctx.fx.push({ t: 'sfx', name: 'card_burn' });
+      note(`${label} is unprinted. It will not come back.`, 'impossible');
+      break;
+    }
+    case 'salt_the_earth': {
+      let n = 0;
+      for (const c of t.cards.values()) {
+        if (c.amber || c.marks.length === 0) continue;
+        c.marks = [];
+        n++;
+      }
+      ctx.fx.push({ t: 'sfx', name: 'card_burn' });
+      note(n
+        ? `Every mark in the deck is scoured off — ${n} card(s) forget what was written on them.`
+        : 'There was nothing written to scour.', n ? 'impossible' : 'warn');
+      break;
+    }
+
+    // --------------------------------------------------------------- WEAVE
+    case 'counterfeit': {
+      if (!firstCard) break;
+      if (t.board.indexOf(firstCard.id) < 0) { note('That card is not on the board.', 'warn'); break; }
+      const f = firstCard.collapsed !== null ? firstCard.faces[firstCard.collapsed] : firstCard.faces[0];
+      const c: CardEntity = {
+        id: nextCardId(), faces: [f], collapsed: 0, marks: [], veil: 'open',
+        memory: 0, origin: 'conjured',
+      };
+      t.cards.set(c.id, c);
+      caster.hole.push(c.id);
+      applySeal(t, c.id);
+      ctx.fx.push({ t: 'deal', cardIds: [c.id], to: caster.id });
+      ctx.fx.push({ t: 'sfx', name: 'inscribe' });
+      note(`${caster.name} copies ${faceLabel(f)} off the board and into their hand.`, 'impossible');
+      break;
+    }
+    case 'unweave': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      if (firstCard.marks.length === 0) { note('Nothing was written on it.', 'warn'); break; }
+      firstCard.marks = [];
+      ctx.fx.push({ t: 'sfx', name: 'card_burn' });
+      note(`${caster.name} strips a card back to what it was printed as.`, 'impossible');
+      break;
+    }
+    case 'loom': {
+      const next = t.deck[0];
+      const c = next ? card(t, next) : undefined;
+      if (!canAlter(c)) { note('The deck had nothing to write on.', 'warn'); break; }
+      if (!c.marks.includes('wild')) c.marks.push('wild');
+      ctx.fx.push({ t: 'inscribe', cardId: c.id, markId: 'wild' });
+      ctx.fx.push({ t: 'sfx', name: 'inscribe' });
+      note(`${caster.name} writes on a card before anyone has drawn it.`, 'impossible');
+      break;
+    }
+
     default:
       note(`${def.name} resolves.`);
   }

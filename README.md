@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 108 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm test           # 128 tests: hand eval, sigils, omens, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
@@ -103,7 +103,7 @@ They stack. By the end of a run you are playing under a rulebook nobody sat down
 | **Ruin** | Removing things from existence | *Unmake* — a rank is struck from every hand at the table |
 | **Weave** | Editing the deck itself | *Inscribe* — write a permanent mark on one exact card, forever |
 
-45 sigils, 23 relics, 23 omens, 9 card inscriptions.
+60 sigils, 37 relics, 33 omens, 9 card inscriptions.
 
 ---
 
@@ -113,16 +113,16 @@ They stack. By the end of a run you are playing under a rulebook nobody sat down
 shared/     Pure game model — imported by both sides, no I/O
   cards.ts    Card entities: superposition, per-viewer divergence, marks, memory
   hand.ts     Hand evaluation, including the three impossible categories
-  sigils.ts   The 45 spells, as data
-  relics.ts   The 23 passives, as data
-  omens.ts    The 23 permanent table rules, as data
+  sigils.ts   The 60 spells, as data
+  relics.ts   The 37 passives, as data
+  omens.ts    The 33 permanent table rules, as data
   types.ts    Table and per-player view shapes
   protocol.ts Socket contract and the transient effect stream
 
 server/     Authoritative. The client is a renderer and an input device.
   game/table.ts     Seating, pot maths, and per-player projection
   game/engine.ts    Phase machine and every clock, on one scheduler
-  game/magic.ts     The stack, and all 45 effects
+  game/magic.ts     The stack, and all 60 effects
   game/showdown.ts  Scoring, side pots, card memory
   game/bots.ts      Monte Carlo equity, pot odds, personalities, counterspells
   game/shop.ts      The Market
@@ -152,7 +152,7 @@ src/        Client
 ```
 test/hand.test.ts     Hand evaluation: standard hands, the impossible ones,
                       wilds, superposition, and every rule modifier
-test/sigils.test.ts   All 45 sigils cast and resolved, plus teardown,
+test/sigils.test.ts   All 60 sigils cast and resolved, plus teardown,
                       counterspelling, mana gating and ward protection
 test/render.test.tsx  Mounts the real components in a real DOM: every card
                       state, the court art, the menu, and the whole app with

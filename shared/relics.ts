@@ -177,6 +177,101 @@ export const RELICS: RelicDef[] = [
     impossible: 'Being handed a better hand than the one you were dealt.',
     mods: { categoryShift: 1 },
   },
+
+  // --------------------------------------------------------------- COMMON II
+  // A second pass. Everything below is built from fields the engine already
+  // reads, because a relic that needs new engine code is a sigil wearing the
+  // wrong hat — and because the thinnest part of this game was never its
+  // machinery, it was how many different runs the machinery could produce.
+  {
+    id: 'split_focus', name: 'Split Focus', glyph: '⑂', rarity: 'common', price: 8,
+    text: 'Draw one extra sigil at the start of every hand.',
+    impossible: 'Being dealt more of a thing the deck does not contain.',
+    sigils: { drawPerHand: 1 },
+  },
+  {
+    id: 'thrift', name: 'Thrift', glyph: '⊖', rarity: 'common', price: 10,
+    text: 'Every sigil you cast costs one less mana, to a minimum of one.',
+    impossible: 'A discount on a currency that does not exist.',
+    sigils: { costDelta: -1 },
+  },
+  {
+    id: 'open_palm', name: 'Open Palm', glyph: '☖', rarity: 'common', price: 7,
+    text: 'Start every hand with 2 mana already in hand.',
+    impossible: 'Beginning a hand mid-thought.',
+    mana: { start: 2 },
+  },
+  {
+    id: 'ladder', name: "The Ladder", glyph: '☰', rarity: 'common', price: 9,
+    text: 'Your straights need only four cards in sequence.',
+    impossible: 'A straight that is not five cards, and everyone agreeing to it.',
+    mods: { straightSize: 4 },
+  },
+  {
+    id: 'gilt_edge', name: 'Gilt Edge', glyph: '▤', rarity: 'common', price: 8,
+    text: 'One of your hole cards is Blooded every hand — it scores a rank higher.',
+    impossible: 'A card worth more than its face, every time it is dealt.',
+    deal: { markOwn: 'blooded' },
+  },
+
+  // ----------------------------------------------------------------- RARE II
+  {
+    id: 'twin_suns', name: 'Twin Suns', glyph: '☀', rarity: 'rare', price: 15,
+    text: 'You are dealt three hole cards instead of two.',
+    impossible: 'A hand size that is not the hand size everybody else has.',
+    deal: { extraHole: 1 },
+  },
+  {
+    id: 'unsettled', name: 'Unsettled', glyph: '⟁', rarity: 'rare', price: 14,
+    text: 'One of your hole cards arrives undecided each hand, holding two faces until showdown.',
+    impossible: 'Being dealt a card that has not finished being a card.',
+    deal: { quantumHole: 1 },
+  },
+  {
+    id: 'the_usurer', name: 'The Usurer', glyph: '⌬', rarity: 'rare', price: 14,
+    text: '15% interest on unspent shards between antes.',
+    impossible: 'Nothing, which is why it is the only honest thing in the Market.',
+    economy: { interestPct: 15 },
+  },
+  {
+    id: 'cold_read', name: 'Cold Read', glyph: '◎', rarity: 'rare', price: 16,
+    text: 'You can see one hole card of every player at the table.',
+    impossible: 'Seeing through the back of a card, continuously, without anybody being able to stop it.',
+    vision: ['one_hole'],
+  },
+  {
+    id: 'the_gambler', name: 'The Gambler', glyph: '✧', rarity: 'rare', price: 15,
+    text: 'Win a pot with two pair or better and take 4 shards.',
+    impossible: 'Being paid a second time, by nobody, for the same hand.',
+    onWin: { shards: 4, requireCat: 2 },
+  },
+  {
+    id: 'low_road', name: 'The Low Road', glyph: '⊼', rarity: 'rare', price: 17,
+    text: 'Jacks and Queens may be read as Kings in your hand.',
+    impossible: 'Three ranks sharing one identity for one player only.',
+    mods: { facesAreKings: true },
+  },
+
+  // --------------------------------------------------------------- MYTHIC II
+  {
+    id: 'the_archive', name: 'The Archive', glyph: '⛁', rarity: 'mythic', price: 28,
+    text: 'You see the top of the deck, the mana of every player, and the shape of every undecided card.',
+    impossible: 'Knowing everything that is about to happen and still having to bet on it.',
+    vision: ['deck_top', 'all_mana', 'quantum_clouds'],
+  },
+  {
+    id: 'the_hoard', name: 'The Hoard', glyph: '⬢', rarity: 'mythic', price: 26,
+    text: '+4 maximum mana, +1 regen, and one more sigil in hand.',
+    impossible: 'Carrying more of an imaginary substance than the table can hold.',
+    mana: { max: 4, regen: 1 },
+    sigils: { handSize: 1 },
+  },
+  {
+    id: 'the_long_game', name: 'The Long Game', glyph: '♾', rarity: 'mythic', price: 29,
+    text: 'Every card scores one rank higher for each pot it has already won, and your flushes need four.',
+    impossible: 'A deck that keeps score of itself between hands.',
+    mods: { memoryBonus: true, flushSize: 4 },
+  },
 ];
 
 export const RELIC_BY_ID: Record<string, RelicDef> = Object.fromEntries(

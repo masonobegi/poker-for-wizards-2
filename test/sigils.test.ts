@@ -109,8 +109,112 @@ for (const def of SIGILS) {
     for (const id of [...t.board, ...t.players.flatMap((p) => p.hole)]) {
       assert.ok(t.cards.has(id), `${def.name} left a dangling card reference`);
     }
+
+    // A card with no faces, or a `collapsed` index pointing past the end of
+    // them, is a card the hand evaluator cannot read — and the failure would
+    // surface at showdown, a long way from whatever caused it. Anything that
+    // edits `faces` has to leave this true.
+    for (const c of t.cards.values()) {
+      assert.ok(c.faces.length >= 1, `${def.name} left ${c.id} with no faces at all`);
+      assert.ok(
+        c.collapsed === null || (c.collapsed >= 0 && c.collapsed < c.faces.length),
+        `${def.name} left ${c.id} collapsed onto face ${c.collapsed} of ${c.faces.length}`,
+      );
+    }
   });
 }
+
+// ---------------------------------------------------------------------------
+// The second pass, where "resolves without throwing" is not the claim
+// ---------------------------------------------------------------------------
+
+/** Cast one sigil, by id, with the given targets, and resolve it. */
+function cast(t: Table, ctx: MagicCtx, id: string, targets: Record<string, unknown> = {}) {
+  const me = t.players[0];
+  const uid = nanoid(8);
+  me.sigils.push({ uid, defId: id });
+  const res = castSigil(ctx, me, uid, targets as never);
+  assert.ok(res.ok, `${id} could not be cast: ${res.error}`);
+  resolveStack(ctx);
+  return me;
+}
+
+test('Erase takes a card out of the game, where Burn only takes it off the board', () => {
+  const { t, ctx } = freshTable();
+  const victim = t.board[1];
+
+  cast(t, ctx, 'erase', { cardIds: [victim] });
+
+  assert.ok(!t.cards.has(victim), 'the erased card is still in the table cards');
+  assert.ok(!t.board.includes(victim), 'the erased card is still on the board');
+  assert.ok(!t.deck.includes(victim), 'the erased card is still in the deck');
+  assert.ok(!t.discard.includes(victim),
+    'the erased card reached the discard, so a reshuffle would deal it again');
+});
+
+test('Weld leaves one card holding both faces and the other gone', () => {
+  const { t, ctx } = freshTable();
+  const [a, b] = [t.board[0], t.board[1]];
+  const facesBefore = t.cards.get(a)!.faces.length + t.cards.get(b)!.faces.length;
+
+  cast(t, ctx, 'weld', { cardIds: [a, b] });
+
+  const kept = t.cards.get(a)!;
+  assert.ok(kept.faces.length > 1, 'the welded card did not gain the second face');
+  assert.ok(kept.faces.length <= Math.min(3, facesBefore), 'the welded card grew past its cap');
+  assert.equal(kept.collapsed, null, 'the welded card should be undecided');
+  assert.ok(!t.board.includes(b), 'the second card is still on the board');
+});
+
+test('Decay removes a possibility without ever emptying a card', () => {
+  const { t, ctx } = freshTable();
+  // Give every board card something to lose.
+  for (const id of t.board) {
+    const c = t.cards.get(id)!;
+    c.faces = [c.faces[0], { rank: 7, suit: 'D' }];
+    c.collapsed = null;
+  }
+
+  cast(t, ctx, 'decay');
+
+  for (const id of t.board) {
+    const c = t.cards.get(id)!;
+    assert.ok(c.faces.length >= 1, 'Decay emptied a card');
+    // One face left is not "undecided" any more; it has to have settled.
+    if (c.faces.length === 1) assert.equal(c.collapsed, 0, 'a one-faced card was left undecided');
+  }
+});
+
+test('Unweave strips one card, Salt the Earth strips the whole deck', () => {
+  const { t, ctx } = freshTable();
+  const mine = t.players[0].hole[0];
+  for (const c of t.cards.values()) c.marks = ['blooded'];
+
+  cast(t, ctx, 'unweave', { cardIds: [mine] });
+  assert.equal(t.cards.get(mine)!.marks.length, 0, 'Unweave left a mark behind');
+  assert.ok([...t.cards.values()].some((c) => c.marks.length > 0),
+    'Unweave stripped more than the one card it was aimed at');
+
+  cast(t, ctx, 'salt_the_earth');
+  const left = [...t.cards.values()].filter((c) => c.marks.length > 0 && !c.amber);
+  assert.equal(left.length, 0, `Salt the Earth left ${left.length} marked card(s)`);
+});
+
+test('Borrowed Time pays out now and cuts the supply for the rest of the hand', () => {
+  const { t, ctx } = freshTable();
+  const me = t.players[0];
+  me.mana = 4;
+  me.maxMana = 20;
+
+  cast(t, ctx, 'borrowed_time');
+
+  // 4 held, minus the 1 it costs, plus the 4 it borrows.
+  assert.equal(me.mana, 7, `expected 7 mana after borrowing, got ${me.mana}`);
+  assert.ok(me.severed, 'Borrowed Time did not cut off the rest of the hand');
+
+  clearHandMagic(t);
+  assert.ok(!me.severed, 'the debt outlived the hand that took it on');
+});
 
 test('the hand teardown clears every temporary effect', () => {
   const { t, ctx } = freshTable();

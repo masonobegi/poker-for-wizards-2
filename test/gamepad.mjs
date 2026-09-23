@@ -67,11 +67,25 @@ const focused = () => page.evaluate(() => {
 
 console.log(`\n▶ ${URL} at 1280x800 (Steam Deck), driving a synthetic pad\n`);
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-await page.waitForTimeout(2500);
+
+// Wait for the app to actually be there, rather than for a fixed 2.5s and a
+// hope. On a loaded machine — a CI box, or a laptop already running the rest
+// of this suite — React had not always finished mounting by then, so the
+// first press landed before anything was listening for it and three unrelated
+// checks downstream failed with it. The check below still fails for real if
+// the app never enters controller mode; it just no longer fails because the
+// app was slow to arrive.
+await page.waitForSelector('button', { state: 'visible', timeout: 30000 });
+await page.waitForTimeout(600);
 
 // --- the pad is noticed ------------------------------------------------------
-await press(BTN.DOWN);
-const padMode = await page.evaluate(() => document.documentElement.dataset.gamepad);
+let padMode;
+for (let attempt = 0; attempt < 6; attempt++) {
+  await press(BTN.DOWN);
+  padMode = await page.evaluate(() => document.documentElement.dataset.gamepad);
+  if (padMode === '1') break;
+  await page.waitForTimeout(400);
+}
 check(padMode === '1', 'pressing a button puts the app into controller mode');
 
 // --- navigation moves focus --------------------------------------------------
@@ -83,15 +97,21 @@ const introOpen = await page.locator('text=/skip/i').first().isVisible().catch((
 if (introOpen) {
   // Walk to Skip and press A.
   let dismissed = false;
-  for (let i = 0; i < 14 && !dismissed; i++) {
+  // Alternating axes, because focus moves geometrically here and Skip sits in
+  // the panel's top corner — pressing only DOWN can walk past it forever. And
+  // the disappearance is polled rather than checked once, because the panel
+  // leaves on an animation.
+  for (let i = 0; i < 20 && !dismissed; i++) {
     const f = await focused();
     if (f && /skip/i.test(f.text)) {
       await press(BTN.A);
-      await page.waitForTimeout(500);
-      dismissed = !(await page.locator('text=/skip/i').first().isVisible().catch(() => false));
+      for (let w = 0; w < 6 && !dismissed; w++) {
+        await page.waitForTimeout(250);
+        dismissed = !(await page.locator('text=/skip/i').first().isVisible().catch(() => false));
+      }
       break;
     }
-    await press(BTN.DOWN);
+    await press(i % 3 === 2 ? BTN.RIGHT : BTN.DOWN);
   }
   check(dismissed, 'the first-run intro can be dismissed without a mouse');
   if (!dismissed) {
@@ -163,10 +183,27 @@ if (started) {
   check(acted, 'a betting action can be taken with the face buttons');
 
   // --- the system menu opens on Start --------------------------------------
+  // The hand may have carried the table into the Market or a showdown panel
+  // by now, and an overlay that is already up swallows Start. Clear whatever
+  // is there first, so this checks what it says it checks rather than
+  // occasionally reporting that Start is broken when the screen was busy.
+  for (let w = 0; w < 4; w++) {
+    const busy = await page.evaluate(() =>
+      !!document.querySelector('[role="dialog"], .scrim, .hh-sysmenu, .shop'));
+    if (!busy) break;
+    await press(BTN.B);
+    await page.waitForTimeout(400);
+  }
+
   await press(BTN.START);
-  await page.waitForTimeout(700);
-  const menuOpen = await page.evaluate(() =>
-    !!document.querySelector('[role="dialog"], .scrim, .hh-sysmenu'));
+  // Polled: the menu arrives on a spring, and a single fixed wait was the
+  // difference between this passing and failing on a busy machine.
+  let menuOpen = false;
+  for (let w = 0; w < 8 && !menuOpen; w++) {
+    await page.waitForTimeout(250);
+    menuOpen = await page.evaluate(() =>
+      !!document.querySelector('[role="dialog"], .scrim, .hh-sysmenu'));
+  }
   check(menuOpen, 'Start opens the system menu');
   await page.screenshot({ path: path.join(SHOTS, '04-menu.png') });
   await press(BTN.B);

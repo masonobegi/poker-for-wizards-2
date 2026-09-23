@@ -369,6 +369,119 @@ export const SIGILS: SigilDef[] = [
     text: 'The sigil being cast costs double. If its caster cannot pay the difference, it fizzles.',
     impossible: 'Retroactively repricing something already paid for.',
   },
+
+  // =========================================================================
+  // A second pass.
+  //
+  // Same house rule as everything above it: if a dealer could do it with a
+  // binder clip and a good memory, it is not here. The schools that were
+  // thinnest — Chronos and Weave, six apiece — get the most, and several of
+  // these exist specifically to answer something that was previously
+  // unanswerable. Salt the Earth is the first thing in the game that can undo
+  // a Rite; Unweave is the first that can undo one card's worth.
+  // =========================================================================
+
+  // ------------------------------------------------------------------ ENTROPY
+  {
+    id: 'unsettle', name: 'Unsettle', school: 'entropy', glyph: '◌', cost: 2,
+    timing: ['any'], target: 'any_card', rarity: 'common', price: 5, botBias: 0.5,
+    text: 'A card that had already decided becomes undecided again, holding a second face nobody has seen.',
+    impossible: 'Taking back a decision that everybody already watched being made.',
+  },
+  {
+    id: 'decay', name: 'Decay', school: 'entropy', glyph: '⋰', cost: 3,
+    timing: ['any'], target: 'none', rarity: 'rare', price: 8, botBias: 0.45,
+    text: 'Every undecided card on the table loses one of its possible faces. Fewer futures, all round.',
+    impossible: 'Deleting a possibility while leaving the object that had it.',
+  },
+  {
+    id: 'observer_effect', name: 'Observer Effect', school: 'entropy', glyph: '⊙', cost: 3,
+    timing: ['any'], target: 'player', rarity: 'rare', price: 9, botBias: 0.55,
+    text: 'Every undecided card the target holds settles right now, on its worst face. Looking is not free.',
+    impossible: 'An observation that is both compulsory and unkind.',
+  },
+
+  // --------------------------------------------------------------------- VEIL
+  {
+    id: 'mirror_mask', name: 'Mirror Mask', school: 'veil', glyph: '☻', cost: 3,
+    timing: ['any'], target: 'player', rarity: 'rare', price: 9, botBias: 0.5,
+    text: 'One of your hole cards shows the target a card that is not there. They will bet against it.',
+    impossible: 'One card, two truths, and only one of you knows which is which.',
+  },
+  {
+    id: 'nightfall', name: 'Nightfall', school: 'veil', glyph: '☾', cost: 4,
+    timing: ['flop', 'turn', 'river'], target: 'none', rarity: 'rare', price: 10, botBias: 0.4,
+    text: 'The table goes dark. Nobody sees the community cards for the rest of the hand — you included.',
+    impossible: 'A board that is in play and unreadable at the same time, for everyone at once.',
+  },
+
+  // ------------------------------------------------------------------ CHRONOS
+  {
+    id: 'stall', name: 'Stall', school: 'chronos', glyph: '⏸', cost: 2,
+    timing: ['flop', 'turn', 'river'], target: 'none', rarity: 'common', price: 5, botBias: 0.4,
+    text: 'This street does not end. One more full round of betting before the next card.',
+    impossible: 'A round of betting that has already finished, happening again.',
+  },
+  {
+    id: 'premonition', name: 'Premonition', school: 'chronos', glyph: '◈', cost: 2,
+    timing: ['any'], target: 'rank', rarity: 'common', price: 5, botBias: 0.5,
+    text: 'Name a rank. If anyone is holding it, draw two sigils. If nobody is, everyone else draws one.',
+    impossible: 'Being paid for a guess about cards nobody has shown.',
+  },
+  {
+    id: 'borrowed_time', name: 'Borrowed Time', school: 'chronos', glyph: '⧖', cost: 1,
+    timing: ['any'], target: 'none', rarity: 'common', price: 5, botBias: 0.45,
+    text: 'Take four mana now, from a street that has not happened. You gain none for the rest of this hand.',
+    impossible: 'Spending a resource before the moment that would have produced it.',
+  },
+
+  // --------------------------------------------------------------------- BIND
+  {
+    id: 'weld', name: 'Weld', school: 'bind', glyph: '⊕', cost: 4,
+    timing: ['any'], target: 'two_cards', rarity: 'rare', price: 10, botBias: 0.45,
+    text: 'Two cards become one card holding both their faces. The second leaves the table entirely.',
+    impossible: 'Two objects occupying one slot, and the slot counting as either.',
+  },
+  {
+    id: 'yoke', name: 'Yoke', school: 'bind', glyph: '⋈', cost: 3,
+    timing: ['preflop', 'flop', 'turn'], target: 'player', rarity: 'rare', price: 9, botBias: 0.5,
+    text: 'You and the target trade one hole card, at random. Neither of you is told which one went.',
+    impossible: 'An exchange with no hands, no shuffle and no way to audit it.',
+  },
+
+  // --------------------------------------------------------------------- RUIN
+  {
+    id: 'erase', name: 'Erase', school: 'ruin', glyph: '⌫', cost: 4,
+    timing: ['any'], target: 'any_card', rarity: 'rare', price: 11, botBias: 0.45,
+    text: 'The card is removed from the game. Not burned — it will not come back, because it was never printed.',
+    impossible: 'Unprinting one card from a deck everybody has already seen.',
+  },
+  {
+    id: 'salt_the_earth', name: 'Salt the Earth', school: 'ruin', glyph: '⁂', cost: 4,
+    timing: ['any'], target: 'none', rarity: 'mythic', price: 13, botBias: 0.35,
+    text: 'Every mark anywhere in the shared deck is scoured off. Whatever anyone paid to write, it is gone.',
+    impossible: 'Erasing permanent ink from cards that are not on the table.',
+  },
+
+  // -------------------------------------------------------------------- WEAVE
+  {
+    id: 'counterfeit', name: 'Counterfeit', school: 'weave', glyph: '⎘', cost: 3,
+    timing: ['flop', 'turn', 'river'], target: 'board_card', rarity: 'rare', price: 9, botBias: 0.6,
+    text: 'Copy a community card into your hand as a third hole card. The original stays where it is.',
+    impossible: 'One card in two places, both of them real.',
+  },
+  {
+    id: 'unweave', name: 'Unweave', school: 'weave', glyph: '✂', cost: 2,
+    timing: ['any'], target: 'any_card', rarity: 'common', price: 6, botBias: 0.4,
+    text: 'Strip every mark from one card. Whatever was written on it is no longer written on it.',
+    impossible: 'Removing something permanent, which is a contradiction the deck honours anyway.',
+  },
+  {
+    id: 'loom', name: 'Loom', school: 'weave', glyph: '⌗', cost: 3,
+    timing: ['any'], target: 'none', rarity: 'rare', price: 9, botBias: 0.5,
+    text: 'Write a Wild mark onto the next card the deck will deal, whoever ends up with it.',
+    impossible: 'Editing a card before it exists to anyone but the deck.',
+  },
 ];
 
 export const SIGIL_BY_ID: Record<string, SigilDef> = Object.fromEntries(

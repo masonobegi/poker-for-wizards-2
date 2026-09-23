@@ -197,6 +197,73 @@ export const OMENS: OmenDef[] = [
     impossible: 'A comparison operator you can be handed mid-game.',
     mods: { lowWins: true },
   },
+
+  // ---- a second pass ------------------------------------------------------
+  // Omens are the only content in the game that changes the rules for
+  // *everyone*, which makes them the cheapest way to make two runs feel
+  // unalike — and, being pure data over fields the engine already reads, the
+  // safest. Weights are deliberately lower than the first pass so the
+  // originals stay the common case and these stay surprises.
+  {
+    id: 'the_crowded_board', name: 'The Crowded Board', glyph: '▦', minAnte: 2, weight: 7,
+    text: 'Every hand deals a sixth community card.',
+    impossible: 'A board longer than the one the game was designed around, permanently.',
+    deal: { extraBoard: 1 },
+  },
+  {
+    id: 'the_ladder', name: 'The Ladder', glyph: '☰', minAnte: 2, weight: 7,
+    text: 'Straights need only four cards in sequence.',
+    impossible: 'A straight that is not five cards, for the whole table at once.',
+    mods: { straightSize: 4 },
+  },
+  {
+    id: 'the_tide', name: 'The Tide', glyph: '≈', minAnte: 2, weight: 7,
+    text: 'Everyone draws one more sigil each hand. The table gets louder.',
+    impossible: 'A hand size the deck cannot supply.',
+    sigilDraw: 1,
+  },
+  {
+    id: 'the_drought', name: 'The Drought', glyph: '◌', minAnte: 3, weight: 6,
+    text: 'Every sigil costs one more mana. Magic is expensive now.',
+    impossible: 'Inflation, in a currency nobody minted.',
+    sigilCost: 1,
+  },
+  {
+    id: 'the_court_masked', name: 'The Court Masked', glyph: '☗', minAnte: 3, weight: 6,
+    text: 'Jacks and Queens are read as Kings. The court closes ranks.',
+    impossible: 'Three ranks collapsing into one for scoring and no other purpose.',
+    mods: { facesAreKings: true },
+  },
+  {
+    id: 'the_undertow', name: 'The Undertow', glyph: '⊽', minAnte: 3, weight: 6,
+    text: 'Two cards in the shared deck become Leaden. They score a rank lower, forever, for whoever draws them.',
+    impossible: 'A card that is worth less than its face, permanently, and nobody is told which.',
+    deal: { inscribe: { markId: 'leaden', count: 2 } },
+  },
+  {
+    id: 'the_bindings', name: 'The Bindings', glyph: '∞', minAnte: 3, weight: 6,
+    text: 'Two cards in the shared deck are Bound. Whatever happens to one happens to the other.',
+    impossible: 'Two pieces of cardboard sharing a fate across separate hands.',
+    deal: { inscribe: { markId: 'bound', count: 2 } },
+  },
+  {
+    id: 'the_quickening', name: 'The Quickening', glyph: '⇈', minAnte: 4, weight: 5,
+    text: 'The blinds climb an extra step at every ante from here. The run is shorter than you planned.',
+    impossible: 'Nothing — it is the only omen a real tournament could run, and it is here to make the others hurt.',
+    blindSteps: 1,
+  },
+  {
+    id: 'the_undecided', name: 'The Undecided', glyph: '⟁', minAnte: 4, weight: 5,
+    text: 'Two community cards arrive undecided every hand, holding two faces until showdown.',
+    impossible: 'A board that has not finished being a board when you bet on it.',
+    deal: { quantumBoard: 2 },
+  },
+  {
+    id: 'the_wellspring', name: 'The Wellspring', glyph: '≋', minAnte: 4, weight: 5,
+    text: 'Everyone gains an extra mana every street, and holds more of it.',
+    impossible: 'A resource that refills because time passed, for everyone, forever.',
+    mana: { regen: 1, max: 3 },
+  },
 ];
 
 export const OMEN_BY_ID: Record<string, OmenDef> = Object.fromEntries(
