@@ -143,7 +143,14 @@ test('a hand deals, redacts, and reaches a showdown', async () => {
     assert.ok(other.sigilCount >= 0);
     for (const c of other.hole) {
       assert.equal(c.face, null, `${other.name}'s hole card identity leaked`);
-      assert.equal(c.state, 'facedown', `${other.name}'s hole card was not face down`);
+      // Not strictly 'facedown': a bot on The Unmoored is dealt a hole card
+      // in superposition, and an opponent on Sealed Rank has one veiled. All
+      // three hide the card — which is what the line above actually asserts.
+      // Pinning the exact state here made covens look like a redaction leak.
+      assert.ok(
+        ['facedown', 'quantum', 'veiled'].includes(c.state),
+        `${other.name}'s hole card was readable (state ${c.state})`,
+      );
       assert.equal(c.possible, undefined, `${other.name}'s superposition leaked`);
     }
   }

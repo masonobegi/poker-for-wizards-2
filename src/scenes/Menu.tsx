@@ -13,6 +13,7 @@ import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
 import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
+import { loadProfile } from '@/components/profile/profile';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -26,7 +27,12 @@ export default function Menu() {
   const [coven, setCoven] = useState<string>(() => {
     try { return localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { return DEFAULT_COVEN; }
   });
+  // Re-read on every pick so the record under the blurb is the real one, not
+  // whatever it was when the menu mounted.
+  const [profile, setProfile] = useState(() => loadProfile());
+  const covenRecord = profile.covens[coven];
   const pickCoven = (id: string): void => {
+    setProfile(loadProfile());
     setCoven(id);
     try { localStorage.setItem('hexhold.coven', id); } catch { /* private mode */ }
   };
@@ -143,7 +149,17 @@ export default function Menu() {
                   </button>
                 ))}
               </div>
-              <p className="menu-covennote">{covenOf(coven).text}</p>
+              <p className="menu-covennote">
+                {covenOf(coven).text}
+                {covenRecord ? (
+                  <em className="menu-covenrecord">
+                    {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
+                    {covenRecord.wins > 0 ? ` · ${covenRecord.wins} won` : ''}
+                    {covenRecord.deepestAnte > 0 ? ` · deepest ante ${covenRecord.deepestAnte}` : ''}
+                    {covenRecord.impossible > 0 ? ` · ${covenRecord.impossible} impossible` : ''}
+                  </em>
+                ) : <em className="menu-covenrecord">never played</em>}
+              </p>
 
               <div className="menu-actions">
                 <Button tone="primary" size="lg" display block

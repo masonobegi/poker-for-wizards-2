@@ -229,3 +229,13 @@
   color: var(--text-4);
   text-wrap: pretty;
 }
+
+.menu-covenrecord {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-5, var(--text-4));
+}

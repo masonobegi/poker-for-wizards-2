@@ -49,6 +49,10 @@ before(() => {
   dom.window.matchMedia = matchMedia as unknown as typeof dom.window.matchMedia;
 
   define('window', dom.window);
+  // Without this, `profile.ts` — which uses the bare identifier — throws on
+  // every read and write, its try/catch swallows it, and the profile tests
+  // below pass against no storage whatsoever.
+  define('localStorage', dom.window.localStorage);
   define('document', dom.window.document);
   define('navigator', dom.window.navigator);
   define('HTMLElement', dom.window.HTMLElement);
@@ -249,12 +253,44 @@ test('the profile card stays hidden until a run has been played', async () => {
   assert.equal(html.trim(), '', 'an empty profile should render nothing');
 });
 
+test('a finished run is banked against the coven it was played as', async () => {
+  const { recordRun, loadProfile } = await import('../src/components/profile/profile');
+  const base = {
+    at: Date.now(), placement: 1, players: 4, handsWon: 3, antesSurvived: 4,
+    bestHand: 'Flush, Ace high', bestCat: 5, impossible: 0,
+    omens: [], relics: [],
+  };
+  recordRun({ ...base, coven: 'loom', won: true });
+  recordRun({ ...base, coven: 'loom', antesSurvived: 6, impossible: 2, won: false });
+  recordRun({ ...base, coven: 'ashen', won: false });
+
+  const { covens } = loadProfile();
+  assert.deepEqual(covens.loom, { runs: 2, wins: 1, deepestAnte: 6, impossible: 2 });
+  assert.deepEqual(covens.ashen, { runs: 1, wins: 0, deepestAnte: 4, impossible: 0 });
+  // Seven separate records, not one pooled total: the whole point is that a
+  // player can see which openings they have actually got anywhere with.
+  assert.equal(covens.quiet, undefined, 'a coven never played should have no record');
+});
+
+test('a profile written before covens existed still loads', async () => {
+  // A week of runs must not be thrown away by a schema that grew a key.
+  //
+  localStorage.setItem('hexhold.profile', JSON.stringify({
+    runs: [{ at: 1, placement: 2, players: 4, handsWon: 1, antesSurvived: 3, bestHand: 'Pair', bestCat: 1, impossible: 0, omens: [], relics: [], won: false }],
+    totals: { runs: 1, wins: 0, handsWon: 1, impossible: 0, bestCat: 1, bestHand: 'Pair', deepestAnte: 3, omensSeen: [], relicsOwned: [] },
+  }));
+  const { loadProfile } = await import('../src/components/profile/profile');
+  const p = loadProfile();
+  assert.equal(p.runs.length, 1, 'the old runs survived');
+  assert.deepEqual(p.covens, {}, 'and the new key arrives empty rather than undefined');
+});
+
 test('the profile card reports a finished run', async () => {
   const { recordRun } = await import('../src/components/profile/profile');
   recordRun({
     at: Date.now(), placement: 1, players: 4, handsWon: 7, antesSurvived: 5,
     bestHand: 'Flush House, Fives over Aces', bestCat: 10, impossible: 1,
-    omens: ['blurred', 'inversion'], relics: ['deep_well'], won: true,
+    omens: ['blurred', 'inversion'], relics: ['deep_well'], coven: 'ashen', won: true,
   });
 
   const ProfileCard = (await import('../src/components/profile/ProfileCard')).default;
