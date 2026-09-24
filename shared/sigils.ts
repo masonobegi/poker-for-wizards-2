@@ -387,8 +387,12 @@ export const SIGILS: SigilDef[] = [
     impossible: 'Looking at a thing deciding what the thing is.',
   },
   {
-    id: 'cold_read', name: 'Cold Read', school: 'veil', glyph: '⌕', cost: 1,
-    timing: ['any'], target: 'player', rarity: 'common', price: 4, botBias: 0.65,
+    // Two, not one. At one mana it was the cheapest sigil in the game for an
+    // effect that reads a whole hand, and a recorded session had three
+    // different bots cast it in a single hand — which is both a tell that the
+    // price was wrong and a lot of the same log line.
+    id: 'cold_read', name: 'Cold Read', school: 'veil', glyph: '⌕', cost: 2,
+    timing: ['any'], target: 'player', rarity: 'common', price: 5, botBias: 0.5,
     text: 'You see the target’s hole cards, truly and completely, for the rest of the hand. They are never told.',
     impossible: 'Reading a card face through its back.',
   },

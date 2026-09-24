@@ -185,8 +185,26 @@ while (Date.now() - t0 < SECONDS * 1000) {
       await page.waitForTimeout(500);
       const call = page.locator('.ab-buttons button').filter({ hasText: /^(Check|Call)/ }).first();
       const fold = page.locator('.ab-buttons button').filter({ hasText: /^Fold/ }).first();
-      if (await call.isVisible().catch(() => false)) await call.click().catch(() => {});
-      else if (await fold.isVisible().catch(() => false)) await fold.click().catch(() => {});
+
+      // Calling everything used to be fine, because the bots never raised.
+      // They do now, and a seat that calls every bet is knocked out in two
+      // hands — which makes for a two-hand recording. Fold to anything that
+      // costs a quarter of the stack; the point here is to stay in long
+      // enough to watch the bots, not to play well.
+      const label = await call.innerText().catch(() => '');
+      const price = Number((label.match(/[\d,]+/)?.[0] ?? '0').replace(/,/g, ''));
+      const chips = await page.evaluate(
+        () => window.__hexholdView?.players.find((p) => p.isYou)?.chips ?? 0,
+      ).catch(() => 0);
+      const tooRich = price > 0 && chips > 0 && price > chips * 0.25;
+
+      if (tooRich && await fold.isVisible().catch(() => false)) {
+        await fold.click().catch(() => {});
+      } else if (await call.isVisible().catch(() => false)) {
+        await call.click().catch(() => {});
+      } else if (await fold.isVisible().catch(() => false)) {
+        await fold.click().catch(() => {});
+      }
       await page.waitForTimeout(400);
       continue;
     }
