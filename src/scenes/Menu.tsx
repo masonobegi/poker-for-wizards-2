@@ -12,6 +12,7 @@ import ServerPanel from '@/components/shell/ServerPanel';
 import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -20,6 +21,15 @@ export default function Menu() {
   const [name, setName] = useState(() => readName());
   const [code, setCode] = useState('');
   const [codex, setCodex] = useState(false);
+  // The run's opening decision, remembered between sessions so a player who
+  // has found the one they like does not re-pick it every time.
+  const [coven, setCoven] = useState<string>(() => {
+    try { return localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { return DEFAULT_COVEN; }
+  });
+  const pickCoven = (id: string): void => {
+    setCoven(id);
+    try { localStorage.setItem('hexhold.coven', id); } catch { /* private mode */ }
+  };
   const [settings, setSettings] = useState(false);
   const [server, setServer] = useState(false);
   const [intro, setIntro] = useState(() => !hasSeenIntro());
@@ -59,7 +69,7 @@ export default function Menu() {
     if (!connected || practicing) return;
     setPracticing(true);
     try {
-      const code = await createRoom(trimmed || 'Adept', { maxPlayers: 4, private: true });
+      const code = await createRoom(trimmed || 'Adept', { maxPlayers: 4, private: true }, coven);
       if (!code) return;
       addBot(true);
       addBot(true);
@@ -111,6 +121,29 @@ export default function Menu() {
                 the King your opponent sees. The river has run before, and it can
                 run again.
               </p>
+
+              {/* The coven picker. This is the first decision of a run and it
+                  sits directly above the button that starts one, because a
+                  choice a player has to go looking for is a choice most of
+                  them never make. */}
+              <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
+                {COVENS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={coven === c.id}
+                    className={`menu-coven ${coven === c.id ? 'is-on' : ''}`}
+                    style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
+                    onClick={() => pickCoven(c.id)}
+                    title={c.style}
+                  >
+                    <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
+                    <span className="menu-coven__name">{c.name}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="menu-covennote">{covenOf(coven).text}</p>
 
               <div className="menu-actions">
                 <Button tone="primary" size="lg" display block

@@ -79,8 +79,8 @@ interface GameStore {
   emotes: Record<string, { id: string; at: number }>;
 
   connect(): void;
-  createRoom(name: string, config?: Partial<RoomConfig>): Promise<string | null>;
-  joinRoom(code: string, name: string): Promise<boolean>;
+  createRoom(name: string, config?: Partial<RoomConfig>, coven?: string): Promise<string | null>;
+  joinRoom(code: string, name: string, coven?: string): Promise<boolean>;
   tryRejoin(): Promise<boolean>;
   leave(): void;
 
@@ -187,13 +187,13 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ socket });
   },
 
-  async createRoom(name, config) {
+  async createRoom(name, config, coven) {
     const s = get().socket;
     if (!s) return null;
     writeName(name);
     set({ joining: true, error: null });
     return new Promise((resolve) => {
-      s.emit('room:create', { name, config }, (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
+      s.emit('room:create', { name, coven, config }, (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
         if (a.ok && a.data) {
           writeSeat(a.data);
           set({ screen: 'lobby', joining: false, chat: [] });
@@ -206,13 +206,13 @@ export const useGame = create<GameStore>((set, get) => ({
     });
   },
 
-  async joinRoom(code, name) {
+  async joinRoom(code, name, coven) {
     const s = get().socket;
     if (!s) return false;
     writeName(name);
     set({ joining: true, error: null });
     return new Promise((resolve) => {
-      s.emit('room:join', { code: code.toUpperCase(), name },
+      s.emit('room:join', { code: code.toUpperCase(), name, coven },
         (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
           if (a.ok && a.data) {
             writeSeat(a.data);

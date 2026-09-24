@@ -173,3 +173,59 @@
   .menu-sigil { display: none; }
   .menu-pitch { display: none; }
 }
+
+/* --- covens -------------------------------------------------------------
+
+   The run's opening choice, sitting directly above the button that starts
+   one. Laid out as a wrapping row of small cards rather than a dropdown: a
+   player should be able to see all seven without opening anything, because
+   the whole point is that they are different from each other. */
+
+.menu-covens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 0 0 8px;
+}
+
+.menu-coven {
+  --school: var(--entropy);
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: rgba(10, 12, 24, 0.55);
+  color: var(--text-3);
+  font: 600 11px/1 var(--font-ui);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast);
+}
+
+.menu-coven:hover { color: var(--text-1); border-color: color-mix(in srgb, var(--school) 48%, transparent); }
+
+.menu-coven.is-on {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--school) 70%, transparent);
+  background: color-mix(in srgb, var(--school) 14%, rgba(10, 12, 24, 0.8));
+}
+
+.menu-coven__glyph {
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--school);
+}
+
+.menu-covennote {
+  margin: 0 0 14px;
+  min-height: 2.4em;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  text-wrap: pretty;
+}

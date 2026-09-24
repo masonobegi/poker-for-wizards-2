@@ -22,6 +22,7 @@ import {
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
+import { DEFAULT_COVEN } from '../../shared/covens';
 
 export const AVATARS = 12;
 
@@ -104,6 +105,7 @@ export function createPlayer(
     maxMana: 8,
     sigils: [],
     relics: [],
+    coven: DEFAULT_COVEN,
     shards: cfg.startingShards,
     hole: [],
     warded: false,
@@ -414,6 +416,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
       sigils: isYou || viewer.foreknowledge.seenSigils.includes(p.id) ? p.sigils : null,
       sigilCount: p.sigils.length,
       relics: p.relics,
+      coven: p.coven,
       shards: isYou ? p.shards : p.shards,
       hole: p.hole.map((id) => project(t, id, { viewer, reveal: readable, showdown })),
       warded: p.warded,

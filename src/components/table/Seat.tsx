@@ -14,6 +14,8 @@ import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import { ENTER, SPRING_CRISP } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { DEFAULT_COVEN, covenOf } from '@shared/covens';
+import { SCHOOLS } from '@shared/sigils';
 
 export interface SeatProps {
   player: PlayerView;
@@ -106,6 +108,17 @@ function SeatBase({
           ) : null}
         </div>
       </div>
+
+      {/* The coven sits with the relics because it is the same kind of
+          information: public, permanent for the run, and worth knowing before
+          you decide what they are representing. */}
+      {p.coven && p.coven !== DEFAULT_COVEN ? (
+        <Tooltip body={<><strong>{covenOf(p.coven).name}</strong><br />{covenOf(p.coven).style}</>}>
+          <span className="seat-coven" style={{ ['--school' as string]: SCHOOLS[covenOf(p.coven).school].accent }}>
+            <Mark kind="coven" id={p.coven} fallback={covenOf(p.coven).glyph} />
+          </span>
+        </Tooltip>
+      ) : null}
 
       {p.relics.length ? (
         <div className="seat-relics">

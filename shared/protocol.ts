@@ -57,8 +57,8 @@ export interface Ack<T = unknown> {
 }
 
 export interface ClientToServer {
-  'room:create': (p: { name: string; config?: Partial<RoomConfig> }, cb: (a: Ack<{ code: string; youId: string }>) => void) => void;
-  'room:join': (p: { code: string; name: string }, cb: (a: Ack<{ code: string; youId: string }>) => void) => void;
+  'room:create': (p: { name: string; coven?: string; config?: Partial<RoomConfig> }, cb: (a: Ack<{ code: string; youId: string }>) => void) => void;
+  'room:join': (p: { code: string; name: string; coven?: string }, cb: (a: Ack<{ code: string; youId: string }>) => void) => void;
   'room:rejoin': (p: { code: string; youId: string; token: string }, cb: (a: Ack<{ code: string; youId: string }>) => void) => void;
   'room:leave': () => void;
   'room:config': (p: Partial<RoomConfig>) => void;

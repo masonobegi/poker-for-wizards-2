@@ -9,6 +9,7 @@ import type { BetAction, RoomConfig, SigilTargets } from '../../shared/types';
 import { Rooms, type Seatholder } from './rooms';
 import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
 import { config } from '../config';
+import { covenOf } from '../../shared/covens';
 
 const MAX_NAME = 16;
 const CHAT_LIMIT = 200;
@@ -106,6 +107,10 @@ export function attach(io: Server): Rooms {
       const e = rooms.create(id, sanitizeConfig(payload.config));
       const player = e.addPlayer(id, name);
       if (!player) return fail(cb, 'Could not seat you');
+      // A coven only sets which sigils and relic the run opens with, and an
+      // unknown id falls back rather than throwing, so it needs no validation
+      // beyond being a string.
+      player.coven = covenOf(clean(payload.coven, 32)).id;
       const token = join(e.table.code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code: e.table.code, youId: id, token } });
@@ -125,6 +130,7 @@ export function attach(io: Server): Rooms {
       const id = `p_${nanoid(10)}`;
       const player = e.addPlayer(id, name);
       if (!player) return fail(cb, 'That table is full');
+      player.coven = covenOf(clean(payload.coven, 32)).id;
       const token = join(code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code, youId: id, token } });

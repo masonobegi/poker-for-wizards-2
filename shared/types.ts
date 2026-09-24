@@ -59,6 +59,8 @@ export interface Player {
   maxMana: number;
   sigils: SigilInstance[];
   relics: string[];
+  /** The coven this player sat down as. See shared/covens.ts. */
+  coven: string;
   shards: number;
 
   /** Card entity ids of this player's hole cards. */
@@ -120,6 +122,8 @@ export interface PlayerView {
   sigils: SigilInstance[] | null;
   sigilCount: number;
   relics: string[];
+  /** The coven this player sat down as — public, like their relics. */
+  coven: string;
   shards: number;
   hole: CardView[];
   warded: boolean;
