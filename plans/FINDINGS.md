@@ -141,6 +141,23 @@ real bugs found at 1024x680 (a sigil reading "Doppelgange", BIND reading
 `checkClippedText` now asks it directly, excluding the deliberate "there is
 more" cues: an ellipsis, a line clamp, a fade mask, a scrollable panel.
 
+**A third test that could not fail.** `test/render.test.tsx` builds a JSDOM
+and defines a dozen globals on it — `window`, `document`, `navigator`,
+`CSS`, `AbortController` — and never defined `localStorage`. `profile.ts`
+uses the bare identifier, so every read and write inside it threw, its own
+try/catch swallowed the throw (correctly — that is there for private
+browsing), and three profile tests passed against no storage whatsoever. It
+surfaced only because a new test asserted something storage-dependent that
+the in-memory return value could not fake. Defined now, and the same tests
+pass for the right reason.
+
+**Covens made an old redaction assertion wrong.** `net.test.ts` checked that
+an opponent's hole card has `state === 'facedown'`. A bot on The Unmoored is
+dealt one in superposition, so the state is `quantum` — still redacted, and
+the line above it (`c.face === null`) is the assertion that actually
+guarantees no leak. Pinning the exact state made a new feature look like a
+security regression. It now accepts any state that hides the card.
+
 ## Known remaining flakiness
 
 `npm run play` fails roughly 1 run in 5 with "the table looks stuck", in runs
