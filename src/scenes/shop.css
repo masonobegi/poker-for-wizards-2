@@ -5,8 +5,7 @@
   display: grid;
   place-items: center;
   padding: var(--s-4);
-  background: rgba(3, 4, 9, 0.86);
-  backdrop-filter: blur(14px);
+  background: radial-gradient(120% 90% at 50% 40%, rgba(12, 7, 30, 0.82), rgba(2, 3, 8, 0.94));
 }
 
 .shop-panel {
@@ -16,12 +15,10 @@
   display: grid;
   gap: var(--s-4);
   padding: var(--s-5);
-  border-radius: var(--r-xl);
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.16), transparent 70%),
-    linear-gradient(180deg, #1b2140, #0b0e1f);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 80px rgba(124, 58, 237, 0.2);
+  /* The Market is the one plate that keeps a colour of its own: it is the
+     only screen where the school palette is the subject. */
+  --plate-fill-a: #1b2140;
+  --plate-fill-b: #0a0c1c;
 }
 
 .shop-head {

@@ -66,7 +66,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
           transition={ENTER_PANEL}
         >
           <motion.div
-            className="stack-panel"
+            className="stack-panel hx-plate"
             ref={panelRef}
             initial={reducedMotion ? { opacity: 0 } : { y: 60, scale: 0.9 }}
             animate={reducedMotion ? { opacity: 1 } : { y: 0, scale: 1 }}

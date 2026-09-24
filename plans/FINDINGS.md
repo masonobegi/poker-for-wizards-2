@@ -158,6 +158,15 @@ the line above it (`c.face === null`) is the assertion that actually
 guarantees no leak. Pinning the exact state made a new feature look like a
 security regression. It now accepts any state that hides the card.
 
+**A camera shake makes every fixed layer look like a layout bug.** `shake()`
+writes an inline transform to `#root`, which makes it the containing block
+for every `position: fixed` element in the app — so the whole viewport
+moves, which is the entire point, and each fixed layer measures a few pixels
+past the window while it runs. `npm run play` sampled mid-shake and reported
+`.stackview` and `.hints-layer` as running off the bottom by four pixels. The
+layout check now returns early while the root carries a transform, because
+geometry measured during a shake is not geometry.
+
 ## Known remaining flakiness
 
 `npm run play` fails roughly 1 run in 5 with "the table looks stuck", in runs

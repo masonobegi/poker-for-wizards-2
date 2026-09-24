@@ -9,7 +9,9 @@
   justify-content: center;
   gap: var(--s-2);
   padding: 11px 20px;
-  border-radius: var(--r-md);
+  /* Squared off, with the plates. No `clip-path` here: it would clip the
+     gold focus outline, and a chamfer is not worth a focus ring. */
+  border-radius: 3px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   color: var(--text);
@@ -71,9 +73,9 @@
   box-shadow: none;
 }
 
-.btn-lg { padding: 15px 30px; font-size: var(--fs-md); border-radius: var(--r-lg); }
-.btn-sm { padding: 7px 13px; font-size: var(--fs-xs); border-radius: var(--r-sm); }
-.btn-icon { padding: 9px; aspect-ratio: 1; border-radius: var(--r-md); }
+.btn-lg { padding: 15px 30px; font-size: var(--fs-md); border-radius: 3px; }
+.btn-sm { padding: 7px 13px; font-size: var(--fs-xs); border-radius: 2px; }
+.btn-icon { padding: 9px; aspect-ratio: 1; border-radius: 3px; }
 .btn-block { width: 100%; }
 
 .btn-display {
@@ -281,18 +283,23 @@
   display: grid;
   place-items: center;
   padding: var(--s-5);
-  background: rgba(3, 4, 9, 0.76);
-  backdrop-filter: blur(10px) saturate(0.8);
+  background: radial-gradient(120% 90% at 50% 40%, rgba(10, 6, 26, 0.72), rgba(2, 3, 8, 0.9));
 }
+/* The modal is a plate (see base.css). `overflow: auto` and `clip-path` do
+   not combine — the clip is applied to the padding box and a scrolled child
+   escapes it — so the scroll lives on an inner wrapper and the plate itself
+   only holds the shape. */
 .modal {
   width: min(560px, 100%);
   max-height: min(84vh, 760px);
-  overflow: auto;
   padding: var(--s-6);
-  border-radius: var(--r-xl);
-  background: linear-gradient(180deg, #1b2140, #0d1022);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 80px rgba(76, 52, 140, 0.25);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.modal > * {
+  min-height: 0;
+  overflow: auto;
 }
 
 /* --- misc --------------------------------------------------------------- */

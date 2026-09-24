@@ -46,7 +46,7 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
       transition={ENTER_PANEL}
     >
       <motion.div
-        className="shop-panel"
+        className="shop-panel hx-plate"
         initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={reduced ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.97 }}

@@ -149,12 +149,31 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* --- panels ------------------------------------------------------------- */
 
+/* `.panel` is the plate. Kept as its own selector so every consumer keeps
+   working, rather than editing a class name in twenty components. */
 .panel {
-  background: linear-gradient(180deg, rgba(31, 37, 68, 0.82), rgba(17, 21, 42, 0.9));
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e-3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
+  --cut: 14px;
+  --plate-rule: rgba(240, 196, 101, 0.24);
+  --plate-rule-2: rgba(240, 196, 101, 0.08);
+  position: relative;
+  border: 0;
+  border-radius: 2px;
+  background:
+    radial-gradient(110% 80% at 50% -10%, rgba(44, 52, 96, 0.5), transparent 60%),
+    linear-gradient(180deg, #161b34, #0b0e1c);
+  box-shadow:
+    inset 0 0 0 1px var(--plate-rule),
+    inset 0 0 0 4px rgba(4, 5, 12, 0.5),
+    inset 0 0 0 5px var(--plate-rule-2),
+    var(--e-3);
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
 }
 
 .panel-head {
@@ -180,3 +199,118 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
    attribute, so this is enough to float both back over the 10px floor
    without touching the component. */
 .avatar text { font-size: 10px; }
+
+/* ===========================================================================
+   The plate
+   ---------------------------------------------------------------------------
+   Every panel in the game used the same shape: an 18-26px uniform radius, a
+   soft vertical gradient, one hairline border, a 12-16px backdrop blur and an
+   inset white highlight along the top. That is the default look of every
+   framework and every design tool, which is exactly the problem — it reads as
+   a settings dialog, not as something a wizard would own.
+
+   This replaces it with an engraved plate. The grammar is:
+
+     - A CHAMFERED corner instead of a rounded one. Two opposite corners are
+       cut flat. Nothing else in a browser looks like this by accident, and it
+       reads as cut metal rather than as a rounded rectangle.
+     - A DOUBLE RULE: a gold hairline, a dark channel, a second fainter
+       hairline. This is how a plate in a printed book is bordered, and it is
+       all `inset` box-shadow, so it cannot fight the chamfer or the layout.
+     - CORNER TICKS at the two square corners — a short mark on each axis, in
+       gold, the way a ritual diagram is registered.
+     - A RING WATERMARK: one very faint circle, off-centre, sitting under the
+       content. It is the only thing here doing any "magic" directly, which
+       is why it is at four percent.
+     - No backdrop blur. Frosted glass is the single most dated surface in
+       modern UI; a plate is opaque.
+
+   Applied by `.hx-plate`, which every panel-like surface now carries. The
+   chamfer is a custom property so a small plate can take a smaller cut.
+   =========================================================================== */
+
+.hx-plate {
+  --cut: 20px;
+  --plate-rule: rgba(240, 196, 101, 0.42);
+  --plate-fill-a: #161c36;
+  --plate-fill-b: #0a0c19;
+
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+
+  /* The element's own background IS the rule. The fill is laid over it by
+     `::before`, inset by the rule's width and clipped to the same shape, so
+     the line follows the chamfer instead of being sliced off by it — which is
+     what `inset box-shadow` plus `clip-path` does, and why the first version
+     had bare diagonal corners. */
+  background: var(--plate-rule);
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+  box-shadow: var(--e-4), 0 0 70px rgba(76, 52, 140, 0.2);
+}
+
+/* The fill, and with it the second rule of the double line: the gap between
+   this inset and the next is the dark channel a printed plate has. */
+.hx-plate::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    /* one faint ring, off-centre so it never reads as a loading spinner */
+    radial-gradient(circle at 80% 16%, transparent 70px, rgba(240, 196, 101, 0.055) 71px, rgba(240, 196, 101, 0.055) 72px, transparent 73px),
+    radial-gradient(circle at 80% 16%, transparent 104px, rgba(240, 196, 101, 0.03) 105px, transparent 106px),
+    radial-gradient(120% 90% at 50% -10%, rgba(48, 56, 104, 0.5), transparent 62%),
+    linear-gradient(180deg, var(--plate-fill-a), var(--plate-fill-b));
+  box-shadow: inset 0 0 0 4px rgba(4, 5, 12, 0.55), inset 0 0 0 5px rgba(240, 196, 101, 0.14);
+  clip-path: polygon(
+    calc(var(--cut) - 1px) 0,
+    100% 0,
+    100% calc(100% - var(--cut) + 1px),
+    calc(100% - var(--cut) + 1px) 100%,
+    0 100%,
+    0 calc(var(--cut) - 1px)
+  );
+}
+
+/* Registration marks at the two corners the chamfer leaves square, the way a
+   ritual diagram is squared up. Drawn as gradients so they add no box. */
+.hx-plate::after {
+  content: '';
+  position: absolute;
+  inset: 11px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--plate-rule), var(--plate-rule)) right top / 14px 1px no-repeat,
+    linear-gradient(var(--plate-rule), var(--plate-rule)) right top / 1px 14px no-repeat,
+    linear-gradient(var(--plate-rule), var(--plate-rule)) left bottom / 14px 1px no-repeat,
+    linear-gradient(var(--plate-rule), var(--plate-rule)) left bottom / 1px 14px no-repeat;
+}
+
+/* A plate small enough that a 20px cut would eat its content. */
+.hx-plate--sm { --cut: 12px; }
+
+/* ---------------------------------------------------------------------------
+   Focus on a clipped element.
+
+   `clip-path` clips `outline` along with everything else, so any chamfered
+   control would lose the gold focus ring — on a game whose primary input is a
+   controller, and whose gamepad harness asserts a visible focus indicator.
+   An INSET shadow is drawn inside the element's box, so the clip cannot reach
+   it. Anything that takes a `clip-path` must take this with it.
+   --------------------------------------------------------------------------- */
+
+.menu-coven:focus-visible,
+.codex-tab:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gold);
+}

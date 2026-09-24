@@ -71,6 +71,19 @@ export default function Hints() {
     markSeen(candidate.id);
   }, [view, shown, seen, markSeen]);
 
+  // Retract the moment the thing it is describing stops being true.
+  //
+  // Without this a hint sits for its full seven seconds whatever happens
+  // underneath it: the rail tip is already gated so it never OPENS during a
+  // response window, but one that opened a second earlier stayed put and
+  // landed on "Let it resolve" — advice about something that is no longer
+  // the case, covering a timed decision. Every hint here is a statement
+  // about the present tense, so none of them should outlive it.
+  useEffect(() => {
+    if (!shown || !view) return;
+    if (!shown.match(view)) setShown(null);
+  }, [view, shown]);
+
   // Auto-fade after a few seconds, independent of the seen-map update above,
   // so a rapidly-changing table state can't flicker it or re-trigger it.
   useEffect(() => {
