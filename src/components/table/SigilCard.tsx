@@ -1,6 +1,7 @@
 import { forwardRef, memo, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type SigilInstance } from '@shared/sigils';
+import SchoolDevice from '@/components/table/SchoolDevice';
 
 export interface SigilCardProps {
   inst: SigilInstance;
@@ -80,7 +81,12 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           </span>
         </header>
 
-        <div className="sigil-glyph">{def.glyph}</div>
+        {/* The school's device, printed behind the sigil's own glyph. The
+            device groups; the glyph identifies. */}
+        <div className="sigil-art">
+          <SchoolDevice school={def.school} />
+          <span className="sigil-glyph">{def.glyph}</span>
+        </div>
 
         <h4 className="sigil-name">{def.name}</h4>
 
