@@ -13,6 +13,7 @@ import { RELIC_BY_ID, RELIC_RARITY_COLOR } from '@shared/relics';
 import { MARKS } from '@shared/cards';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
+import SchoolDevice, { type DeviceId } from '@/components/table/SchoolDevice';
 import './shop.css';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
@@ -130,7 +131,12 @@ const ShopCard = forwardRef<HTMLElement, {
       whileHover={locked ? undefined : { y: -8, scale: 1.03 }}
     >
       <span className="shopcard-kind">{info.kind}</span>
-      <div className="shopcard-glyph">{info.glyph}</div>
+      {/* Same construction as a sigil in hand: the device is the picture, the
+          glyph is the plate mark in its corner. */}
+      <div className="shopcard-art">
+        <SchoolDevice school={info.device} className="shopcard-device" />
+        <span className="shopcard-glyph">{info.glyph}</span>
+      </div>
       <h3 className="shopcard-name">{info.name}</h3>
       <p className="shopcard-text">{info.text}</p>
       {info.impossible ? (
@@ -161,6 +167,8 @@ const ShopCard = forwardRef<HTMLElement, {
 interface Described {
   kind: string; name: string; text: string; glyph: string;
   accent: string; impossible?: string;
+  /** Which engraved device to print behind the glyph. */
+  device: DeviceId;
 }
 
 function describe(item: ShopItem): Described {
@@ -174,6 +182,7 @@ function describe(item: ShopItem): Described {
         glyph: d?.glyph ?? '✦',
         accent: d ? SCHOOLS[d.school].accent : 'var(--text-3)',
         impossible: d?.impossible,
+        device: d?.school ?? 'weave',
       };
     }
     case 'relic': {
@@ -185,6 +194,7 @@ function describe(item: ShopItem): Described {
         glyph: d?.glyph ?? '⬡',
         accent: d ? RELIC_RARITY_COLOR[d.rarity] : 'var(--text-3)',
         impossible: d?.impossible,
+        device: 'relic',
       };
     }
     case 'rite': {
@@ -196,6 +206,7 @@ function describe(item: ShopItem): Described {
         glyph: m.glyph,
         accent: m.color,
         impossible: 'A deck that carries edits between games.',
+        device: 'rite',
       };
     }
     case 'mana':
@@ -205,9 +216,10 @@ function describe(item: ShopItem): Described {
         text: 'Raises your mana ceiling for the rest of the run.',
         glyph: '◇',
         accent: 'var(--veil)',
+        device: 'mana',
       };
     default:
-      return { kind: '', name: '', text: '', glyph: '', accent: 'var(--text-3)' };
+      return { kind: '', name: '', text: '', glyph: '', accent: 'var(--text-3)', device: 'weave' };
   }
 }
 

@@ -2,6 +2,13 @@ import { memo } from 'react';
 import type { School } from '@shared/sigils';
 
 /**
+ * The market sells three things that are not sigils, and they need devices
+ * too — otherwise the one screen where the player is *choosing* art shows
+ * four drawings and two blanks.
+ */
+export type DeviceId = School | 'relic' | 'rite' | 'mana';
+
+/**
  * The device of each school, engraved.
  *
  * Sixty spell cards shared one visual idea between them: a Unicode glyph, set
@@ -29,7 +36,7 @@ const COMMON = {
   strokeLinejoin: 'round' as const,
 };
 
-function Device({ id }: { id: School }): JSX.Element {
+function Device({ id }: { id: DeviceId }): JSX.Element {
   switch (id) {
     // Entropy — a die coming apart. The cube is still legible as a cube;
     // the shards leaving it are what the school does.
@@ -112,6 +119,52 @@ function Device({ id }: { id: School }): JSX.Element {
         </g>
       );
 
+    // Relic — an amulet on its chain. A thing you keep, as opposed to a thing
+    // you spend, which is the whole distinction between a relic and a sigil.
+    case 'relic':
+      return (
+        <g {...COMMON} strokeWidth="1.5">
+          {/* A pendant on its cord. The first attempt hung it from two arcs
+              that read as a head and shoulders at this size; a plain V of
+              cord into a bail is unmistakable. */}
+          <path d="M15 11 29 24M49 11 35 24" strokeWidth="1.2" />
+          <circle cx="32" cy="27" r="3.4" />
+          <path d="M32 31.5 45 41 32 57 19 41Z" />
+          <path d="M19 41h26M32 31.5V57" strokeWidth=".9" opacity=".6" />
+          <path d="m24.6 37.4 3.4 3.6-3.4 3.6M39.4 37.4 36 41l3.4 3.6"
+            strokeWidth=".9" opacity=".5" />
+        </g>
+      );
+
+    // Rite — the press, and the wax it has already struck. A rite is written
+    // onto the shared deck permanently, so the device shows the impression
+    // rather than the intention.
+    case 'rite':
+      return (
+        <g {...COMMON} strokeWidth="1.5">
+          <circle cx="32" cy="11" r="4" />
+          <path d="M32 15v7" strokeWidth="2.6" />
+          <path d="M21 22h22v7H21Z" />
+          <path d="M23 29h18" strokeWidth="1" opacity=".7" />
+          <path d="M16 44c0-6 7-10 16-10s16 4 16 10-7 10-16 10-16-4-16-10Z" />
+          <circle cx="32" cy="44" r="5.4" strokeWidth="1.1" />
+          <path d="M32 40.4v7.2M28.4 44h7.2" strokeWidth="1" opacity=".75" />
+        </g>
+      );
+
+    // Mana — a font, filled to a line. Attunement raises the ceiling, so the
+    // device is about the vessel rather than the liquid.
+    case 'mana':
+      return (
+        <g {...COMMON} strokeWidth="1.5">
+          <path d="M20 14h24l-3 20c-1 6-4 9-9 9s-8-3-9-9Z" />
+          <path d="M32 43v7M24 50h16" />
+          <path d="M22.4 25h19.2" strokeWidth="1.2" opacity=".85" />
+          <path d="M26 30c2 2 4 3 6 3s4-1 6-3" strokeWidth="1" opacity=".6" />
+          <path d="M32 6v5M27 8l1.6 3.4M37 8l-1.6 3.4" strokeWidth="1.1" opacity=".8" />
+        </g>
+      );
+
     // Weave — plain over-under. The whole school in one figure: everything
     // passes through everything else and holds.
     default:
@@ -133,9 +186,9 @@ function Device({ id }: { id: School }): JSX.Element {
   }
 }
 
-function SchoolDeviceBase({ school }: { school: School }) {
+function SchoolDeviceBase({ school, className = 'sigil-device' }: { school: DeviceId; className?: string }) {
   return (
-    <svg className="sigil-device" viewBox="0 0 64 64" aria-hidden focusable="false">
+    <svg className={className} viewBox="0 0 64 64" aria-hidden focusable="false">
       <Device id={school} />
     </svg>
   );
