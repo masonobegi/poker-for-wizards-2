@@ -8,14 +8,16 @@ import { motion } from 'framer-motion';
 import { Button, Badge } from '@/components/ui/kit';
 import { SCHOOLS, SIGILS, RARITY_COLOR, type School } from '@shared/sigils';
 import { RELICS, RELIC_RARITY_COLOR } from '@shared/relics';
+import { OMENS } from '@shared/omens';
 import { MARKS } from '@shared/cards';
 import { ACHIEVEMENTS } from '@shared/achievements';
 import { earned } from '@/lib/achievements';
+import { Mark } from '@/art/marks';
 import '@/components/achievements.css';
 import './codex.css';
 import { ENTER } from '@/styles/motion';
 
-type Tab = 'sigils' | 'relics' | 'marks' | 'rules' | 'feats';
+type Tab = 'sigils' | 'relics' | 'omens' | 'marks' | 'rules' | 'feats';
 
 export default function Codex({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('rules');
@@ -34,7 +36,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
       </header>
 
       <nav className="codex-tabs" role="tablist">
-        {(['rules', 'sigils', 'relics', 'marks', 'feats'] as Tab[]).map((t) => (
+        {(['rules', 'sigils', 'relics', 'omens', 'marks', 'feats'] as Tab[]).map((t) => (
           <button
             key={t}
             role="tab"
@@ -87,7 +89,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1 }}
                 transition={{ ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
               >
-                <div className="codex-glyph">{s.glyph}</div>
+                <div className="codex-glyph"><Mark kind="sigil" id={s.id} fallback={s.glyph} /></div>
                 <div className="codex-body">
                   <div className="codex-row">
                     <strong>{s.name}</strong>
@@ -98,7 +100,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
                   </div>
                   <p className="codex-text">{s.text}</p>
                   <p className="codex-impossible">
-                    <span aria-hidden>⧉</span> {s.impossible}
+                    <Mark kind="ui" id="impossible" /> {s.impossible}
                   </p>
                 </div>
               </motion.li>
@@ -111,7 +113,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
         <ul className="codex-list">
           {RELICS.map((r) => (
             <li key={r.id} className="codex-entry" style={{ ['--accent' as string]: RELIC_RARITY_COLOR[r.rarity] }}>
-              <div className="codex-glyph">{r.glyph}</div>
+              <div className="codex-glyph"><Mark kind="relic" id={r.id} fallback={r.glyph} /></div>
               <div className="codex-body">
                 <div className="codex-row">
                   <strong>{r.name}</strong>
@@ -121,7 +123,32 @@ export default function Codex({ onClose }: { onClose: () => void }) {
                   </span>
                 </div>
                 <p className="codex-text">{r.text}</p>
-                <p className="codex-impossible"><span aria-hidden>⧉</span> {r.impossible}</p>
+                <p className="codex-impossible"><Mark kind="ui" id="impossible" /> {r.impossible}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {/* Omens were the one family with no page. Thirty-one table-wide rules
+          that turn on permanently, and the only way to read what one did was
+          to catch its banner as it flew past. They are sorted by the ante
+          they can first appear at, because that is the order a run meets
+          them in. */}
+      {tab === 'omens' ? (
+        <ul className="codex-list">
+          {[...OMENS].sort((a, b) => a.minAnte - b.minAnte || a.name.localeCompare(b.name)).map((o) => (
+            <li key={o.id} className="codex-entry" style={{ ['--accent' as string]: 'var(--gold)' }}>
+              <div className="codex-glyph"><Mark kind="omen" id={o.id} fallback={o.glyph} /></div>
+              <div className="codex-body">
+                <div className="codex-row">
+                  <strong>{o.name}</strong>
+                  <span className="codex-meta">
+                    <Badge tone="gold">{o.minAnte === 1 ? 'any ante' : `ante ${o.minAnte}+`}</Badge>
+                  </span>
+                </div>
+                <p className="codex-text">{o.text}</p>
+                <p className="codex-impossible"><Mark kind="ui" id="impossible" /> {o.impossible}</p>
               </div>
             </li>
           ))}
@@ -132,7 +159,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
         <ul className="codex-list">
           {Object.values(MARKS).map((m) => (
             <li key={m.id} className="codex-entry" style={{ ['--accent' as string]: m.color }}>
-              <div className="codex-glyph" style={{ color: m.color }}>{m.glyph}</div>
+              <div className="codex-glyph" style={{ color: m.color }}><Mark kind="card" id={m.id} fallback={m.glyph} /></div>
               <div className="codex-body">
                 <div className="codex-row"><strong>{m.name}</strong></div>
                 <p className="codex-text">{m.blurb}</p>

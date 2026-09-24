@@ -13,6 +13,7 @@ import { RollingNumber } from '@/components/fx/RollingNumber';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import { ENTER, SPRING_CRISP } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 export interface SeatProps {
   player: PlayerView;
@@ -113,7 +114,7 @@ function SeatBase({
             if (!r) return null;
             return (
               <Tooltip key={id} body={<><strong>{r.name}</strong><br />{r.text}</>}>
-                <span className="seat-relic">{r.glyph}</span>
+                <span className="seat-relic"><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
               </Tooltip>
             );
           })}

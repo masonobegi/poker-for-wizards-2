@@ -72,23 +72,75 @@ page.on('requestfailed', (r) => {
   problem('ERROR', `request failed: ${u.slice(0, 140)} (${r.failure()?.errorText})`);
 });
 
-/** Anything wider than the viewport, or drawn off the left/top edge. */
+/**
+ * Anything wider than the viewport, or drawn off the left/top edge.
+ *
+ * An element is allowed to extend past the viewport when an ancestor clips
+ * it — that is what `overflow: hidden` is FOR, and several things here rely
+ * on it deliberately: the omen banner's glow bar scales past 1 on the way
+ * out, inside a fixed, viewport-sized, clipped container. Reporting those
+ * gave a LAYOUT failure on any run where an omen happened to fire, for a
+ * band that is physically incapable of reaching the edge of the screen. A
+ * harness that cries wolf is a harness whose output gets skimmed.
+ *
+ * The document's own scroll width is checked separately, because that is the
+ * ground truth for "the page actually overflows" and no per-element
+ * heuristic can stand in for it.
+ */
 async function checkLayout(page, where) {
   const bad = await page.evaluate(() => {
     const out = [];
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+
+    // The visible extent of `el` after every clipping ancestor has cut it
+    // down — what a player actually sees, not the raw transformed box. Same
+    // helper `npm run responsive` has used since it was written; this harness
+    // simply never got it.
+    const clippedRect = (el) => {
+      const r = el.getBoundingClientRect();
+      let rect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      // Stop before <body>. This app sets `body { overflow: hidden }` because
+      // it is a full-screen game that does not scroll — walking into that
+      // clips EVERY element to the viewport and the whole check silently
+      // passes on anything. An element pushed outside the page root is the
+      // defect; an element clipped by a panel inside it is not.
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        const cs = getComputedStyle(p);
+        if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+        const pr = p.getBoundingClientRect();
+        rect = {
+          left: Math.max(rect.left, pr.left),
+          right: Math.min(rect.right, pr.right),
+          top: Math.max(rect.top, pr.top),
+          bottom: Math.min(rect.bottom, pr.bottom),
+        };
+      }
+      return rect;
+    };
+
+    const doc = document.documentElement;
+    if (doc.scrollWidth > doc.clientWidth + 2) {
+      out.push(`the page scrolls sideways (${doc.scrollWidth} vs ${doc.clientWidth})`);
+    }
+
     for (const el of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       const tag = `${el.tagName.toLowerCase()}.${(el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')}`;
-      if (r.right > vw + 2 || r.left < -2) {
-        out.push(`${tag} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
-      }
-      if (r.bottom > vh + 2 && cs.position === 'fixed') {
-        out.push(`${tag} fixed element runs off the bottom (${Math.round(r.bottom)} vs ${vh})`);
+
+      if (r.right > vw + 2 || r.left < -2 || (r.bottom > vh + 2 && cs.position === 'fixed')) {
+        const c = clippedRect(el);
+        // Clipped away to nothing: it paints nowhere, so it overflows nothing.
+        if (c.right <= c.left || c.bottom <= c.top) continue;
+        if (c.right > vw + 2 || c.left < -2) {
+          out.push(`${tag} overflows horizontally (${Math.round(c.left)}..${Math.round(c.right)} vs ${vw})`);
+        }
+        if (c.bottom > vh + 2 && cs.position === 'fixed') {
+          out.push(`${tag} fixed element runs off the bottom (${Math.round(c.bottom)} vs ${vh})`);
+        }
       }
     }
     return [...new Set(out)].slice(0, 8);

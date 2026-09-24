@@ -5,6 +5,7 @@ import { useFinePointer } from '@/components/fx/useFinePointer';
 import { usePointerFoil } from '@/components/fx/usePointerFoil';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type Rarity, type SigilInstance } from '@shared/sigils';
 import { EASE_OUT, ENTER_PANEL, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 /**
  * How hard a sigil glints under the pointer. The playing cards have had a
@@ -121,7 +122,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           </span>
         </header>
 
-        <div className="sigil-glyph">{def.glyph}</div>
+        <div className="sigil-glyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></div>
 
         <h4 className="sigil-name">{def.name}</h4>
 
@@ -146,7 +147,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
       <div className="sigil-tip" role="tooltip">
         <strong>{def.name}</strong>
         <p>{def.text}</p>
-        <p className="sigil-impossible"><span aria-hidden>⧉</span> {def.impossible}</p>
+        <p className="sigil-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
         {!affordable ? <p className="sigil-warn">Not enough mana.</p> : null}
         {affordable && !castable ? <p className="sigil-warn">Cannot be cast right now.</p> : null}
       </div>

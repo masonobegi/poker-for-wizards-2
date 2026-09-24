@@ -3,6 +3,7 @@
  * every player is visually distinct with no image assets in the build.
  */
 import { memo } from 'react';
+import { markArt, type MarkKind } from '@/art/marks';
 
 const PALETTES: Array<[string, string, string]> = [
   ['#7c3aed', '#b98cff', '#1a0f2e'],
@@ -19,7 +20,19 @@ const PALETTES: Array<[string, string, string]> = [
   ['#3f6212', '#bef264', '#111c04'],
 ];
 
-const GLYPHS = ['✦', '⟁', '◉', '⧉', '☾', '∞', '⬢', '✶', '⋔', '◈', '⟆', '✺'];
+/**
+ * The sigil on a portrait's chest, one per palette.
+ *
+ * These were twelve rare Unicode characters set in `serif`, which is the one
+ * place in the game where a missing glyph is unmissable: an empty box in the
+ * middle of every seat. They are drawings from the same set as everything
+ * else now, so a portrait renders identically on Windows and on a Deck.
+ */
+const CHESTS: Array<[MarkKind, string]> = [
+  ['sigil', 'superpose'], ['sigil', 'gloaming'], ['sigil', 'long_memory'], ['sigil', 'mirror'],
+  ['sigil', 'entangle'], ['sigil', 'burn'], ['sigil', 'wild_rite'], ['sigil', 'reweave'],
+  ['sigil', 'conjure'], ['sigil', 'tessellate'], ['sigil', 'blind_spot'], ['sigil', 'cascade'],
+];
 
 export interface AvatarProps {
   seed: number;
@@ -32,7 +45,7 @@ export interface AvatarProps {
 function AvatarBase({ seed, size = 40, bot, dim, className = '' }: AvatarProps) {
   const i = ((seed % PALETTES.length) + PALETTES.length) % PALETTES.length;
   const [deep, bright, dark] = PALETTES[i];
-  const glyph = GLYPHS[i];
+  const [chestKind, chestId] = CHESTS[i];
   const id = `av${i}`;
 
   return (
@@ -72,16 +85,23 @@ function AvatarBase({ seed, size = 40, bot, dim, className = '' }: AvatarProps) 
         <circle cx="21" cy="24" r="1.5" fill={bright} opacity=".95" />
         <circle cx="27" cy="24" r="1.5" fill={bright} opacity=".95" />
 
-        <text
-          x="24" y="41"
-          textAnchor="middle"
-          fontSize="9"
-          fill={bright}
-          opacity=".8"
-          fontFamily="serif"
+        {/* The chest sigil, nested from the shared mark set. `color` is set
+            so the filled dots — which paint with `currentColor` — pick up the
+            portrait's own bright rather than the page's text colour. The
+            stroke is pre-divided by the scale so it lands at the same weight
+            as the hood's linework. */}
+        <g
+          transform="translate(18.6 32.8) scale(0.45)"
+          fill="none"
+          stroke={bright}
+          strokeWidth={3.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity=".82"
+          style={{ color: bright }}
         >
-          {glyph}
-        </text>
+          {markArt(chestKind, chestId)}
+        </g>
 
         {bot ? (
           <g opacity=".9">

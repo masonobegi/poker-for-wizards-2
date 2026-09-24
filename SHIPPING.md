@@ -10,7 +10,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 46 sigils, all 23 omens | `npm test` — 113 tests |
+| Game rules, hand evaluation, all 56 sigils, all 31 omens | `npm test` — 131 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -23,7 +23,8 @@ Each of these is checked by something you can run, not by assertion.
 | Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
 | Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |
 | Every sound renders, and none clip | `npm run audio` — 50 sounds and 5 music beds rendered offline and measured for peak, RMS, DC offset, duration and spectral centroid |
-| Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum window |
+| Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum window, plus a check that no box clips its own text |
+| Every sigil, relic, omen and card mark is drawn, not typed | `npm test` — all 129 marks have artwork, none paints its own colour, none leaves its box |
 
 ---
 
@@ -34,7 +35,7 @@ None of this can be done from the repository. It all needs your Steam partner ac
 1. **Pay the Steam Direct fee and create the app.** You get an App ID.
 2. **Write the App ID into the build.** Either set `STEAM_APP_ID` in the environment, or drop a `steam_appid.txt` containing the number next to the binary. Nothing else needs changing — `electron/steam.cjs` picks it up and stays dormant without it.
 3. **Install the native module:** `npm i steamworks.js`. It is already listed as an optional dependency, so a build without it still works.
-4. **Upload the achievements.** Run `npm run steam:manifest`; it writes `steam/achievements.json` and `steam/achievements.vdf` from the same definitions the game uses, so the names cannot drift. Twenty achievements, five hidden.
+4. **Upload the achievements.** Run `npm run steam:manifest`; it writes `steam/achievements.json` and `steam/achievements.vdf` from the same definitions the game uses, so the names cannot drift. Twenty achievements, six of them hidden.
 5. **Enable Steam Cloud** in the app's settings, auto-cloud for `hexhold-save.json`. The sync code is written and dormant until then.
 6. **Store page assets.** Capsule images, header, screenshots, trailer. The `playthrough/` folder has clean 1440×900 captures of every phase that are a reasonable starting point for screenshots.
 7. **Age rating and content survey.** The game has gambling *mechanics* but no real-money gambling and no purchasable currency — the answer to "does your game contain gambling" is nuanced and you should read Valve's current wording rather than take mine.
@@ -62,11 +63,20 @@ If you would rather not run a server, the alternative is Steam's own networking 
 
 Honest list, worst first.
 
+0. **Two of these harnesses run against the BUILD, not the source.** `npm run
+   responsive` and `npm run play:pad` open `localhost:3001`, which is the
+   express server serving `dist/`. `npm run play` opens the vite dev server on
+   `:5173`. Edit a file, run the first two without `npm run build`, and you
+   have tested the previous build — which happened during development and
+   produced a green result that meant nothing. **Always `npm run build` before
+   those two.** Related: `responsive`'s viewport-overflow check was incapable
+   of failing until it was fixed, because it clipped every element against
+   `body { overflow: hidden }`; treat older green runs of it as unproven.
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
 4. **Audio has never been heard by a human.** It is measured — every sound renders, none clip, `ui_hover` is quiet and short, chips read brighter than felt, and the impossible-hand sound is the biggest in the set. Measuring is not listening.
 5. **Crash reporting is local only.** The desktop shell writes a plain-text `crash.log` in the user data folder and offers a reload, which means a player whose game died has one file you can ask for. A hosted service would tell you without asking; that is worth adding before a wide release.
-6. **Content depth.** 46 sigils, 24 relics, 23 omens. Enough that no two runs look alike, but a long-lived roguelike wants more; replayability is still the thing most likely to be criticised.
+6. **Content depth.** 56 sigils, 31 relics, 31 omens. Better than it was, still under what a long-lived roguelike carries; replayability remains the thing most likely to be criticised in reviews.
 7. **One language.** No localisation framework; all copy is inline English.
 
 ---

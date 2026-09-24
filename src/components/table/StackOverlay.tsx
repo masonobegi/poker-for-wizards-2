@@ -18,6 +18,7 @@ import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_CRISP, T_BASE, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 export interface StackOverlayProps {
   view: TableView;
@@ -50,7 +51,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   }, [topId]);
 
   const handleRespond = (uid: string, originEl: Element, def: SigilDef): void => {
-    spellFlight.fireNow(originEl, panelRef.current, def.school, def.glyph);
+    spellFlight.fireNow(originEl, panelRef.current, def.school, def.id);
     onBeginCast(uid);
   };
 
@@ -103,7 +104,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                       ? { duration: T_BASE, ease: EASE_OUT }
                       : { ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
                   >
-                    <span className="stack-glyph">{def?.glyph ?? '✦'}</span>
+                    <span className="stack-glyph">{def ? <Mark kind="sigil" id={def.id} fallback={def.glyph} /> : '✦'}</span>
                     <span className="stack-body">
                       <strong>{e.sigilName}</strong>
                       <span className="stack-caster">{e.casterName}</span>
@@ -131,7 +132,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                         style={{ ['--school' as string]: school.accent }}
                         onClick={(ev) => handleRespond(s.uid, ev.currentTarget, def)}
                       >
-                        <span className="stack-optglyph">{def.glyph}</span>
+                        <span className="stack-optglyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></span>
                         <span>
                           <strong>{def.name}</strong>
                           <em>{def.text}</em>

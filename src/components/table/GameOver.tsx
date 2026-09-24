@@ -9,6 +9,7 @@ import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_PLAYFUL, T_REDUCED } from '@/style
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/lib/visuals';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { Mark } from '@/art/marks';
 
 export default function GameOver({ view }: { view: TableView }) {
   const isHost = useIsHost();
@@ -86,7 +87,10 @@ export default function GameOver({ view }: { view: TableView }) {
               <Avatar seed={p.avatar} size={28} bot={p.isBot} dim={p.eliminated} />
               <span className="gameover-name">{p.name}</span>
               <span className="gameover-relics">
-                {p.relics.map((id) => RELIC_BY_ID[id]?.glyph).filter(Boolean).join(' ')}
+                {p.relics.map((id) => {
+                  const r = RELIC_BY_ID[id];
+                  return r ? <Mark key={id} kind="relic" id={id} fallback={r.glyph} title={r.name} /> : null;
+                })}
               </span>
               <span className="gameover-stat mono">{p.handsWon} won</span>
               <span className="gameover-chips mono">{p.chips.toLocaleString()}</span>

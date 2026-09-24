@@ -17,6 +17,7 @@ import { useFinePointer } from '@/components/fx/useFinePointer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import './shop.css';
 import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
+import { Mark, type MarkKind } from '@/art/marks';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
   const reduced = useReducedMotionPref();
@@ -139,11 +140,11 @@ const ShopCard = forwardRef<HTMLElement, {
       whileHover={locked || !finePointer || reduced ? undefined : { y: -8, scale: 1.03 }}
     >
       <span className="shopcard-kind">{info.kind}</span>
-      <div className="shopcard-glyph">{info.glyph}</div>
+      <div className="shopcard-glyph"><Mark kind={info.markKind} id={info.markId} fallback={info.glyph} /></div>
       <h3 className="shopcard-name">{info.name}</h3>
       <p className="shopcard-text">{info.text}</p>
       {info.impossible ? (
-        <p className="shopcard-impossible"><span aria-hidden>⧉</span> {info.impossible}</p>
+        <p className="shopcard-impossible"><Mark kind="ui" id="impossible" /> {info.impossible}</p>
       ) : null}
 
       <footer className="shopcard-foot">
@@ -169,6 +170,9 @@ const ShopCard = forwardRef<HTMLElement, {
 
 interface Described {
   kind: string; name: string; text: string; glyph: string;
+  // Which drawn mark to show. `glyph` stays as the fallback for anything
+  // whose mark has not been drawn yet.
+  markKind: MarkKind; markId: string;
   accent: string; impossible?: string;
 }
 
@@ -181,6 +185,7 @@ function describe(item: ShopItem): Described {
         name: d?.name ?? item.id,
         text: d?.text ?? '',
         glyph: d?.glyph ?? '✦',
+        markKind: 'sigil', markId: item.id,
         accent: d ? SCHOOLS[d.school].accent : 'var(--text-3)',
         impossible: d?.impossible,
       };
@@ -192,6 +197,7 @@ function describe(item: ShopItem): Described {
         name: d?.name ?? item.id,
         text: d?.text ?? '',
         glyph: d?.glyph ?? '⬡',
+        markKind: 'relic', markId: item.id,
         accent: d ? RELIC_RARITY_COLOR[d.rarity] : 'var(--text-3)',
         impossible: d?.impossible,
       };
@@ -203,6 +209,7 @@ function describe(item: ShopItem): Described {
         name: item.label,
         text: `${m.blurb} Permanent, and written onto the shared deck — anyone who draws that exact card gets it.`,
         glyph: m.glyph,
+        markKind: 'card', markId: item.markId,
         accent: m.color,
         impossible: 'A deck that carries edits between games.',
       };
@@ -213,10 +220,11 @@ function describe(item: ShopItem): Described {
         name: `+${item.amount} Max Mana`,
         text: 'Raises your mana ceiling for the rest of the run.',
         glyph: '◇',
+        markKind: 'ui', markId: 'mana',
         accent: 'var(--veil)',
       };
     default:
-      return { kind: '', name: '', text: '', glyph: '', accent: 'var(--text-3)' };
+      return { kind: '', name: '', text: '', glyph: '', markKind: 'ui', markId: 'unknown', accent: 'var(--text-3)' };
   }
 }
 

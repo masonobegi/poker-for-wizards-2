@@ -4,9 +4,9 @@
  * a burst has no notion of "this specific card, right now, going there."
  *
  * Two ways to fire a flight:
- *  - `fireNow(originEl, targetElOrPoint, school, glyph)` — the target is
+ *  - `fireNow(originEl, targetElOrPoint, school, sigilId)` — the target is
  *    already known (an untargeted sigil, or a response cast off the stack).
- *  - `arm(originEl, school, glyph)` then, once the player actually picks a
+ *  - `arm(originEl, school, sigilId)` then, once the player actually picks a
  *    target, `release(targetEl)` — for sigils that ask for a card or player.
  *    `cancel()` clears an armed cast that never got a target (the prompt was
  *    dismissed); armed state also self-expires so a missed `cancel()` can
@@ -29,6 +29,7 @@ import { motion } from 'framer-motion';
 import { centerOf, SCHOOL_COLOR } from '@/lib/visuals';
 import { prefersReducedMotion, type School, type Vec2 } from '@/vfx/particles';
 import './SpellFlight.css';
+import { Mark } from '@/art/marks';
 
 interface Flight {
   id: number;
@@ -37,14 +38,15 @@ interface Flight {
   toX: number;
   toY: number;
   school: School;
-  glyph: string;
+  /** The sigil's id: the flight draws its real mark, not a character. */
+  sigilId: string;
 }
 
 interface Armed {
   x: number;
   y: number;
   school: School;
-  glyph: string;
+  sigilId: string;
   timeout: number;
 }
 
@@ -71,10 +73,10 @@ function clearArmed(): void {
   }
 }
 
-function spawn(from: Vec2, to: Vec2, school: School, glyph: string): void {
+function spawn(from: Vec2, to: Vec2, school: School, sigilId: string): void {
   if (prefersReducedMotion()) return;
   const id = nextId++;
-  flights = [...flights, { id, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, school, glyph }];
+  flights = [...flights, { id, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, school, sigilId }];
   notify();
 }
 
@@ -85,32 +87,32 @@ function despawn(id: number): void {
 
 export const spellFlight = {
   /** Arm a cast whose target isn't known yet — the player is about to pick one. */
-  arm(originEl: Element | null, school: School, glyph: string): void {
+  arm(originEl: Element | null, school: School, sigilId: string): void {
     clearArmed();
     const at = centerOf(originEl);
     if (at === null) return;
     const timeout = window.setTimeout(clearArmed, ARM_TIMEOUT_MS);
-    armed = { x: at.x, y: at.y, school, glyph, timeout };
+    armed = { x: at.x, y: at.y, school, sigilId, timeout };
   },
   /** The target was just picked — fire the flight from the armed origin. */
   release(target: Element | null | Vec2): void {
     if (armed === null) return;
     const to = resolveTarget(target);
-    const { x, y, school, glyph } = armed;
+    const { x, y, school, sigilId } = armed;
     clearArmed();
     if (to === null) return;
-    spawn({ x, y }, to, school, glyph);
+    spawn({ x, y }, to, school, sigilId);
   },
   /** An armed cast was abandoned — the target prompt closed without a pick. */
   cancel(): void {
     clearArmed();
   },
   /** Origin and target are both already known — fire immediately. */
-  fireNow(originEl: Element | null, target: Element | null | Vec2, school: School, glyph: string): void {
+  fireNow(originEl: Element | null, target: Element | null | Vec2, school: School, sigilId: string): void {
     const from = centerOf(originEl);
     const to = resolveTarget(target);
     if (from === null || to === null) return;
-    spawn(from, to, school, glyph);
+    spawn(from, to, school, sigilId);
   },
 };
 
@@ -168,7 +170,7 @@ function FlightOrb({ flight }: { flight: Flight }) {
       }}
       transition={{ duration: 0.46, times: [0, 0.55, 1], ease: ['easeOut', 'easeIn'] }}
     >
-      <span className="fx-spellflight-glyph">{flight.glyph}</span>
+      <span className="fx-spellflight-glyph"><Mark kind="sigil" id={flight.sigilId} /></span>
       <span className="fx-spellflight-tail" />
     </motion.div>
   );

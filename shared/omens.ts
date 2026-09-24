@@ -197,6 +197,55 @@ export const OMENS: OmenDef[] = [
     impossible: 'A comparison operator you can be handed mid-game.',
     mods: { lowWins: true },
   },
+  // ------------------------------------------------------ THE LATER OMENS
+  {
+    id: 'the_long_road', name: 'The Long Road', glyph: '↬',
+    text: 'A straight is four cards in a row, for everyone, for good.',
+    impossible: 'Changing how long a run has to be, halfway through a game.',
+    minAnte: 2, weight: 5, mods: { straightSize: 4 },
+  },
+  {
+    id: 'the_twinned', name: 'The Twinned', glyph: '⧉',
+    text: 'Four cards in the shared deck are marked Mirrored. Each one copies the community card to its left.',
+    impossible: 'A deck that contains four of its own duplicates.',
+    minAnte: 3, weight: 4, deal: { inscribe: { markId: 'mirrored', count: 4 } },
+  },
+  {
+    id: 'the_leaden_hour', name: 'The Leaden Hour', glyph: '▽',
+    text: 'Six cards in the shared deck score one rank lower. They look exactly like the others.',
+    impossible: 'A seven that is worth less than a six.',
+    minAnte: 2, weight: 5, deal: { inscribe: { markId: 'leaden', count: 6 } },
+  },
+  {
+    id: 'the_curse', name: 'The Curse', glyph: '☢',
+    text: 'Four cards in the shared deck are Cursed. Whoever holds one ranks a category lower.',
+    impossible: 'A card that punishes the hand it completes.',
+    minAnte: 3, weight: 4, deal: { inscribe: { markId: 'cursed', count: 4 } },
+  },
+  {
+    id: 'the_kindling', name: 'The Kindling', glyph: '☲',
+    text: 'Five cards in the shared deck are Burning. They leave the board at the end of the street they land on.',
+    impossible: 'Cards that destroy themselves on a schedule.',
+    minAnte: 2, weight: 5, deal: { inscribe: { markId: 'burning', count: 5 } },
+  },
+  {
+    id: 'the_binding', name: 'The Binding', glyph: '⚭',
+    text: 'Four cards in the shared deck are Bound. Change one and its partner changes too.',
+    impossible: 'Two pieces of card stock sharing a state.',
+    minAnte: 3, weight: 4, deal: { inscribe: { markId: 'bound', count: 4 } },
+  },
+  {
+    id: 'the_deepening', name: 'The Deepening', glyph: '≡',
+    text: 'Every player’s mana ceiling rises by three.',
+    impossible: 'More room in a vessel nobody enlarged.',
+    minAnte: 2, weight: 5, mana: { max: 3 },
+  },
+  {
+    id: 'the_wider_table', name: 'The Wider Table', glyph: '⬚',
+    text: 'Every hand deals a sixth community card, and one card of the board arrives undecided.',
+    impossible: 'A board longer than the game it belongs to.',
+    minAnte: 3, weight: 4, deal: { extraBoard: 1, quantumBoard: 1 },
+  },
 ];
 
 export const OMEN_BY_ID: Record<string, OmenDef> = Object.fromEntries(
