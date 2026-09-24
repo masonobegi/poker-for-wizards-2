@@ -1,7 +1,7 @@
 /**
  * The first-run "How this works" flow.
  *
- * Seven panels, each making exactly one point, built from the real `Card`
+ * Eight panels, each making exactly one point, built from the real `Card`
  * component and sigil data rather than screenshots or prose. Shown
  * automatically the first time the game is opened (see `hasSeenIntro` /
  * `markIntroSeen`, backed by `localStorage['hexhold.seenIntro']`) and
@@ -23,6 +23,8 @@ import {
 import './onboarding.css';
 import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { covenOf } from '@shared/covens';
+import { SCHOOLS } from '@shared/sigils';
 
 // ---------------------------------------------------------------------------
 // Persistence
@@ -227,7 +229,35 @@ const PANELS: Panel[] = [
     body: 'Blinds climb every few hands. Between antes, the Market opens — spend shards on sigils, relics, and rites that carry into the rest of the run.',
     Visual: ShopVisual,
   },
+  {
+    id: 'coven',
+    kicker: 'Before the first hand',
+    title: 'Pick who you sat down as.',
+    body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet always see one of somebody else’s cards. Choose one on the menu — the bots will.',
+    Visual: CovenVisual,
+  },
 ];
+
+/**
+ * Three covens, drawn the way the menu draws them. The point of the panel is
+ * not to explain seven loadouts — it is to tell a new player that the row of
+ * buttons above "Practice vs Bots" is a real choice and not decoration.
+ */
+function CovenVisual(): JSX.Element {
+  return (
+    <div className="intro-covens" aria-hidden="true">
+      {['unmoored', 'ashen', 'loom'].map((id) => {
+        const c = covenOf(id);
+        return (
+          <span key={id} className="intro-coven" style={{ ['--school' as string]: SCHOOLS[c.school].accent }}>
+            <Mark kind="coven" id={c.id} fallback={c.glyph} />
+            <b>{c.name}</b>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Flow shell

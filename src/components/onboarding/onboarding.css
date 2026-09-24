@@ -320,3 +320,33 @@
 @media (max-width: 640px) {
   .intro-holdem, .intro-trio, .intro-hands, .intro-shop { gap: var(--s-3); }
 }
+
+/* The coven panel: three of the seven, at a size that reads as "these are
+   different from each other" rather than as a list to memorise. */
+.intro-covens {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.intro-coven {
+  --school: var(--entropy);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  min-width: 96px;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--school) 42%, transparent);
+  background: color-mix(in srgb, var(--school) 10%, rgba(10, 12, 24, 0.7));
+  font-size: 26px;
+  color: var(--school);
+}
+
+.intro-coven b {
+  font: 700 11px/1 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}

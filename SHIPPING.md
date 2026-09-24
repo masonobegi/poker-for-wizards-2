@@ -10,7 +10,7 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 56 sigils, all 31 omens, all 7 covens | `npm test` — 131 tests |
+| Game rules, hand evaluation, all 56 sigils, all 31 omens, all 7 covens | `npm test` — 133 tests |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
@@ -20,7 +20,8 @@ Each of these is checked by something you can run, not by assertion.
 | Achievements fire during real play | `npm test` — the watcher is driven directly against a synthetic payout. `npm run play` also reports what unlocked, but only when the bots happen to lose you a pot, so it is a sample, not a proof |
 | Motion holds its invariants | `npm test` — reduced motion never deletes a cue or makes one louder; nothing framer animates relies on a CSS transform; no `transition: all`; every `whileHover` is gated |
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
-| Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
+| Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread. Bots raise 15%, bet 14%, call 26%, check 14%, fold 23%; showdowns land around 47% and magic fires in ~88% of hands |
+| Sounds are distinguishable from each other | `npm run audio` — every pair compared on length, brightness, loudness and attack, and the winning sounds are held brighter than the elimination sting |
 | Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |
 | Every sound renders, and none clip | `npm run audio` — 50 sounds and 5 music beds rendered offline and measured for peak, RMS, DC offset, duration and spectral centroid |
 | Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum window, plus a check that no box clips its own text |
