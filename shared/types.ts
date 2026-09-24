@@ -270,7 +270,11 @@ export const DEFAULT_CONFIG: RoomConfig = {
   baseBlind: 200,
   handsPerAnte: 3,
   actionSeconds: 30,
-  responseSeconds: 5,
+  // Ten, not five. Five seconds is enough to notice a spell has been cast and
+  // not enough to read what it does, decide whether it matters, and find the
+  // answer in your hand — which made the counterspell layer feel like a
+  // reflex test rather than a decision. The bar still shows the urgency.
+  responseSeconds: 10,
   shopSeconds: 45,
   magicEnabled: true,
   botFill: 0,

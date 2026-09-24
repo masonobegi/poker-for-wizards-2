@@ -331,7 +331,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
           onPointerDown={(e) => { if (e.target === e.currentTarget) finish(); }}
         >
           <motion.div
-            className="intro-panel"
+            className="intro-panel hx-plate"
             role="dialog"
             aria-modal="true"
             aria-labelledby="intro-panel-title"

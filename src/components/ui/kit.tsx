@@ -213,7 +213,7 @@ export function Modal({ open, onClose, children, labelledBy }: {
           onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
-            className="modal"
+            className="modal hx-plate"
             role="dialog"
             aria-modal="true"
             aria-labelledby={labelledBy}

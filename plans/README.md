@@ -36,6 +36,7 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 | [026](026-the-second-printing.md) | The second printing — 11 sigils, 8 relics, 8 omens | MEDIUM | content | DONE |
 | [027](027-make-winning-sound-different-from-losing.md) | Make winning sound different from losing | MEDIUM | audio | DONE |
 | [028](028-covens.md) | Covens — seven starting loadouts | HIGH | gameplay | DONE |
+| [029](029-the-plate.md) | The plate — replace the default panel with an engraved one | MEDIUM | visual design | DONE |
 
 ## Recommended execution order
 
@@ -89,7 +90,7 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 
 ## Status
 
-All 28 plans are applied. `001`-`021` were the original audit, on top of
+All 29 plans are applied. `001`-`021` were the original audit, on top of
 commit `55ca0f0`; `022` is later work, porting techniques out of the
 `masonobegi_webpage` demos. Every one
 was verified with `npm run typecheck`, `npm test`, and — where it touches the

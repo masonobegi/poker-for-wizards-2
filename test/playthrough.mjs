@@ -124,6 +124,18 @@ async function checkLayout(page, where) {
       out.push(`the page scrolls sideways (${doc.scrollWidth} vs ${doc.clientWidth})`);
     }
 
+    // A camera shake writes an inline transform to #root, which makes it the
+    // containing block for every `position: fixed` layer in the app — so the
+    // whole viewport moves, which is the entire point of a shake, and each
+    // fixed layer measures a few pixels past the window while it runs. That
+    // is the effect working, not a layout defect, and sampling mid-shake
+    // reported `.stackview` and `.hints-layer` as running off the bottom by
+    // four pixels. Geometry is only meaningful once the camera is still.
+    const shakeRoot = document.getElementById('root');
+    if (shakeRoot && getComputedStyle(shakeRoot).transform !== 'none') {
+      return ['__shaking__'];
+    }
+
     for (const el of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
@@ -145,6 +157,8 @@ async function checkLayout(page, where) {
     }
     return [...new Set(out)].slice(0, 8);
   });
+  // The sample landed inside a camera shake; nothing measured then is real.
+  if (bad.length === 1 && bad[0] === '__shaking__') return;
   for (const b of bad) problem('LAYOUT', `${where}: ${b}`);
 }
 

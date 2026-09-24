@@ -712,7 +712,16 @@
   cursor: help;
 }
 
-.rail-hole { padding-bottom: var(--s-2); }
+/* The fan's rotation spills past its layout box — `transform: rotate()` does
+   not change what the grid reserves — so the outermost card's corner was
+   landing 7px over the first sigil, and further with a third hole card from
+   a relic. The padding is the overhang: half a card's height times sin of the
+   fan's half-spread, rounded up and expressed in the same token everything
+   else on the table scales from. */
+.rail-hole {
+  padding-bottom: var(--s-2);
+  padding-inline: calc(var(--card-w) * 0.28);
+}
 
 .rail-sigils {
   display: flex;
@@ -1094,10 +1103,6 @@
   display: grid;
   gap: var(--s-3);
   padding: var(--s-5);
-  border-radius: var(--r-xl);
-  background: linear-gradient(180deg, #1a2040, #0b0e1f);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 70px rgba(124, 58, 237, 0.25);
 }
 
 .stack-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }

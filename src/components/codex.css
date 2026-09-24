@@ -12,14 +12,15 @@
   display: flex;
   gap: 2px;
   padding: 3px;
-  border-radius: var(--r-md);
+  border-radius: 0;
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
   background: rgba(5, 6, 12, 0.5);
   border: 1px solid var(--line-soft);
 }
 .codex-tab {
   flex: 1;
   padding: 8px 10px;
-  border-radius: var(--r-sm);
+  border-radius: 2px;
   font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.16em;

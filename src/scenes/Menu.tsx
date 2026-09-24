@@ -120,7 +120,7 @@ export default function Menu() {
 
         <AnimatePresence>
           {pane === 'home' ? (
-            <motion.div key="home" className="menu-panel" {...paneMotion}>
+            <motion.div key="home" className="menu-panel hx-plate" {...paneMotion}>
               <p className="menu-pitch">
                 Texas Hold&rsquo;em, played with a deck that does not obey physics.
                 Cards sit in two states at once. The King you are looking at is not
@@ -201,7 +201,7 @@ export default function Menu() {
           ) : null}
 
           {pane === 'host' ? (
-            <motion.div key="host" className="menu-panel" {...paneMotion}>
+            <motion.div key="host" className="menu-panel hx-plate" {...paneMotion}>
               <h2 className="menu-h2">Host a Table</h2>
               <Field
                 label="Your name"
@@ -228,7 +228,7 @@ export default function Menu() {
           ) : null}
 
           {pane === 'join' ? (
-            <motion.div key="join" className="menu-panel" {...paneMotion}>
+            <motion.div key="join" className="menu-panel hx-plate" {...paneMotion}>
               <h2 className="menu-h2">Join a Table</h2>
               <Field
                 label="Table code"

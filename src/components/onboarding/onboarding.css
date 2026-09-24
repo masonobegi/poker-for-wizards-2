@@ -23,10 +23,6 @@
   grid-template-rows: auto 1fr auto;
   gap: var(--s-4);
   padding: var(--s-6);
-  border-radius: var(--r-xl);
-  background: linear-gradient(180deg, #1b2140, #0d1022);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 90px rgba(76, 52, 140, 0.28);
 }
 
 .intro-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
