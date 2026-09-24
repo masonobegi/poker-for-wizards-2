@@ -31,7 +31,7 @@ registerHooks({
 });
 
 type Marks = typeof import('../src/art/marks');
-type Kind = 'sigil' | 'relic' | 'omen' | 'card' | 'ui';
+type Kind = 'sigil' | 'relic' | 'omen' | 'card' | 'ui' | 'coven';
 
 let art: Marks;
 let render: (node: unknown) => string;
@@ -47,6 +47,7 @@ before(async () => {
   const { RELICS } = await import('@shared/relics');
   const { OMENS } = await import('@shared/omens');
   const { MARKS } = await import('@shared/cards');
+  const { COVENS } = await import('@shared/covens');
 
   expected = [
     ...SIGILS.map((s) => ({ kind: 'sigil' as const, id: s.id })),
@@ -55,6 +56,7 @@ before(async () => {
     ...Object.values(MARKS).map((m) => ({ kind: 'card' as const, id: m.id })),
     { kind: 'ui' as const, id: 'mana' },
     { kind: 'ui' as const, id: 'impossible' },
+    ...COVENS.map((c) => ({ kind: 'coven' as const, id: c.id })),
   ];
 });
 

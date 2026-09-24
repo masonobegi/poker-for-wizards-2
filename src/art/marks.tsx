@@ -55,7 +55,7 @@
 import { memo, type ReactNode } from 'react';
 import './marks.css';
 
-export type MarkKind = 'sigil' | 'relic' | 'omen' | 'card' | 'ui';
+export type MarkKind = 'sigil' | 'relic' | 'omen' | 'card' | 'ui' | 'coven';
 
 // A filled dot: a value that has resolved. The only solid ink in the set.
 const Dot = ({ x, y, r = 1.5 }: { x: number; y: number; r?: number }) => (
@@ -1051,7 +1051,66 @@ const UI: Record<string, ReactNode> = {
   ),
 };
 
+/* ===========================================================================
+   Covens — the run's opening choice. Drawn as sigils of allegiance rather
+   than as objects or conditions: a shape you wear.
+   =========================================================================== */
+
+const COVEN: Record<string, ReactNode> = {
+  unaligned: (
+    <>
+      <path d="M12 4.6 18.4 12 12 19.4 5.6 12Z" strokeDasharray="2.6 2.2" />
+      <Dot x={12} y={12} r={1.6} />
+    </>
+  ),
+  unmoored: (
+    <>
+      <circle cx={9.4} cy={12} r={5.4} strokeDasharray="2.4 2.2" />
+      <circle cx={14.6} cy={12} r={5.4} strokeDasharray="2.4 2.2" />
+      <path d="M12 4.4v15.2" />
+    </>
+  ),
+  quiet: (
+    <>
+      <path d="M16.4 4.6a8 8 0 1 0 2.8 11.8A8.6 8.6 0 0 1 16.4 4.6Z" />
+      <path d="M4.4 20.4h15.2" strokeDasharray="2.2 2" />
+    </>
+  ),
+  long_now: (
+    <>
+      <path d="M7 4.6h10M7 19.4h10" />
+      <path d="M7.8 4.6c0 3.3 4.2 5.3 4.2 7.4s-4.2 4.1-4.2 7.4" />
+      <path d="M16.2 4.6c0 3.3-4.2 5.3-4.2 7.4s4.2 4.1 4.2 7.4" />
+      <path d="M9.6 12h4.8" />
+    </>
+  ),
+  twinned: (
+    <>
+      <circle cx={7.6} cy={12} r={4.2} />
+      <circle cx={16.4} cy={12} r={4.2} />
+      <path d="M10.6 9c2 2 3 4.4 3 6.4" />
+      <Dot x={12} y={12} r={1.2} />
+    </>
+  ),
+  ashen: (
+    <>
+      <path d="M12 4.4c2.8 3 4.3 5.4 4.3 7.3a4.3 4.3 0 0 1-8.6 0c0-1.9 1.5-4.3 4.3-7.3Z" />
+      <path d="M5.4 19.6h13.2" />
+      <Dot x={8.6} y={16.6} r={1.2} />
+      <Dot x={15.4} y={16.6} r={1.2} />
+    </>
+  ),
+  loom: (
+    <>
+      <path d="M5.4 5.6v12.8M12 5.6v12.8M18.6 5.6v12.8" />
+      <path d="M4 9.4h16M4 14.6h16" strokeDasharray="2.6 2.2" />
+      <Dot x={12} y={12} r={1.5} />
+    </>
+  ),
+};
+
 const REGISTRY: Record<MarkKind, Record<string, ReactNode>> = {
+  coven: COVEN,
   ui: UI,
   sigil: SIGIL,
   card: CARD,

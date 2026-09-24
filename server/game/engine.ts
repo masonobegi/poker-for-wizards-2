@@ -29,6 +29,8 @@ import {
 import { grantInformantVision, runShowdown } from './showdown';
 import { buy, payInterest, reroll, rollShop } from './shop';
 import { decideAction, decideCast, decideResponse, decideShop, thinkTime } from './bots';
+import { COVENS, DEFAULT_COVEN, covenOf } from '../../shared/covens';
+import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
 export type Push = () => void;
@@ -178,9 +180,21 @@ export class Engine {
       p.eliminated = false;
       p.handsWon = 0;
       p.maxMana = maxManaFor(p, t);
-      // Everyone opens with one counterspell, so the first bluff is never free.
-      giveSigil(t, p, { uid: nanoid(8), defId: 'nullify' });
-      giveSigil(t, p, randomSigil(this.rng));
+
+      // The coven is the run's opening decision, and it is expressed entirely
+      // in things the engine already knows how to hold: a list of sigil ids
+      // and one relic id. A coven cannot introduce behaviour — if one needs to
+      // do something new, the relic has to learn it first.
+      const coven = covenOf(p.coven);
+      if (coven.relic) p.relics.push(coven.relic);
+      for (const defId of coven.sigils) {
+        if (SIGIL_BY_ID[defId]) giveSigil(t, p, { uid: nanoid(8), defId });
+      }
+      // Top up to a full opening hand with the draft pool, so every coven
+      // still meets cards it did not choose.
+      while (p.sigils.length < 2) giveSigil(t, p, randomSigil(this.rng));
+      // The relic may raise the ceiling or the hand size.
+      p.maxMana = maxManaFor(p, t);
     }
 
     log(t, 'The table is set. Ante 1.', 'magic');
@@ -1087,7 +1101,12 @@ export class Engine {
     const taken = new Set(t.players.map((p) => p.name));
     const free = names.filter((n) => !taken.has(n));
     const name = free.length ? r.pick(free) : `Bot ${t.players.length}`;
-    return this.addPlayer(`bot_${nanoid(6)}`, name, true);
+    const bot = this.addPlayer(`bot_${nanoid(6)}`, name, true);
+    // Bots draw a coven too, and never the Unaligned — a table of four
+    // identical openings is the thing covens exist to stop, and it would be
+    // an odd game that only let the human have one.
+    if (bot) bot.coven = r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id;
+    return bot;
   }
 
   removeBot(): void {
