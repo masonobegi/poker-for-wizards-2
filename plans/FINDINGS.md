@@ -97,6 +97,50 @@ that. The sigil foil uses `screen`. Found by cropping a screenshot; no amount
 of reading the DOM would have shown it. Anything that lights a surface needs
 proving on the darkest and the lightest surface it will ever sit on.
 
+**The whole symbol set was one font away from being empty boxes.** Every
+sigil, relic, omen and card mark was a Unicode character, and the font stack
+(`Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`) contains
+none of `🜂 ⑃ ⌸ ⟒ ⟆ ⨭ ⚱`. On Windows the browser reaches past the stack to
+Segoe UI Symbol and the set looks perfect; SteamOS has no Segoe anything.
+Measuring all 45 sigil glyphs against `U+FFFF` on this machine found zero
+missing, which is precisely what made it dangerous. Two further problems came
+out of the same audit: thirty characters were shared by two or three entries
+(`⧖` was both Echo of a Hand and Tessellate; `👁` was a sigil, a relic AND an
+omen), and the set ranged from 7.5px to 15px wide at one font size, including
+two colour emoji that ignore `color` entirely. All 102 are drawn now.
+
+**A guard test can be wrong in three different directions before it is
+right.** The bounds check in `test/marks.test.tsx` first read every number in a
+`d` attribute as a coordinate — but relative commands carry deltas and an arc's
+`rx ry rot large sweep` are not positions, so it failed 58 of 100 correct
+marks. Bounding arcs by `endpoint ± radius` was loose by a whole radius.
+Bounding them by the full ellipse is right for a large arc and put a crescent
+at x=32 for a minor one. It now walks the path, splits on the large-arc flag,
+and projects a minor arc's sagitta perpendicular to its chord. Every assertion
+was then mutation-tested against a reintroduced defect.
+
+**Two layout harnesses were asking a question that cannot fail.** Both
+`npm run play` and `npm run responsive` checked "does any element extend past
+the viewport". `responsive` intersected each element with its clipping
+ancestors first, which is correct in principle — except the walk ran all the
+way to `<body>`, and this app sets `overflow: hidden` on both `.app` and
+`body` because it is a full-screen game that does not scroll. Every element on
+the page therefore clipped to exactly the viewport, and the check reported
+"nothing overflows" at every resolution, forever. `play` did not clip at all,
+so it reported the omen banner's glow bar — a decoration inside a fixed,
+viewport-sized, `overflow: hidden` container, physically incapable of reaching
+the screen edge — as a LAYOUT failure on any run where an omen happened to
+fire.
+
+Both are fixed, but the more useful outcome is what the exercise exposed: for
+an app that clips at its root, "does anything paint outside the window" is the
+wrong question, because the answer is always no. The failure mode that
+actually happens is the opposite one — a box that clips its own contents. Both
+real bugs found at 1024x680 (a sigil reading "Doppelgange", BIND reading
+"BIN") were exactly that, and both had to be found by looking at screenshots.
+`checkClippedText` now asks it directly, excluding the deliberate "there is
+more" cues: an ellipsis, a line clamp, a fade mask, a scrollable panel.
+
 ## Known remaining flakiness
 
 `npm run play` fails roughly 1 run in 5 with "the table looks stuck", in runs

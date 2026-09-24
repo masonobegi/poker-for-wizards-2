@@ -10,6 +10,7 @@ import type { SigilTargets } from '@shared/types';
 import { Button } from '@/components/ui/kit';
 import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { Mark } from '@/art/marks';
 
 const RANKS: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 const RITE_MARKS: MarkId[] = ['blooded', 'prism', 'echo', 'wild', 'leaden', 'cursed'];
@@ -77,7 +78,7 @@ export default function TargetPrompt({ def, onCancel, onConfirm }: TargetPromptP
         transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_SOFT}
       >
         <header className="prompt-head">
-          <span className="prompt-glyph">{def.glyph}</span>
+          <span className="prompt-glyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></span>
           <div>
             <h3>{def.name}</h3>
             <p>{def.text}</p>
@@ -131,7 +132,7 @@ export default function TargetPrompt({ def, onCancel, onConfirm }: TargetPromptP
                   style={{ ['--mark' as string]: MARKS[m].color }}
                   onClick={() => onConfirm({ markId: m })}
                 >
-                  <span className="prompt-markglyph">{MARKS[m].glyph}</span>
+                  <span className="prompt-markglyph"><Mark kind="card" id={m} fallback={MARKS[m].glyph} /></span>
                   <strong>{MARKS[m].name}</strong>
                   <em>{MARKS[m].blurb}</em>
                 </button>
@@ -140,7 +141,7 @@ export default function TargetPrompt({ def, onCancel, onConfirm }: TargetPromptP
           </>
         ) : null}
 
-        <p className="prompt-impossible"><span aria-hidden>⧉</span> {def.impossible}</p>
+        <p className="prompt-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
 
         <Button tone="ghost" block onClick={onCancel}>Cancel</Button>
       </motion.div>

@@ -22,6 +22,7 @@ import OmenBar from '@/components/OmenBar';
 import Hints from '@/components/onboarding/Hints';
 
 import './table.css';
+import { Mark } from '@/art/marks';
 
 /**
  * Where an opponent sits on the arc above the felt.
@@ -247,7 +248,7 @@ export default function GameTable() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
           >
-            <span className="tbl-targetglyph">{targeting.def.glyph}</span>
+            <span className="tbl-targetglyph"><Mark kind="sigil" id={targeting.def.id} fallback={targeting.def.glyph} /></span>
             <span>
               {targeting.def.name} &mdash;{' '}
               {playerTargetMode ? 'choose an opponent'

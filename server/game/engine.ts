@@ -228,7 +228,11 @@ export class Engine {
       p.lastAction = undefined;
       p.shopDone = false;
       p.maxMana = maxManaFor(p, t);
-      p.mana = Math.min(p.maxMana, p.mana + 3);
+      // Two at the top of the hand, not three. At three, a measured session
+      // ended every hand with four unspent mana per player out of a ceiling
+      // of eight — which means casting was never a choice, only a chore you
+      // could skip. Scarcity is what makes a sigil a decision.
+      p.mana = Math.min(p.maxMana, p.mana + 2);
 
       // Two a hand, not one: the spell layer is the reason to play, and one
       // draw meant most sigils never came up in a whole run.

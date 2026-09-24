@@ -30,6 +30,11 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 | [020](020-grow-the-target-prompt-from-its-sigil.md) | Grow the target prompt from the sigil that opened it | MEDIUM | 8 / 3 | DONE |
 | [021](021-animate-the-boards-empty-sockets.md) | Animate the board's empty sockets | LOW | 8 | DONE |
 | [022](022-port-the-webgl-demos-to-the-table.md) | Port the web demos' techniques to the table | MEDIUM | 8 | DONE |
+| [023](023-draw-the-mark-set.md) | Draw the mark set — 102 sigils, relics, omens and card marks | HIGH | 8 / correctness | DONE |
+| [024](024-make-the-layout-harnesses-able-to-fail.md) | Make the layout harnesses able to fail | HIGH | tooling | DONE |
+| [025](025-teach-the-bots-to-bet.md) | Teach the bots to bet | HIGH | gameplay | DONE |
+| [026](026-the-second-printing.md) | The second printing — 11 sigils, 8 relics, 8 omens | MEDIUM | content | DONE |
+| [027](027-make-winning-sound-different-from-losing.md) | Make winning sound different from losing | MEDIUM | audio | DONE |
 
 ## Recommended execution order
 
@@ -83,7 +88,7 @@ Source: an audit of `src/` against eight motion categories — purpose & frequen
 
 ## Status
 
-All 22 plans are applied. `001`-`021` were the original audit, on top of
+All 27 plans are applied. `001`-`021` were the original audit, on top of
 commit `55ca0f0`; `022` is later work, porting techniques out of the
 `masonobegi_webpage` demos. Every one
 was verified with `npm run typecheck`, `npm test`, and — where it touches the

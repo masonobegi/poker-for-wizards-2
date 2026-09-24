@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { LogEntry, PlayerView } from '@shared/types';
 import { SCHOOLS } from '@shared/sigils';
 import { ENTER } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 function LogPanelBase({ entries, players }: {
   entries: LogEntry[];
@@ -38,7 +39,7 @@ function LogPanelBase({ entries, players }: {
             transition={ENTER}
             data-avatar={seatOf(e.playerId)}
           >
-            {e.tone === 'impossible' ? <span className="log-mark">⧉</span> : null}
+            {e.tone === 'impossible' ? <span className="log-mark"><Mark kind="ui" id="impossible" /></span> : null}
             {e.tone === 'magic' && !accent ? <span className="log-mark">✦</span> : null}
             {e.text}
           </motion.p>

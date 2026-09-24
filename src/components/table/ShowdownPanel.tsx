@@ -10,6 +10,7 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { burstAt } from '@/lib/visuals';
 import type { School } from '@/vfx/particles';
 import { EASE_OUT, ENTER, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
@@ -55,7 +56,7 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ ...SPRING_PLAYFUL, delay: 0.5 }}
             >
-              ⧉ {payout.bestImpossible}
+              <Mark kind="ui" id="impossible" /> {payout.bestImpossible}
             </motion.span>
           ) : null}
         </header>

@@ -12,6 +12,7 @@
 import type { SigilDef } from '@shared/sigils';
 import { SCHOOLS, RARITY_COLOR } from '@shared/sigils';
 import type { StyleVars } from '@/components/card/Card';
+import { Mark } from '@/art/marks';
 
 export default function SigilTile({ def, compact, order }: {
   def: SigilDef;
@@ -31,11 +32,11 @@ export default function SigilTile({ def, compact, order }: {
         <span className="intro-sigil__cost mono">{def.cost}</span>
         <span className="intro-sigil__school">{school.name}</span>
       </header>
-      <div className="intro-sigil__glyph" aria-hidden="true">{def.glyph}</div>
+      <div className="intro-sigil__glyph" aria-hidden="true"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></div>
       <h4 className="intro-sigil__name">{def.name}</h4>
       {!compact ? <p className="intro-sigil__text">{def.text}</p> : null}
       <p className="intro-sigil__impossible">
-        <span aria-hidden="true">⧉</span> {def.impossible}
+        <Mark kind="ui" id="impossible" /> {def.impossible}
       </p>
       <span className="intro-sigil__rarity">{def.rarity}</span>
       {order ? <span className="intro-sigil__order">{order}</span> : null}

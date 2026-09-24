@@ -6,6 +6,7 @@ import { IMPOSSIBLE_CATS, type Cat } from '@shared/hand';
 import { catName, loadProfile } from './profile';
 import './profile.css';
 import { ENTER_PANEL } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 /**
  * The reason to start another run.
@@ -62,7 +63,7 @@ export default function ProfileCard() {
             const o = OMEN_BY_ID[id];
             return o ? (
               <span key={`o${id}`} className="profile-glyph is-omen" title={`${o.name} — ${o.text}`}>
-                {o.glyph}
+                <Mark kind="omen" id={id} fallback={o.glyph} />
               </span>
             ) : null;
           })}
@@ -70,7 +71,7 @@ export default function ProfileCard() {
             const r = RELIC_BY_ID[id];
             return r ? (
               <span key={`r${id}`} className="profile-glyph" title={`${r.name} — ${r.text}`}>
-                {r.glyph}
+                <Mark kind="relic" id={id} fallback={r.glyph} />
               </span>
             ) : null;
           })}

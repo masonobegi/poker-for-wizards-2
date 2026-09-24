@@ -22,6 +22,7 @@ import {
 } from './demo';
 import './onboarding.css';
 import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 // ---------------------------------------------------------------------------
 // Persistence
@@ -151,12 +152,12 @@ function ShopVisual() {
   return (
     <div className="intro-visual intro-shop">
       <div className="intro-shop__tile">
-        <span className="intro-shop__glyph" aria-hidden="true">{SHOP_RELIC.glyph}</span>
+        <span className="intro-shop__glyph" aria-hidden="true"><Mark kind="relic" id={SHOP_RELIC.id} fallback={SHOP_RELIC.glyph} /></span>
         <span className="intro-shop__name">{SHOP_RELIC.name}</span>
         <span className="intro-shop__price mono">{SHOP_RELIC.price} shards</span>
       </div>
       <div className="intro-shop__tile">
-        <span className="intro-shop__glyph" aria-hidden="true">{SHOP_SIGIL.glyph}</span>
+        <span className="intro-shop__glyph" aria-hidden="true"><Mark kind="sigil" id={SHOP_SIGIL.id} fallback={SHOP_SIGIL.glyph} /></span>
         <span className="intro-shop__name">{SHOP_SIGIL.name}</span>
         <span className="intro-shop__price mono">{SHOP_SIGIL.price} shards</span>
       </div>

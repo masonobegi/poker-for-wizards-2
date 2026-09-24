@@ -85,9 +85,19 @@
   --s-8: 64px;
 
   /* --- type --------------------------------------------------------------- */
-  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Every stack ends in --sym. The sigils, relics, omens and card marks are
+     drawn now (src/art/marks.tsx), but a handful of characters are still set
+     as text — the shard diamond, the discard glyph, the arrows — and none of
+     Inter, Cinzel or JetBrains Mono contains them. On Windows the browser
+     silently reaches for Segoe UI Symbol and everything looks correct; on
+     SteamOS, which is what we ship to, there is no Segoe anything, and an
+     unlisted fallback is a tofu box. DejaVu Sans is on essentially every
+     Linux including SteamOS, and Noto Sans Symbols 2 covers what it misses. */
+  --sym: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans';
+
+  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, var(--sym), serif;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, var(--sym), monospace;
 
   --fs-xs: 11px;
   --fs-sm: 13px;

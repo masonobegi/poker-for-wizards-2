@@ -11,6 +11,7 @@ import ProfileCard from '@/components/profile/ProfileCard';
 import ServerPanel from '@/components/shell/ServerPanel';
 import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -251,7 +252,9 @@ function MenuBackdrop() {
     return entries.map((s, i) => ({
       id: s.id,
       accent: s.accent,
-      glyph: SIGILS.find((g) => g.school === s.id)?.glyph ?? '✦',
+      // One sigil per school, drifting behind the menu. It is the real mark
+      // from the real school, not a decorative asterisk.
+      sigil: SIGILS.find((g) => g.school === s.id),
       left: `${8 + (i * 15.5) % 84}%`,
       top: `${12 + ((i * 37) % 70)}%`,
       delay: i * 2.4,
@@ -275,7 +278,7 @@ function MenuBackdrop() {
             animationDuration: `${g.dur}s`,
           }}
         >
-          {g.glyph}
+          {g.sigil ? <Mark kind="sigil" id={g.sigil.id} fallback={g.sigil.glyph} /> : null}
         </span>
       ))}
     </div>

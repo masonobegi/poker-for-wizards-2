@@ -30,6 +30,7 @@ import type { CardView, Face, MarkId, Rank, Suit } from '@shared/cards';
 import { MARKS, RANK_LABEL, RANK_NAME, SUIT_NAME, faceKey, faceName } from '@shared/cards';
 import { CardArt, SuitShape } from './CardArt';
 import { CardBack } from './CardBack';
+import { Mark } from '@/art/marks';
 import './card.css';
 import { EASE_OUT, ENTER_PANEL, T_REDUCED, T_SLOW } from '@/styles/motion';
 
@@ -103,7 +104,7 @@ const MarkBadge = memo(function MarkBadge({ id }: { id: MarkId }) {
   return (
     <span className={`hx-mark hx-mark--${id}`} style={vars} role="img" aria-label={`${mark.name}. ${mark.blurb}`}>
       <span className="hx-mark__glyph" aria-hidden="true">
-        {mark.glyph}
+        <Mark kind="card" id={id} fallback={mark.glyph} />
       </span>
       <span className="hx-mark__tip" role="tooltip" aria-hidden="true">
         <b className="hx-mark__name">{mark.name}</b>
