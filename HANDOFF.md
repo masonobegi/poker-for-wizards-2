@@ -307,6 +307,12 @@ here passed every harness in the repo; none of it has been judged by a person.
 | The held hand breathes | `src/scenes/table.css` `hand-breathe` | 2.5px over 7.5s on your own two cards. If you can consciously see it moving, it is too much. |
 | Scene transitions move through depth | `src/App.tsx` `sceneMotion` | Replaces a crossfade. Check it does not read as a zoom-bounce on a 60Hz panel. |
 
+| The market, reprinted | `src/scenes/shop.css`, `src/scenes/Shop.tsx` | It was still in the pre-redesign language — glowing icons on `#101427` blue-black — while the table it interrupts is printed stock under a brass lamp. Now the same bone stock, one ink per item, a keyed rule and a device. Verified in a live game at five resolutions, but check the **sold** and **owned** states, which the harness never reaches. |
+| Nine engraved devices | `src/components/table/SchoolDevice.tsx` | Six schools plus relic, rite and attunement. Judged at 110px and 46px on a monitor. The sizes that matter are a sigil in the rail and a market card on a Deck. Specifically: does the rite still read as a press over wax rather than as a tower? |
+| Bot difficulty | `server/game/bots.ts` (`BANDS`) | Novice/adept/master, where skill is a blurred equity read rather than random play. `adept` is asserted identical to what shipped. What needs a person: whether **novice** is beatable-but-not-boring, and whether **master** is hard-without-being-unfair. The numbers say the bands differ; only play says they are *fun*. |
+| Table speed | `server/game/bots.ts` (`TEMPO`) | Relaxed/standard/blitz. `standard` is asserted identical to what shipped. Blitz has a floor so it can never cut the showdown reveal short — confirm that holds at a five-way all-in showdown, which is the longest reveal in the game. |
+| The settings persist | `src/scenes/Menu.tsx` | `localStorage` under `hexhold.botSkill` / `hexhold.speed`. Wrapped in try/catch for private windows. |
+
 ### The end-of-run recap, specifically
 
 This is the one I would check first. I could only reach the game-over screen by
@@ -317,6 +323,22 @@ a `max-height`. Play one run to the end and confirm it neither overflows nor
 clips.
 
 ---
+
+## 7b. Screens I have not re-checked since the redesign
+
+Worth naming, because one of these was already wrong and I only found it by
+opening a screenshot on a hunch. The market was still rendering in the
+pre-redesign language — glowing icons on blue-black panels — long after
+everything else had moved off it, and no test caught that, because nothing
+automated can see that two screens belong to different games.
+
+Audited and current: the table, the rail, the action bar, the spell hand, the
+market, the menu, the showdown, the seat portraits, the playing cards.
+
+**Not re-checked**: the codex, the end-of-run recap, the lobby, the intro
+flow, and every *state* the harness never reaches — a sold-out market card, an
+owned relic, a disconnected seat, a side-pot showdown. If any of them still
+has a violet gradient or a glowing border on it, that is where it will be.
 
 ## 8. Steam partner account
 
