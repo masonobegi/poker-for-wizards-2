@@ -699,8 +699,11 @@ export class Engine {
     this.wait(2000, () => {
       this.rollOmen();
       this.flush();
-      // Give the omen its own beat before the market covers the screen.
-      this.wait(t.omens.length ? 2400 : 200, () => this.openMarket());
+      // Give the omen its own beat before the market covers the screen. The
+      // client holds the market back until the omen banner has finished
+      // (3.2s, plus its fade), so a shorter wait here was spent out of the
+      // shop clock while the player could not see the shop.
+      this.wait(t.omens.length ? 3500 : 200, () => this.openMarket());
     });
   }
 
