@@ -12,7 +12,9 @@ import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { OMENS, OMEN_BY_ID, omenNumber, type ActiveOmen } from '../../shared/omens';
+import {
+  IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, omenNumber, opensImpossible, type ActiveOmen,
+} from '../../shared/omens';
 import {
   isStreet,
   type BetAction, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
@@ -725,8 +727,15 @@ export class Engine {
   private rollOmen(): void {
     const t = this.table;
     const taken = new Set(t.omens.map((o) => o.id));
-    const pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= t.ante);
+    let pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= t.ante);
     if (pool.length === 0) return;
+    // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
+    // given a way to hold a card twice.
+    const opened = t.omens.some((a) => OMEN_BY_ID[a.id] && opensImpossible(OMEN_BY_ID[a.id]));
+    if (!opened && t.ante >= IMPOSSIBLE_BY_ANTE) {
+      const opening = pool.filter(opensImpossible);
+      if (opening.length) pool = opening;
+    }
 
     const bag: typeof pool = [];
     for (const o of pool) for (let i = 0; i < o.weight; i++) bag.push(o);

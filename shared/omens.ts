@@ -366,3 +366,25 @@ export const omenLabel = (a: ActiveOmen): string => {
   if (!def) return a.id;
   return def.name;
 };
+
+/**
+ * Marks that let a hand hold a card twice — the only way to reach Five of a
+ * Kind, Flush House or Flush Five. A wild is any card; a prism puts a second
+ * copy of a rank into one suit; a mirrored card copies its neighbour.
+ */
+export const DUPLICATING_MARKS: readonly MarkId[] = ['wild', 'prism', 'mirrored'];
+
+/** Whether this omen seeds the deck with cards that can make an impossible hand. */
+export const opensImpossible = (o: OmenDef): boolean =>
+  !!o.deal?.inscribe && DUPLICATING_MARKS.includes(o.deal.inscribe.markId);
+
+/**
+ * The ante by which a run is promised an omen that opens the impossible hands.
+ *
+ * Measured over eight full four-handed runs, two produced an impossible hand
+ * at all. The game is named after them. Left to the weighted draw, the omens
+ * that seed wild, prism and mirrored cards are four of forty-one and often
+ * never arrive; this does not add one to every run, it only makes sure one
+ * has arrived by the middle of it. Which of them it is stays random.
+ */
+export const IMPOSSIBLE_BY_ANTE = 3;
