@@ -58,7 +58,7 @@
   letter-spacing: 0.44em;
   margin-right: -0.44em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--text-quiet);
 }
 
 /* --- panel -------------------------------------------------------------- */
@@ -83,7 +83,7 @@
 .menu-pitch {
   font-size: var(--fs-sm);
   line-height: 1.7;
-  color: var(--text-3);
+  color: var(--text-2);
   text-align: center;
   text-wrap: balance;
 }
@@ -91,7 +91,7 @@
 .menu-note {
   font-size: var(--fs-xs);
   line-height: 1.6;
-  color: var(--text-4);
+  color: var(--text-quiet);
 }
 
 .menu-error {
@@ -106,7 +106,7 @@
 .menu-practicenote {
   font-size: var(--fs-xs);
   line-height: 1.5;
-  color: var(--text-4);
+  color: var(--text-quiet);
   text-align: center;
   margin: -2px 0 var(--s-1);
 }
@@ -243,17 +243,17 @@
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
   border: 1px solid var(--line-soft);
   background: rgba(10, 12, 24, 0.55);
-  color: var(--text-3);
+  color: var(--text-2);
   font: 600 11px/1 var(--font-ui);
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast);
 }
 
-.menu-coven:hover { color: var(--text-1); border-color: color-mix(in srgb, var(--school) 48%, transparent); }
+.menu-coven:hover { color: var(--text); border-color: color-mix(in srgb, var(--school) 48%, transparent); }
 
 .menu-coven.is-on {
-  color: var(--text-1);
+  color: var(--text);
   border-color: color-mix(in srgb, var(--school) 70%, transparent);
   background: color-mix(in srgb, var(--school) 14%, rgba(10, 12, 24, 0.8));
 }
@@ -270,7 +270,7 @@
   min-height: 2.4em;
   text-align: center;
   font-size: var(--fs-xs);
-  color: var(--text-4);
+  color: var(--text-quiet);
   text-wrap: pretty;
 }
 
@@ -281,7 +281,7 @@
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-5, var(--text-4));
+  color: var(--text-quiet);
 }
 
 /* The build string and the desktop-only way out. Both are deliberately the
@@ -318,7 +318,7 @@
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-quiet);
   margin-bottom: 6px;
 }
 
@@ -338,7 +338,7 @@
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 0.06em;
-  color: var(--text-3);
+  color: var(--text-2);
   transition: color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
 .menu-pick-btn:hover { color: var(--text); }
@@ -356,6 +356,6 @@
   margin-top: 6px;
   font-size: 11px;
   line-height: 1.45;
-  color: var(--text-4);
+  color: var(--text-quiet);
   min-height: 2.9em;
 }

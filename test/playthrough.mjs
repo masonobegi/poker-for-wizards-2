@@ -323,6 +323,7 @@ let sawShop = false;
 let sawShowdown = false;
 let sawStack = false;
 let sawOmen = false;
+let sawOmenBanner = false;
 let castsMade = 0;
 let lastMem = 0;
 const heap = [];
@@ -344,6 +345,25 @@ await page.evaluate(() => {
   }, 150);
 }).catch(() => {});
 
+// The ante break is a sequence: showdown, then the omen banner alone, then
+// the Market, then its hint. It used to be all four at once, with the omen —
+// the high point of a run — buried under the other three. Sampled page-side
+// every 100ms, because the banner lasts three seconds and one turn of the
+// loop below can take longer than that.
+await page.evaluate(() => {
+  window.__omenSeen = false;
+  window.__omenCovered = [];
+  window.setInterval(() => {
+    const banner = [...document.querySelectorAll('[role="status"][aria-live="assertive"]')]
+      .find((el) => /a new rule/i.test(el.textContent ?? ''));
+    if (!banner || Number(getComputedStyle(banner).opacity) < 0.9) return;
+    window.__omenSeen = true;
+    const covering = ['.shop', '.showdown', '.hint-mark']
+      .filter((sel) => document.querySelector(sel));
+    for (const sel of covering) if (!window.__omenCovered.includes(sel)) window.__omenCovered.push(sel);
+  }, 100);
+}).catch(() => {});
+
 while (Date.now() - playStart < SECONDS * 1000) {
   if (pageCrashed || page.isClosed()) break;
   try {
@@ -360,7 +380,10 @@ while (Date.now() - playStart < SECONDS * 1000) {
   if (phase !== lastPhase) {
     lastPhase = phase;
     seenPhases.add(phase);
-    if (phase === 'shop' && !sawShop) { sawShop = true; await shot(page, 'shop'); await checkLayout(page, 'shop'); }
+    // Not the instant `.shop` mounts: that frame is the Market at the start
+    // of its entrance, and a screenshot of a half-faded panel is how a
+    // capture ends up reviewed as a colour bug.
+    if (phase === 'shop' && !sawShop) { sawShop = true; await page.waitForTimeout(900); await shot(page, 'shop'); await checkLayout(page, 'shop'); }
     if (phase === 'showdown' && !sawShowdown) { sawShowdown = true; await shot(page, 'showdown'); }
     if (phase === 'stack' && !sawStack) { sawStack = true; await shot(page, 'stack'); await checkLayout(page, 'stack'); }
     if (phase === 'gameover') { await shot(page, 'gameover'); await checkLayout(page, 'gameover'); break; }
@@ -373,6 +396,11 @@ while (Date.now() - playStart < SECONDS * 1000) {
       return m ? Math.round(m.usedJSHeapSize / 1048576) : null;
     }).catch(() => null);
     if (mem !== null) { heap.push(mem); }
+  }
+
+  if (!sawOmenBanner && await page.evaluate(() => window.__omenSeen === true).catch(() => false)) {
+    sawOmenBanner = true;
+    await shot(page, 'omen-banner');
   }
 
   if (!sawOmen && await page.locator('.omen').first().isVisible().catch(() => false)) {
@@ -535,6 +563,11 @@ const readable = await page.evaluate(() => {
   return out;
 });
 for (const r of readable) problem('POLISH', r);
+
+const omenCovered = await page.evaluate(() => window.__omenCovered ?? []).catch(() => []);
+if (omenCovered.length) {
+  problem('ERROR', `the omen banner was covered by ${omenCovered.join(', ')} — it should have the stage to itself`);
+}
 
 async function finish() {
   finishing = true;

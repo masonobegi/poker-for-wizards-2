@@ -2,7 +2,7 @@
  * Contextual first-time hints.
  *
  * A fully self-contained overlay: it reads the table view straight from the
- * game store, so it needs no props and no wiring beyond being mounted
+ * game store, so it needs no wiring beyond being mounted
  * somewhere in the tree. One coach mark shows at a time, in priority order;
  * each is marked seen (persisted, see `hintsStore.ts`) the moment it's shown,
  * so it never appears twice, and it auto-fades on its own after a few seconds
@@ -19,11 +19,22 @@ import { useHints } from './hintsStore';
 import './onboarding.css';
 import { EASE_OUT, T_REDUCED } from '@/styles/motion';
 
+/** What the table is showing, beyond what the view says. */
+interface Stage {
+  /**
+   * The Market is on screen and has finished arriving. The phase turns to
+   * 'shop' while the omen banner is still up, and the Market waits for it —
+   * so a hint keyed on the phase alone landed on top of the omen banner, over
+   * a Market that had not appeared yet.
+   */
+  marketSettled: boolean;
+}
+
 interface HintDef {
   id: string;
   place: 'rail' | 'stack' | 'shop';
   text: string;
-  match: (view: TableView) => boolean;
+  match: (view: TableView, stage: Stage) => boolean;
 }
 
 // Priority order: the response window is time-boxed, so it wins ties.
@@ -48,13 +59,13 @@ const HINTS: HintDef[] = [
     id: 'shop_open',
     place: 'shop',
     text: 'The Market is open. Spend shards on sigils, relics, and rites for the rest of the run.',
-    match: (v) => v.phase === 'shop',
+    match: (v, s) => v.phase === 'shop' && s.marketSettled,
   },
 ];
 
 const DISMISS_MS = 7000;
 
-export default function Hints() {
+export default function Hints({ marketSettled = false }: { marketSettled?: boolean } = {}) {
   const view = useView();
   const seen = useHints((s) => s.seen);
   const markSeen = useHints((s) => s.markSeen);
@@ -65,11 +76,12 @@ export default function Hints() {
   // Pick the next not-yet-seen, currently-true hint once nothing is showing.
   useEffect(() => {
     if (shown || !view) return;
-    const candidate = HINTS.find((h) => !seen[h.id] && h.match(view));
+    const stage = { marketSettled };
+    const candidate = HINTS.find((h) => !seen[h.id] && h.match(view, stage));
     if (!candidate) return;
     setShown(candidate);
     markSeen(candidate.id);
-  }, [view, shown, seen, markSeen]);
+  }, [view, shown, seen, markSeen, marketSettled]);
 
   // Retract the moment the thing it is describing stops being true.
   //
@@ -81,8 +93,8 @@ export default function Hints() {
   // about the present tense, so none of them should outlive it.
   useEffect(() => {
     if (!shown || !view) return;
-    if (!shown.match(view)) setShown(null);
-  }, [view, shown]);
+    if (!shown.match(view, { marketSettled })) setShown(null);
+  }, [view, shown, marketSettled]);
 
   // Auto-fade after a few seconds, independent of the seen-map update above,
   // so a rapidly-changing table state can't flicker it or re-trigger it.

@@ -3,7 +3,7 @@
  * Driven straight off the `banner` fx event so the server decides what deserves
  * the whole screen.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { onFx } from '@/store/net';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
@@ -46,6 +46,49 @@ export function bannerBusyMs(): number {
   return Math.max(0, bannerUntil - Date.now());
 }
 
+/*
+ * The same fact, as something React can subscribe to.
+ *
+ * At an ante break four layers used to share the screen at once: the last
+ * showdown, the new omen's banner, the Market, and the Market's first-run
+ * hint on top of all three. The omen is the high point of a run and it was
+ * the thing buried. The server already staggers the beats, but its market
+ * opens 2.4s after the omen while the omen banner holds for 3.5s — so the
+ * client has to be the one that waits. Anything that must not cover a banner
+ * reads `useBannerIdle()` and holds itself back until it flips.
+ */
+let busy = false;
+let idleTimer: number | undefined;
+const listeners = new Set<() => void>();
+
+function setBusy(next: boolean): void {
+  if (busy === next) return;
+  busy = next;
+  for (const l of listeners) l();
+}
+
+function markBusyUntil(until: number): void {
+  bannerUntil = until;
+  setBusy(true);
+  window.clearTimeout(idleTimer);
+  const settle = (): void => {
+    const left = bannerUntil - Date.now();
+    if (left > 0) { idleTimer = window.setTimeout(settle, left); return; }
+    setBusy(false);
+  };
+  idleTimer = window.setTimeout(settle, Math.max(0, until - Date.now()));
+}
+
+const subscribe = (l: () => void): (() => void) => {
+  listeners.add(l);
+  return () => { listeners.delete(l); };
+};
+
+/** True while no full-screen announcement is on screen or fading out. */
+export function useBannerIdle(): boolean {
+  return !useSyncExternalStore(subscribe, () => busy, () => false);
+}
+
 export default function BannerLayer() {
   const [banner, setBanner] = useState<Banner | null>(null);
   // This layer owns the entire viewport: a full-width horizontal wipe plus a
@@ -57,7 +100,7 @@ export default function BannerLayer() {
     if (e.t !== 'banner') return;
     const tone = e.tone ?? 'neutral';
     // +300 covers the exit fade below.
-    bannerUntil = Date.now() + HOLD_MS[tone] + 300;
+    markBusyUntil(Date.now() + HOLD_MS[tone] + 300);
     setBanner({ key: ++seq, text: e.text, sub: e.sub, tone });
   }), []);
 
