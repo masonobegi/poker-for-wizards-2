@@ -322,6 +322,13 @@ export interface RoomConfig {
   botSkill: BotSkill;
   /** How fast the table runs. */
   speed: TableSpeed;
+  /** Difficulty level, 1 to MAX_HEX. See shared/hexes.ts. */
+  hex: number;
+  /**
+   * A fixed seed for the table, or absent for a fresh one. Only the Daily
+   * Rite sets it; the server accepts nothing but a daily seed from a client.
+   */
+  seed?: string;
 }
 
 export const DEFAULT_CONFIG: RoomConfig = {
@@ -343,6 +350,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   private: false,
   botSkill: 'adept',
   speed: 'standard',
+  hex: 1,
 };
 
 /** Everything a single client is allowed to know, projected for that client. */

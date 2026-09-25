@@ -23,6 +23,7 @@ import {
 import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
 import { DEFAULT_COVEN } from '../../shared/covens';
+import { handsPerAnteAt } from '../../shared/hexes';
 
 export const AVATARS = 12;
 
@@ -71,7 +72,7 @@ export function createTable(code: string, hostId: string, config: Partial<RoomCo
     shop: new Map(),
     payout: null,
     log: [],
-    seed: nanoid(10),
+    seed: cfg.seed ?? nanoid(10),
     createdAt: Date.now(),
     lastActivity: Date.now(),
     winnerId: null,
@@ -255,6 +256,9 @@ export function manaCost(p: Player, def: SigilDef, t?: Table): number {
 // ---------------------------------------------------------------------------
 // Logging
 // ---------------------------------------------------------------------------
+
+/** Hands in an ante at this table, after its hex. */
+export const anteLength = (t: Table): number => handsPerAnteAt(t.config.handsPerAnte, t.config.hex ?? 1);
 
 export function log(t: Table, text: string, tone: LogTone = 'plain', extra: Partial<LogEntry> = {}): void {
   t.log.push({ id: nanoid(8), at: Date.now(), tone, text, ...extra });
@@ -563,7 +567,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
     ante: t.ante,
     bb: t.bb,
     sb: t.sb,
-    handsUntilAnte: Math.max(0, t.config.handsPerAnte - ((t.handNumber - 1) % t.config.handsPerAnte) - 1),
+    handsUntilAnte: Math.max(0, anteLength(t) - ((t.handNumber - 1) % anteLength(t)) - 1),
     players,
     youId: viewer.id,
     dealerSeat: t.dealerSeat,

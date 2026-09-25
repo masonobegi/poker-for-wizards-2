@@ -10,6 +10,7 @@ import { Rooms, type Seatholder } from './rooms';
 import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
 import { config } from '../config';
 import { covenOf } from '../../shared/covens';
+import { clampHex, isDailySeed } from '../../shared/hexes';
 
 const MAX_NAME = 16;
 const CHAT_LIMIT = 200;
@@ -45,6 +46,11 @@ function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   if (c.speed === 'relaxed' || c.speed === 'standard' || c.speed === 'blitz') {
     out.speed = c.speed;
   }
+  if (c.hex !== undefined) out.hex = clampHex(c.hex);
+  // Only a daily seed, and the engine seats one human at a daily table.
+  // A seed fixes the deck order, so a table two people share must not have
+  // one that either of them can know in advance.
+  if (isDailySeed(c.seed)) out.seed = c.seed;
   return out;
 }
 

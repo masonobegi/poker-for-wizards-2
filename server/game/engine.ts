@@ -11,7 +11,8 @@ import { config } from '../config';
 import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
-import { RELIC_BY_ID, relicNumber } from '../../shared/relics';
+import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
+import { HEXES, dailyCoven, isDailySeed } from '../../shared/hexes';
 import {
   IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, omenNumber, opensImpossible, type ActiveOmen,
 } from '../../shared/omens';
@@ -20,7 +21,7 @@ import {
   type BetAction, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
-  actable, alive, byId, card, createPlayer, createTable, describeCard,
+  actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
   freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
 } from './table';
 import {
@@ -75,6 +76,19 @@ export class Engine {
     this.timer = null;
   }
 
+  /**
+   * A random stream for one decision, derived from the table seed.
+   *
+   * The shared engine stream is consumed by everything, including bot
+   * deliberation, so on a seeded table the third hand's deck would depend on
+   * how long the first two took to play. Deals, omens, openings and Market
+   * offers each draw from their own named stream instead, which is what lets
+   * a Daily Rite be the same table for everyone.
+   */
+  private stream(name: string): Rng {
+    return new Rng(`${this.table.seed}:${name}`);
+  }
+
   private ctx(): MagicCtx {
     return { t: this.table, rng: this.rng, fx: this.fx };
   }
@@ -103,6 +117,10 @@ export class Engine {
     const t = this.table;
     const seat = freeSeat(t);
     if (seat < 0) return null;
+    // A daily table's deck order follows from a public seed, so it seats one
+    // human. Two people sharing it would be playing against someone who can
+    // know the deck.
+    if (!isBot && isDailySeed(t.config.seed) && t.players.some((q) => !q.isBot)) return null;
     const p = createPlayer(id, name, seat, t.config, isBot);
     p.maxMana = maxManaFor(p, t);
     t.players.push(p);
@@ -187,6 +205,9 @@ export class Engine {
       // in things the engine already knows how to hold: a list of sigil ids
       // and one relic id. A coven cannot introduce behaviour — if one needs to
       // do something new, the relic has to learn it first.
+      // The Daily Rite is played as the day's coven, whatever the client sent,
+      // or it is not the same run as everyone else's.
+      if (!p.isBot && isDailySeed(t.config.seed)) p.coven = dailyCoven(t.config.seed.slice('daily:'.length));
       const coven = covenOf(p.coven);
       if (coven.relic) p.relics.push(coven.relic);
       for (const defId of coven.sigils) {
@@ -194,12 +215,21 @@ export class Engine {
       }
       // Top up to a full opening hand with the draft pool, so every coven
       // still meets cards it did not choose.
-      while (p.sigils.length < 2) giveSigil(t, p, randomSigil(this.rng));
+      const opening = this.stream(`open:${p.seat}`);
+      while (p.sigils.length < 2) giveSigil(t, p, randomSigil(opening));
+      // Hex II: the opponents arrive already equipped.
+      if (p.isBot && t.config.hex >= 2) {
+        const pool = RELICS.filter((r) => !p.relics.includes(r.id) && r.rarity !== 'mythic');
+        if (pool.length) p.relics.push(opening.pick(pool).id);
+      }
       // The relic may raise the ceiling or the hand size.
       p.maxMana = maxManaFor(p, t);
     }
 
     log(t, 'The table is set. Ante 1.', 'magic');
+    if (t.config.hex > 1) log(t, `${HEXES[t.config.hex - 1].name}, and every hex below it. ${HEXES[t.config.hex - 1].text}`, 'magic');
+    // Hex III: the table opens under an omen, drawn as if it were ante two.
+    if (t.config.hex >= 3) this.rollOmen(2);
     this.fx.push({ t: 'music', mood: 'table' });
     this.beginHand();
     return { ok: true };
@@ -229,7 +259,9 @@ export class Engine {
     const contestants = alive(t);
     if (contestants.length < 2) { this.endGame(); return; }
 
-    t.deck = this.rng.shuffle([...t.cards.keys()]);
+    // Its own stream per hand, so a seeded table deals the same cards on the
+    // same hand number whatever happened in between.
+    t.deck = this.stream(`deck:${t.handNumber}`).shuffle([...t.cards.keys()]);
 
     // Move the button.
     const next = nextSeat(t, t.dealerSeat, (p) => !p.eliminated);
@@ -645,7 +677,7 @@ export class Engine {
 
     if (alive(t).length <= 1) { this.endGame(); return; }
 
-    const antePassed = t.handNumber % t.config.handsPerAnte === 0;
+    const antePassed = t.handNumber % anteLength(t) === 0;
     if (antePassed) { this.openShop(); return; }
 
     this.fx.push({ t: 'music', mood: 'table' });
@@ -714,7 +746,7 @@ export class Engine {
     payInterest(t);
     for (const p of alive(t)) {
       p.shopDone = false;
-      t.shop.set(p.id, rollShop(t, p, this.rng));
+      t.shop.set(p.id, rollShop(t, p, this.stream(`shop:${t.ante}:${p.seat}`)));
       if (p.isBot) this.botClock.set(p.id, Date.now() + 800 + this.rng.int(1500));
     }
 
@@ -727,10 +759,11 @@ export class Engine {
    * One new permanent rule per ante. They stack and never come off, so the
    * last hands of a run are played under a rulebook nobody sat down to.
    */
-  private rollOmen(): void {
+  private rollOmen(asAnte = this.table.ante): void {
     const t = this.table;
+    const rng = this.stream(`omen:${t.ante}:${t.omens.length}`);
     const taken = new Set(t.omens.map((o) => o.id));
-    let pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= t.ante);
+    let pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
     if (pool.length === 0) return;
     // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
     // given a way to hold a card twice.
@@ -742,13 +775,13 @@ export class Engine {
 
     const bag: typeof pool = [];
     for (const o of pool) for (let i = 0; i < o.weight; i++) bag.push(o);
-    const def = this.rng.pick(bag);
+    const def = rng.pick(bag);
 
     const omen: ActiveOmen = { id: def.id, ante: t.ante };
     if (def.killsRank) {
       // Strike a rank nobody is currently holding a pair of, for fairness.
       const all: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-      omen.rank = this.rng.pick(all);
+      omen.rank = rng.pick(all);
     }
     t.omens.push(omen);
 
@@ -758,7 +791,7 @@ export class Engine {
       const plain = [...t.cards.values()].filter(
         (c) => c.marks.length === 0 && c.origin !== 'conjured',
       );
-      for (const c of this.rng.sample(plain, ins.count)) {
+      for (const c of rng.sample(plain, ins.count)) {
         if (!c.marks.includes(ins.markId)) c.marks.push(ins.markId);
       }
     }
@@ -1186,7 +1219,8 @@ export class Engine {
     const taken = new Set(t.players.map((p) => p.name));
     const free = names.filter((n) => !taken.has(n));
     const name = free.length ? r.pick(free) : `Bot ${t.players.length}`;
-    const bot = this.addPlayer(`bot_${nanoid(6)}`, name, true);
+    // Seeded, so a daily table meets the same opponents with the same temperament.
+    const bot = this.addPlayer(`bot_${Rng.hash(`${t.seed}:bot:${t.players.length}`).toString(36)}`, name, true);
     // Bots draw a coven too, and never the Unaligned — a table of four
     // identical openings is the thing covens exist to stop, and it would be
     // an odd game that only let the human have one.

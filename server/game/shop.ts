@@ -6,6 +6,7 @@
  * in the *shared* deck, so an upgrade you pay for can turn up in an opponent's
  * hand three hands later. That tension is the point.
  */
+import { hexPrice } from '../../shared/hexes';
 import { nanoid } from 'nanoid';
 import { MARKS, type MarkId, faceLabel } from '../../shared/cards';
 import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
@@ -95,6 +96,11 @@ export function rollShop(t: Table, p: Player, rng: Rng, rerolls = 0): ShopState 
   } else {
     items.push(rollSigilItem(rng));
   }
+
+  // Hex IV: the Market charges a human a quarter more. Applied to the listed
+  // price, so what the player is shown is what they pay.
+  const hex = t.config.hex ?? 1;
+  for (const item of items) item.price = hexPrice(item.price, hex, p.isBot);
 
   return {
     items,
