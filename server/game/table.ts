@@ -18,7 +18,7 @@ import { SIGIL_BY_ID, type SigilDef, type SigilInstance } from '../../shared/sig
 import {
   DEFAULT_CONFIG, emptyForeknowledge, isStreet,
   type HandRead, type LogEntry, type LogTone, type Phase, type Player, type PlayerView,
-  type Pot, type RoomConfig, type StackEntry, type Table, type TableView,
+  type CastBlock, type Pot, type RoomConfig, type StackEntry, type Table, type TableView,
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
@@ -335,31 +335,59 @@ export function castableSigils(t: Table, p: Player): string[] {
   return out;
 }
 
+/** Why each of `p`'s uncastable sigils is uncastable, for `p`'s own view. */
+export function castBlocks(t: Table, p: Player): Record<string, CastBlock> {
+  const out: Record<string, CastBlock> = {};
+  for (const s of p.sigils) {
+    const block = castBlock(t, p, s);
+    if (block) out[s.uid] = block;
+  }
+  return out;
+}
+
 export interface CastCheck { ok: boolean; reason?: string }
 
-export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
+/**
+ * The single rule for whether a sigil may be cast, as a structured reason so
+ * the client can say *why* rather than just greying the card. Checked most
+ * permanent first: timing before mana, so a counterspell held with no spell
+ * on the stack reads "Responses only" rather than "needs mana" — mana will
+ * come by itself, the stack will not. The set of castable sigils is the same
+ * whichever order the checks run in; only the reported reason depends on it.
+ */
+export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock | null {
   const def = SIGIL_BY_ID[inst.defId];
-  if (!def) return { ok: false, reason: 'Unknown sigil' };
-  if (!t.config.magicEnabled) return { ok: false, reason: 'Magic is disabled at this table' };
-  if (p.folded || p.eliminated) return { ok: false, reason: 'You are out of the hand' };
-  if (p.mana < manaCost(p, def, t)) return { ok: false, reason: 'Not enough mana' };
+  if (!def || !t.config.magicEnabled) return { why: 'off' };
+  if (p.folded || p.eliminated) return { why: 'out' };
 
-  const responding = !!t.stack;
   const isResponse = def.timing.includes('response');
-
-  if (responding) {
-    if (!isResponse) return { ok: false, reason: 'Only a response can be cast onto the stack' };
-    if (!t.stack!.pending.includes(p.id)) return { ok: false, reason: 'You have already responded' };
-    return { ok: true };
+  if (t.stack) {
+    if (!isResponse) return { why: 'stack' };
+    if (!t.stack.pending.includes(p.id)) return { why: 'responded' };
+  } else if (isResponse && def.timing.length === 1) {
+    return { why: 'response' };
+  } else if (!(def.timing.includes('any') && isStreet(t.phase)) && !def.timing.includes(t.phase as never)) {
+    return { why: 'timing' };
   }
 
-  if (isResponse && def.timing.length === 1) {
-    return { ok: false, reason: 'Nothing is being cast' };
-  }
+  const need = manaCost(p, def, t);
+  if (p.mana < need) return { why: 'mana', need };
+  return null;
+}
 
-  if (def.timing.includes('any') && isStreet(t.phase)) return { ok: true };
-  if (def.timing.includes(t.phase as never)) return { ok: true };
-  return { ok: false, reason: `Cannot be cast during ${phaseLabel(t.phase)}` };
+export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
+  if (!SIGIL_BY_ID[inst.defId]) return { ok: false, reason: 'Unknown sigil' };
+  const block = castBlock(t, p, inst);
+  if (!block) return { ok: true };
+  switch (block.why) {
+    case 'off': return { ok: false, reason: 'Magic is disabled at this table' };
+    case 'out': return { ok: false, reason: 'You are out of the hand' };
+    case 'stack': return { ok: false, reason: 'Only a response can be cast onto the stack' };
+    case 'responded': return { ok: false, reason: 'You have already responded' };
+    case 'response': return { ok: false, reason: 'Nothing is being cast' };
+    case 'timing': return { ok: false, reason: `Cannot be cast during ${phaseLabel(t.phase)}` };
+    case 'mana': return { ok: false, reason: 'Not enough mana' };
+  }
 }
 
 export function phaseLabel(p: Phase): string {
@@ -565,6 +593,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
     log: t.log.slice(-60),
     yourTurn: acting?.id === viewer.id && !t.stack,
     castable: castableSigils(t, viewer),
+    castBlocks: castBlocks(t, viewer),
     hostId: t.hostId,
     winnerId: t.winnerId,
   };

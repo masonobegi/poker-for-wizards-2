@@ -9,10 +9,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { nanoid } from 'nanoid';
 import { Rng } from '../shared/rng';
-import { SIGILS, type SigilDef } from '../shared/sigils';
+import { SIGILS, SIGIL_BY_ID, type SigilDef } from '../shared/sigils';
 import { isQuantum } from '../shared/cards';
 import type { Table } from '../shared/types';
-import { createPlayer, createTable, live } from '../server/game/table';
+import { canCast, castBlock, createPlayer, createTable, live, viewFor } from '../server/game/table';
+import { blockLabel, windowLabel } from '../src/components/table/castBlock';
 import {
   castSigil, clearHandMagic, drawId, resolveStack, type MagicCtx,
 } from '../server/game/magic';
@@ -273,6 +274,58 @@ test('a sigil cannot be cast without the mana for it', () => {
   const r = castSigil(ctx, me, 'x', {});
   assert.equal(r.ok, false);
   assert.match(r.error ?? '', /mana/i);
+});
+
+test('an uncastable sigil says why, most permanent reason first', () => {
+  // playthrough/06-your-turn.png: pre-flop, five mana, and a 2-cost Nullify
+  // and a 4-cost Nightfall both greyed with nothing to tell them apart.
+  const { t } = freshTable();
+  const me = t.players[0];
+  t.phase = 'preflop';
+  me.mana = 5;
+  me.sigils.push(
+    { uid: 'n', defId: 'nullify' },
+    { uid: 'f', defId: 'nightfall' },
+  );
+  assert.deepEqual(castBlock(t, me, me.sigils[0]), { why: 'response' });
+  assert.deepEqual(castBlock(t, me, me.sigils[1]), { why: 'timing' });
+
+  // Wrong street AND short of mana: the street is what is reported, because
+  // mana arrives by itself and the street does not.
+  me.mana = 0;
+  assert.deepEqual(castBlock(t, me, me.sigils[1]), { why: 'timing' });
+
+  // Right street, short of mana: mana, with the server's own cost.
+  t.phase = 'flop';
+  assert.deepEqual(castBlock(t, me, me.sigils[1]), { why: 'mana', need: 4 });
+  me.mana = 4;
+  assert.equal(castBlock(t, me, me.sigils[1]), null);
+  assert.equal(canCast(t, me, me.sigils[1]).ok, true);
+
+  // The view carries it, for this player's own sigils only.
+  const v = viewFor(t, me.id);
+  assert.deepEqual(v.castBlocks.n, { why: 'response' });
+  assert.equal(v.castBlocks.f, undefined);
+  assert.ok(v.castable.includes('f'));
+});
+
+test('a block reason is short enough for the card and names the window', () => {
+  const nightfall = SIGIL_BY_ID.nightfall;
+  assert.equal(blockLabel({ why: 'timing' }, nightfall.timing, 'preflop').short, 'From the flop');
+  assert.equal(blockLabel({ why: 'response' }, ['response'], 'preflop').short, 'Responses only');
+  assert.equal(blockLabel({ why: 'mana', need: 4 }, nightfall.timing, 'flop').short, 'Needs 4 mana');
+  assert.equal(blockLabel({ why: 'mana', need: 4 }, nightfall.timing, 'flop').kind, 'mana');
+  assert.equal(windowLabel(['river', 'showdown']).short, 'River only');
+  assert.equal(windowLabel(['deal', 'preflop']).short, 'Pre-flop only');
+  assert.equal(windowLabel(['preflop', 'flop', 'turn']).short, 'Until the turn');
+  assert.equal(windowLabel(['flop', 'turn']).short, 'Flop & turn');
+  // Every sigil in the set gets a label that fits across a tile.
+  for (const def of SIGILS) {
+    for (const why of ['timing', 'response', 'stack', 'responded', 'out', 'off'] as const) {
+      const l = blockLabel({ why }, def.timing, 'deal');
+      assert.ok(l.short.length <= 16, `${def.id}/${why}: "${l.short}" is too long for the tile`);
+    }
+  }
 });
 
 test('a warded player cannot be targeted', () => {
