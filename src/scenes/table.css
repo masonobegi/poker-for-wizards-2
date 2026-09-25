@@ -683,6 +683,12 @@
   /* Sits below the seat arc, leaving the felt's lower band clear for the
      showdown panel. */
   top: 60%;
+  /* At the shortest supported window the felt is only ~334px tall and a seat
+     is 176px of that, so the seat opposite you and the board are competing
+     for the same band and the seat wins by about 30px. The lower band is
+     reserved for the showdown panel, but at this height that panel is pinned
+     outside the felt entirely (`bottom: 250px`, see `.showdown`), so there is
+     nothing down there to protect. Give the board the room. */
   transform: translate(-50%, -50%);
   display: grid;
   justify-items: center;
@@ -693,6 +699,14 @@
   /* Must track Card.tsx's SCALE.lg — the board renders at `lg`, so the empty
      slots have to match the cards that will land in them. */
   --board-scale: 1.36;
+}
+
+/* At the minimum window the seat arc and the board collide — see the note in
+   `.board` above. Placed after that rule rather than before it, because these
+   have equal specificity and source order is the whole difference between a
+   fix and a no-op. */
+@media (max-height: 720px) {
+  .board { top: 72%; }
 }
 
 .board-mods {
