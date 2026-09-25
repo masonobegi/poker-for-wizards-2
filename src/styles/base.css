@@ -271,6 +271,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   z-index: -1;
   pointer-events: none;
   background:
+    /* the print mesh every flat panel carries (see ui.css) — here, because
+       this pseudo-element is the plate's fill and must not be displaced */
+    var(--grain),
     /* one faint ring, off-centre so it never reads as a loading spinner */
     radial-gradient(circle at 80% 16%, transparent 70px, rgba(240, 196, 101, 0.055) 71px, rgba(240, 196, 101, 0.055) 72px, transparent 73px),
     radial-gradient(circle at 80% 16%, transparent 104px, rgba(240, 196, 101, 0.03) 105px, transparent 106px),

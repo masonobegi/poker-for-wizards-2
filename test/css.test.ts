@@ -96,3 +96,46 @@ test('no merge conflict marker survives in any source file', async () => {
   }
   assert.deepEqual(bad, []);
 });
+
+test('nothing replaces the fill of a `.hx-plate`', async () => {
+  // A plate's own background is its 42% gold rule; its `::before` is the dark
+  // fill laid one pixel inside it. Any other `::before` rule that matches a
+  // plated element at equal specificity and loads later replaces that fill —
+  // which is exactly what the print-grain rule in ui.css did to the menu, the
+  // Market and the stack panel: every one rendered as a slab of translucent
+  // brass with bone text on mustard at under 2:1, while every computed style
+  // looked plausible. A rule may target a plated class's `::before` only if
+  // it names `.hx-plate` itself (to exclude it, or to extend it).
+  const plated = new Set<string>();
+  const walk = async (dir: string): Promise<void> => {
+    for (const e of await readdir(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) { await walk(p); continue; }
+      if (!/\.tsx?$/.test(e.name)) continue;
+      for (const m of readFileSync(p, 'utf8').matchAll(/["'`]([^"'`\n]*\bhx-plate\b[^"'`\n]*)["'`]/g)) {
+        for (const cls of m[1].split(/\s+/)) {
+          if (/^[a-z][\w-]*$/.test(cls) && !cls.startsWith('hx-plate')) plated.add(cls);
+        }
+      }
+    }
+  };
+  await walk('src');
+  assert.ok(plated.has('menu-panel'), `expected to find plated classes, found ${[...plated].join(', ')}`);
+
+  const bad: string[] = [];
+  for (const f of await stylesheets('src')) {
+    const s = code(readFileSync(f, 'utf8'));
+    for (const m of s.matchAll(/([^{}]+)\{/g)) {
+      for (const sel of m[1].split(',')) {
+        const t = sel.trim();
+        if (!/::?before\b/.test(t) || /hx-plate/.test(t)) continue;
+        // The compound the pseudo-element hangs off — the element it paints on.
+        const subject = t.split(/::?before/)[0].trim().split(/[\s>+~]+/).pop() ?? '';
+        for (const cls of plated) {
+          if (new RegExp(`\\.${cls}(?![\\w-])`).test(subject)) bad.push(`${f}: ${t}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(bad, []);
+});
