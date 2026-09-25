@@ -342,6 +342,9 @@
   transition: color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
 .menu-pick-btn:hover { color: var(--text); }
+/* Locked hexes stay on the ladder so the climb is visible from the start. */
+.menu-pick-btn.is-locked { color: var(--text-4); cursor: not-allowed; }
+.menu-pick-btn.is-locked:hover { color: var(--text-4); }
 .menu-pick-btn.is-on {
   color: var(--void);
   background: linear-gradient(180deg, var(--gold-hi), var(--gold));

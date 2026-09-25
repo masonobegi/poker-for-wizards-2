@@ -51,6 +51,8 @@ export default function RunRecorder() {
       relics: me.relics,
       coven: me.coven,
       won: view.winnerId === me.id,
+      hex: view.config.hex ?? 1,
+      daily: view.config.seed?.startsWith('daily:') ? view.config.seed.slice('daily:'.length) : undefined,
     });
   }, [view?.phase, view?.code, view?.handNumber, view]);
 
