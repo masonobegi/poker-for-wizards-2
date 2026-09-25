@@ -176,7 +176,26 @@ test('a hand deals, redacts, and reaches a showdown', async () => {
   // --- play it out -------------------------------------------------------
   const drive = (s: Socket, meId: string) => {
     const on = (v: TableView) => {
-      if (v.actingId !== meId || v.stack) return;
+      /*
+       * Decline the response window rather than sitting through it.
+       *
+       * This used to ignore the stack entirely, which meant both clients
+       * waited out the full `responseSeconds` — seven, by default — on every
+       * sigil anybody cast. A magic-enabled hand can carry several of those
+       * per street, so the hand legitimately ran past the forty-second budget
+       * below and the test failed about three runs in five. Nothing was
+       * wedged: it was two players who never answered, and the server
+       * correctly waiting for them each time.
+       *
+       * Passing is also the more honest test. A real table does not have two
+       * seats that never respond to anything, and this exercises the decline
+       * path, which nothing else here covered.
+       */
+      if (v.stack) {
+        if (v.stack.pending.includes(meId)) setTimeout(() => s.emit('game:pass'), 20);
+        return;
+      }
+      if (v.actingId !== meId) return;
       // Call when cheap, otherwise check; never fold, so we reach a showdown.
       setTimeout(() => s.emit('game:action', v.canCheck ? { kind: 'check' } : { kind: 'call' }), 60);
     };
