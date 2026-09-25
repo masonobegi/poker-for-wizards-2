@@ -260,6 +260,15 @@ export default function Menu() {
                   Three bots fill the table and the first hand deals itself.
                 </p>
 
+                {/* The host and join panes have always shown this; the home
+                    pane never did, and the home pane is where the button most
+                    people press lives. A refused `room:create` — the server
+                    full, or its per-address rate limit tripped — therefore
+                    did nothing at all: no table, no message, a button that
+                    looked broken. The server sends a sentence explaining
+                    itself; the least this can do is print it. */}
+                {error ? <p className="menu-error">{error}</p> : null}
+
                 <div className="menu-setup">
                   <Picker
                     legend="Opponents"
