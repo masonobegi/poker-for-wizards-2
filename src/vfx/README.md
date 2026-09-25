@@ -223,13 +223,20 @@ a Chronos-school effect rewinds a bet, a hand, or a round.
 slowmo(scale: number, ms: number): void
 ```
 
-Publishes a CSS custom property, `--vfx-time-scale`, on `document.documentElement`,
-eased back to `1` over `ms` with an ease-out cubic. `scale` is clamped to
-0.05–4. `vfx.slowmo` does not itself slow down `requestAnimationFrame` or
-any game logic — it only writes the CSS variable. It's on your own
-animations (CSS `animation-duration: calc(var(--t-base) / var(--vfx-time-scale, 1))`,
-or a Framer Motion transition read from it) to actually honour the value.
-Treat it as a broadcast, not an enforcement.
+Runs a slow-mo ramp from `scale` back to `1` over `ms` with an ease-out cubic.
+`scale` is clamped to 0.05–4.
+
+**It currently drives nothing.** It used to publish a `--vfx-time-scale`
+custom property on `document.documentElement`, with the intention that
+animations would divide their durations by it — but no stylesheet or component
+was ever written to read it, so the only effect was a per-frame write on the
+document root, which invalidates computed style for every element on the page.
+The publication has been removed; the ramp and the public method remain,
+because `src/lib/fxbridge.ts` composes `slowmo` into the impossible-hand
+sequence and that call should keep working.
+
+If you want the effect, add a consumer first, and read the value in the one
+place that needs it rather than inheriting it to the whole document.
 
 ```ts
 vfx.slowmo(0.4, 700); // dip to 40% speed, ease back over 700ms

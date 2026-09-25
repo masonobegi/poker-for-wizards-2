@@ -137,9 +137,19 @@
      than landing on it. */
   --toast-top: 62px;
 
-  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Every stack ends in --sym. The sigils, relics, omens and card marks are
+     drawn now (src/art/marks.tsx), but a handful of characters are still set
+     as text — the shard diamond, the discard glyph, the arrows — and none of
+     Inter, Cinzel or JetBrains Mono contains them. On Windows the browser
+     silently reaches for Segoe UI Symbol and everything looks correct; on
+     SteamOS, which is what we ship to, there is no Segoe anything, and an
+     unlisted fallback is a tofu box. DejaVu Sans is on essentially every
+     Linux including SteamOS, and Noto Sans Symbols 2 covers what it misses. */
+  --sym: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans';
+
+  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, var(--sym), serif;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, var(--sym), monospace;
 
   --fs-xs: 11px;
   --fs-sm: 13px;
@@ -198,14 +208,14 @@
   --lamp-warm: 214, 168, 96;
 
   /* --- motion ------------------------------------------------------------- */
-  --t-instant: 90ms;
   --t-fast: 160ms;
   --t-base: 260ms;
-  --t-slow: 420ms;
-  --t-scene: 700ms;
 
+  /* Mirrored in src/styles/motion.ts for the framer-motion side — change both
+     together. `--ease-in` is deliberately absent: an ease-in starts slow at
+     exactly the moment the user is watching, and there is no correct use for
+     it on UI. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-both: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -232,18 +242,45 @@
   --z-toast: 100;
 }
 
-/* Nobody should be motion-sick from a poker game. */
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --t-instant: 1ms;
-    --t-fast: 1ms;
-    --t-base: 1ms;
-    --t-slow: 1ms;
-    --t-scene: 1ms;
-  }
-  *, *::before, *::after {
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 1ms !important;
-  }
+/* Nobody should be motion-sick from a poker game — but "reduced" means fewer
+   and calmer, not none. Opacity and colour still carry state changes: a fade
+   to grey is how you can tell a player folded, and deleting it does not make
+   the game gentler, only harder to read. Movement, looping ambience and
+   overshoot are what go.
+
+   The OS media query and the in-game toggle both resolve to this one attribute
+   in `src/components/shell/videoPrefs.ts`, so this is the only condition any
+   stylesheet needs to match. There is deliberately no `*` selector and no
+   `!important` here: a blanket rule at that weight makes per-component
+   reduced-motion handling impossible to express at any specificity. */
+:root[data-reduced-motion='1'] {
+  --t-fast: 100ms;
+  --t-base: 140ms;
+
+  /* Overshoot reads as nausea rather than delight when motion is reduced. */
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* There is deliberately no blanket `* { animation: none }` rule here, and that
+   is worth explaining, because both obvious versions of it are wrong.
+
+   Written plainly, `:root[data-reduced-motion='1'] *` has specificity (0,2,0)
+   and BEATS an ordinary class rule — so it overrides the components that want
+   a *calmer* version of their animation rather than none, which is the whole
+   point of the setting. It silently collapsed two information-carrying
+   countdowns that way: `linear` progress bars, cut to 1ms with `forwards`, so
+   they read "expired" the instant they opened.
+
+   Wrapping the ancestor in `:where()` to zero its specificity fixes that and
+   creates the opposite problem: nothing in this codebase declares an animation
+   at or below (0,0,0), so the rule matches everything and overrides nothing.
+   It is a no-op. Worse, `.menu-glyph` takes its `animation-duration` from an
+   inline style, which no stylesheet rule can beat at any specificity.
+
+   So each looping decoration is named where it lives, next to the animation it
+   turns off, and each one substitutes a resting state rather than vanishing.
+   See `card.css`, `effects.css`, `menu.css`, `base.css`, `ui.css` and
+   `table.css`. It is more lines, but it is the only version that works — and
+   it forces whoever adds a loop to decide what it should look like when it
+   stops. Transitions are left alone entirely: the shortened tokens above
+   handle those, so a fold still fades to grey instead of teleporting. */

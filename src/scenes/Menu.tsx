@@ -15,6 +15,10 @@ import { MENU_BACK, MENU_COURT, MENU_DIVERGED, MENU_QUANTUM, MENU_VEILED, MENU_W
 import { getHexholdApi, isDesktop } from '@/components/shell/desktop';
 import { appVersion } from '@/components/shell/version';
 import './menu.css';
+import { EASE_OUT } from '@/styles/motion';
+import { Mark } from '@/art/marks';
+import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
+import { loadProfile } from '@/components/profile/profile';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -97,6 +101,20 @@ export default function Menu() {
   const [name, setName] = useState(() => readName());
   const [code, setCode] = useState('');
   const [codex, setCodex] = useState(false);
+  // The run's opening decision, remembered between sessions so a player who
+  // has found the one they like does not re-pick it every time.
+  const [coven, setCoven] = useState<string>(() => {
+    try { return localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { return DEFAULT_COVEN; }
+  });
+  // Re-read on every pick so the record under the blurb is the real one, not
+  // whatever it was when the menu mounted.
+  const [profile, setProfile] = useState(() => loadProfile());
+  const covenRecord = profile.covens[coven];
+  const pickCoven = (id: string): void => {
+    setProfile(loadProfile());
+    setCoven(id);
+    try { localStorage.setItem('hexhold.coven', id); } catch { /* private mode */ }
+  };
   const [settings, setSettings] = useState(false);
   const [server, setServer] = useState(false);
   const [intro, setIntro] = useState(() => !hasSeenIntro());
@@ -142,9 +160,11 @@ export default function Menu() {
     if (!connected || practicing) return;
     setPracticing(true);
     try {
-      const code = await createRoom(trimmed || 'Adept', {
-        maxPlayers: 4, private: true, botSkill: skill, speed,
-      });
+      const code = await createRoom(
+        trimmed || 'Adept',
+        { maxPlayers: 4, private: true, botSkill: skill, speed },
+        coven,
+      );
       if (!code) return;
       addBot(true);
       addBot(true);
@@ -164,7 +184,7 @@ export default function Menu() {
           className="menu-brand"
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: EASE_OUT }}
         >
           <div className="menu-sigil" aria-hidden>
             <svg viewBox="0 0 120 120" width="88" height="88">
@@ -187,14 +207,47 @@ export default function Menu() {
           <p className="menu-tag">Impossible Poker</p>
         </motion.header>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {pane === 'home' ? (
-            <motion.div key="home" className="menu-panel" {...paneMotion}>
+            <motion.div key="home" className="menu-panel hx-plate" {...paneMotion}>
               <p className="menu-pitch">
                 Texas Hold&rsquo;em, played with a deck that does not obey physics.
                 Cards sit in two states at once. The King you are looking at is not
                 the King your opponent sees. The river has run before, and it can
                 run again.
+              </p>
+
+              {/* The coven picker. This is the first decision of a run and it
+                  sits directly above the button that starts one, because a
+                  choice a player has to go looking for is a choice most of
+                  them never make. */}
+              <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
+                {COVENS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={coven === c.id}
+                    className={`menu-coven ${coven === c.id ? 'is-on' : ''}`}
+                    style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
+                    onClick={() => pickCoven(c.id)}
+                    title={c.style}
+                  >
+                    <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
+                    <span className="menu-coven__name">{c.name}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="menu-covennote">
+                {covenOf(coven).text}
+                {covenRecord ? (
+                  <em className="menu-covenrecord">
+                    {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
+                    {covenRecord.wins > 0 ? ` · ${covenRecord.wins} won` : ''}
+                    {covenRecord.deepestAnte > 0 ? ` · deepest ante ${covenRecord.deepestAnte}` : ''}
+                    {covenRecord.impossible > 0 ? ` · ${covenRecord.impossible} impossible` : ''}
+                  </em>
+                ) : <em className="menu-covenrecord">never played</em>}
               </p>
 
               <div className="menu-actions">
@@ -263,7 +316,7 @@ export default function Menu() {
           ) : null}
 
           {pane === 'host' ? (
-            <motion.div key="host" className="menu-panel" {...paneMotion}>
+            <motion.div key="host" className="menu-panel hx-plate" {...paneMotion}>
               <h2 className="menu-h2">Host a Table</h2>
               <Field
                 label="Your name"
@@ -290,7 +343,7 @@ export default function Menu() {
           ) : null}
 
           {pane === 'join' ? (
-            <motion.div key="join" className="menu-panel" {...paneMotion}>
+            <motion.div key="join" className="menu-panel hx-plate" {...paneMotion}>
               <h2 className="menu-h2">Join a Table</h2>
               <Field
                 label="Table code"
@@ -346,11 +399,16 @@ export default function Menu() {
   );
 }
 
+/* Menu navigation is a pad/keyboard control path. `mode="wait"` plus 340ms
+   each way meant ~680ms of dead time per press, during which the autoFocus
+   field in the incoming pane did not exist yet. */
 const paneMotion = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -12 },
-  transition: { duration: 0.34, ease: [0.16, 1, 0.3, 1] as const },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, pointerEvents: 'auto' as const },
+  // Same reason as the scene crossfade in App.tsx: the outgoing pane overlaps
+  // the incoming one briefly and must not take a click meant for it.
+  exit: { opacity: 0, pointerEvents: 'none' as const },
+  transition: { duration: 0.12, ease: EASE_OUT },
 };
 
 /**
@@ -377,7 +435,9 @@ function MenuBackdrop() {
     return entries.map((s, i) => ({
       id: s.id,
       accent: s.accent,
-      glyph: SIGILS.find((g) => g.school === s.id)?.glyph ?? '✦',
+      // One sigil per school, drifting behind the menu. It is the real mark
+      // from the real school, not a decorative asterisk.
+      sigil: SIGILS.find((g) => g.school === s.id),
       left: `${8 + (i * 15.5) % 84}%`,
       top: `${12 + ((i * 37) % 70)}%`,
       delay: i * 2.4,
@@ -430,7 +490,7 @@ function MenuBackdrop() {
             animationDuration: `${g.dur}s`,
           }}
         >
-          {g.glyph}
+          {g.sigil ? <Mark kind="sigil" id={g.sigil.id} fallback={g.sigil.glyph} /> : null}
         </span>
       ))}
     </div>

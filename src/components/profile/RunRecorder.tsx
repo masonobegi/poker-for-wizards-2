@@ -49,6 +49,7 @@ export default function RunRecorder() {
       impossible,
       omens: view.omens.map((o) => o.id),
       relics: me.relics,
+      coven: me.coven,
       won: view.winnerId === me.id,
     });
   }, [view?.phase, view?.code, view?.handNumber, view]);

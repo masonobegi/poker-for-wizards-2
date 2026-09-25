@@ -272,6 +272,59 @@ export const RELICS: RelicDef[] = [
     impossible: 'A deck that keeps score of itself between hands.',
     mods: { memoryBonus: true, flushSize: 4 },
   },
+
+  // ------------------------------------------------------- THE SECOND SHELF
+  // Two of these (Gilded Thumb, Wild Inheritance) exist to make the game's
+  // own name reachable: a measured session produced no impossible hand at
+  // all, because every route to one ran through a single uncommon mark.
+  {
+    id: 'crooked_ladder', name: 'Crooked Ladder', glyph: '↯', rarity: 'common', price: 9,
+    text: 'Your straights need only four cards in a row.',
+    impossible: 'A sequence that is shorter for you than for the person beside you.',
+    mods: { straightSize: 4 },
+  },
+  {
+    id: 'full_purse', name: 'Full Purse', glyph: '◕', rarity: 'common', price: 8,
+    text: 'You begin every hand with three mana already in the pool.',
+    impossible: 'Starting a hand owed something by the previous one.',
+    mana: { start: 3 },
+  },
+  {
+    id: 'pauper_stone', name: 'Pauper’s Stone', glyph: '◧', rarity: 'common', price: 7,
+    text: 'Your lowest hole card is dealt sealed. Nobody can target what nobody can name.',
+    impossible: 'A card face-down to the table and face-up to its owner.',
+    deal: { sealRank: 'low' },
+  },
+  {
+    id: 'heirloom', name: 'Heirloom', glyph: '⌘', rarity: 'common', price: 9,
+    text: 'Every card scores one rank higher for each pot it has already won you.',
+    impossible: 'Card stock that remembers.',
+    mods: { memoryBonus: true },
+  },
+  {
+    id: 'gilded_thumb', name: 'Gilded Thumb', glyph: '◉', rarity: 'rare', price: 13,
+    text: 'One of your hole cards is Prism every hand — it counts as any suit you need.',
+    impossible: 'A card with four suits printed in the same corner.',
+    deal: { markOwn: 'prism' },
+  },
+  {
+    id: 'high_roller', name: 'High Roller', glyph: '△', rarity: 'rare', price: 12,
+    text: 'Every pot you win pays you an extra two big blinds from nowhere.',
+    impossible: 'A pot larger than what was put into it.',
+    onWin: { chipsPerBB: 2 },
+  },
+  {
+    id: 'the_understudy', name: 'The Understudy', glyph: '☷', rarity: 'mythic', price: 18,
+    text: 'You draw an extra sigil every hand, and you may hold one more.',
+    impossible: 'A second hand behind the one everyone can see.',
+    sigils: { drawPerHand: 1, handSize: 1 },
+  },
+  {
+    id: 'wild_inheritance', name: 'Wild Inheritance', glyph: '✹', rarity: 'mythic', price: 20,
+    text: 'One of your hole cards is Wild every hand. Any rank, any suit, whatever the hand needs.',
+    impossible: 'A card that is every card, dealt to the same person every time.',
+    deal: { markOwn: 'wild' },
+  },
 ];
 
 export const RELIC_BY_ID: Record<string, RelicDef> = Object.fromEntries(

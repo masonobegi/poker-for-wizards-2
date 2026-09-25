@@ -2,7 +2,7 @@
   position: fixed;
   top: var(--toast-top, 62px);
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   z-index: var(--z-toast);
   display: grid;
   grid-template-columns: auto 1fr;
@@ -22,10 +22,16 @@
   font-size: 26px;
   color: var(--gold);
   filter: drop-shadow(0 0 12px var(--gold));
-  animation: ach-spin 4s var(--ease-both) 1;
+  /* 1.8s, not 4s: the last keyframe lands at 45%, so the old duration was
+     followed by 2.2s of nothing. `--ease-out` because this is an entrance —
+     `--ease-both` starts slow, at exactly the moment you look at it. */
+  animation: ach-spin 1.8s var(--ease-out) 1;
+}
+:root[data-reduced-motion='1'] .ach-mark {
+  animation: none;
 }
 @keyframes ach-spin {
-  0% { transform: rotate(-90deg) scale(0.4); opacity: 0; }
+  0% { transform: rotate(-20deg) scale(0.94); opacity: 0; }
   30% { transform: rotate(0deg) scale(1.15); opacity: 1; }
   45% { transform: rotate(0deg) scale(1); }
 }

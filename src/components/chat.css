@@ -53,9 +53,15 @@
   border-radius: var(--r-sm);
   font-size: 15px;
   line-height: 1;
-  transition: background var(--t-fast), transform var(--t-fast) var(--ease-snap);
+  transition: background var(--t-fast), transform var(--t-fast) var(--ease-out);
 }
-.chat-emote:hover { background: rgba(255, 255, 255, 0.07); transform: scale(1.18); }
+.chat-emote:hover { background: rgba(255, 255, 255, 0.07); }
+/* Touch fires a hover on tap that sticks until the next tap elsewhere, and
+   this game ships on a Steam Deck with a touchscreen. The colour half stays
+   ungated — a stuck colour is harmless; a stuck transform reads as state. */
+@media (hover: hover) and (pointer: fine) {
+  .chat-emote:hover { transform: scale(1.18); }
+}
 .chat-emote:active { transform: scale(0.94); }
 
 .chat-form {
@@ -83,7 +89,11 @@
   border: 1px solid var(--line);
   color: var(--text-3);
   font-size: 16px;
-  transition: all var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
 }
 .chat-send:hover:not(:disabled) { color: var(--gold); border-color: var(--gold-deep); }
+.chat-send:active:not(:disabled) { transform: scale(0.94); }
 .chat-send:disabled { opacity: 0.35; }

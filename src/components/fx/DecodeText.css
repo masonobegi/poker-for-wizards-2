@@ -1,0 +1,52 @@
+/* ===========================================================================
+   DecodeText — glyph slots that never change width.
+
+   Each slot is sized by a hidden copy of its final character and the live
+   glyph is laid over it. That is the whole trick: runes are not the width of
+   letters, so a naive swap makes the line breathe in and out and shoves its
+   neighbours around for the length of the animation.
+   =========================================================================== */
+
+.hx-decode {
+  display: inline;
+}
+
+.hx-decode__slots {
+  display: inline;
+  white-space: pre-wrap;
+}
+
+.hx-decode__ch {
+  position: relative;
+  display: inline-block;
+}
+
+/* Sets the slot's width, and nothing else. `visibility` rather than
+   `opacity: 0` so it is out of the accessibility tree as well as invisible,
+   and unlike `display: none` it still occupies its space — which is the
+   entire job. */
+.hx-decode__size {
+  visibility: hidden;
+  font-style: inherit;
+  font-weight: inherit;
+}
+
+.hx-decode__live {
+  position: absolute;
+  inset: 0;
+  display: block;
+  text-align: center;
+  font-style: inherit;
+  font-weight: inherit;
+  /* A rune is wider than most letters and will spill past its slot. Letting
+     it spill — rather than clipping it into a stump — is deliberate: the
+     overlap reads as interference, and it lasts a few hundred milliseconds. */
+  white-space: pre;
+}
+
+/* While a character is still cycling it sits in the table's gold rather than
+   the surrounding ink, so the line visibly resolves from the left. */
+.hx-decode__live.is-scrambling {
+  color: var(--gold, #f0c465);
+  opacity: 0.85;
+}

@@ -1,152 +1,129 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ShowdownEntry, TableView } from '@shared/types';
+import { CAT_NAME } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
+import { DecodeText } from '@/components/fx/DecodeText';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { burstAt } from '@/lib/visuals';
 import type { School } from '@/vfx/particles';
+import { EASE_OUT, ENTER, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
-/**
- * The payoff.
- *
- * This is the moment the entire deck exists for, and it is the one screen in
- * the game where being tidy is the wrong instinct. A player who just made a
- * Flush House out of a deck that cannot produce one should be told so in the
- * largest type on screen, not in an 11px grey subtitle under their name.
- *
- * Two things shape the layout:
- *
- * **The hand name is the hero.** Not the player, not the chip count — the
- * name of the thing they made. It sits alone, in the display face, and it is
- * what your eye lands on first.
- *
- * **Losers do not get cards here.** An earlier version gave every player at
- * showdown an equal row with their full hand, which read as a results table,
- * overflowed a fixed-height panel the moment a fourth player stayed in, and
- * silently clipped the bottom row. Every hand is already face-up at its own
- * seat by this point, so repeating them costs the space the winner needed.
- * The others get one line naming what they had, which is the only part
- * anybody reads.
- */
 export default function ShowdownPanel({ view }: { view: TableView }) {
+  // Before any early return: a hook behind a conditional is one refactor away
+  // from "Rendered fewer hooks than expected".
+  const reduced = useReducedMotionPref();
+
   const payout = view.payout;
   if (!payout) return null;
 
+  const shown = payout.entries
+    .filter((e) => e.cards.length > 0 || e.won > 0)
+    .sort((a, b) => b.won - a.won || b.score - a.score);
+
+  if (shown.length === 0) return null;
+
   const nameOf = (id: string) => view.players.find((p) => p.id === id)?.name ?? '???';
-
-  const winners = payout.entries.filter((e) => e.won > 0).sort((a, b) => b.won - a.won);
-  const others = payout.entries
-    .filter((e) => e.won <= 0 && e.cards.length > 0)
-    .sort((a, b) => b.score - a.score);
-
-  if (winners.length === 0) return null;
-
-  // Everyone folded: there is no hand to show off, so say what happened and
-  // get out of the way rather than staging a reveal for a pot nobody contested.
-  const uncontested = payout.entries.every((e) => e.cards.length === 0);
-  const hero = winners[0];
-  const split = winners.length > 1;
+  // Every board card that scored for anybody, so the row shows which of the
+  // five actually mattered and dims the rest.
+  const allWinningIds = payout.entries.filter((e) => e.won > 0).flatMap((e) => e.usedIds);
+  const uncontested = shown.every((e) => e.cards.length === 0);
 
   return (
     <motion.div
-      className={['showdown', hero.impossible ? 'is-impossible' : ''].filter(Boolean).join(' ')}
-      // The CSS centres this with translateX(-50%); framer-motion writes the
-      // whole transform, so the centring has to travel with the animation or
-      // the panel lands half a width to the right.
-      initial={{ opacity: 0, y: 24, x: '-50%' }}
-      animate={{ opacity: 1, y: 0, x: '-50%' }}
-      exit={{ opacity: 0, y: 14, x: '-50%' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+      className="showdown"
+      // Centring lives in the stylesheet as `translate: -50% 0`, which framer
+      // does not write, so it no longer has to be carried through every state.
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: 20 }}
+      transition={reduced
+        ? { duration: T_REDUCED, ease: EASE_OUT, delay: 0.25 }
+        : { ...SPRING_PLAYFUL, delay: 0.25 }}
     >
       <div className="showdown-inner">
         <header className="showdown-head">
-          <span className="eyebrow">{uncontested ? 'Uncontested' : split ? 'Split pot' : 'Showdown'}</span>
+          <span className="eyebrow">{uncontested ? 'Uncontested' : 'Showdown'}</span>
           {payout.bestImpossible ? (
             <motion.span
               className="showdown-impossible"
-              initial={{ scale: 0.7, opacity: 0 }}
+              initial={{ scale: 0.94, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.55, type: 'spring', stiffness: 380, damping: 18 }}
+              transition={{ ...SPRING_PLAYFUL, delay: 0.5 }}
             >
-              ⧉ impossible
+              <Mark kind="ui" id="impossible" /> {payout.bestImpossible}
             </motion.span>
           ) : null}
         </header>
 
-        <ul className="showdown-list">
-          {winners.map((e, i) => (
-            <WinnerRow
-              key={e.playerId}
-              e={e}
-              i={i}
-              name={nameOf(e.playerId)}
-              handLabel={uncontested ? 'Takes it uncalled' : e.handName}
-              shards={payout.shards[e.playerId]}
+        {/* The board, inside the panel.
+
+            This panel is positioned over the felt and, at Steam Deck's
+            1280x800, lands squarely on top of the community cards — so the
+            one moment you most need to see the board is the one moment it is
+            covered. "Flush, King high" is unreadable without the four hearts
+            it was made from. There is no room to move the panel: the gap
+            between the pot and the rail is about 140px and the panel needs
+            290. So the board comes along with it, and the showdown explains
+            itself. */}
+        {!uncontested && view.board.length > 0 ? (
+          <div className="showdown-board">
+            <span className="showdown-boardlabel">Board</span>
+            <CardRow
+              views={view.board}
+              size="xs"
+              overlap={0.24}
+              highlightIds={allWinningIds}
+              highlight="winning"
+              restHighlight="dimmed"
+              tiltOnHover={false}
             />
+          </div>
+        ) : null}
+
+        <ul className="showdown-list">
+          {shown.map((e, i) => (
+            <ShowdownRow key={e.playerId} e={e} i={i} nameOf={nameOf} shards={payout.shards[e.playerId]} />
           ))}
         </ul>
-
-        {others.length ? (
-          <motion.div
-            className="showdown-others"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.75 }}
-          >
-            {others.map((e) => (
-              <span key={e.playerId} className="showdown-other">
-                <strong>{nameOf(e.playerId)}</strong>
-                {e.handName}
-              </span>
-            ))}
-          </motion.div>
-        ) : null}
       </div>
     </motion.div>
   );
 }
 
 /**
- * One winner: their five cards lighting up one at a time in rank order, a
- * staggered gold sweep down the row. An impossible hand gets a slower, more
- * deliberate version of the same reveal plus a school-coloured burst per
- * card; the screen-wide moment (shake/chromatic/slowmo/confetti) is
- * fxbridge's job on the `win` event, so this stays the quieter "here's why"
- * that follows it rather than repeating it.
- *
- * The server's payout hold is computed from the same two constants below, so
- * the hand is never cut off mid-reveal by the next deal — see
- * `Engine.payoutHold`.
+ * One player's revealed hand. Winning cards light up one at a time, in rank
+ * order, rather than all at once — a staggered gold sweep down the row. An
+ * impossible hand gets a slower, more deliberate version of the same reveal
+ * plus a small school-coloured burst per card; the big screen-wide moment
+ * (shake/chromatic/slowmo/confetti) is fxbridge's job on the `win` event, so
+ * this stays a quieter, localized "here's why" that follows it rather than
+ * repeating it.
  */
-const REVEAL_LEAD_MS = 320;
-const REVEAL_STEP_MS = 90;
-const REVEAL_STEP_IMPOSSIBLE_MS = 300;
-
-interface WinnerRowProps {
+interface ShowdownRowProps {
   e: ShowdownEntry;
   i: number;
-  name: string;
-  /** Usually the hand name; replaced when nobody was called. */
-  handLabel: string;
+  nameOf: (id: string) => string;
   shards?: number;
 }
 
-function WinnerRow({ e, i, name, handLabel, shards }: WinnerRowProps) {
+function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   useCardAnchors(rowRef, e.cards.map((c) => c.id));
   const reduced = useReducedMotionPref();
 
-  const canReveal = e.usedIds.length > 0 && e.cards.length > 0;
-  const stepMs = e.impossible ? REVEAL_STEP_IMPOSSIBLE_MS : REVEAL_STEP_MS;
+  const isWinner = e.won > 0 && e.usedIds.length > 0;
+  const stepMs = e.impossible ? 300 : 90;
 
-  const [revealed, setRevealed] = useState<string[]>(() => (reduced || !canReveal ? e.usedIds : []));
+  const [revealed, setRevealed] = useState<string[]>(() => (reduced || !isWinner ? e.usedIds : []));
 
   useEffect(() => {
-    if (reduced || !canReveal) { setRevealed(e.usedIds); return; }
+    if (reduced || !isWinner) { setRevealed(e.usedIds); return; }
     setRevealed([]);
     const timers: number[] = [];
     e.usedIds.forEach((id, idx) => {
@@ -156,23 +133,48 @@ function WinnerRow({ e, i, name, handLabel, shards }: WinnerRowProps) {
         if (!el) return;
         if (e.impossible) burstAt('cast', el, { school: SCHOOL_CYCLE[idx % SCHOOL_CYCLE.length], scale: 1.1 });
         else burstAt('sparkleTrail', el, { count: 5 });
-      }, REVEAL_LEAD_MS + idx * stepMs);
+      }, 320 + idx * stepMs);
       timers.push(t);
     });
     return () => timers.forEach((t) => window.clearTimeout(t));
     // Re-run only when the hand itself changes, not on every parent re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [e.playerId, e.usedIds.join('|'), e.impossible, canReveal, reduced]);
+  }, [e.playerId, e.usedIds.join('|'), e.impossible, isWinner, reduced]);
 
   return (
     <motion.li
-      className={['showdown-row', e.impossible ? 'is-impossible' : ''].filter(Boolean).join(' ')}
-      initial={{ opacity: 0, x: -14 }}
+      className={[
+        'showdown-row',
+        e.won > 0 ? 'is-winner' : '',
+        e.impossible ? 'is-impossible' : '',
+      ].filter(Boolean).join(' ')}
+      initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.32 + i * 0.1 }}
+      transition={{ ...ENTER, delay: 0.2 + Math.min(i * 0.06, 0.3) }}
     >
+      <div className="showdown-who">
+        <strong>{nameOf(e.playerId)}</strong>
+        <span className="showdown-hand">
+          {/* Only the hand that won decodes. Every row doing it at once is a
+              wall of runes, and the point is to draw the eye to the line that
+              decided the pot — not to decorate five of them. */}
+          {/* The lead covers the panel's own 0.25s entrance delay and spring.
+              Without it a third of the decode happens behind an invisible
+              panel and the line is half-resolved by the time you can read it. */}
+          {isWinner ? <DecodeText text={e.handName} lead={430} step={42} /> : e.handName}
+          {e.timelineUsed === 'echo' ? (
+            <em className="showdown-echo" title="Scored from the second timeline">
+              ⧖ echo
+            </em>
+          ) : null}
+        </span>
+        {e.echoName && e.timelineUsed !== 'echo' ? (
+          <span className="showdown-alt">echo would have been {e.echoName}</span>
+        ) : null}
+      </div>
+
       {e.cards.length ? (
-        <div ref={rowRef} className="showdown-cards">
+        <div ref={rowRef}>
           <CardRow
             views={e.cards}
             size="sm"
@@ -184,40 +186,22 @@ function WinnerRow({ e, i, name, handLabel, shards }: WinnerRowProps) {
           />
         </div>
       ) : (
-        <span className="showdown-muck">no cards shown</span>
+        <span className="showdown-muck">mucked</span>
       )}
 
-      {/* The name of the hand is the hero of this screen; the player who made
-          it is the caption under it, not the other way round. */}
-      <div className="showdown-who">
+      {e.won > 0 ? (
         <motion.span
-          className="showdown-title"
-          initial={{ opacity: 0, y: 8, letterSpacing: '0.28em' }}
-          animate={{ opacity: 1, y: 0, letterSpacing: '0.06em' }}
-          transition={{ delay: 0.3 + i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="showdown-won mono"
+          initial={{ scale: 0.94, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ ...SPRING_PLAYFUL, delay: 0.3 + Math.min(i * 0.06, 0.3) }}
         >
-          {handLabel}
+          +{e.won.toLocaleString()}
+          {shards ? <em className="showdown-shards">◆{shards}</em> : null}
         </motion.span>
-        <span className="showdown-name">
-          <strong>{name}</strong>
-          {e.timelineUsed === 'echo' ? (
-            <em className="showdown-echo" title="Scored from the second timeline">⧖ echo</em>
-          ) : null}
-          {e.echoName && e.timelineUsed !== 'echo' ? (
-            <span className="showdown-alt">echo would have been {e.echoName}</span>
-          ) : null}
-        </span>
-      </div>
-
-      <motion.span
-        className="showdown-won mono"
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.5 + i * 0.1, type: 'spring', stiffness: 420, damping: 20 }}
-      >
-        +{e.won.toLocaleString()}
-        {shards ? <em className="showdown-shards">◆{shards}</em> : null}
-      </motion.span>
+      ) : (
+        <span className="showdown-lost">{CAT_NAME[e.cat as keyof typeof CAT_NAME] ? '' : ''}</span>
+      )}
     </motion.li>
   );
 }

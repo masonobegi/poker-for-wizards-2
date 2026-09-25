@@ -7,6 +7,7 @@ import Avatar from '@/components/Avatar';
 import ChatBox from '@/components/ChatBox';
 import Codex from '@/components/Codex';
 import './lobby.css';
+import { ENTER_PANEL } from '@/styles/motion';
 
 export default function Lobby() {
   const view = useView();
@@ -67,14 +68,14 @@ export default function Lobby() {
 
           <ul className="lobby-list">
             <AnimatePresence initial={false}>
-              {seats.map((p) => (
+              {seats.map((p, i) => (
                 <motion.li
                   key={p.id}
                   layout
                   initial={{ opacity: 0, x: -14 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 14 }}
-                  transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ ...ENTER_PANEL, delay: Math.min(i * 0.06, 0.3) }}
                   className={`lobby-seat ${p.ready || p.isBot ? 'is-ready' : ''}`}
                 >
                   <Avatar seed={p.avatar} size={38} bot={p.isBot} />

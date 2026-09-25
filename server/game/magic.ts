@@ -770,6 +770,163 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       break;
     }
 
+    // ------------------------------------------------- THE SECOND PRINTING
+    case 'quantum_leap': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      const slot = caster.hole.indexOf(firstCard.id);
+      if (slot < 0) { note('That is not your card.', 'warn'); break; }
+      const incoming = drawId(ctx);
+      if (!incoming) { note('The deck has nothing left to trade.', 'warn'); break; }
+      caster.hole[slot] = incoming;
+      returnToDeck(ctx, firstCard.id);
+      applySeal(t, incoming);
+      ctx.fx.push({ t: 'deal', cardIds: [incoming], to: caster.id });
+      note(`${caster.name} trades a card back to the deck without looking at what returns.`, 'impossible');
+      break;
+    }
+
+    case 'observer_effect': {
+      let settled = 0;
+      const ids = [...t.board, ...alive(t).flatMap((q) => q.hole)];
+      for (const id of ids) {
+        const c = card(t, id);
+        if (!c || !isQuantum(c) || !canAlter(c)) continue;
+        // Kindest face, by rank — the mirror of Decohere, which takes the
+        // cruellest and hands the caster the good one privately.
+        const best = [...c.faces].sort((a, b) => b.rank - a.rank)[0];
+        const idx = c.faces.findIndex((f) => f.rank === best.rank && f.suit === best.suit);
+        collapse(c, rng, idx >= 0 ? idx : 0);
+        ctx.fx.push({ t: 'collapse', cardId: id, face: best });
+        settled++;
+      }
+      note(
+        settled ? 'Everything undecided settles, and every one of them lands well.' : 'Nothing was undecided.',
+        settled ? 'impossible' : 'warn',
+      );
+      break;
+    }
+
+    case 'cold_read': {
+      if (!targetPlayer) break;
+      let seen = 0;
+      for (const id of targetPlayer.hole) {
+        if (card(t, id)?.veil === 'sealed') continue;
+        if (caster.foreknowledge.seenHole.includes(id)) continue;
+        caster.foreknowledge.seenHole.push(id);
+        seen++;
+      }
+      note(
+        seen ? `${caster.name} reads ${targetPlayer.name} cold.` : 'Their cards are sealed away.',
+        seen ? 'impossible' : 'warn',
+      );
+      break;
+    }
+
+    case 'palimpsest': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      const slot = t.board.indexOf(firstCard.id);
+      if (slot < 0) { note('That card is not on the board.', 'warn'); break; }
+      let here = firstCard.id;
+      for (let pass = 0; pass < 2; pass++) {
+        const next = drawId(ctx);
+        if (!next) break;
+        returnToDeck(ctx, here);
+        t.board[slot] = next;
+        here = next;
+      }
+      ctx.fx.push({ t: 'deal', cardIds: [here], to: 'board' });
+      note(`${caster.name} writes over that slot twice. It reads ${describeCard(t, here)} now.`, 'impossible');
+      break;
+    }
+
+    case 'second_wind': {
+      let drawn = 0;
+      for (let i = 0; i < 2; i++) if (giveSigil(t, caster, randomSigil(rng))) drawn++;
+      note(
+        drawn ? `${caster.name} draws ${drawn === 2 ? 'two sigils' : 'a sigil'}.` : 'Their hand is already full.',
+        drawn ? 'magic' : 'warn',
+      );
+      break;
+    }
+
+    case 'resonance': {
+      const anchor = card(t, t.board[0]);
+      if (!anchor) { note('There is no board to resonate with.', 'warn'); break; }
+      const face = anchor.faces[anchor.collapsed ?? 0] ?? anchor.faces[0];
+      let moved = 0;
+      for (const id of caster.hole) {
+        const c = card(t, id);
+        if (!canAlter(c)) continue;
+        c.faces = c.faces.map((f) => ({ rank: f.rank, suit: face.suit }));
+        ctx.fx.push({ t: 'inscribe', cardId: id, markId: 'prism' });
+        moved++;
+      }
+      note(
+        moved ? `${caster.name}'s hand takes the suit of the board.` : 'Nothing of theirs could change.',
+        moved ? 'impossible' : 'warn',
+      );
+      break;
+    }
+
+    case 'graft': {
+      const a = card(t, caster.hole[0]);
+      const b = card(t, caster.hole[1]);
+      if (!a || !canAlter(b)) { note('Nothing to graft onto.', 'warn'); break; }
+      b.faces = a.faces.map((f) => ({ ...f }));
+      b.collapsed = a.collapsed;
+      b.veil = a.veil;
+      if (!b.marks.includes('mirrored')) b.marks.push('mirrored');
+      t.tempMarks.push({ cardId: b.id, markId: 'mirrored' });
+      ctx.fx.push({ t: 'entangle', cardIds: [a.id, b.id] });
+      note(`${caster.name} is holding the same card twice.`, 'impossible');
+      break;
+    }
+
+    case 'ashes': {
+      const id = t.discard.pop();
+      if (!id) { note('Nothing has burned yet.', 'warn'); break; }
+      const c = card(t, id);
+      if (c) { c.veil = 'open'; c.origin = 'deck'; }
+      t.board.push(id);
+      applySeal(t, id);
+      ctx.fx.push({ t: 'deal', cardIds: [id], to: 'board' });
+      note(`${describeCard(t, id)} comes back out of the ashes.`, 'impossible');
+      break;
+    }
+
+    case 'blight': {
+      if (!targetPlayer || targetPlayer.sigils.length === 0) {
+        note('They are holding nothing to rot.', 'warn');
+        break;
+      }
+      targetPlayer.sigils.splice(rng.int(targetPlayer.sigils.length), 1);
+      ctx.fx.push({ t: 'sfx', name: 'spell_counter' });
+      // Deliberately does not name the sigil: knowing what died is knowing
+      // what they held, and this is supposed to cost them, not inform you.
+      note(`Something rots out of ${targetPlayer.name}'s hand.`, 'impossible');
+      break;
+    }
+
+    case 'gild': {
+      if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      if (!firstCard.marks.includes('prism')) firstCard.marks.push('prism');
+      t.tempMarks.push({ cardId: firstCard.id, markId: 'prism' });
+      ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: 'prism' });
+      note(`${caster.name} gilds a community card. It is every suit at once.`, 'impossible');
+      break;
+    }
+
+    case 'loom': {
+      const r = (tg.rank ?? 14) as Rank;
+      const own = caster.hole.map((id) => card(t, id)).find((c) => !!c);
+      const suit: Suit = own?.faces[0]?.suit ?? rng.pick(SUITS);
+      const woven = makeCard(r, suit, { origin: 'conjured' });
+      t.cards.set(woven.id, woven);
+      t.deck.unshift(woven.id);
+      note(`${caster.name} weaves the next community card: ${faceLabel({ rank: r, suit })}.`, 'impossible');
+      break;
+    }
+
     // ------------------------------------------------------------ RESPONSE
     case 'nullify': {
       const target = below();
@@ -852,7 +1009,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       note(n ? `${n} card(s) lose a possible future.` : 'Nothing was undecided.', n ? 'impossible' : 'warn');
       break;
     }
-    case 'observer_effect': {
+    case 'unkind_eye': {
       if (!targetPlayer) break;
       let n = 0;
       for (const id of targetPlayer.hole) {
@@ -1020,7 +1177,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       note(`${caster.name} strips a card back to what it was printed as.`, 'impossible');
       break;
     }
-    case 'loom': {
+    case 'first_draft': {
       const next = t.deck[0];
       const c = next ? card(t, next) : undefined;
       if (!canAlter(c)) { note('The deck had nothing to write on.', 'warn'); break; }

@@ -144,6 +144,17 @@ function reducedByAttribute(): boolean {
   return document.documentElement.dataset.reducedMotion === '1';
 }
 
+/** The particle-density setting, published on <html> by videoPrefs.ts. An
+ *  unset attribute means 'full', so a build without the settings module still
+ *  renders every particle. */
+function densityScale(): number {
+  if (typeof document === 'undefined') return 1;
+  const v = document.documentElement.dataset.particles;
+  if (v === 'off') return 0;
+  if (v === 'low') return 0.35;
+  return 1;
+}
+
 /** True when the user asked for less motion (OS setting or the in-game
  *  toggle), or it was forced in code via `setReducedMotion`. */
 export function prefersReducedMotion(): boolean {
@@ -366,8 +377,11 @@ export class ParticleSystem {
   }
 
   private spawn(spec: EmitSpec): void {
+    const scale = densityScale();
+    if (scale === 0) return;                 // 'off' means off.
     const lite = prefersReducedMotion();
     let count = spec.count;
+    if (scale !== 1) count = Math.max(1, Math.round(count * scale));
     if (lite) count = Math.max(1, Math.round(count * 0.2));
     const room = MAX_PARTICLES - this.n;
     if (room <= 0) return;

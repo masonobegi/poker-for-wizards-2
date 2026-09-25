@@ -9,10 +9,11 @@
    without touching the RAF loop `VfxLayer` owns.
 
    Reduced motion is handled once, centrally, in `effects.css` — the
-   `@media (prefers-reduced-motion: reduce)` block there disables every
-   animation these components produce and substitutes a static equivalent
-   (a still halo, a paused sweep, rings frozen mid-breath). Nothing here
-   needs to duplicate that logic.
+   `:root[data-reduced-motion='1']` rules there disable every animation these
+   components produce and substitute a static equivalent (a still halo, a
+   paused sweep, rings frozen mid-breath), and release the compositing layer
+   with it. That attribute is set from both the OS preference and the in-game
+   toggle by `videoPrefs.ts`. Nothing here needs to duplicate that logic.
    =========================================================================== */
 
 import { useMemo } from 'react';

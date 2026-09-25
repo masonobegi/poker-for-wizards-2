@@ -24,6 +24,11 @@
   filter: drop-shadow(0 0 26px color-mix(in srgb, var(--gold) 35%, transparent));
   animation: sigilbreathe 7s var(--ease-both) infinite;
 }
+/* Rests at full scale and opacity rather than mid-breath. */
+:root[data-reduced-motion='1'] .menu-sigil {
+  animation: none;
+  opacity: 1;
+}
 @keyframes sigilbreathe {
   0%, 100% { transform: scale(1) rotate(0deg); opacity: .92; }
   50%      { transform: scale(1.035) rotate(6deg); opacity: 1; }
@@ -58,15 +63,13 @@
 
 /* --- panel -------------------------------------------------------------- */
 
+/* The menu plate. `.hx-plate` in base.css carries the shape, the double rule,
+   the corner marks and the ring; this only sets the box. */
 .menu-panel {
   width: 100%;
   display: grid;
   gap: var(--s-4);
   padding: var(--s-6);
-  border-radius: var(--r-xl);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4);
 }
 
 .menu-h2 {
@@ -148,6 +151,12 @@
   opacity: 0.2;
   filter: blur(1.6px) saturate(0.5) brightness(0.8);
   transform-origin: 50% 50%;
+  /* The resting pose, pinned. Each card carries its own `--rot`, and that
+     rotation only existed inside the keyframe — so switching the animation
+     off under reduced motion snapped every card square, turning a scattered
+     pile into a stack of aligned rectangles. A stopped animation has to rest
+     where the animation would have rested. */
+  transform: rotate(var(--rot, 0deg));
   animation-name: bgcarddrift;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
@@ -184,6 +193,16 @@
   animation-iteration-count: infinite;
   will-change: transform, opacity;
 }
+/* `animation: none` rather than a duration override: Menu.tsx sets
+   `animationDuration` as an inline style, and an inline declaration beats any
+   stylesheet rule at any specificity. Resetting the shorthand clears the name
+   too, which is the only thing that actually stops it. The glyphs stay
+   visible at their resting opacity — they are the six schools introducing
+   themselves, not decoration. */
+:root[data-reduced-motion='1'] .menu-glyph {
+  animation: none;
+  will-change: auto;
+}
 
 @keyframes glyphdrift {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: .08; }
@@ -196,6 +215,73 @@
   .menu-pitch { display: none; }
 }
 
+/* --- covens -------------------------------------------------------------
+
+   The run's opening choice, sitting directly above the button that starts
+   one. Laid out as a wrapping row of small cards rather than a dropdown: a
+   player should be able to see all seven without opening anything, because
+   the whole point is that they are different from each other. */
+
+.menu-covens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 0 0 8px;
+}
+
+.menu-coven {
+  --school: var(--entropy);
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  /* Chamfered, like the plates. A pill is the most generic shape a browser
+     can draw and these are the first seven decisions in the game. */
+  border-radius: 0;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  border: 1px solid var(--line-soft);
+  background: rgba(10, 12, 24, 0.55);
+  color: var(--text-3);
+  font: 600 11px/1 var(--font-ui);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast);
+}
+
+.menu-coven:hover { color: var(--text-1); border-color: color-mix(in srgb, var(--school) 48%, transparent); }
+
+.menu-coven.is-on {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--school) 70%, transparent);
+  background: color-mix(in srgb, var(--school) 14%, rgba(10, 12, 24, 0.8));
+}
+
+.menu-coven__glyph {
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--school);
+}
+
+.menu-covennote {
+  margin: 0 0 14px;
+  min-height: 2.4em;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  text-wrap: pretty;
+}
+
+.menu-covenrecord {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-5, var(--text-4));
 /* The build string and the desktop-only way out. Both are deliberately the
    quietest things on the menu — present when looked for, invisible otherwise. */
 .menu-version {

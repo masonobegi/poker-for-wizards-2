@@ -12,7 +12,7 @@ import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
 import { SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
-import { giveSigil, randomSigil } from './magic';
+import { giveSigil } from './magic';
 import { log, maxManaFor, sigilHandSize } from './table';
 
 const RITE_MARKS: MarkId[] = ['blooded', 'prism', 'echo', 'wild', 'leaden', 'cursed'];

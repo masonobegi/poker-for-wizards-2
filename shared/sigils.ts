@@ -395,7 +395,7 @@ export const SIGILS: SigilDef[] = [
     impossible: 'Deleting a possibility while leaving the object that had it.',
   },
   {
-    id: 'observer_effect', name: 'Observer Effect', school: 'entropy', glyph: '⊙', cost: 3,
+    id: 'unkind_eye', name: 'The Unkind Eye', school: 'entropy', glyph: '⊙', cost: 3,
     timing: ['any'], target: 'player', rarity: 'rare', price: 9, botBias: 0.55,
     text: 'Every undecided card the target holds settles right now, on its worst face. Looking is not free.',
     impossible: 'An observation that is both compulsory and unkind.',
@@ -477,10 +477,86 @@ export const SIGILS: SigilDef[] = [
     impossible: 'Removing something permanent, which is a contradiction the deck honours anyway.',
   },
   {
-    id: 'loom', name: 'Loom', school: 'weave', glyph: '⌗', cost: 3,
+    id: 'first_draft', name: 'First Draft', school: 'weave', glyph: '⌗', cost: 3,
     timing: ['any'], target: 'none', rarity: 'rare', price: 9, botBias: 0.5,
     text: 'Write a Wild mark onto the next card the deck will deal, whoever ends up with it.',
     impossible: 'Editing a card before it exists to anyone but the deck.',
+  },
+
+  // ---------------------------------------------------- THE SECOND PRINTING
+  // A later set. Four of these (Resonance, Graft, Gild, Loom) exist because
+  // the game is named after hands a deck cannot make and a measured session
+  // produced none at all: the only routes to Five of a Kind ran through one
+  // uncommon mark. These are more doors to the same room.
+  {
+    id: 'quantum_leap', name: 'Quantum Leap', school: 'entropy', glyph: '⤨', cost: 3,
+    timing: ['preflop', 'flop', 'turn'], target: 'own_card', rarity: 'common', price: 5, botBias: 0.55,
+    text: 'Trade one of your hole cards with the top of the deck, sight unseen. You find out at the same time everyone else does.',
+    impossible: 'A card returning to a deck it has already left, and the deck accepting it.',
+  },
+  {
+    id: 'observer_effect', name: 'Observer Effect', school: 'entropy', glyph: '⊚', cost: 3,
+    timing: ['flop', 'turn', 'river'], target: 'none', rarity: 'rare', price: 8, botBias: 0.5,
+    text: 'Every undecided card in play settles at once, and each one lands on its kindest face. Including theirs.',
+    impossible: 'Looking at a thing deciding what the thing is.',
+  },
+  {
+    // Two, not one. At one mana it was the cheapest sigil in the game for an
+    // effect that reads a whole hand, and a recorded session had three
+    // different bots cast it in a single hand — which is both a tell that the
+    // price was wrong and a lot of the same log line.
+    id: 'cold_read', name: 'Cold Read', school: 'veil', glyph: '⌕', cost: 2,
+    timing: ['any'], target: 'player', rarity: 'common', price: 5, botBias: 0.5,
+    text: 'You see the target’s hole cards, truly and completely, for the rest of the hand. They are never told.',
+    impossible: 'Reading a card face through its back.',
+  },
+  {
+    id: 'palimpsest', name: 'Palimpsest', school: 'chronos', glyph: '⌗', cost: 4,
+    timing: ['flop', 'turn', 'river'], target: 'board_card', rarity: 'rare', price: 9, botBias: 0.55,
+    text: 'The target community card is sent back to the deck and replaced — and then the replacement is sent back and replaced again. The board has been written over twice.',
+    impossible: 'A card that was dealt, twice, in the same place.',
+  },
+  {
+    id: 'second_wind', name: 'Second Wind', school: 'chronos', glyph: '⤒', cost: 2,
+    timing: ['any'], target: 'none', rarity: 'common', price: 5, botBias: 0.7,
+    text: 'Draw two sigils.',
+    impossible: 'Drawing from a deck of spells that was never shuffled into anything.',
+  },
+  {
+    id: 'resonance', name: 'Resonance', school: 'bind', glyph: '≣', cost: 3,
+    timing: ['flop', 'turn', 'river'], target: 'none', rarity: 'rare', price: 9, botBias: 0.6,
+    text: 'Both of your hole cards take the suit of the first community card. Their ranks do not change.',
+    impossible: 'Two cards changing suit because a third one is nearby.',
+  },
+  {
+    id: 'graft', name: 'Graft', school: 'bind', glyph: '⊷', cost: 4,
+    timing: ['any'], target: 'none', rarity: 'rare', price: 10, botBias: 0.6,
+    text: 'One of your hole cards becomes an exact copy of the other. You are now holding the same card twice.',
+    impossible: 'A pair made of one card.',
+  },
+  {
+    id: 'ashes', name: 'Ashes', school: 'ruin', glyph: '⌆', cost: 2,
+    timing: ['flop', 'turn', 'river'], target: 'none', rarity: 'common', price: 5, botBias: 0.5,
+    text: 'The last card destroyed this hand returns to the board. The board is longer than it was.',
+    impossible: 'Unburning something.',
+  },
+  {
+    id: 'blight', name: 'Blight', school: 'ruin', glyph: '⌁', cost: 3,
+    timing: ['any'], target: 'player', rarity: 'rare', price: 8, botBias: 0.5,
+    text: 'A sigil rots out of the target’s hand at random. Neither of you learns which one it was.',
+    impossible: 'A spell dying before anybody casts it.',
+  },
+  {
+    id: 'gild', name: 'Gild', school: 'weave', glyph: '⬙', cost: 3,
+    timing: ['flop', 'turn', 'river'], target: 'board_card', rarity: 'rare', price: 9, botBias: 0.6,
+    text: 'A community card is gilded. It counts as every suit at once, for everyone.',
+    impossible: 'One card being four suits.',
+  },
+  {
+    id: 'loom', name: 'Loom', school: 'weave', glyph: '⊞', cost: 5,
+    timing: ['preflop', 'flop', 'turn'], target: 'rank', rarity: 'mythic', price: 13, botBias: 0.5,
+    text: 'Name a rank. The next community card is woven to order in that rank, in the suit you are already holding.',
+    impossible: 'A card being made rather than drawn.',
   },
 ];
 

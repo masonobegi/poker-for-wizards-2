@@ -8,6 +8,11 @@ import { RELIC_BY_ID } from '@shared/relics';
 import { OMEN_BY_ID } from '@shared/omens';
 import { RANK_NAME } from '@shared/cards';
 import { bannerBusyMs } from '@/components/BannerLayer';
+import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
+// From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
+import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/lib/visuals';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { Mark } from '@/art/marks';
 
 /** However long a banner claims, the panel is never held back further. */
 const MAX_WAIT_MS = 4500;
@@ -15,6 +20,7 @@ const MAX_WAIT_MS = 4500;
 export default function GameOver({ view }: { view: TableView }) {
   const isHost = useIsHost();
   const { startGame, leave } = useGame();
+  const reduced = useReducedMotionPref();
 
   // Let the end-of-run banner have the screen first, then take it. Polled
   // rather than read once, because the banner's fx event and this phase change
@@ -42,6 +48,36 @@ export default function GameOver({ view }: { view: TableView }) {
   const me = view.players.find((p) => p.isYou);
   const myRelics = (me?.relics ?? []).map((id) => RELIC_BY_ID[id]).filter(Boolean);
 
+  /*
+   * The end of a whole run is the rarest moment the game has, and it used to
+   * get a panel spring and a list fade while a single mid-run impossible hand
+   * got shake + flash + chromatic + slow-mo + confetti. The delight budget was
+   * spent on the frequent moment and withheld from the rare one.
+   *
+   * There is no `gameover` event on the wire, so this fires from the component
+   * rather than from fxbridge. Deliberately a *different shape* from the
+   * impossible-hand hit: no shake and no chromatic split. That one is a shock —
+   * instant, loud, over in under a second. This is a settle: the vignette
+   * closes in and holds while the panel arrives, then the celebration lands on
+   * top of it rather than into the same frame.
+   *
+   * It runs on the banner too, before the panel is allowed to mount: this is
+   * a hook, and the early return below would otherwise skip it on exactly the
+   * frames where the run is ending.
+   */
+  const winnerId = view.winnerId;
+  useEffect(() => {
+    if (reduced || !bannerDone) return undefined;
+    vignette('var(--gold)', 1600);
+    slowmo(0.55, 1200);
+    const t = window.setTimeout(() => {
+      const at = centerOf(elementForSeat(winnerId ?? '')) ?? undefined;
+      confetti(at);
+      flash('#f0c465', 0.35);
+    }, 420);
+    return () => window.clearTimeout(t);
+  }, [winnerId, reduced, bannerDone]);
+
   if (!bannerDone) return null;
 
   return (
@@ -50,21 +86,22 @@ export default function GameOver({ view }: { view: TableView }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={ENTER_PANEL}
     >
       <motion.div
         className="gameover-panel"
-        initial={{ y: 40, scale: 0.94 }}
-        animate={{ y: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_PLAYFUL}
       >
         <span className="eyebrow">The table is closed</span>
 
         {winner ? (
           <motion.div
             className="gameover-winner"
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.94, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.25, type: 'spring', stiffness: 300, damping: 20 }}
+            transition={{ ...SPRING_PLAYFUL, delay: 0.25 }}
           >
             <Avatar seed={winner.avatar} size={82} bot={winner.isBot} />
             <h2>{winner.name}</h2>
@@ -131,13 +168,16 @@ export default function GameOver({ view }: { view: TableView }) {
               className={p.id === view.winnerId ? 'is-first' : ''}
               initial={{ opacity: 0, x: -14 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.62 + i * 0.07 }}
+              transition={{ ...ENTER, delay: 0.5 + Math.min(i * 0.06, 0.3) }}
             >
               <span className="gameover-rank mono">{i + 1}</span>
               <Avatar seed={p.avatar} size={28} bot={p.isBot} dim={p.eliminated} />
               <span className="gameover-name">{p.name}</span>
               <span className="gameover-relics">
-                {p.relics.map((id) => RELIC_BY_ID[id]?.glyph).filter(Boolean).join(' ')}
+                {p.relics.map((id) => {
+                  const r = RELIC_BY_ID[id];
+                  return r ? <Mark key={id} kind="relic" id={id} fallback={r.glyph} title={r.name} /> : null;
+                })}
               </span>
               <span className="gameover-stat mono">{p.handsWon} won</span>
               <span className="gameover-chips mono">{p.chips.toLocaleString()}</span>

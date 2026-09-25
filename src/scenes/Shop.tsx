@@ -14,9 +14,14 @@ import { MARKS } from '@shared/cards';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import SchoolDevice, { type DeviceId } from '@/components/table/SchoolDevice';
+import { useFinePointer } from '@/components/fx/useFinePointer';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import './shop.css';
+import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
+import { Mark, type MarkKind } from '@/art/marks';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
+  const reduced = useReducedMotionPref();
   const { buy, reroll, shopDone } = useGame();
   const shop = view.shop;
   const [left, setLeft] = useState(0);
@@ -39,13 +44,14 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={ENTER_PANEL}
     >
       <motion.div
-        className="shop-panel"
-        initial={{ y: 40, scale: 0.96 }}
-        animate={{ y: 0, scale: 1 }}
-        exit={{ y: 30, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+        className="shop-panel hx-plate"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduced ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.97 }}
+        transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_SOFT}
       >
         <header className="shop-head">
           <div>
@@ -116,6 +122,8 @@ const ShopCard = forwardRef<HTMLElement, {
   owned: boolean;
   onBuy: () => void;
 }>(function ShopCard({ item, index, sold, affordable, owned, onBuy }, ref) {
+  const finePointer = useFinePointer();
+  const reduced = useReducedMotionPref();
   const info = describe(item);
   const locked = sold || !affordable || owned;
 
@@ -124,23 +132,25 @@ const ShopCard = forwardRef<HTMLElement, {
       ref={ref}
       className={`shopcard ${sold ? 'is-sold' : ''} ${locked && !sold ? 'is-locked' : ''}`}
       style={{ ['--accent' as string]: info.accent }}
-      initial={{ opacity: 0, y: 24, rotateZ: -2 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24, rotateZ: -2 }}
       animate={{ opacity: 1, y: 0, rotateZ: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ delay: index * 0.06, type: 'spring', stiffness: 300, damping: 26 }}
-      whileHover={locked ? undefined : { y: -8, scale: 1.03 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+      transition={reduced
+        ? { duration: T_REDUCED, ease: EASE_OUT }
+        : { ...SPRING_SOFT, delay: Math.min(index * 0.06, 0.3) }}
+      whileHover={locked || !finePointer || reduced ? undefined : { y: -8, scale: 1.03 }}
     >
       <span className="shopcard-kind">{info.kind}</span>
-      {/* Same construction as a sigil in hand: the device is the picture, the
-          glyph is the plate mark in its corner. */}
       <div className="shopcard-art">
         <SchoolDevice school={info.device} className="shopcard-device" />
-        <span className="shopcard-glyph">{info.glyph}</span>
+        <span className="shopcard-glyph">
+          <Mark kind={info.markKind} id={info.markId} fallback={info.glyph} />
+        </span>
       </div>
       <h3 className="shopcard-name">{info.name}</h3>
       <p className="shopcard-text">{info.text}</p>
       {info.impossible ? (
-        <p className="shopcard-impossible"><span aria-hidden>⧉</span> {info.impossible}</p>
+        <p className="shopcard-impossible"><Mark kind="ui" id="impossible" /> {info.impossible}</p>
       ) : null}
 
       <footer className="shopcard-foot">
@@ -166,6 +176,9 @@ const ShopCard = forwardRef<HTMLElement, {
 
 interface Described {
   kind: string; name: string; text: string; glyph: string;
+  // Which drawn mark to show. `glyph` stays as the fallback for anything
+  // whose mark has not been drawn yet.
+  markKind: MarkKind; markId: string;
   accent: string; impossible?: string;
   /** Which engraved device to print behind the glyph. */
   device: DeviceId;
@@ -180,6 +193,7 @@ function describe(item: ShopItem): Described {
         name: d?.name ?? item.id,
         text: d?.text ?? '',
         glyph: d?.glyph ?? '✦',
+        markKind: 'sigil', markId: item.id,
         accent: d ? SCHOOLS[d.school].accent : 'var(--text-3)',
         impossible: d?.impossible,
         device: d?.school ?? 'weave',
@@ -192,6 +206,7 @@ function describe(item: ShopItem): Described {
         name: d?.name ?? item.id,
         text: d?.text ?? '',
         glyph: d?.glyph ?? '⬡',
+        markKind: 'relic', markId: item.id,
         accent: d ? RELIC_RARITY_COLOR[d.rarity] : 'var(--text-3)',
         impossible: d?.impossible,
         device: 'relic',
@@ -204,6 +219,7 @@ function describe(item: ShopItem): Described {
         name: item.label,
         text: `${m.blurb} Permanent, and written onto the shared deck — anyone who draws that exact card gets it.`,
         glyph: m.glyph,
+        markKind: 'card', markId: item.markId,
         accent: m.color,
         impossible: 'A deck that carries edits between games.',
         device: 'rite',
@@ -215,11 +231,15 @@ function describe(item: ShopItem): Described {
         name: `+${item.amount} Max Mana`,
         text: 'Raises your mana ceiling for the rest of the run.',
         glyph: '◇',
+        markKind: 'ui', markId: 'mana',
         accent: 'var(--veil)',
         device: 'mana',
       };
     default:
-      return { kind: '', name: '', text: '', glyph: '', accent: 'var(--text-3)', device: 'weave' };
+      return {
+        kind: '', name: '', text: '', glyph: '',
+        markKind: 'ui', markId: 'unknown', accent: 'var(--text-3)', device: 'weave',
+      };
   }
 }
 

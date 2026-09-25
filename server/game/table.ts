@@ -22,6 +22,7 @@ import {
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
+import { DEFAULT_COVEN } from '../../shared/covens';
 
 export const AVATARS = 12;
 
@@ -96,9 +97,15 @@ export function createPlayer(
     eliminated: false,
     sittingOut: false,
     mana: 3,
+    // A seed only: `maxManaFor` recomputes this at the top of every hand from
+    // the base, the player's relics and the table's omens, so editing it here
+    // changes nothing after the first deal. (It was briefly set to 7 to tighten
+    // the mana economy, which did exactly nothing for that reason — the real
+    // fix was the hand-start grant in engine.ts.)
     maxMana: 8,
     sigils: [],
     relics: [],
+    coven: DEFAULT_COVEN,
     shards: cfg.startingShards,
     hole: [],
     warded: false,
@@ -485,6 +492,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
       sigils: isYou || viewer.foreknowledge.seenSigils.includes(p.id) ? p.sigils : null,
       sigilCount: p.sigils.length,
       relics: p.relics,
+      coven: p.coven,
       shards: isYou ? p.shards : p.shards,
       hole: p.hole.map((id) => project(t, id, { viewer, reveal: readable, showdown })),
       warded: p.warded,

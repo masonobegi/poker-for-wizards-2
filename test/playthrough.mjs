@@ -82,6 +82,18 @@ page.on('requestfailed', (r) => {
  * exactly that: a board card behind an opaque backdrop, briefly claiming to
  * be 1724px wide. test/responsive.mjs already waits before the same checks,
  * which is why it sees the same screens clean at all seven resolutions.
+ *
+ * An element is allowed to extend past the viewport when an ancestor clips
+ * it — that is what `overflow: hidden` is FOR, and several things here rely
+ * on it deliberately: the omen banner's glow bar scales past 1 on the way
+ * out, inside a fixed, viewport-sized, clipped container. Reporting those
+ * gave a LAYOUT failure on any run where an omen happened to fire, for a
+ * band that is physically incapable of reaching the edge of the screen. A
+ * harness that cries wolf is a harness whose output gets skimmed.
+ *
+ * The document's own scroll width is checked separately, because that is the
+ * ground truth for "the page actually overflows" and no per-element
+ * heuristic can stand in for it.
  */
 const SETTLE_MS = 600;
 
@@ -91,6 +103,50 @@ async function checkLayout(page, where) {
     const out = [];
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+
+    // The visible extent of `el` after every clipping ancestor has cut it
+    // down — what a player actually sees, not the raw transformed box. Same
+    // helper `npm run responsive` has used since it was written; this harness
+    // simply never got it.
+    const clippedRect = (el) => {
+      const r = el.getBoundingClientRect();
+      let rect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      // Stop before <body>. This app sets `body { overflow: hidden }` because
+      // it is a full-screen game that does not scroll — walking into that
+      // clips EVERY element to the viewport and the whole check silently
+      // passes on anything. An element pushed outside the page root is the
+      // defect; an element clipped by a panel inside it is not.
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        const cs = getComputedStyle(p);
+        if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+        const pr = p.getBoundingClientRect();
+        rect = {
+          left: Math.max(rect.left, pr.left),
+          right: Math.min(rect.right, pr.right),
+          top: Math.max(rect.top, pr.top),
+          bottom: Math.min(rect.bottom, pr.bottom),
+        };
+      }
+      return rect;
+    };
+
+    const doc = document.documentElement;
+    if (doc.scrollWidth > doc.clientWidth + 2) {
+      out.push(`the page scrolls sideways (${doc.scrollWidth} vs ${doc.clientWidth})`);
+    }
+
+    // A camera shake writes an inline transform to #root, which makes it the
+    // containing block for every `position: fixed` layer in the app — so the
+    // whole viewport moves, which is the entire point of a shake, and each
+    // fixed layer measures a few pixels past the window while it runs. That
+    // is the effect working, not a layout defect, and sampling mid-shake
+    // reported `.stackview` and `.hints-layer` as running off the bottom by
+    // four pixels. Geometry is only meaningful once the camera is still.
+    const shakeRoot = document.getElementById('root');
+    if (shakeRoot && getComputedStyle(shakeRoot).transform !== 'none') {
+      return ['__shaking__'];
+    }
+
     for (const el of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
@@ -108,15 +164,23 @@ async function checkLayout(page, where) {
         }
       }
       const tag = `${el.tagName.toLowerCase()}${own ? `.${own}` : ''}${where}`;
-      if (r.right > vw + 2 || r.left < -2) {
-        out.push(`${tag} overflows horizontally (${Math.round(r.left)}..${Math.round(r.right)} vs ${vw})`);
-      }
-      if (r.bottom > vh + 2 && cs.position === 'fixed') {
-        out.push(`${tag} fixed element runs off the bottom (${Math.round(r.bottom)} vs ${vh})`);
+
+      if (r.right > vw + 2 || r.left < -2 || (r.bottom > vh + 2 && cs.position === 'fixed')) {
+        const c = clippedRect(el);
+        // Clipped away to nothing: it paints nowhere, so it overflows nothing.
+        if (c.right <= c.left || c.bottom <= c.top) continue;
+        if (c.right > vw + 2 || c.left < -2) {
+          out.push(`${tag} overflows horizontally (${Math.round(c.left)}..${Math.round(c.right)} vs ${vw})`);
+        }
+        if (c.bottom > vh + 2 && cs.position === 'fixed') {
+          out.push(`${tag} fixed element runs off the bottom (${Math.round(c.bottom)} vs ${vh})`);
+        }
       }
     }
     return [...new Set(out)].slice(0, 8);
   });
+  // The sample landed inside a camera shake; nothing measured then is real.
+  if (bad.length === 1 && bad[0] === '__shaking__') return;
   for (const b of bad) problem('LAYOUT', `${where}: ${b}`);
 }
 
@@ -162,7 +226,14 @@ const title = await page.title();
 if (!/HEXHOLD/i.test(title)) problem('ERROR', `wrong page title: "${title}"`);
 
 // --- the intro --------------------------------------------------------------
-const introVisible = await page.locator('text=/skip/i').first().isVisible().catch(() => false);
+// Wait for it rather than sampling once: the intro mounts after the first
+// paint, so a single immediate check races it and reported "no intro" on a
+// build where the intro was working fine.
+let introVisible = false;
+for (let i = 0; i < 20 && !introVisible; i++) {
+  introVisible = await page.locator('text=/skip/i').first().isVisible().catch(() => false);
+  if (!introVisible) await page.waitForTimeout(250);
+}
 if (introVisible) {
   notes.push('First-run intro appeared automatically.');
   await shot(page, 'intro-1');
@@ -206,7 +277,30 @@ else notes.push(`Menu became playable in ${(waited / 1000).toFixed(1)}s.`);
 
 console.log('▶ starting practice vs bots');
 await practice.click();
-await page.waitForTimeout(3500);
+
+// Wait for a real table rather than a fixed sleep, and say plainly when one
+// never arrives. The most likely reason is not a bug: the server refuses room
+// creation past `roomsPerIpPerHour` (40 by default), which a long session of
+// repeated runs will hit. Without this check the run reports a deadlock 70
+// seconds later and sends the next reader hunting a game bug that is not there.
+let joined = false;
+for (let i = 0; i < 40; i++) {
+  joined = await page.evaluate(() => !!window.__hexholdView).catch(() => false);
+  if (joined) break;
+  await page.waitForTimeout(250);
+}
+if (!joined) {
+  const refused = await page.evaluate(() => {
+    const t = document.body.innerText || '';
+    return /too many|rate|limit|refused|could not open/i.test(t) ? t.slice(0, 160) : null;
+  }).catch(() => null);
+  problem('ERROR', refused
+    ? `Never reached a table — the server refused it: ${refused.replace(/\s+/g, ' ')}`
+    : 'Never reached a table after clicking Practice vs Bots, and the server gave no reason.');
+  await shot(page, 'never-joined');
+  await finish();
+}
+await page.waitForTimeout(2500);
 await shot(page, 'table-dealt');
 await checkLayout(page, 'table');
 
@@ -232,6 +326,23 @@ let sawOmen = false;
 let castsMade = 0;
 let lastMem = 0;
 const heap = [];
+
+// Whether you ever actually won a pot. Latched page-side on its own interval:
+// the payout phase can be shorter than one turn of the loop below, so polling
+// it from here missed wins that the game itself saw. Without this the
+// achievement check cannot tell "the watcher is broken" from "the bots had
+// better cards", and it used to warn on both.
+await page.evaluate(() => {
+  window.__wonAPot = false;
+  window.setInterval(() => {
+    if (window.__wonAPot) return;
+    const v = window.__hexholdView;
+    if (!v?.payout) return;
+    const me = v.players.find((p) => p.isYou);
+    if (!me) return;
+    if (v.payout.entries.some((e) => e.playerId === me.id && e.won > 0)) window.__wonAPot = true;
+  }, 150);
+}).catch(() => {});
 
 while (Date.now() - playStart < SECONDS * 1000) {
   if (pageCrashed || page.isClosed()) break;
@@ -306,20 +417,37 @@ while (Date.now() - playStart < SECONDS * 1000) {
     if (castsMade < 4 && await castable.isVisible().catch(() => false) && Math.random() < 0.5) {
       await castable.click().catch(() => {});
       await page.waitForTimeout(700);
-      // Targeted sigils ask for a target; give it a board card or an opponent.
+
+      // Targeted sigils ask for a target. Satisfy as many picks as the sigil
+      // actually wants — `two_cards` needs two, and preflop there are no
+      // community cards to click at all, so a card target has to fall back to
+      // our own hand rather than to a seat.
       const hint = page.locator('.tbl-targethint').first();
       if (await hint.isVisible().catch(() => false)) {
         await shot(page, `targeting-${castsMade}`);
-        const target = page.locator('.board-cards [data-card-id]').first();
-        const seat = page.locator('[data-seat-id]').first();
-        if (await target.isVisible().catch(() => false)) await target.click().catch(() => {});
-        else if (await seat.isVisible().catch(() => false)) await seat.click().catch(() => {});
-        else {
-          const cancel = page.locator('.tbl-targethint button').first();
-          await cancel.click().catch(() => {});
+        const wants = /choose two cards/i.test(await hint.innerText().catch(() => '')) ? 2 : 1;
+        const wantsPlayer = /choose an opponent/i.test(await hint.innerText().catch(() => ''));
+        for (let pick = 0; pick < wants; pick++) {
+          const candidates = wantsPlayer
+            ? [page.locator('[data-seat-id]').first()]
+            : [
+              page.locator('.board-cards [data-card-id]').nth(pick),
+              page.locator('.rail [data-card-id]').nth(pick),
+              page.locator('[data-card-id]').nth(pick),
+            ];
+          let picked = false;
+          for (const c of candidates) {
+            if (await c.isVisible().catch(() => false)) {
+              await c.click().catch(() => {});
+              picked = true;
+              break;
+            }
+          }
+          if (!picked) break;
+          await page.waitForTimeout(400);
         }
-        await page.waitForTimeout(600);
       }
+
       // A prompt for a rank/suit/mark.
       const promptBtn = page.locator('.prompt-rank, .prompt-suit, .prompt-mark').first();
       if (await promptBtn.isVisible().catch(() => false)) {
@@ -327,6 +455,25 @@ while (Date.now() - playStart < SECONDS * 1000) {
         await promptBtn.click().catch(() => {});
         await page.waitForTimeout(500);
       }
+
+      // Whatever happened above, do not leave the table in a targeting state:
+      // the action bar is replaced while targeting is armed, so a half-
+      // finished cast means this run never acts again and times out looking
+      // like a deadlock. This was the flake, not the game.
+      for (let i = 0; i < 3; i++) {
+        const stillTargeting = page.locator('.tbl-targethint').first();
+        if (!await stillTargeting.isVisible().catch(() => false)) break;
+        const cancel = stillTargeting.locator('button').filter({ hasText: /cancel/i }).first();
+        if (await cancel.isVisible().catch(() => false)) await cancel.click().catch(() => {});
+        await page.waitForTimeout(350);
+      }
+      const strandedPrompt = page.locator('.prompt').first();
+      if (await strandedPrompt.isVisible().catch(() => false)) {
+        const anyOption = page.locator('.prompt-rank, .prompt-suit, .prompt-mark').first();
+        if (await anyOption.isVisible().catch(() => false)) await anyOption.click().catch(() => {});
+        await page.waitForTimeout(350);
+      }
+
       castsMade++;
       continue;
     }
@@ -344,11 +491,22 @@ while (Date.now() - playStart < SECONDS * 1000) {
   }
 
   // Nothing to do: has the game stopped needing us for too long?
+  //
+  // Being eliminated is not being stuck. Once you are out you correctly get no
+  // turns and no prompts for the rest of the run, and reporting that as a
+  // stuck table turned an ordinary loss into a release-blocking ERROR.
   if (Date.now() - lastAct > 70_000) {
+    const now = await readState(page).catch(() => null);
+    if (now?.me?.out) {
+      notes.push('Knocked out — stopped acting because there was nothing left to do.');
+      await shot(page, 'eliminated');
+      break;
+    }
     problem('ERROR', 'Seventy seconds passed with no turn and no prompt — the table looks stuck.');
     await shot(page, 'stuck');
     break;
   }
+
   await page.waitForTimeout(400);
   } catch (err) {
     if (pageCrashed || page.isClosed()) break;
@@ -382,12 +540,14 @@ async function finish() {
   finishing = true;
   // Achievements are the visible half of progression; prove they fire.
   let unlocked = [];
+  let wonAPot = false;
   try {
     if (!page.isClosed()) {
       unlocked = await page.evaluate(() => {
         try { return JSON.parse(localStorage.getItem('hexhold.achievements') ?? '[]'); }
         catch { return []; }
       });
+      wonAPot = await page.evaluate(() => window.__wonAPot === true).catch(() => false);
     }
   } catch { /* page gone */ }
   let state = null;
@@ -407,8 +567,11 @@ async function finish() {
   if (state) console.log(`  final state    ${JSON.stringify(state)}`);
   console.log(`  screenshots    ${shots.length} in playthrough/`);
   console.log(`  achievements   ${unlocked.length ? unlocked.join(', ') : 'none'}`);
-  if (turnsSeen > 3 && unlocked.length === 0) {
-    problem('WARN', 'Played a whole session and unlocked nothing — check the achievement watcher.');
+  console.log(`  won a pot      ${wonAPot ? 'yes' : 'no'}`);
+  if (wonAPot && unlocked.length === 0) {
+    problem('WARN', 'Won a pot and unlocked nothing — check the achievement watcher.');
+  } else if (!wonAPot && turnsSeen > 3) {
+    problem('NOTE', 'Won no pot this session, so no achievement was due — `npm test` checks the watcher deterministically.');
   }
   if (heap.length) {
     console.log(`  JS heap MB     ${heap.join(' → ')}`);

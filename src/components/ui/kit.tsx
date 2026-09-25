@@ -8,6 +8,8 @@ import {
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { playSfx, soundProps } from '@/lib/sound';
+import { EASE_OUT, ENTER, ENTER_PANEL, T_REDUCED } from '@/styles/motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 
 // ---------------------------------------------------------------------------
 // Button
@@ -83,16 +85,19 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
   );
 });
 
-export function Toggle({ checked, onChange, label }: {
+export function Toggle({ checked, onChange, label, disabled }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: ReactNode;
+  /** Locked on (or off) by something outside the app — an OS setting, say. */
+  disabled?: boolean;
 }) {
   return (
-    <label className="toggle">
+    <label className={`toggle ${disabled ? 'is-disabled' : ''}`}>
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => { playSfx('ui_click', { vol: 0.5 }); onChange(e.target.checked); }}
       />
       <span className="toggle-track"><span className="toggle-knob" /></span>
@@ -168,7 +173,7 @@ export const Tooltip = memo(function Tooltip({ body, children, delay = 220 }: {
             initial={{ opacity: 0, y: 6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            transition={ENTER}
           >
             {body}
           </motion.span>
@@ -188,6 +193,7 @@ export function Modal({ open, onClose, children, labelledBy }: {
   children: ReactNode;
   labelledBy?: string;
 }) {
+  const reduced = useReducedMotionPref();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -203,18 +209,18 @@ export function Modal({ open, onClose, children, labelledBy }: {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
+          transition={ENTER}
           onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
-            className="modal"
+            className="modal hx-plate"
             role="dialog"
             aria-modal="true"
             aria-labelledby={labelledBy}
-            initial={{ opacity: 0, y: 18, scale: 0.97 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.98 }}
+            transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : ENTER_PANEL}
           >
             {children}
           </motion.div>

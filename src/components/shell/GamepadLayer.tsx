@@ -72,7 +72,12 @@ function candidates(): Target[] {
     if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
     const cs = getComputedStyle(node);
     if (cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none') continue;
-    if (Number(cs.opacity) < 0.2) continue;
+    // Deliberately no opacity test. An element that is mounted and
+    // hit-testable is reachable, even mid-fade — gating on opacity turned
+    // every `initial={{ opacity: 0 }}` in the app into a window where the
+    // d-pad silently skipped the control that was arriving.
+    // `visibility`/`display`/`pointer-events` already exclude the things that
+    // are genuinely not there.
     out.push({ el: node, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, rect });
   }
   return out;

@@ -35,6 +35,8 @@ export interface CardRowProps {
   selectedIds?: readonly string[];
   faceDown?: boolean;
   tiltOnHover?: boolean;
+  /** Deal the row face-down and turn it over. See `Card`'s `dealFlip`. */
+  dealFlip?: boolean;
   /** When set, each card gets `${layoutIdPrefix}${view.id}` for shared-element flight. */
   layoutIdPrefix?: string;
   /** Index offset for the deal stagger, so a second row can continue the first. */
@@ -64,6 +66,7 @@ function CardRowBase({
   selectedIds,
   faceDown = false,
   tiltOnHover,
+  dealFlip = false,
   layoutIdPrefix,
   staggerFrom = 0,
   dealFromDeck = false,
@@ -149,6 +152,7 @@ function CardRowBase({
                 index={staggerFrom + i}
                 dealFrom={dealFromDeck ? origin.current : null}
                 tiltOnHover={tiltOnHover}
+                dealFlip={dealFlip}
               />
             </div>
           );

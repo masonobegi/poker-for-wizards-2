@@ -1807,20 +1807,33 @@ export const SFX: Record<SfxName, SfxDef> = {
         hold: 0.5,
         release: 0.9,
         filterFrom: 700,
-        filterTo: 2600,
+        filterTo: 4400,
         send: 0.5,
         pitch: p,
       });
-      chipCascade(g, t + 0.3, 14, 0.7, 2000 * p, 0.5, 0.18);
-      thump(g, t + 0.42, 120 * p, 44 * p, 0.45, 0.5, 0.3);
+      chipCascade(g, t + 0.3, 16, 0.7, 4400 * p, 0.6, 0.18);
+      // The sub used to sit at 0.45 and it dragged the whole sound down to a
+      // measured 258Hz — eight percent brighter than `eliminate`, which is to
+      // say the best thing that happens to you sounded like the worst. Less
+      // floor, more ceiling. See the brightness checks in test/audio.mjs.
+      thump(g, t + 0.42, 120 * p, 44 * p, 0.17, 0.5, 0.3);
       fmBell(g, {
         at: t + 0.5,
         carrier: mtof(MIDI.F6) * p,
         ratio: 2,
         index: 1.6,
         decay: 1.8,
-        gain: 0.07,
+        gain: 0.16,
         send: 0.85,
+      });
+      fmBell(g, {
+        at: t + 0.62,
+        carrier: mtof(MIDI.A6) * p,
+        ratio: 3,
+        index: 1.2,
+        decay: 1.4,
+        gain: 0.1,
+        send: 0.9,
       });
     },
   },
@@ -1830,8 +1843,10 @@ export const SFX: Record<SfxName, SfxDef> = {
     len: 3.4,
     play: (g, t, p) => {
       // Three octaves of F major add9 — the widest chord in the game.
+      // F1 was dropped: the lowest octave contributed almost nothing anybody
+      // could hear as pitch and pulled the measured centroid to 169Hz, which
+      // made the game's biggest moment darker than its elimination sting.
       const chord = [
-        MIDI.F1,
         MIDI.F2,
         MIDI.C3,
         MIDI.F3,
@@ -1850,13 +1865,16 @@ export const SFX: Record<SfxName, SfxDef> = {
       // full chord. Every layer below is scaled by ~0.72 from its original
       // level; it's still meant to be the single loudest sound in the game,
       // just with headroom instead of clipping.
+      // Raised from 0.3 with the sub removed: taking the bottom octave out
+      // fixed the brightness and cost this its title as the biggest sound in
+      // the set, so the weight comes back as chord rather than as floor.
       sawStack(g, t, chord, {
-        gain: 0.3,
+        gain: 0.32,
         attack: 0.12,
         hold: 1.1,
         release: 1.2,
-        filterFrom: 500,
-        filterTo: 5200,
+        filterFrom: 900,
+        filterTo: 6200,
         send: 0.6,
         pitch: p,
         detune: 9,
@@ -1866,7 +1884,7 @@ export const SFX: Record<SfxName, SfxDef> = {
           at: t + 0.02 + i * 0.012,
           freq: mtof(m) * p,
           type: 'triangle',
-          gain: 0.055,
+          gain: 0.08,
           send: 0.5,
           attack: 0.03,
           decay: 0.4,
@@ -1888,7 +1906,7 @@ export const SFX: Record<SfxName, SfxDef> = {
           ratio: rand(1.9, 2.1),
           index: rand(0.9, 2),
           decay: rand(1.1, 2.2),
-          gain: 0.05 * (1 - k * 0.4),
+          gain: 0.105 * (1 - k * 0.4),
           pan: rand(-0.9, 0.9),
           send: 0.9,
         });
@@ -1899,7 +1917,7 @@ export const SFX: Record<SfxName, SfxDef> = {
         to: 27 * p,
         ms: 900,
         type: 'sine',
-        gain: 0.43,
+        gain: 0.18,
         attack: 0.01,
         decay: 0.5,
         sustain: 0.5,
@@ -1907,8 +1925,8 @@ export const SFX: Record<SfxName, SfxDef> = {
         release: 0.9,
         send: 0.15,
       });
-      chipCascade(g, t + 0.5, 18, 1.2, 2300 * p, 0.45, 0.1);
-      thump(g, t + 1.15, 100 * p, 38 * p, 0.29, 0.6, 0.4);
+      chipCascade(g, t + 0.5, 22, 1.2, 4000 * p, 0.6, 0.1);
+      thump(g, t + 1.15, 100 * p, 38 * p, 0.2, 0.6, 0.4);
     },
   },
 

@@ -102,6 +102,34 @@ async function collectInPage({ sfxList, moods }) {
     return den > 0 ? num / den : 0;
   }
 
+  /**
+   * Spectral centroid averaged over the whole audible span, energy-weighted.
+   *
+   * The single-window reading above is taken at the loudest sample, which is
+   * the right place to ask "what does the attack sound like" and the wrong
+   * place to ask "is this sound bright". Several synths here randomise their
+   * shimmer, so which bell happens to land on the peak sample moves the
+   * one-window number by more than two octaves between renders of identical
+   * code — a comparison built on it passes or fails on the dice. This walks
+   * the sound in overlapping windows and weights each by its own energy, so
+   * it answers for the sound rather than for one instant of it.
+   */
+  function meanCentroid(mono, sr, n) {
+    const winLen = Math.min(4096, n);
+    if (winLen < 8) return 0;
+    const hop = Math.max(1, Math.floor(winLen / 2));
+    let num = 0;
+    let den = 0;
+    for (let start = 0; start + winLen <= n; start += hop) {
+      let energy = 0;
+      for (let i = start; i < start + winLen; i++) energy += mono[i] * mono[i];
+      if (energy <= 0) continue;
+      const c = spectralCentroid(mono, sr, start + Math.floor(winLen / 2), n);
+      if (c > 0) { num += c * energy; den += energy; }
+    }
+    return den > 0 ? num / den : 0;
+  }
+
   function mixdown(buffer) {
     const n = buffer.length;
     const nCh = buffer.numberOfChannels;
@@ -174,7 +202,8 @@ async function collectInPage({ sfxList, moods }) {
       loud = Math.sqrt(best / win);
     }
     const spectralHz = first !== -1 ? spectralCentroid(mono, sr, peakIdx, n) : 0;
-    return { peak, rms, loud, dcOffset: dc, durationSec, spectralHz, renderSec: n / sr };
+    const meanHz = first !== -1 ? meanCentroid(mono, sr, n) : 0;
+    return { peak, rms, loud, dcOffset: dc, durationSec, spectralHz, meanHz, renderSec: n / sr };
   }
 
   /** Coefficient of variation (stddev / mean) of an array of non-negative numbers. */
@@ -527,6 +556,66 @@ if (byName.win_impossible) {
   );
 }
 
+// --- distinctness -------------------------------------------------------------
+//
+// "Fifty sounds render and none of them clip" says nothing about whether the
+// game sounds like fifty things or like twelve things at slightly different
+// volumes. A set where three sounds land within a few percent of each other
+// on every axis IS a smaller set, and a player hears that as monotony long
+// before they could name why.
+//
+// This cannot hear, so it does not pretend to: it compares each pair on the
+// four axes already being measured — length, brightness, loudness, attack —
+// and names the pairs that are nearly identical on ALL of them. Close numbers
+// do not prove two sounds are indistinguishable. They are simply the only
+// pairs worth putting an ear on, and a set with none of them is a set that
+// does not need the ear first.
+const NEAR = { durationSec: 0.1, meanHz: 0.08, rms: 0.12, peak: 0.12 };
+
+function relDiff(x, y) {
+  const hi = Math.max(Math.abs(x), Math.abs(y));
+  return hi === 0 ? 0 : Math.abs(x - y) / hi;
+}
+
+const twins = [];
+for (let i = 0; i < okSfx.length; i++) {
+  for (let j = i + 1; j < okSfx.length; j++) {
+    const a = okSfx[i];
+    const b = okSfx[j];
+    const diffs = Object.entries(NEAR).map(([k, tol]) => [k, relDiff(a[k], b[k]), tol]);
+    if (diffs.every(([, d, tol]) => d <= tol)) {
+      const worst = diffs.reduce((x, y) => (y[1] > x[1] ? y : x));
+      twins.push(`${a.name} / ${b.name} — alike on every axis (widest gap: ${worst[0]} ${(worst[1] * 100).toFixed(1)}%)`);
+    }
+  }
+}
+
+const PAIRS = (okSfx.length * (okSfx.length - 1)) / 2;
+console.log(`\nDISTINCTNESS (${okSfx.length} sounds, ${PAIRS} pairs)`);
+if (twins.length === 0) {
+  console.log('  ✔ no two sounds measure alike on length, brightness, loudness and attack');
+} else {
+  for (const tw of twins.slice(0, 12)) console.log(`  ~ ${tw}`);
+  if (twins.length > 12) console.log(`  ~ ...and ${twins.length - 12} more`);
+  console.log('  Those are the pairs to put an ear on. Measuring is not hearing.');
+  console.log('  Advisory, and it does not fail the run: several synths randomise their');
+  console.log('  shimmer, so a borderline pair can appear in one render and not the next.');
+}
+
+// The moments that matter most were all in the same band: showdown 237Hz,
+// eliminate 238Hz, win_big 258Hz, win_impossible 178Hz, victory 153Hz. A mix
+// where winning and busting out occupy the same frequencies has no emotional
+// contrast exactly where it needs one, however different the notes are.
+for (const [good, bad] of [['win_big', 'eliminate'], ['win_impossible', 'eliminate']]) {
+  if (byName[good] && byName[bad]) {
+    check(
+      `${good} reads clearly brighter than ${bad}`,
+      byName[good].meanHz > byName[bad].meanHz * 1.4,
+      `${good} ${Math.round(byName[good].meanHz)}Hz vs ${bad} ${Math.round(byName[bad].meanHz)}Hz (averaged over the whole sound)`,
+    );
+  }
+}
+
 console.log('\nSANITY CHECKS');
 for (const s of sanity) console.log(`  ${s.pass ? '✔' : '✘'} ${s.label} — ${s.detail}`);
 
@@ -544,6 +633,7 @@ console.log(`  pass            ${allGraded.length - fails.length - warns.length}
 console.log(`  warn            ${warns.length}`);
 console.log(`  fail            ${fails.length}`);
 console.log(`  sanity checks   ${sanity.length - sanityFails.length}/${sanity.length} passed`);
+console.log(`  near-twin pairs ${twins.length}`);
 if (fails.length === 0 && sanityFails.length === 0) console.log('\n  ✔ every sound renders, and nothing reads as broken');
 console.log('════════════════════════════\n');
 

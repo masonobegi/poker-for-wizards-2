@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
+import { EASE_OUT } from '@/styles/motion';
 
 /**
  * Mana is public information — an opponent sitting on unspent mana is a threat
@@ -24,7 +25,7 @@ function ManaPipsBase({ value, max, compact }: {
           key={i}
           className={`mana-pip ${i < value ? 'is-on' : ''}`}
           animate={i < value ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-          transition={{ duration: 0.3, delay: i * 0.02 }}
+          transition={{ duration: 0.3, ease: EASE_OUT, delay: i * 0.02 }}
         />
       ))}
       {overflow > 0 ? <span className="mana-more mono">+{overflow}</span> : null}

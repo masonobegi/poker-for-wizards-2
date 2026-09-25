@@ -1,7 +1,22 @@
-import { forwardRef, memo, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type SigilInstance } from '@shared/sigils';
+import { forwardRef, memo, useEffect, useRef } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { useFinePointer } from '@/components/fx/useFinePointer';
+import { usePointerFoil } from '@/components/fx/usePointerFoil';
+import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type Rarity, type SigilInstance } from '@shared/sigils';
+import { EASE_OUT, ENTER_PANEL, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 import SchoolDevice from '@/components/table/SchoolDevice';
+
+/**
+ * How hard a sigil glints under the pointer. The playing cards have had a
+ * specular highlight since the start and the sigils — the things the game is
+ * named after — had none, so a rail of spells read flatter than the board it
+ * sits under. Scaling it by rarity does the job a foil finish does on a real
+ * card: you can tell a mythic from across the table without reading it.
+ */
+const FOIL: Record<Rarity, number> = { common: 0.16, rare: 0.26, mythic: 0.4 };
+const FOIL_TILT = 7;
 
 export interface SigilCardProps {
   inst: SigilInstance;
@@ -30,18 +45,29 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
 
   // A quick pop the instant a sigil crosses from locked to castable (mana
   // just filled the last pip) — a "you can act now" cue, not a loop.
+  //
+  // Driven imperatively rather than by a class-toggled keyframe: mana crosses
+  // a sigil's cost repeatedly inside one betting round, and a boolean that is
+  // already `true` never re-renders, so the old version silently swallowed
+  // every re-trigger inside its own 260ms window.
   const wasUsable = useRef(usable);
-  const [justUsable, setJustUsable] = useState(false);
+  const pop = useAnimationControls();
+  const reduced = useReducedMotionPref();
+  const finePointer = useFinePointer();
+  const foil = usePointerFoil({
+    tilt: FOIL_TILT,
+    strength: FOIL[def?.rarity ?? 'common'],
+    spread: 64,
+  });
   useEffect(() => {
-    if (usable && !wasUsable.current) {
-      setJustUsable(true);
-      const t = window.setTimeout(() => setJustUsable(false), 260);
-      wasUsable.current = usable;
-      return () => window.clearTimeout(t);
-    }
+    const crossed = usable && !wasUsable.current;
     wasUsable.current = usable;
-    return undefined;
-  }, [usable]);
+    if (!crossed || reduced) return;
+    void pop.start({
+      scale: [1, 1.08, 1],
+      transition: { ...ENTER_PANEL, times: [0, 0.45, 1] },
+    });
+  }, [usable, reduced, pop]);
 
   if (!def) return null;
   const school = SCHOOLS[def.school];
@@ -54,7 +80,6 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         usable ? 'is-castable' : 'is-locked',
         selected ? 'is-selected' : '',
         compact ? 'is-compact' : '',
-        justUsable ? 'is-justcastable' : '',
       ].filter(Boolean).join(' ')}
       data-sigil-uid={inst.uid}
       style={{
@@ -62,18 +87,35 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         ['--school-deep' as string]: school.glow,
         ['--rarity' as string]: RARITY_COLOR[def.rarity],
       }}
-      initial={{ opacity: 0, y: 28, rotateZ: -4 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 28, rotateZ: -4 }}
       animate={{ opacity: 1, y: 0, rotateZ: 0 }}
-      exit={{ opacity: 0, y: 20, scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 26, delay: index * 0.04 }}
-      whileHover={usable ? { y: -14, scale: 1.05, zIndex: 5 } : { y: -5 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.9 }}
+      transition={reduced
+        ? { duration: T_REDUCED, ease: EASE_OUT }
+        : { ...SPRING_CRISP, delay: Math.min(index * 0.06, 0.3) }}
+      whileHover={finePointer && !reduced ? (usable ? { y: -14, scale: 1.05, zIndex: 5 } : { y: -5 }) : undefined}
+      whileTap={usable ? { y: -10, scale: 0.99 } : undefined}
+      onPointerMove={foil.onPointerMove}
+      onPointerEnter={foil.onPointerEnter}
+      onPointerLeave={foil.onPointerLeave}
       onClick={() => { if (usable) onCast?.(inst.uid); }}
       role={usable ? 'button' : undefined}
       tabIndex={usable ? 0 : -1}
       onKeyDown={(e) => { if (usable && e.key === 'Enter') onCast?.(inst.uid); }}
       aria-label={`${def.name}, ${cost} mana`}
     >
-      <div className="sigil-frame">
+      <motion.div
+        className="sigil-frame"
+        animate={pop}
+        style={foil.on ? { rotateX: foil.rotateX, rotateY: foil.rotateY } : undefined}
+      >
+        {foil.on ? (
+          <motion.span
+            className="sigil-foil"
+            aria-hidden
+            style={{ backgroundImage: foil.sheen, opacity: foil.sheenOpacity }}
+          />
+        ) : null}
         <header className="sigil-head">
           <span className="sigil-cost mono">{cost}</span>
           <span className="sigil-school">
@@ -81,11 +123,9 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           </span>
         </header>
 
-        {/* The school's device, printed behind the sigil's own glyph. The
-            device groups; the glyph identifies. */}
         <div className="sigil-art">
           <SchoolDevice school={def.school} />
-          <span className="sigil-glyph">{def.glyph}</span>
+          <span className="sigil-glyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></span>
         </div>
 
         <h4 className="sigil-name">{def.name}</h4>
@@ -95,7 +135,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         <footer className="sigil-foot">
           <span className="sigil-rarity">{def.rarity}</span>
         </footer>
-      </div>
+      </motion.div>
 
       {onDiscard ? (
         <button
@@ -111,7 +151,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
       <div className="sigil-tip" role="tooltip">
         <strong>{def.name}</strong>
         <p>{def.text}</p>
-        <p className="sigil-impossible"><span aria-hidden>⧉</span> {def.impossible}</p>
+        <p className="sigil-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
         {!affordable ? <p className="sigil-warn">Not enough mana.</p> : null}
         {affordable && !castable ? <p className="sigil-warn">Cannot be cast right now.</p> : null}
       </div>

@@ -7,28 +7,30 @@
  * two timers can ever race to advance the same street.
  */
 import { nanoid } from 'nanoid';
+import { config } from '../config';
 import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { SIGIL_BY_ID } from '../../shared/sigils';
 import { OMENS, OMEN_BY_ID, omenNumber, type ActiveOmen } from '../../shared/omens';
 import {
   isStreet,
   type BetAction, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
-  actable, alive, buildPots, byId, card, createPlayer, createTable, describeCard,
-  freeSeat, live, log, manaCost, maxManaFor, nextSeat, seated, sigilHandSize, totalPot,
+  actable, alive, byId, card, createPlayer, createTable, describeCard,
+  freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
 } from './table';
 import {
-  applySeal, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
-  randomSigil, reapConjured, resolveStack, stackReady, superposeCard, unseenFace,
+  castSigil, clearHandMagic, drawId, giveSigil, passResponse,
+  randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
   type MagicCtx,
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
 import { buy, payInterest, reroll, rollShop } from './shop';
 import { decideAction, decideCast, decideResponse, decideShop, thinkTime, TEMPO } from './bots';
+import { COVENS, DEFAULT_COVEN, covenOf } from '../../shared/covens';
+import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
 export type Push = () => void;
@@ -84,7 +86,7 @@ export class Engine {
   }
 
   private wait(ms: number, then: () => void): void {
-    this.deadline = Date.now() + ms;
+    this.deadline = Date.now() + Math.round(ms * (config.pacePercent / 100));
     this.onDeadline = then;
   }
 
@@ -178,9 +180,21 @@ export class Engine {
       p.eliminated = false;
       p.handsWon = 0;
       p.maxMana = maxManaFor(p, t);
-      // Everyone opens with one counterspell, so the first bluff is never free.
-      giveSigil(t, p, { uid: nanoid(8), defId: 'nullify' });
-      giveSigil(t, p, randomSigil(this.rng));
+
+      // The coven is the run's opening decision, and it is expressed entirely
+      // in things the engine already knows how to hold: a list of sigil ids
+      // and one relic id. A coven cannot introduce behaviour — if one needs to
+      // do something new, the relic has to learn it first.
+      const coven = covenOf(p.coven);
+      if (coven.relic) p.relics.push(coven.relic);
+      for (const defId of coven.sigils) {
+        if (SIGIL_BY_ID[defId]) giveSigil(t, p, { uid: nanoid(8), defId });
+      }
+      // Top up to a full opening hand with the draft pool, so every coven
+      // still meets cards it did not choose.
+      while (p.sigils.length < 2) giveSigil(t, p, randomSigil(this.rng));
+      // The relic may raise the ceiling or the hand size.
+      p.maxMana = maxManaFor(p, t);
     }
 
     log(t, 'The table is set. Ante 1.', 'magic');
@@ -228,7 +242,11 @@ export class Engine {
       p.lastAction = undefined;
       p.shopDone = false;
       p.maxMana = maxManaFor(p, t);
-      p.mana = Math.min(p.maxMana, p.mana + 3);
+      // Two at the top of the hand, not three. At three, a measured session
+      // ended every hand with four unspent mana per player out of a ceiling
+      // of eight — which means casting was never a choice, only a chore you
+      // could skip. Scarcity is what makes a sigil a decision.
+      p.mana = Math.min(p.maxMana, p.mana + 2);
 
       // Two a hand, not one: the spell layer is the reason to play, and one
       // draw meant most sigils never came up in a whole run.
@@ -566,8 +584,24 @@ export class Engine {
      * reveal, never a truncated reveal.
      */
     const tempo = TEMPO[t.config.speed] ?? TEMPO.standard;
+
+    /*
+     * The winning hand's *name* also animates: `ShowdownPanel` runs it
+     * through `DecodeText` at a 430ms lead plus 42ms a character, so
+     * "Straight Flush, Ace High" takes about 1.4s to resolve — longer than
+     * the five-card reveal it sits beside. These two were written on
+     * different branches and neither knew about the other, so the floor
+     * covered the cards and would have cut the name off on a blitz table.
+     */
+    const longestName = Math.max(
+      0,
+      ...payout.entries.filter((e) => e.won > 0).map((e) => e.handName.length),
+    );
+    const decodeMs = longestName > 0 ? 430 + longestName * 42 : 0;
+
     const scaled = revealMs + Math.round((readMs + ceremony) * tempo.hold);
-    return Math.min(9000, Math.max(revealMs + 450, scaled));
+    const floor = Math.max(revealMs, decodeMs) + 450;
+    return Math.min(9000, Math.max(floor, scaled));
   }
 
   private bestFaceFor(faces: Face[]): number {
@@ -1129,7 +1163,12 @@ export class Engine {
     const taken = new Set(t.players.map((p) => p.name));
     const free = names.filter((n) => !taken.has(n));
     const name = free.length ? r.pick(free) : `Bot ${t.players.length}`;
-    return this.addPlayer(`bot_${nanoid(6)}`, name, true);
+    const bot = this.addPlayer(`bot_${nanoid(6)}`, name, true);
+    // Bots draw a coven too, and never the Unaligned — a table of four
+    // identical openings is the thing covens exist to stop, and it would be
+    // an odd game that only let the human have one.
+    if (bot) bot.coven = r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id;
+    return bot;
   }
 
   removeBot(): void {

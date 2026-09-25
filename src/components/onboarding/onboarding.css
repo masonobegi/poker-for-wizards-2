@@ -22,10 +22,6 @@
   grid-template-rows: auto 1fr auto;
   gap: var(--s-4);
   padding: var(--s-6);
-  border-radius: var(--r-xl);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 90px color-mix(in srgb, var(--entropy-deep) 28%, transparent);
 }
 
 .intro-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
@@ -270,7 +266,7 @@
 .hint-mark {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -295,9 +291,11 @@
   color: var(--text-4);
   font-size: 13px;
   line-height: 1;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: background var(--t-fast), color var(--t-fast),
+              transform var(--t-fast) var(--ease-out);
 }
 .hint-mark__dismiss:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.hint-mark__dismiss:active { transform: scale(0.94); }
 
 /* `.hints-layer` already sits above z-stack and z-modal (it's on z-toast), so
    these only need to place each hint near the real UI it's talking about. */
@@ -315,4 +313,34 @@
 
 @media (max-width: 640px) {
   .intro-holdem, .intro-trio, .intro-hands, .intro-shop { gap: var(--s-3); }
+}
+
+/* The coven panel: three of the seven, at a size that reads as "these are
+   different from each other" rather than as a list to memorise. */
+.intro-covens {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.intro-coven {
+  --school: var(--entropy);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  min-width: 96px;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--school) 42%, transparent);
+  background: color-mix(in srgb, var(--school) 10%, rgba(10, 12, 24, 0.7));
+  font-size: 26px;
+  color: var(--school);
+}
+
+.intro-coven b {
+  font: 700 11px/1 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
 }

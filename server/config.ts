@@ -28,6 +28,19 @@ const list = (name: string): string[] =>
 
 export const config = {
   port: int('PORT', 3001, 1, 65535),
+
+  /**
+   * Multiplies every scheduled beat on the table — bot deliberation, the deal,
+   * street changes, the payout hold. 100 is normal play and the default, so
+   * this is inert unless somebody asks for it.
+   *
+   * It exists so a game can be recorded slowly enough to follow: the default
+   * pacing is tuned for playing, where 300ms of bot think time reads as
+   * responsive, and for watching, where it reads as "what just happened?".
+   * Expressed in percent because env vars are integers — 300 is three times
+   * slower. See `npm run record`.
+   */
+  pacePercent: int('HEXHOLD_PACE', 100, 10, 2000),
   host: process.env.HOST ?? '0.0.0.0',
   production: process.env.NODE_ENV === 'production',
 

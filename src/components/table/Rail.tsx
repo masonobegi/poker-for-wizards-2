@@ -14,6 +14,7 @@ import { RollingNumber } from '@/components/fx/RollingNumber';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight, SpellFlightLayer } from '@/components/fx/SpellFlight';
 import type { Vec2 } from '@/vfx/particles';
+import { Mark } from '@/art/marks';
 
 export interface RailProps {
   view: TableView;
@@ -67,9 +68,20 @@ function RailBase({
     const originEl = railRef.current?.querySelector(`[data-sigil-uid="${CSS.escape(uid)}"]`) ?? null;
     if (def) {
       if (def.target === 'none' || def.target === 'stack') {
-        spellFlight.fireNow(originEl, immediateFlightTarget(), def.school, def.glyph);
+        spellFlight.fireNow(originEl, immediateFlightTarget(), def.school, def.id);
+      } else if (def.target !== 'rank' && def.target !== 'suit') {
+        spellFlight.arm(originEl, def.school, def.id);
       } else {
-        spellFlight.arm(originEl, def.school, def.glyph);
+        // rank / suit: the target is a value, not an element, so an
+        // armed flight would only ever be cancelled. Publish where the cast
+        // came from instead, and let the prompt grow out of that card rather
+        // than teleporting in from screen centre.
+        const r = originEl?.getBoundingClientRect();
+        if (r) {
+          const root = document.documentElement;
+          root.style.setProperty('--prompt-origin-x', String(r.left + r.width / 2));
+          root.style.setProperty('--prompt-origin-y', String(r.top + r.height / 2));
+        }
       }
     }
     onBeginCast(uid);
@@ -110,7 +122,7 @@ function RailBase({
               if (!r) return null;
               return (
                 <Tooltip key={id} body={<><strong>{r.name}</strong><br />{r.text}</>}>
-                  <span className="rail-relic">{r.glyph}</span>
+                  <span className="rail-relic"><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
                 </Tooltip>
               );
             })}
@@ -123,6 +135,7 @@ function RailBase({
           dealFromDeck
           views={me.hole}
           size="lg"
+          dealFlip
           fan
           fanSpread={10}
           overlap={0.16}

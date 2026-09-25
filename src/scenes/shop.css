@@ -5,8 +5,9 @@
   display: grid;
   place-items: center;
   padding: var(--s-4);
-  /* Warm black, like everything the lamp is not reaching. */
-  background: rgba(7, 5, 4, 0.88);
+  /* Warm black, like everything the lamp is not reaching, with enough shape
+     in it that the panel is not floating on a flat wash. */
+  background: radial-gradient(120% 90% at 50% 40%, rgba(22, 14, 8, 0.82), rgba(6, 4, 3, 0.94));
 }
 
 .shop-panel {
@@ -16,17 +17,12 @@
   display: grid;
   gap: var(--s-4);
   padding: var(--s-5);
-  border-radius: var(--r-xl);
-  /* The market used to open a purple-lit panel over a bottle-green table
-     under a brass lamp — the one screen the player is sent to every three
-     hands, in a colour that appears nowhere else in the game. It is a table
-     being set up in the same room now: grain, a brass rule, a hard shadow. */
-  background: var(--grain), linear-gradient(180deg, var(--surface-2), var(--surface) 46%, var(--bg-2));
-  border: 1px solid var(--line);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.7),
-    var(--e-4);
+  /* The Market is a plate like every other panel, in the same warm stock.
+     It used to open a purple-lit surface over a bottle-green table under a
+     brass lamp — the one screen the player is sent to every three hands, in
+     a colour that appeared nowhere else in the game. */
+  --plate-fill-a: #262320;
+  --plate-fill-b: #141110;
 }
 
 .shop-head {
@@ -205,7 +201,9 @@
   border-radius: 50%;
   background: var(--surface-3);
   border: 1px solid var(--line);
-  transition: all var(--t-base);
+  transition: background var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out);
 }
 .shop-dot.is-done {
   background: var(--good);

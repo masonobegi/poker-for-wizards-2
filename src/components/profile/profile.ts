@@ -23,7 +23,17 @@ export interface RunRecord {
   impossible: number;
   omens: string[];
   relics: string[];
+  /** The coven this run was played as. See shared/covens.ts. */
+  coven: string;
   won: boolean;
+}
+
+/** What one coven has done across every run played as it. */
+export interface CovenRecord {
+  runs: number;
+  wins: number;
+  deepestAnte: number;
+  impossible: number;
 }
 
 export interface Profile {
@@ -42,6 +52,15 @@ export interface Profile {
     /** Every distinct relic ever owned. */
     relicsOwned: string[];
   };
+  /**
+   * Per-coven records, keyed by coven id.
+   *
+   * Deliberately NOT an unlock gate. Hiding six of seven openings from a new
+   * player makes the game look thinner than it is on the one launch where
+   * that matters most; showing all seven with a record beside each gives the
+   * same reason to come back without spending the first impression on it.
+   */
+  covens: Record<string, CovenRecord>;
 }
 
 const EMPTY: Profile = {
@@ -51,6 +70,7 @@ const EMPTY: Profile = {
     bestCat: -1, bestHand: '', deepestAnte: 0,
     omensSeen: [], relicsOwned: [],
   },
+  covens: {},
 };
 
 export function loadProfile(): Profile {
@@ -61,6 +81,9 @@ export function loadProfile(): Profile {
     return {
       runs: Array.isArray(parsed.runs) ? parsed.runs : [],
       totals: { ...EMPTY.totals, ...(parsed.totals ?? {}) },
+      // Profiles written before covens existed have no `covens` key, and a
+      // save from a week ago must not throw away a week of runs.
+      covens: { ...(parsed.covens ?? {}) },
     };
   } catch {
     return EMPTY;
@@ -92,6 +115,15 @@ export function recordRun(run: RunRecord): Profile {
   }
   t.omensSeen = [...new Set([...t.omensSeen, ...run.omens])];
   t.relicsOwned = [...new Set([...t.relicsOwned, ...run.relics])];
+
+  const id = run.coven || 'unaligned';
+  const c = p.covens[id] ?? { runs: 0, wins: 0, deepestAnte: 0, impossible: 0 };
+  p.covens[id] = {
+    runs: c.runs + 1,
+    wins: c.wins + (run.won ? 1 : 0),
+    deepestAnte: Math.max(c.deepestAnte, run.antesSurvived),
+    impossible: c.impossible + run.impossible,
+  };
 
   save(p);
   return p;

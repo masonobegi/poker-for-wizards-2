@@ -12,6 +12,10 @@ import { TurnTimer } from '@/components/fx/TurnTimer';
 import { RollingNumber } from '@/components/fx/RollingNumber';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight } from '@/components/fx/SpellFlight';
+import { ENTER, SPRING_CRISP } from '@/styles/motion';
+import { Mark } from '@/art/marks';
+import { DEFAULT_COVEN, covenOf } from '@shared/covens';
+import { SCHOOLS } from '@shared/sigils';
 
 export interface SeatProps {
   player: PlayerView;
@@ -106,6 +110,17 @@ function SeatBase({
         </div>
       </div>
 
+      {/* The coven sits with the relics because it is the same kind of
+          information: public, permanent for the run, and worth knowing before
+          you decide what they are representing. */}
+      {p.coven && p.coven !== DEFAULT_COVEN ? (
+        <Tooltip body={<><strong>{covenOf(p.coven).name}</strong><br />{covenOf(p.coven).style}</>}>
+          <span className="seat-coven" style={{ ['--school' as string]: SCHOOLS[covenOf(p.coven).school].accent }}>
+            <Mark kind="coven" id={p.coven} fallback={covenOf(p.coven).glyph} />
+          </span>
+        </Tooltip>
+      ) : null}
+
       {p.relics.length ? (
         <div className="seat-relics">
           {p.relics.slice(0, 6).map((id) => {
@@ -113,7 +128,7 @@ function SeatBase({
             if (!r) return null;
             return (
               <Tooltip key={id} body={<><strong>{r.name}</strong><br />{r.text}</>}>
-                <span className="seat-relic">{r.glyph}</span>
+                <span className="seat-relic"><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
               </Tooltip>
             );
           })}
@@ -130,10 +145,10 @@ function SeatBase({
         {p.bet > 0 ? (
           <motion.div
             className="seat-bet"
-            initial={{ opacity: 0, scale: 0.6, y: 8 }}
+            initial={{ opacity: 0, scale: 0.94, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+            transition={SPRING_CRISP}
           >
             <span className="seat-betchip" aria-hidden />
             <span className="mono">
@@ -162,26 +177,31 @@ function SeatBase({
           <motion.span
             key={emote.at}
             className="seat-emote"
-            initial={{ opacity: 0, scale: 0.4, y: 10 }}
+            initial={{ opacity: 0, scale: 0.94, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            exit={{ opacity: 0, scale: 0.96, y: -6 }}
+            transition={SPRING_CRISP}
           >
             {EMOTES.find((e) => e.id === emote.id)?.glyph ?? '•'}
           </motion.span>
         ) : null}
       </AnimatePresence>
 
-      {p.result && view.phase === 'payout' && !p.folded ? (
-        <motion.div
-          className={`seat-result ${p.result.impossible ? 'is-impossible' : ''}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          {p.result.handName}
-        </motion.div>
-      ) : null}
+      <AnimatePresence>
+        {p.result && view.phase === 'payout' && !p.folded ? (
+          <motion.div
+            className={`seat-result ${p.result.impossible ? 'is-impossible' : ''}`}
+            initial={{ opacity: 0, y: 8 }}
+            // Rises past and away rather than retracing its entrance — the hand
+            // is being cleared, not undone. Every other transient badge on this
+            // seat already exits; this one used to vanish on a single frame.
+            animate={{ opacity: 1, y: 0, transition: { ...ENTER, delay: 0.3 } }}
+            exit={{ opacity: 0, y: -6, transition: ENTER }}
+          >
+            {p.result.handName}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

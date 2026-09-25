@@ -1,14 +1,15 @@
 /**
  * The first-run "How this works" flow.
  *
- * Seven panels, each making exactly one point, built from the real `Card`
+ * Eight panels, each making exactly one point, built from the real `Card`
  * component and sigil data rather than screenshots or prose. Shown
  * automatically the first time the game is opened (see `hasSeenIntro` /
  * `markIntroSeen`, backed by `localStorage['hexhold.seenIntro']`) and
  * reachable any time afterwards from the menu.
  */
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Button } from '@/components/ui/kit';
 import { Card } from '@/components/card/Card';
 import { CardRow } from '@/components/card/CardRow';
@@ -20,6 +21,10 @@ import {
   FIVE_OF_A_KIND, FLUSH_HOUSE, FLUSH_FIVE,
 } from './demo';
 import './onboarding.css';
+import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
+import { covenOf } from '@shared/covens';
+import { SCHOOLS } from '@shared/sigils';
 
 // ---------------------------------------------------------------------------
 // Persistence
@@ -149,12 +154,12 @@ function ShopVisual() {
   return (
     <div className="intro-visual intro-shop">
       <div className="intro-shop__tile">
-        <span className="intro-shop__glyph" aria-hidden="true">{SHOP_RELIC.glyph}</span>
+        <span className="intro-shop__glyph" aria-hidden="true"><Mark kind="relic" id={SHOP_RELIC.id} fallback={SHOP_RELIC.glyph} /></span>
         <span className="intro-shop__name">{SHOP_RELIC.name}</span>
         <span className="intro-shop__price mono">{SHOP_RELIC.price} shards</span>
       </div>
       <div className="intro-shop__tile">
-        <span className="intro-shop__glyph" aria-hidden="true">{SHOP_SIGIL.glyph}</span>
+        <span className="intro-shop__glyph" aria-hidden="true"><Mark kind="sigil" id={SHOP_SIGIL.id} fallback={SHOP_SIGIL.glyph} /></span>
         <span className="intro-shop__name">{SHOP_SIGIL.name}</span>
         <span className="intro-shop__price mono">{SHOP_SIGIL.price} shards</span>
       </div>
@@ -224,7 +229,35 @@ const PANELS: Panel[] = [
     body: 'Blinds climb every few hands. Between antes, the Market opens — spend shards on sigils, relics, and rites that carry into the rest of the run.',
     Visual: ShopVisual,
   },
+  {
+    id: 'coven',
+    kicker: 'Before the first hand',
+    title: 'Pick who you sat down as.',
+    body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet always see one of somebody else’s cards. Choose one on the menu — the bots will.',
+    Visual: CovenVisual,
+  },
 ];
+
+/**
+ * Three covens, drawn the way the menu draws them. The point of the panel is
+ * not to explain seven loadouts — it is to tell a new player that the row of
+ * buttons above "Practice vs Bots" is a real choice and not decoration.
+ */
+function CovenVisual(): JSX.Element {
+  return (
+    <div className="intro-covens" aria-hidden="true">
+      {['unmoored', 'ashen', 'loom'].map((id) => {
+        const c = covenOf(id);
+        return (
+          <span key={id} className="intro-coven" style={{ ['--school' as string]: SCHOOLS[c.school].accent }}>
+            <Mark kind="coven" id={c.id} fallback={c.glyph} />
+            <b>{c.name}</b>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Flow shell
@@ -237,7 +270,7 @@ export interface IntroFlowProps {
 
 export default function IntroFlow({ open, onClose }: IntroFlowProps) {
   const [index, setIndex] = useState(0);
-  const reduced = useReducedMotion() === true;
+  const reduced = useReducedMotionPref();
 
   useEffect(() => { if (open) setIndex(0); }, [open]);
 
@@ -283,7 +316,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
       initial: { opacity: 0, x: 28 },
       animate: { opacity: 1, x: 0 },
       exit: { opacity: 0, x: -28 },
-      transition: { duration: 0.32, ease: [0.16, 1, 0.3, 1] as const },
+      transition: ENTER,
     }), [reduced]);
 
   return (
@@ -294,18 +327,18 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: reduced ? 0.01 : 0.2 }}
+          transition={{ duration: reduced ? 0.12 : 0.2, ease: EASE_OUT }}
           onPointerDown={(e) => { if (e.target === e.currentTarget) finish(); }}
         >
           <motion.div
-            className="intro-panel"
+            className="intro-panel hx-plate"
             role="dialog"
             aria-modal="true"
             aria-labelledby="intro-panel-title"
             initial={{ opacity: 0, y: 20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: reduced ? 0.01 : 0.28, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: reduced ? T_REDUCED : 0.28, ease: EASE_OUT }}
           >
             <header className="intro-head">
               <div className="intro-dots" aria-hidden="true">
@@ -317,7 +350,7 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
             </header>
 
             <div className="intro-body" aria-live="polite">
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 <motion.div key={panel.id} className="intro-page" {...panelMotion}>
                   <span className="intro-kicker">{panel.kicker}</span>
                   <h2 id="intro-panel-title" className="intro-title">{panel.title}</h2>

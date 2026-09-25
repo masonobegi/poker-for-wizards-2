@@ -15,20 +15,21 @@ Each of these is checked by something you can run, not by assertion.
 
 | Area | Verified by |
 | --- | --- |
-| Game rules, hand evaluation, all 60 sigils, all 33 omens | `npm test` — 128 tests |
+| Game rules, hand evaluation, all 71 sigils, all 41 omens, all 7 covens | `npm test` |
 | A full run completes in a real browser | `npm run play` — Playwright drives menu → intro → betting → spell stack → showdown → market → omens → game over |
 | Full controller support at Steam Deck resolution | `npm run play:pad` — 9 checks driven by a synthetic gamepad, no mouse used |
 | No memory leak over a session | heap stays flat across a full playthrough |
 | Server survives abuse | room caps, per-address socket and room-creation limits, token-bucket rate limiting |
 | Server bundles and runs standalone | `npm run build:server` → one 1.8MB `.mjs`, no `node_modules` |
 | Desktop installer builds with an icon | `npm run package:win` → `release/HEXHOLD Setup 0.9.0.exe` |
-| Achievements fire during real play | `npm run play` reports what unlocked |
+| Achievements fire during real play | `npm test` — the watcher is driven directly against a synthetic payout. `npm run play` also reports what unlocked, but only when the bots happen to lose you a pot, so it is a sample, not a proof |
+| Motion holds its invariants | `npm test` — reduced motion never deletes a cue or makes one louder; nothing framer animates relies on a CSS transform; no `transition: all`; every `whileHover` is gated |
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
-| Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread |
+| Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread. Bots raise 15%, bet 14%, call 26%, check 14%, fold 23%; showdowns land around 47% and magic fires in ~88% of hands |
+| Sounds are distinguishable from each other | `npm run audio` — every pair compared on length, brightness, loudness and attack, and the winning sounds are held brighter than the elimination sting |
 | Tables survive a restart | `npm test` — a hand in progress, its cards, chips and reconnect tokens all come back |
 | Every sound renders, none clip, and the mix holds | `npm run audio` — 50 sounds and 5 music beds rendered offline and measured for peak, RMS, DC offset, duration and spectral centroid, plus every sound checked against the level `src/audio/mix.ts` assigns it |
-| Typography survives with no network | `public/fonts/` is vendored into the build; `npm run build` output contains no request to fonts.googleapis.com |
-| Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum window |
+| Every target resolution lays out correctly | `npm run responsive` — Steam Deck, laptop, 1080p, 1440p, 4K, ultrawide and the minimum Electron window |
 
 ---
 
@@ -39,7 +40,7 @@ None of this can be done from the repository. It all needs your Steam partner ac
 1. **Pay the Steam Direct fee and create the app.** You get an App ID.
 2. **Write the App ID into the build.** Either set `STEAM_APP_ID` in the environment, or drop a `steam_appid.txt` containing the number next to the binary. Nothing else needs changing — `electron/steam.cjs` picks it up and stays dormant without it.
 3. **Install the native module:** `npm i steamworks.js`. It is already listed as an optional dependency, so a build without it still works.
-4. **Upload the achievements.** Run `npm run steam:manifest`; it writes `steam/achievements.json` and `steam/achievements.vdf` from the same definitions the game uses, so the names cannot drift. Twenty achievements, five hidden.
+4. **Upload the achievements.** Run `npm run steam:manifest`; it writes `steam/achievements.json` and `steam/achievements.vdf` from the same definitions the game uses, so the names cannot drift. Twenty achievements, six of them hidden.
 5. **Enable Steam Cloud** in the app's settings, auto-cloud for `hexhold-save.json`. The sync code is written and dormant until then.
 6. **Store page assets.** Capsule images, header, screenshots, trailer. The `playthrough/` folder has clean 1440×900 captures of every phase that are a reasonable starting point for screenshots.
 7. **Age rating and content survey.** The game has gambling *mechanics* but no real-money gambling and no purchasable currency — the answer to "does your game contain gambling" is nuanced and you should read Valve's current wording rather than take mine.
@@ -67,6 +68,15 @@ If you would rather not run a server, the alternative is Steam's own networking 
 
 Honest list, worst first.
 
+0. **Two of these harnesses run against the BUILD, not the source.** `npm run
+   responsive` and `npm run play:pad` open `localhost:3001`, which is the
+   express server serving `dist/`. `npm run play` opens the vite dev server on
+   `:5173`. Edit a file, run the first two without `npm run build`, and you
+   have tested the previous build — which happened during development and
+   produced a green result that meant nothing. **Always `npm run build` before
+   those two.** Related: `responsive`'s viewport-overflow check was incapable
+   of failing until it was fixed, because it clipped every element against
+   `body { overflow: hidden }`; treat older green runs of it as unproven.
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
 3. **The six-handed table is the slow configuration.** `npm run metrics -- 150 5` reads 17-23s a hand against a threshold that wants 12; the default practice table (you and three bots) runs about 15s. Bot think time already shortens as the table fills, and the remaining cost is real — six players, four streets, and six to nine spells a hand with a response window on each. It is worth another look, but not by making the spell layer quieter.
@@ -78,14 +88,10 @@ Honest list, worst first.
    plain seven-card hand evaluates in 0.11ms; one wild takes 1.7ms, two wilds
    with two superposed cards take 39ms, and nine cards can reach 122ms. A wild
    slot carries one candidate face per rank per suit in play and the evaluator
-   walks the cartesian product of five of them. Showdown pays this per live
-   player, so a late-run table with three wilds in the deck can spend a
-   meaningful fraction of a second scoring one pot. Nothing is wrong today —
-   the table is waiting on the showdown anyway — but anything that wants a
-   hand evaluated more often than once per showdown has to price the call
-   first (`evalComplexity`), the way the hand readout does. Worth a look
-   before adding, say, live odds.
-7. **Content depth.** 60 sigils, 37 relics, 33 omens, up from 45/23/23. The second pass leaned on the fact that relics and omens are pure data over fields the engine already reads, so they were the cheap half; the fifteen new sigils each needed an effect. Still the pillar most likely to be criticised, and still the one worth growing first — `npm run metrics` sees about 27 of the 60 sigils in a single run, which is roughly where a roguelike wants to be.
+   walks the product of five of them.
+7. **Content depth.** 71 sigils, 45 relics, 41 omens, 7 covens. Better than it
+   was, still under what a long-lived roguelike carries; replayability remains
+   the thing most likely to be criticised in reviews.
 8. **One language.** No localisation framework; all copy is inline English.
 
 ---

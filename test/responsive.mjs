@@ -87,8 +87,15 @@ function tagOf(el) {
 function clippedRect(el) {
   let r = el.getBoundingClientRect();
   let rect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  // Stop before <body>: this app sets `body { overflow: hidden }` because it
+  // is a full-screen game that does not scroll, and walking into that clips
+  // every element on the page to the viewport — which made this function
+  // return "nothing overflows" for every element at every resolution. The
+  // two clipping bugs this harness was meant to catch (a sigil name reading
+  // "Doppelgange", BIND reading "BIN" at 1024x680) both had to be found by
+  // looking at screenshots instead.
   let p = el.parentElement;
-  while (p) {
+  while (p && p !== document.body) {
     const cs = getComputedStyle(p);
     if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
       const pr = p.getBoundingClientRect();
@@ -190,6 +197,65 @@ async function checkTinyText(page) {
     }
     return [...new Set(out)].slice(0, 12);
   }, [isVisible.toString(), tagOf.toString(), clippedRect.toString()]);
+}
+
+/**
+ * No text cut off by a box too small for it.
+ *
+ * This is the check this harness was missing, and it is the one that matters
+ * for a full-screen app. `checkOverflowX` asks "does anything paint outside
+ * the viewport", and the answer here is always no — `.app` and `body` both
+ * set `overflow: hidden`, so the window edge physically cannot be crossed.
+ * The real failure mode is the opposite one: a box that clips its own
+ * contents. Both layout bugs found at 1024x680 were this — a sigil reading
+ * "Doppelgange" and BIND reading "BIN" — and both had to be found by looking
+ * at screenshots, because nothing here was asking the question.
+ *
+ * Deliberate truncation is excluded: an ellipsis, a line clamp, a fade mask
+ * and a scrollable panel are all cues that say "there is more", which is a
+ * design decision rather than a defect.
+ */
+async function checkClippedText(page) {
+  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+    // eslint-disable-next-line no-eval
+    const isVisible = eval(`(${isVisibleSrc})`);
+    // eslint-disable-next-line no-eval
+    const tagOf = eval(`(${tagOfSrc})`);
+    const out = [];
+
+    for (const el of document.querySelectorAll('body *')) {
+      let hasText = false;
+      for (const child of el.childNodes) {
+        if (child.nodeType === 3 && child.textContent && child.textContent.trim()) { hasText = true; break; }
+      }
+      if (!hasText || !isVisible(el)) continue;
+
+      const cs = getComputedStyle(el);
+      // Deliberate "there is more" cues.
+      if (cs.textOverflow === 'ellipsis') continue;
+      if (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') continue;
+      if ((cs.maskImage && cs.maskImage !== 'none') || (cs.webkitMaskImage && cs.webkitMaskImage !== 'none')) continue;
+      if (/(auto|scroll)/.test(cs.overflowX + cs.overflowY)) continue;
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      // A visually-hidden copy for screen readers is a 1x1 box with its text
+      // clipped away on purpose — which is this check's exact signature, and
+      // it fired on every `.sr-only` in the showdown panel. Nothing a sighted
+      // player is meant to read is three pixels wide.
+      if (el.clientWidth <= 3 || el.clientHeight <= 3) continue;
+
+      // 1px of slack: sub-pixel text metrics round against us constantly.
+      const cutX = el.scrollWidth - el.clientWidth;
+      const cutY = el.scrollHeight - el.clientHeight;
+      if (cutX > 1 || cutY > 1) {
+        const what = cutX > 1 ? `${Math.round(cutX)}px wider` : `${Math.round(cutY)}px taller`;
+        out.push(`${tagOf(el)} clips its own text (${what} than its box) — "${el.textContent.trim().slice(0, 28)}"`);
+      }
+    }
+    return [...new Set(out)].slice(0, 12);
+  }, [isVisible.toString(), tagOf.toString()]);
 }
 
 /** The action buttons must all be visible and at least 32px tall. */
@@ -371,6 +437,7 @@ async function runResolution(browser, res) {
     fail('menu', await checkOverflowX(page));
     fail('menu', await checkFixedBottom(page));
     fail('menu', await checkTinyText(page));
+    fail('menu', await checkClippedText(page));
 
     // --- connect + practice ----------------------------------------------
     const practice = page.locator('button', { hasText: /practice vs bots/i }).first();
@@ -432,6 +499,7 @@ async function runResolution(browser, res) {
             fail('market', await checkOverflowX(page));
             fail('market', await checkFixedBottom(page));
             fail('market', await checkTinyText(page));
+            fail('market', await checkClippedText(page));
           }
           const buy = page.locator('.shopcard button:not([disabled])').first();
           if (await buy.isVisible().catch(() => false)) {
@@ -453,6 +521,7 @@ async function runResolution(browser, res) {
           fail('showdown', await checkOverflowX(page));
           fail('showdown', await checkFixedBottom(page));
           fail('showdown', await checkTinyText(page));
+          fail('showdown', await checkClippedText(page));
         }
 
         // Our turn.
@@ -468,6 +537,7 @@ async function runResolution(browser, res) {
             fail('table', await checkOverflowX(page));
             fail('table', await checkFixedBottom(page));
             fail('table', await checkTinyText(page));
+            fail('table', await checkClippedText(page));
             fail('table', await checkActionButtons(page));
             fail('table', await checkOwnCardsOnScreen(page));
             fail('table', await checkSeatOverlap(page));

@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useGame } from '@/store/net';
 import { Button } from '@/components/ui/kit';
 import { useFocusTrap } from './shell/useFocusTrap';
-import { motionDuration, useMotionReduced } from './shell/reducedMotion';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
 import './shell/shell.css';
 
 /** A blip — a dropped packet, a laptop waking up — should not flash anything.
@@ -22,7 +23,7 @@ export default function ConnectionBadge() {
   const [showPill, setShowPill] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const reduceMotion = useMotionReduced();
+  const reduceMotion = useReducedMotionPref();
   const trapRef = useFocusTrap<HTMLDivElement>(showOverlay);
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function ConnectionBadge() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: motionDuration(0.2, reduceMotion) }}
+            transition={reduceMotion ? { duration: T_REDUCED, ease: EASE_OUT } : ENTER}
           >
             <span className="pulse-dot off" aria-hidden />
             Reconnecting
@@ -75,7 +76,7 @@ export default function ConnectionBadge() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: motionDuration(0.2, reduceMotion) }}
+            transition={reduceMotion ? { duration: T_REDUCED, ease: EASE_OUT } : ENTER}
           >
             <motion.div
               ref={trapRef}
@@ -88,7 +89,7 @@ export default function ConnectionBadge() {
               initial={{ opacity: 0, y: 16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ duration: motionDuration(0.24, reduceMotion) }}
+              transition={reduceMotion ? { duration: T_REDUCED, ease: EASE_OUT } : ENTER}
             >
               <h2 id="hh-conn-title" className="hh-conn-title display">
                 <span className="pulse-dot off" aria-hidden />

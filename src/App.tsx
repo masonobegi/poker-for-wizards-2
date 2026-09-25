@@ -17,6 +17,7 @@ import RunRecorder from '@/components/profile/RunRecorder';
 import AchievementToast from '@/components/AchievementToast';
 import { installAchievementWatcher } from '@/lib/achievements';
 import { installCloudSync, pullCloudSave } from '@/lib/cloud';
+import { ENTER } from '@/styles/motion';
 
 /**
  * The particle layer is decoration — load it after the first paint, and if the
@@ -45,23 +46,20 @@ const VfxLayer = lazy(async (): Promise<{ default: React.ComponentType }> => {
   }
 });
 
-/**
- * Moving between the menu, the lobby and the table.
- *
- * A straight crossfade is what a web page does when it changes route, and it
- * was reading as exactly that. What this game is doing instead is walking you
- * to a different table in the same room, so the outgoing scene falls *away*
- * from the viewer and the incoming one comes up to meet you — one continuous
- * move through depth rather than two images dissolving into each other.
- *
- * `mode="wait"` means these never overlap, so the asymmetry is the whole
- * effect: you see something leave, then something arrive.
- */
+/* Scene changes are keyboard- and pad-initiated (Leave Table, Take a Seat,
+   Practice vs Bots), so this is latency on a control path, not decoration.
+   `mode="wait"` used to serialise exit *then* enter — 420ms + 420ms of
+   non-interactive screen per change, paid twice on the menu -> lobby -> table
+   route. A short crossfade covers the swap without gating input, and the
+   scale goes because a scale on a full-screen crossfade reads as drift. */
 const sceneMotion = {
-  initial: { opacity: 0, scale: 1.035, y: 10 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.955, y: -8 },
-  transition: { duration: 0.38, ease: [0.16, 1, 0.3, 1] as const },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, pointerEvents: 'auto' as const },
+  // Without `mode="wait"` the outgoing scene stays mounted for the length of
+  // the crossfade. It must not be clickable while it fades, or a click aimed
+  // at the incoming screen can land on the dying one.
+  exit: { opacity: 0, pointerEvents: 'none' as const },
+  transition: ENTER,
 };
 
 export default function App() {
@@ -160,8 +158,8 @@ export default function App() {
   }, [screen]);
 
   return (
-    <div className="app" ref={shellRef}>
-      <AnimatePresence mode="wait">
+    <div className={`app ${screen === 'game' ? 'is-table' : ''}`} ref={shellRef}>
+      <AnimatePresence>
         <motion.div key={screen} className="scene" {...sceneMotion}>
           {screen === 'menu' ? <Menu /> : null}
           {screen === 'lobby' ? <Lobby /> : null}

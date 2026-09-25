@@ -6,7 +6,7 @@
  * order — last cast, first resolved — is visible rather than something you have
  * to have read the rules to know.
  */
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
 import { SCHOOLS, SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
@@ -17,6 +17,8 @@ import { useGame } from '@/store/net';
 import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_CRISP, T_BASE, T_REDUCED } from '@/styles/motion';
+import { Mark } from '@/art/marks';
 
 export interface StackOverlayProps {
   view: TableView;
@@ -49,7 +51,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   }, [topId]);
 
   const handleRespond = (uid: string, originEl: Element, def: SigilDef): void => {
-    spellFlight.fireNow(originEl, panelRef.current, def.school, def.glyph);
+    spellFlight.fireNow(originEl, panelRef.current, def.school, def.id);
     onBeginCast(uid);
   };
 
@@ -61,17 +63,17 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={ENTER_PANEL}
         >
           <motion.div
-            className="stack-panel"
+            className="stack-panel hx-plate"
             ref={panelRef}
             initial={reducedMotion ? { opacity: 0 } : { y: 60, scale: 0.9 }}
             animate={reducedMotion ? { opacity: 1 } : { y: 0, scale: 1 }}
             exit={reducedMotion ? { opacity: 0 } : { y: 24, scale: 0.96 }}
             transition={reducedMotion
-              ? { duration: 0.12 }
-              : { type: 'spring', stiffness: 460, damping: 26, mass: 0.9 }}
+              ? { duration: T_REDUCED, ease: EASE_OUT }
+              : SPRING_CRISP}
           >
             <header className="stack-head">
               <span className="eyebrow">The Stack</span>
@@ -88,10 +90,21 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                     className={`stack-item ${e.countered ? 'is-countered' : ''} ${i === 0 ? 'is-top' : ''}`}
                     style={{ ['--school' as string]: school.accent }}
                     initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
+                    // The counterspell punch lives here rather than in a CSS
+                    // keyframe: the stack is a rapid, reversible surface
+                    // (counter, counter-the-counter), and two systems writing
+                    // `transform` to one node meant a second hit restarted the
+                    // first from zero.
+                    animate={e.countered && !reducedMotion
+                      ? { opacity: 0.45, x: [0, -7, 5, -2, 0] }
+                      : { opacity: e.countered ? 0.45 : 1, x: 0 }}
+                    // The punch must not inherit the entrance stagger —
+                    // feedback on a reactive surface has to be immediate.
+                    transition={e.countered
+                      ? { duration: T_BASE, ease: EASE_OUT }
+                      : { ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
                   >
-                    <span className="stack-glyph">{def?.glyph ?? '✦'}</span>
+                    <span className="stack-glyph">{def ? <Mark kind="sigil" id={def.id} fallback={def.glyph} /> : '✦'}</span>
                     <span className="stack-body">
                       <strong>{e.sigilName}</strong>
                       <span className="stack-caster">{e.casterName}</span>
@@ -119,7 +132,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                         style={{ ['--school' as string]: school.accent }}
                         onClick={(ev) => handleRespond(s.uid, ev.currentTarget, def)}
                       >
-                        <span className="stack-optglyph">{def.glyph}</span>
+                        <span className="stack-optglyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></span>
                         <span>
                           <strong>{def.name}</strong>
                           <em>{def.text}</em>
@@ -150,24 +163,43 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   );
 }
 
+/**
+ * A linear drain, run by the compositor rather than by React. This was a
+ * `requestAnimationFrame` calling `setState` per frame to write a `scaleX`
+ * that CSS can interpolate on its own — and the element it drives already had
+ * `transform-origin: left` and `will-change: transform` set up for exactly
+ * that. `closesAt` is a wall-clock deadline, so a reconnect part-way through
+ * the response window resumes at the right width.
+ */
 function ResponseTimer({ closesAt, seconds }: { closesAt: number; seconds: number }) {
-  const [pct, setPct] = useState(1);
-
-  useEffect(() => {
-    if (!closesAt) { setPct(1); return; }
-    let raf = 0;
-    const tick = () => {
-      const left = Math.max(0, closesAt - Date.now());
-      setPct(Math.min(1, left / (seconds * 1000)));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+  // Read the clock ONCE per response window, not once per render.
+  //
+  // `closesAt` is stable for the life of a window, so `key` does not change on
+  // a re-render — but the parent re-renders on every `view` update, and
+  // recomputing these from a fresh `Date.now()` rewrote the custom properties
+  // underneath an animation that was already running. The keyframe would then
+  // re-evaluate its endpoints against a new duration while keeping its
+  // original start time, and the bar visibly jumped backwards. Reading the
+  // clock in a memo keyed on the window fixes both that and the render-purity
+  // problem (StrictMode double-renders produced two different values).
+  const ring = useMemo(() => {
+    if (!closesAt) return null;
+    const leftMs = Math.max(0, closesAt - Date.now());
+    return { leftMs, from: Math.min(1, leftMs / (seconds * 1000)) };
   }, [closesAt, seconds]);
+
+  if (ring === null) return null;
 
   return (
     <div className="stack-timer" aria-hidden>
-      <div className="stack-timerfill" style={{ transform: `scaleX(${pct})` }} />
+      <div
+        key={closesAt}
+        className="stack-timerfill"
+        style={{
+          ['--stack-from' as string]: String(ring.from),
+          ['--stack-ms' as string]: `${ring.leftMs}ms`,
+        }}
+      />
     </div>
   );
 }

@@ -39,12 +39,23 @@
   white-space: nowrap;
   transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast) var(--ease-snap);
 }
+/* `.is-open` is the real state and keeps its full treatment. The hover alias
+   is split: on touch a stuck hover used to be visually identical to "this
+   omen is open", so the lift now only happens with a real pointer. */
 .omen:hover,
 .omen.is-open {
   border-color: var(--entropy);
   background: color-mix(in srgb, var(--entropy) 20%, transparent);
+}
+.omen.is-open {
   transform: translateY(-1px);
   box-shadow: 0 0 18px color-mix(in srgb, var(--entropy) 35%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .omen:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 18px rgba(185, 140, 255, 0.35);
+  }
 }
 
 .omen-glyph {
@@ -64,7 +75,7 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   z-index: var(--z-modal);
   width: 270px;
   padding: 11px 13px;

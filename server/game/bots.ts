@@ -16,6 +16,7 @@ import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
 import type { BetAction, BotSkill, Player, SigilTargets, Table, TableSpeed } from '../../shared/types';
 import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
+import { config } from '../config';
 
 interface Personality {
   /** 0 = plays anything, 1 = only premium holdings. */
@@ -249,61 +250,175 @@ function computeEquity(t: Table, p: Player, rng: Rng): number {
 // Betting
 // ---------------------------------------------------------------------------
 
+type Street = 'preflop' | 'flop' | 'turn' | 'river';
+const STREETS: readonly string[] = ['preflop', 'flop', 'turn', 'river'];
+const isStreet = (ph: string): ph is Street => STREETS.includes(ph);
+
+/**
+ * Who was betting on the street before this one.
+ *
+ * A poker player's single most common aggressive action is the continuation
+ * bet: you raised before the flop, so you bet the flop, whatever came. Without
+ * it a bot can only ever bet when it has already made a hand, which is what
+ * produced the old numbers — 30% check, 30% call, 4% raise, across a whole
+ * session. That is not a player, it is a turnstile.
+ *
+ * `t.lastAggressorId` is reset each street, so it has to be remembered while
+ * the street is still running. Every bot records it on every turn, so the
+ * value kept is the one that was true when the last bot acted. A human who
+ * raises after the final bot has acted is therefore missed — the bot behaves
+ * as if it were still the aggressor and fires once into a raiser. That is a
+ * rare and survivable misread, and much cheaper than threading per-street
+ * history through the table state for this one use.
+ */
+interface HandMemory {
+  key: string;
+  aggressor: Partial<Record<Street, string | null>>;
+}
+let memory: HandMemory = { key: '', aggressor: {} };
+
+function recall(t: Table): { wasAggressor: (id: string) => boolean } {
+  const key = `${t.code}|${t.handNumber}`;
+  if (memory.key !== key) memory = { key, aggressor: {} };
+  const here = isStreet(t.phase) ? t.phase : null;
+  if (here) {
+    // `?? previous`: once somebody has bet this street, a later null (nobody
+    // has re-raised since) must not erase them.
+    memory.aggressor[here] = t.lastAggressorId ?? memory.aggressor[here] ?? null;
+  }
+  const idx = here ? STREETS.indexOf(here) : -1;
+  const prev = idx > 0 ? (STREETS[idx - 1] as Street) : null;
+  return { wasAggressor: (id) => !!prev && memory.aggressor[prev] === id };
+}
+
+/** How many live opponents still act after `p` on this street. */
+function behindCount(t: Table, p: Player): number {
+  const order = live(t).filter((q) => !q.allIn);
+  const rel = (q: Player): number => (q.seat - t.dealerSeat + 1000) % 1000;
+  const mine = rel(p);
+  return order.filter((q) => q.id !== p.id && rel(q) > mine).length;
+}
+
 export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
   const pr = personalityOf(p, t.config.botSkill);
   const band = skillOf(t);
+  const mem = recall(t);
   const toCall = Math.max(0, t.currentBet - p.bet);
   const pot = Math.max(t.bb, totalPot(t));
   const eq = equity(t, p, rng);
 
   const potOdds = toCall > 0 ? toCall / (pot + toCall) : 0;
   const stackBB = p.chips / t.bb;
-  const desperate = stackBB < 8;
+  const field = live(t).length;
+  const opponents = Math.max(1, field - 1);
+  const behind = behindCount(t, p);
+  const late = behind <= 1;
+  // Every bluff is worth less against more people: one of them has something.
+  // At 0.3 per extra opponent, a 35-hand sample still ended 25 of them with
+  // everybody folding — the bluffing was working on the bots, which is not
+  // the same as the game being worth watching.
+  const crowd = Math.max(0.22, 1 - (opponents - 1) * 0.4);
 
   // Short stacks must gamble or blind away.
-  if (desperate && eq > 0.42 && toCall > 0) return { kind: 'allin' };
+  if (stackBB < 8 && eq > 0.5 && toCall > 0) return { kind: 'allin' };
 
   const sizing = (frac: number): number => {
     const raw = Math.round((pot * frac) / t.bb) * t.bb;
     return Math.max(t.bb, Math.min(p.chips, Math.max(raw, t.currentBet + t.minRaise)));
   };
 
-  if (toCall === 0) {
-    const wantsValue = eq > 0.62 + pr.tight * 0.1;
-    const wantsBluff = eq < 0.34 && rng.chance(pr.bluff);
-    if (wantsValue || wantsBluff) {
-      const frac = wantsValue ? 0.45 + pr.aggro * 0.4 : 0.4 + rng.next() * 0.2;
-      const amount = sizing(frac);
-      if (amount >= p.chips) return { kind: 'allin' };
-      return { kind: 'bet', amount };
+  /** Put money in, as whichever action is legal from here. */
+  const fire = (amount: number): BetAction => {
+    if (amount >= p.chips) return { kind: 'allin' };
+    if (t.currentBet > 0) {
+      return amount > t.currentBet ? { kind: 'raise', amount } : (toCall > 0 ? { kind: 'call' } : { kind: 'check' });
     }
+    return { kind: 'bet', amount };
+  };
+
+  // --- preflop -------------------------------------------------------------
+  // Pot odds are the wrong yardstick before the flop: the bet is small, the
+  // hand has three streets left, and equity here is measured against the whole
+  // field to showdown — so it sits near 1/field for anything playable and the
+  // comparison folds almost everything. Judging against that par share instead
+  // is what an opening range actually is.
+  if (t.phase === 'preflop') {
+    const par = 1 / Math.max(2, field);
+    const strong = eq > par * 1.42;
+    const premium = eq > par * 1.75;
+    const playable = eq > par * 1.06;
+    const unraised = toCall <= t.bb;
+
+    if (unraised) {
+      if (strong && rng.chance(0.5 + pr.aggro * 0.3)) return fire(sizing(0.9));
+      // A steal from the button with nothing, which is most of poker's
+      // aggression and none of its equity.
+      if (late && rng.chance((0.04 + pr.bluff * 0.5) * crowd)) return fire(sizing(0.75));
+      if (toCall === 0) return { kind: 'check' };
+      if (playable) return { kind: 'call' };
+      return { kind: 'fold' };
+    }
+
+    if (premium && rng.chance(0.32 + pr.aggro * 0.3)) return fire(sizing(1.05));
+    if (eq > par * 1.02) return toCall >= p.chips ? { kind: 'allin' } : { kind: 'call' };
+    if (late && p.chips > toCall * 6 && rng.chance(pr.bluff * 0.7)) return fire(sizing(1.0));
+    return { kind: 'fold' };
+  }
+
+  // --- nobody has bet this street -----------------------------------------
+  if (toCall === 0) {
+    if (mem.wasAggressor(p.id) && rng.chance((0.36 + pr.aggro * 0.22) * crowd)) {
+      return fire(sizing(0.5 + pr.aggro * 0.2));
+    }
+    if (eq > 0.55 + pr.tight * 0.08) return fire(sizing(0.5 + pr.aggro * 0.35));
+    // A draw is worth betting: it wins now or it wins later.
+    if (eq > 0.38 && rng.chance((0.12 + pr.aggro * 0.22) * crowd)) return fire(sizing(0.45));
+    if (late && rng.chance((0.02 + pr.bluff * 0.4) * crowd)) return fire(sizing(0.4 + rng.next() * 0.2));
     return { kind: 'check' };
   }
 
+  // --- facing a bet --------------------------------------------------------
   const edge = eq - potOdds;
 
-  if (edge > 0.18 && rng.chance(0.35 + pr.aggro * 0.45)) {
-    const amount = sizing(0.6 + pr.aggro * 0.5);
-    if (amount >= p.chips || eq > 0.86) return { kind: 'allin' };
+  if (edge > 0.14 && rng.chance(0.3 + pr.aggro * 0.4)) {
+    // `sizing` already floors at `currentBet + minRaise`; capping it at 55% of
+    // the stack can push it back UNDER that floor, and a raise smaller than
+    // the minimum is not a legal action. Take the cap only when it still
+    // clears the floor, and otherwise do not raise at all.
+    const capped = Math.min(sizing(0.6 + pr.aggro * 0.5), Math.round(p.chips * 0.55));
+    const amount = capped >= t.currentBet + t.minRaise ? capped : 0;
+    if (amount >= p.chips * 0.85 || eq > 0.9) return { kind: 'allin' };
     if (amount > t.currentBet) return { kind: 'raise', amount };
   }
 
-  // How far past the odds they will still call. A novice talks themselves
-  // into marginal spots; a master lets them go. This is a nudge on top of the
-  // blurred read, not the main event — most of the skill gap is already in
-  // the fact that `eq` means something different to each of them.
-  if (edge > -0.025 * band.loose) {
-    if (toCall >= p.chips) return eq > 0.5 ? { kind: 'allin' } : { kind: 'fold' };
+  // Raising with nothing, which is the only way a fold ever gets bought.
+  if (eq < 0.3 && toCall < pot * 0.55 && p.chips > toCall * 4
+    && rng.chance(pr.bluff * (late ? 1.0 : 0.5) * crowd)) {
+    const amount = sizing(0.75);
+    if (amount > t.currentBet && amount < p.chips) return { kind: 'raise', amount };
+  }
+
+  // Wide. Folding to every bet makes the aggression above worthless: a run
+  // where the bots raised well and folded to each other ended fifteen of
+  // twenty-two hands with nobody showing a card, which is not a poker game
+  // anyone watched. Somebody has to call.
+  //
+  // `band.loose` scales that threshold rather than replacing it, so `adept`
+  // is exactly the measured number and only the other two bands move.
+  if (edge > -0.15 * band.loose) {
+    // Stacking off is the one decision a bot cannot take back. Four-handed,
+    // 50% against the field was enough to end three players in two hands.
+    if (toCall >= p.chips * 0.75) return eq > 0.62 ? { kind: 'allin' } : { kind: 'fold' };
     return { kind: 'call' };
   }
 
-  // A cheap call against a big pot is worth the float.
-  if (toCall <= t.bb * band.loose && eq > 0.22 && rng.chance(Math.min(0.95, 0.6 * band.loose))) {
+  // A cheap price with any equity at all is a call. Showdowns are where this
+  // game's whole point lands — an impossible hand nobody sees is a hand that
+  // did not happen — so the bots are deliberately looser than a solver here.
+  if (toCall <= pot * 0.28 * band.loose && eq > 0.26) return { kind: 'call' };
+  if (toCall <= t.bb * 1.5 * band.loose && eq > 0.2
+    && rng.chance(Math.min(0.95, 0.7 * band.loose))) {
     return { kind: 'call' };
-  }
-  // Occasional resteal so they are not pure calling stations.
-  if (eq < 0.25 && rng.chance(pr.bluff * 0.5) && p.chips > toCall * 4) {
-    return { kind: 'raise', amount: sizing(0.7) };
   }
 
   return { kind: 'fold' };
@@ -401,13 +516,17 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     if (eq > 0.7 && def.school === 'ruin') want *= 1.25;
     // A full hand is a wasted hand — spend down rather than hoard.
     if (p.sigils.length >= 4) want *= 1.6;
-    // Mana at the cap is mana being thrown away every street.
-    if (p.mana >= p.maxMana - 1) want *= 1.5;
+    // Mana at the cap is mana being thrown away every street. Measured runs
+    // still ended with five unspent per player, so this leans harder: a bot
+    // sitting on a full pool is a bot that has decided not to play the half
+    // of the game the game is named after.
+    if (p.mana >= p.maxMana - 1) want *= 1.7;
+    else if (p.mana >= p.maxMana - 3) want *= 1.3;
+    // Cheap spells should not be agonised over when the pool is deep.
+    if (manaCost(p, def) <= 2 && p.mana >= 6) want *= 1.2;
     // The river is the last street there is. Mana carries into the next hand,
     // but the deal grants +3 on top and the pool is capped, so anything held
-    // past this point either spills or simply never gets used — a bot sitting
-    // on a full pool at the river has misplayed the hand, whatever it does
-    // with its chips.
+    // past this point either spills or simply never gets used.
     if (t.phase === 'river') {
       const spill = Math.max(0, p.mana + 3 - p.maxMana);
       want *= spill > 0 ? 1 + spill * 0.3 : 1.25;
@@ -482,9 +601,13 @@ export function thinkTime(
   opts: { fast?: boolean; actors?: number; speed?: TableSpeed } = {},
 ): number {
   const tempo = TEMPO[opts.speed ?? 'standard'] ?? TEMPO.standard;
-  if (opts.fast) return Math.round((120 + rng.int(170)) * tempo.think);
-  const base = 260 + rng.int(500);
+  // `config.pacePercent` is the global pacing dial; `tempo.think` is the
+  // per-table speed setting; the crowd factor keeps a six-handed round from
+  // taking three times as long as a heads-up one. They multiply.
+  const pace = config.pacePercent / 100;
+  if (opts.fast) return Math.round((140 + rng.int(200)) * tempo.think * pace);
+  const base = 300 + rng.int(620);
   const actors = opts.actors ?? 2;
   const crowd = actors > 3 ? Math.max(0.62, 1 - (actors - 3) * 0.12) : 1;
-  return Math.round(base * crowd * tempo.think);
+  return Math.round(base * crowd * tempo.think * pace);
 }

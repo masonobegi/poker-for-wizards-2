@@ -79,8 +79,8 @@ interface GameStore {
   emotes: Record<string, { id: string; at: number }>;
 
   connect(): void;
-  createRoom(name: string, config?: Partial<RoomConfig>): Promise<string | null>;
-  joinRoom(code: string, name: string): Promise<boolean>;
+  createRoom(name: string, config?: Partial<RoomConfig>, coven?: string): Promise<string | null>;
+  joinRoom(code: string, name: string, coven?: string): Promise<boolean>;
   tryRejoin(): Promise<boolean>;
   leave(): void;
 
@@ -106,6 +106,21 @@ interface GameStore {
   toast(text: string, tone?: Toast['tone']): void;
   dismissToast(id: number): void;
   clearError(): void;
+}
+
+/**
+ * A read-only snapshot of the latest table view on `window`, for the Playwright
+ * harnesses in `test/` and for asking a player what their client actually saw
+ * when something goes wrong. `test/playthrough.mjs` has read this since it was
+ * written; nothing ever published it, so every check it built on the result was
+ * silently inert.
+ *
+ * Read-only by convention — nothing in the app reads it back.
+ */
+function publishView(view: TableView | null): void {
+  if (typeof window === 'undefined') return;
+  try { (window as unknown as { __hexholdView: TableView | null }).__hexholdView = view; }
+  catch { /* ignore */ }
 }
 
 export const useGame = create<GameStore>((set, get) => ({
@@ -140,6 +155,7 @@ export const useGame = create<GameStore>((set, get) => ({
     socket.on('table', (view: TableView) => {
       const screen: Screen = view.phase === 'lobby' ? 'lobby' : 'game';
       set({ view, screen, joining: false });
+      publishView(view);
     });
 
     socket.on('fx', (events: FxEvent[]) => dispatchFx(events));
@@ -165,19 +181,19 @@ export const useGame = create<GameStore>((set, get) => ({
 
     socket.on('kicked', ({ reason }: { reason: string }) => {
       writeSeat(null);
-      set({ screen: 'menu', view: null, error: reason });
+      set({ screen: 'menu', view: null, error: reason }); publishView(null);
     });
 
     set({ socket });
   },
 
-  async createRoom(name, config) {
+  async createRoom(name, config, coven) {
     const s = get().socket;
     if (!s) return null;
     writeName(name);
     set({ joining: true, error: null });
     return new Promise((resolve) => {
-      s.emit('room:create', { name, config }, (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
+      s.emit('room:create', { name, coven, config }, (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
         if (a.ok && a.data) {
           writeSeat(a.data);
           set({ screen: 'lobby', joining: false, chat: [] });
@@ -190,13 +206,13 @@ export const useGame = create<GameStore>((set, get) => ({
     });
   },
 
-  async joinRoom(code, name) {
+  async joinRoom(code, name, coven) {
     const s = get().socket;
     if (!s) return false;
     writeName(name);
     set({ joining: true, error: null });
     return new Promise((resolve) => {
-      s.emit('room:join', { code: code.toUpperCase(), name },
+      s.emit('room:join', { code: code.toUpperCase(), name, coven },
         (a: { ok: boolean; error?: string; data?: StoredSeat }) => {
           if (a.ok && a.data) {
             writeSeat(a.data);
@@ -216,7 +232,7 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!s || !seat) return false;
     return new Promise((resolve) => {
       s.emit('room:rejoin', seat, (a: { ok: boolean }) => {
-        if (!a.ok) { writeSeat(null); set({ screen: 'menu', view: null }); }
+        if (!a.ok) { writeSeat(null); set({ screen: 'menu', view: null }); } publishView(null);
         resolve(a.ok);
       });
     });
@@ -225,7 +241,7 @@ export const useGame = create<GameStore>((set, get) => ({
   leave() {
     get().socket?.emit('room:leave');
     writeSeat(null);
-    set({ screen: 'menu', view: null, chat: [], error: null });
+    set({ screen: 'menu', view: null, chat: [], error: null }); publishView(null);
   },
 
   setConfig(patch) { get().socket?.emit('room:config', patch); },
@@ -248,7 +264,7 @@ export const useGame = create<GameStore>((set, get) => ({
     const old = get().socket;
     if (old) { old.removeAllListeners(); old.disconnect(); }
     writeSeat(null);
-    set({ socket: null, connected: false, view: null, screen: 'menu', chat: [], error: null });
+    set({ socket: null, connected: false, view: null, screen: 'menu', chat: [], error: null }); publishView(null);
     get().connect();
   },
 
