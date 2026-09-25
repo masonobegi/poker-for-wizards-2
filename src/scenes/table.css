@@ -1187,6 +1187,7 @@
   0%   { transform: scale(1); }
   45%  { transform: scale(1.08); }
   100% { transform: scale(1); }
+}
 
 /* Foil: the specular the playing cards have always had, scaled by rarity in
    SigilCard.tsx. framer owns the gradient and the opacity; nothing here may

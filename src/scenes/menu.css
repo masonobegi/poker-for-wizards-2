@@ -282,6 +282,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-5, var(--text-4));
+}
+
 /* The build string and the desktop-only way out. Both are deliberately the
    quietest things on the menu — present when looked for, invisible otherwise. */
 .menu-version {
