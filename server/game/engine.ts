@@ -395,12 +395,21 @@ export class Engine {
     this.startActionClock();
   }
 
-  private startActionClock(): void {
+  /**
+   * Put the acting player on the clock.
+   *
+   * `resume` is the same turn picking up again after a sigil resolved. It
+   * must not count as a fresh turn: resetting the cast tally there made the
+   * two-casts-a-turn cap unreachable, and paying a bot's full deliberation
+   * again after every cast was a large share of a hand's running time. The
+   * bot already thought before it cast; what follows is a beat.
+   */
+  private startActionClock(resume = false): void {
     const t = this.table;
     const p = byId(t, t.actingId);
     if (!p) { this.advanceStreet(); return; }
 
-    this.castsThisTurn.delete(p.id);
+    if (!resume) this.castsThisTurn.delete(p.id);
     t.actingUntil = Date.now() + t.config.actionSeconds * 1000;
     this.wait(t.config.actionSeconds * 1000, () => {
       // Time is a fold, unless checking is free.
@@ -408,8 +417,10 @@ export class Engine {
       this.applyAction(p, toCall > 0 ? { kind: 'fold' } : { kind: 'check' }, true);
     });
 
-    if (p.isBot) this.botClock.set(p.id, Date.now() + thinkTime(this.rng, { actors: live(t).length, speed: t.config.speed }));
-    else this.fx.push({ t: 'sfx', name: 'your_turn' });
+    if (p.isBot) {
+      const think = thinkTime(this.rng, { fast: resume, actors: live(t).length, speed: t.config.speed });
+      this.botClock.set(p.id, Date.now() + think);
+    } else if (!resume) this.fx.push({ t: 'sfx', name: 'your_turn' });
 
     this.flush();
   }
@@ -996,7 +1007,7 @@ export class Engine {
       }
       if (live(t).length <= 1) { this.toShowdown(); return; }
       if (this.roundComplete()) { this.standDown(); this.advanceStreet(); return; }
-      if (t.actingId) { this.startActionClock(); return; }
+      if (t.actingId) { this.startActionClock(true); return; }
       this.advanceStreet();
     });
   }
