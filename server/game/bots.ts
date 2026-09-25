@@ -580,7 +580,16 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
   const order = ['relic', 'mana', 'sigil', 'rite'];
   affordable.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || b.price - a.price);
   const pick = affordable[0];
-  if (pick.kind === 'rite' && !rng.chance(0.3)) return null;
+  if (pick.kind === 'rite') {
+    // Rites are last in the order, so a bot only reaches one when it wants
+    // nothing else — and then used to walk away from it seven times in ten.
+    // A rite writes on the *shared* deck, so a bot declining one does not
+    // just cost that bot: it removes a duplicate-making card from the table
+    // everybody draws from, which is the only route to the hands this game is
+    // named after. A Wild is worth taking; a Cursed is a trap and stays one.
+    const enabling = pick.markId === 'wild' || pick.markId === 'prism' || pick.markId === 'echo';
+    if (!rng.chance(enabling ? 0.75 : 0.25)) return null;
+  }
   return pick.uid;
 }
 

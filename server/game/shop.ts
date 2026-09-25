@@ -15,7 +15,33 @@ import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
 import { giveSigil } from './magic';
 import { log, maxManaFor, sigilHandSize } from './table';
 
-const RITE_MARKS: MarkId[] = ['blooded', 'prism', 'echo', 'wild', 'leaden', 'cursed'];
+/*
+ * The rite pool, weighted.
+ *
+ * The market offers exactly one rite a visit, and this list used to be picked
+ * from uniformly — so a Wild turned up one visit in six, at a price above the
+ * shards a run starts with, in a fifty-two card deck. Across a whole run that
+ * is about one Wild offered and usually not bought, which is why a measured
+ * session produced no impossible hand at all and why the four sigils added to
+ * fix that did not move it either.
+ *
+ * Five of a Kind, Flush House and Flush Five are the only hands the game is
+ * named after, and every one of them needs a *duplicate* card — something a
+ * deck cannot produce and only these marks can. If the marks that enable them
+ * are as rare as the two that punish you, the premise is a lottery.
+ *
+ * So the enabling marks are five times as likely as the punishing ones. They
+ * are still one item on one screen every few hands; this makes the route
+ * exist, not automatic.
+ */
+const RITE_BAG: MarkId[] = [
+  'wild', 'wild', 'wild',
+  'prism', 'prism', 'prism',
+  'echo', 'echo',
+  'blooded', 'blooded',
+  'leaden',
+  'cursed',
+];
 const BASE_REROLL = 3;
 
 function rollSigilItem(rng: Rng): ShopItem {
@@ -39,9 +65,13 @@ function rollRiteItem(t: Table, rng: Rng): ShopItem | null {
   );
   if (candidates.length === 0) return null;
   const card = rng.pick(candidates);
-  const markId = rng.pick(RITE_MARKS);
+  const markId = rng.pick(RITE_BAG);
   const face = card.faces[0];
-  const price = markId === 'wild' ? 16 : markId === 'cursed' || markId === 'leaden' ? 5 : 10;
+  // A run starts with twelve shards. At sixteen a Wild was never a first-market
+  // decision, only a late-run one, by which point there are few hands left to
+  // draw it in. Twelve makes it exactly affordable and exactly a sacrifice:
+  // buy the route to the game's own name, or buy anything else at all.
+  const price = markId === 'wild' ? 12 : markId === 'cursed' || markId === 'leaden' ? 5 : 10;
   return {
     kind: 'rite',
     uid: nanoid(8),
