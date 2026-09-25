@@ -1263,11 +1263,25 @@
   min-height: clamp(30px, calc(var(--card-h) * 0.3), 46px);
 }
 
+/*
+ * The school's device, as a watermark.
+ *
+ * This had the hierarchy backwards. The device is per *school* — six drawings
+ * across seventy-one sigils — and it was the large centred image, while the
+ * per-sigil mark was a 14px glyph in the corner. Every Chronos card in the
+ * rail therefore showed the same hourglass, and the only thing telling one
+ * from another was the small mark and the name. The art was grouping when its
+ * whole job on this card is to identify.
+ *
+ * So the mark is the picture now and the device is the paper under it: larger,
+ * far fainter, behind, doing the grouping job quietly.
+ */
 .sigil-device {
-  width: clamp(46px, calc(var(--card-h) * 0.44), 70px);
-  height: clamp(46px, calc(var(--card-h) * 0.44), 70px);
+  position: absolute;
+  width: clamp(58px, calc(var(--card-h) * 0.56), 88px);
+  height: clamp(58px, calc(var(--card-h) * 0.56), 88px);
   color: var(--school);
-  opacity: 0.62;
+  opacity: 0.16;
   /* The weave device knocks its over-under breaks out in the paper colour,
      so it needs to know what the paper under it is. */
   --sigil-paper: var(--card-face);
@@ -1286,18 +1300,20 @@
  * carry their engraver's signature, which makes the two printed surfaces
  * rhyme.
  */
+/* The sigil's own mark — one drawing per sigil, and the thing that actually
+   says which card this is. Centred, on top of the school's watermark. */
 .sigil-glyph {
-  position: absolute;
-  right: 0;
-  bottom: -2px;
+  position: relative;
+  display: grid;
+  place-items: center;
   text-align: center;
   /* Scales with the sigil frame (itself tied to --card-h) so a 4K frame
      doesn't leave the glyph looking marooned, and a Steam Deck frame
      doesn't clip it. */
   /* Trimmed from 0.27 to buy the description its fourth line. */
-  font-size: clamp(12px, calc(var(--card-h) * 0.125), 18px);
+  /* `.hx-glyph` draws at 1.15em, so this font-size is the mark's size. */
+  font-size: clamp(26px, calc(var(--card-h) * 0.3), 44px);
   line-height: 1;
-  opacity: 0.8;
   color: var(--school);
   /* No glow. Ink on paper does not emit — the shadow is the impression the
      press left. */
