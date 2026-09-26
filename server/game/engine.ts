@@ -597,6 +597,10 @@ export class Engine {
     this.flush();
 
     const step = () => {
+      // A street still ends here, so a Burning card still leaves on it —
+      // otherwise the one rule The Kindling adds quietly stops applying the
+      // moment the table is all in.
+      this.burnOffBoard();
       if (t.phase === 'river' || t.board.length >= 5) { this.toShowdown(); return; }
       const next = this.streetAfter(t.phase);
       if (next === 'showdown') { this.toShowdown(); return; }
