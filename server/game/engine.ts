@@ -216,7 +216,13 @@ export class Engine {
       // Top up to a full opening hand with the draft pool, so every coven
       // still meets cards it did not choose.
       const opening = this.stream(`open:${p.seat}`);
-      while (p.sigils.length < 2) giveSigil(t, p, randomSigil(opening));
+      // Bounded, not `while`: giveSigil refuses once the hand is full, so a
+      // hand size below two would spin this on the server's only thread. Every
+      // relic that touches hand size currently adds to it, which is the only
+      // reason that is not already a hang.
+      for (let i = 0; i < 2 && p.sigils.length < 2; i++) {
+        if (!giveSigil(t, p, randomSigil(opening))) break;
+      }
       // Hex II: the opponents arrive already equipped.
       if (p.isBot && t.config.hex >= 2) {
         const pool = RELICS.filter((r) => !p.relics.includes(r.id) && r.rarity !== 'mythic');
