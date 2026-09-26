@@ -11,7 +11,7 @@
  * humans use magic teaches the wrong lesson.
  */
 import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards';
-import { evaluate } from '../../shared/hand';
+import { evalComplexity, evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
 import type {
@@ -512,8 +512,10 @@ export interface BotCast { uid: string; targets: SigilTargets }
 interface Preview {
   /** A caster's note came back as a warning: the spell did nothing. */
   fizzled: boolean;
-  /** Seat's equity after the stack resolves, minus before. */
+  /** Seat's equity after the stack resolves, minus before. 0 when unmeasured. */
   delta: number;
+  /** False when the equity reads were skipped for time or board cost. */
+  measured: boolean;
 }
 
 /**
@@ -537,7 +539,10 @@ function preview(
 
   const seat = copy.players.find((q) => q.id === seatId);
   if (!seat || seat.folded) return null;
-  const before = computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
+  // Resolving on the copy is cheap and is all a fizzle check needs. The two
+  // equity reads are the expensive part, and only they are budgeted.
+  let measured = performance.now() <= previewDeadline && !tooCostly(copy, seat);
+  const before = measured ? computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS) : 0;
 
   copy.stack = { entries: structuredClone(entries), pending: [], closesAt: 0 };
   try {
@@ -548,8 +553,11 @@ function preview(
 
   const fizzled = casterId !== undefined
     && copy.log.some((l) => l.tone === 'warn' && l.playerId === casterId);
-  const after = seat.folded || seat.eliminated ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
-  return { fizzled, delta: after - before };
+  const out = seat.folded || seat.eliminated;
+  if (measured && !out && tooCostly(copy, seat)) measured = false;
+  if (!measured) return { fizzled, delta: 0, measured };
+  const after = out ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
+  return { fizzled, delta: after - before, measured };
 }
 
 /**
@@ -559,6 +567,31 @@ function preview(
  * mostly noise.
  */
 const PREVIEW_SIMS = 40;
+
+/**
+ * Wall-clock allowance for previews in one bot decision.
+ *
+ * A preview is two equity reads, and on a board full of wilds and superposed
+ * cards one evaluation can take tens of milliseconds. The server runs every
+ * table on one thread, so an unbounded look-ahead on a pathological board
+ * stalls every other table with it. Past the budget a preview still checks
+ * for a fizzle, but skips the equity reads and judges the spell as neutral.
+ */
+const PREVIEW_BUDGET_MS = 30;
+
+/**
+ * The budget is only checked between previews, and one preview on a board of
+ * wilds can take seconds on its own, so a board that expensive is not
+ * previewed at all. Measured on a four-wild turn: 3.4s a decision with
+ * previews, 49ms without. A full board with one wild reads under 800.
+ */
+const PREVIEW_COMPLEXITY = 1500;
+function tooCostly(t: Table, p: Player): boolean {
+  const cards = cardsOf(t, [...scoringHole(t, p), ...t.board]);
+  return evalComplexity({ cards, viewerId: p.id, mods: modsFor(t, p) }) > PREVIEW_COMPLEXITY;
+}
+let previewDeadline = 0;
+const startPreviewBudget = (): void => { previewDeadline = performance.now() + PREVIEW_BUDGET_MS; };
 
 const seedFrom = (rng: Rng): number => Math.floor(rng.next() * 2 ** 32);
 
@@ -614,6 +647,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     .filter(({ s, def }) => def && !def.timing.includes('response') && canCast(t, p, s).ok);
 
   if (options.length === 0) return null;
+  startPreviewBudget();
 
   // Hold a little back for a counterspell, but only while mana is actually
   // scarce. Reserving unconditionally left bots sitting on a full pool all
@@ -687,12 +721,13 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
   // Bots used to Nullify each other's harmless Foresights in a chain, which
   // made a response window mean nothing.
   const entries = t.stack.entries;
+  startPreviewBudget();
   const seed = seedFrom(rng);
   const asIs = preview(t, p.id, entries, seed);
   const answered = preview(
     t, p.id, entries.map((e, i) => (i === entries.length - 1 ? { ...e, countered: true } : e)), seed,
   );
-  const harm = asIs && answered ? answered.delta - asIs.delta : null;
+  const harm = asIs?.measured && answered?.measured ? answered.delta - asIs.delta : null;
 
   const threat = incoming.rarity === 'mythic' ? 1 : incoming.rarity === 'rare' ? 0.8 : 0.55;
   let want = (aimedAtMe ? 1.1 : 0.55) * threat * (0.7 + pr.arcane);
