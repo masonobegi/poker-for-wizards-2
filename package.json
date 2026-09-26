@@ -23,6 +23,7 @@
     "package:linux": "npm run icon && npm run build:all && electron-builder --linux --publish never",
     "icon": "node electron/make-icon.mjs",
     "metrics": "tsx test/metrics.ts",
+    "runs": "tsx test/runs.ts",
     "play": "node test/playthrough.mjs",
     "record": "node test/record.mjs",
     "play:pad": "node test/gamepad.mjs",

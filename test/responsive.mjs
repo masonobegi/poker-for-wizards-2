@@ -33,6 +33,10 @@ const RESOLUTIONS = [
   { name: 'smallwindow', width: 1024, height: 680, note: 'Electron minimum window' },
 ];
 
+// HEXHOLD_ONLY=4k,ultrawide runs a subset, for chasing one resolution.
+const ONLY = (process.env.HEXHOLD_ONLY ?? '').split(',').filter(Boolean);
+if (ONLY.length) RESOLUTIONS.splice(0, RESOLUTIONS.length, ...RESOLUTIONS.filter((r) => ONLY.includes(r.name)));
+
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 

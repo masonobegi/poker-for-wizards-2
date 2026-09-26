@@ -20,13 +20,14 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 128 tests: hand eval, sigils, omens, DOM mounts, sockets
+npm test           # 186 tests: hand eval, sigils, omens, bots, hexes, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
 npm run audio      # renders every sound offline and measures the mix
 npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
-npm run metrics -- 150 5  # balance report: pacing, magic rate, action spread
+npm run metrics -- 150 5  # balance report: pacing, magic rate, fizzles, action spread
+HEXHOLD_PACE=10 npm run runs -- 8 4 400  # full runs to game over: length, depth, impossible hands
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
@@ -90,7 +91,13 @@ At every ante a new **omen** lands on the table. It is permanent, it applies to 
 
 Suits merge. Aces start bridging both ends of the rank order. Every King is dealt face down before anyone has seen it. Three cards in the shared deck quietly become Wild and nobody is told which. One rank is struck from the game entirely. At ante five, the worst hand starts winning every pot.
 
-They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory.
+They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory: if no omen has seeded the deck with wild, prism or mirrored cards by ante three, that ante's omen is one that does.
+
+### Hexes and the Daily Rite
+
+Each coven has a ladder of five **hexes**. Hex I is the game as described above. Each level adds one rule and keeps every rule below it: opponents open with a relic, an omen is in force before the first card, the Market charges you a quarter more, the blinds climb every two hands. Winning a run at the highest hex open to a coven opens the next one.
+
+The **Daily Rite** is one seeded run a day, the same for everyone: the coven, the opponents, every deal, every omen and every Market offer are fixed by the date. Your best result each day is kept.
 
 ### The six schools
 
