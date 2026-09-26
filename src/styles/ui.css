@@ -368,6 +368,14 @@
 
    Applied via ::before rather than layered into `background`, so it survives
    any component setting its own fill and never fights a border-radius.
+
+   NOT on a `.hx-plate`. A plate's `::before` is its FILL — the element's own
+   background is the 42% gold rule, and `::before` covers it one pixel in.
+   This rule has the same specificity as `.hx-plate::before` and loads after
+   base.css, so it won: the menu, the Market and the stack panel
+   lost their dark fill and rendered as a slab of translucent brass, with
+   bone text on mustard at under 2:1. A plate carries the grain inside its
+   own fill instead (base.css).
    --------------------------------------------------------------------------- */
 .menu-panel,
 .shop-panel,
@@ -383,17 +391,17 @@
   position: relative;
   isolation: isolate;
 }
-.menu-panel::before,
-.shop-panel::before,
-.stack-panel::before,
-.gameover-panel::before,
-.showdown-inner::before,
-.sysmenu-panel::before,
-.codex::before,
-.introflow-panel::before,
-.sigil-frame::before,
-.shopcard::before,
-.modal-panel::before {
+.menu-panel:not(.hx-plate)::before,
+.shop-panel:not(.hx-plate)::before,
+.stack-panel:not(.hx-plate)::before,
+.gameover-panel:not(.hx-plate)::before,
+.showdown-inner:not(.hx-plate)::before,
+.sysmenu-panel:not(.hx-plate)::before,
+.codex:not(.hx-plate)::before,
+.introflow-panel:not(.hx-plate)::before,
+.sigil-frame:not(.hx-plate)::before,
+.shopcard:not(.hx-plate)::before,
+.modal-panel:not(.hx-plate)::before {
   content: '';
   position: absolute;
   inset: 0;

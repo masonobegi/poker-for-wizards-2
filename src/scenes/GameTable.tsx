@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGame, useMe, useView } from '@/store/net';
 import { SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
@@ -21,6 +21,8 @@ import GameOver from '@/components/table/GameOver';
 import OmenBar from '@/components/OmenBar';
 import Hints from '@/components/onboarding/Hints';
 import FeltDust from '@/components/table/FeltDust';
+import { useBannerIdle } from '@/components/BannerLayer';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import Deck from '@/components/table/Deck';
 
 import './table.css';
@@ -50,6 +52,59 @@ function arcPosition(i: number, n: number): { left: string; top: string } {
   };
 }
 
+/**
+ * However long the banners run, the Market is never held back further than
+ * this. The server's shop clock is already running while the client waits,
+ * so an unbounded wait would be paid for in shopping time.
+ */
+const MARKET_MAX_WAIT_MS = 4000;
+/** The Market lands before its first-run hint is allowed on top of it. */
+const MARKET_SETTLE_MS = 700;
+
+/**
+ * The ante break as a sequence rather than a pile.
+ *
+ * It used to be four layers at once — the last showdown, the omen banner,
+ * the Market and the Market's hint — with the omen, the high point of the
+ * run, buried under the other three. Now: the showdown panel leaves the
+ * moment the ante turns over; the Market mounts only once the banner queue is
+ * idle; its hint only once the Market has landed.
+ */
+function useAnteBreak(view: ReturnType<typeof useView>): {
+  anteTurned: boolean; marketShown: boolean; marketSettled: boolean;
+} {
+  const bannerIdle = useBannerIdle();
+  const reduced = useReducedMotionPref();
+  const inShop = view?.phase === 'shop';
+
+  // The ante the current hand was played at. The server raises `ante` when
+  // the break begins but leaves the phase on 'payout' until the Market opens,
+  // so this is how the client knows the showdown is over as a moment.
+  const handAnte = useRef<{ hand: number; ante: number } | null>(null);
+  if (view && handAnte.current?.hand !== view.handNumber) {
+    handAnte.current = { hand: view.handNumber, ante: view.ante };
+  }
+  const anteTurned = !!view && !!handAnte.current && view.ante !== handAnte.current.ante;
+
+  const [marketShown, setMarketShown] = useState(false);
+  const [marketSettled, setMarketSettled] = useState(false);
+
+  useEffect(() => {
+    if (!inShop) { setMarketShown(false); setMarketSettled(false); return; }
+    if (bannerIdle) { setMarketShown(true); return; }
+    const id = window.setTimeout(() => setMarketShown(true), MARKET_MAX_WAIT_MS);
+    return () => window.clearTimeout(id);
+  }, [inShop, bannerIdle]);
+
+  useEffect(() => {
+    if (!marketShown) return;
+    const id = window.setTimeout(() => setMarketSettled(true), reduced ? 0 : MARKET_SETTLE_MS);
+    return () => window.clearTimeout(id);
+  }, [marketShown, reduced]);
+
+  return { anteTurned, marketShown: inShop && marketShown, marketSettled: inShop && marketSettled };
+}
+
 export interface Targeting {
   uid: string;
   def: SigilDef;
@@ -67,6 +122,8 @@ export default function GameTable() {
   // Below 1100px `.tbl-side` (the ledger/chat rail) is hidden for room — this
   // gives it back as an on-demand drawer instead, so the log stays reachable.
   const [logOpen, setLogOpen] = useState(false);
+
+  const { anteTurned, marketShown, marketSettled } = useAnteBreak(view);
 
   // Any phase change invalidates a half-finished target selection.
   useEffect(() => { setTargeting(null); }, [view?.phase, view?.handNumber]);
@@ -221,7 +278,7 @@ export default function GameTable() {
               band under the pot at every resolution instead of being placed
               by an offset that only held at one window size. */}
           <AnimatePresence>
-            {view.phase === 'payout' && view.payout
+            {view.phase === 'payout' && view.payout && !anteTurned
               ? <ShowdownPanel key="showdown" view={view} />
               : null}
           </AnimatePresence>
@@ -284,7 +341,7 @@ export default function GameTable() {
       <StackOverlay view={view} me={me} onBeginCast={beginCast} />
 
       <AnimatePresence>
-        {view.phase === 'shop' ? <Shop key="shop" view={view} me={me} /> : null}
+        {marketShown ? <Shop key="shop" view={view} me={me} /> : null}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -304,7 +361,7 @@ export default function GameTable() {
         </div>
       </Modal>
 
-      <Hints />
+      <Hints marketSettled={marketSettled} />
     </div>
   );
 }

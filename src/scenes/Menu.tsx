@@ -19,6 +19,7 @@ import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
 import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
 import { loadProfile } from '@/components/profile/profile';
+import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -57,6 +58,10 @@ function readPick<T extends string>(key: string, fallback: T, allowed: readonly 
   }
 }
 
+function ordinal(n: number): string {
+  return `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+}
+
 function writePick(key: string, value: string): void {
   try { localStorage.setItem(key, value); } catch { /* not worth failing a click over */ }
 }
@@ -71,21 +76,25 @@ function Picker<T extends string>({
 }: {
   legend: string;
   value: T;
-  options: ReadonlyArray<{ id: T; label: string; blurb: string }>;
+  options: ReadonlyArray<{ id: T; label: string; blurb: string; locked?: string }>;
   onPick: (v: T) => void;
 }) {
   const current = options.find((o) => o.id === value) ?? options[0];
   return (
     <div className="menu-pick" role="group" aria-label={legend}>
       <span className="menu-pick-legend">{legend}</span>
-      <div className="menu-pick-row">
+      <div className="menu-pick-row" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
         {options.map((o) => (
           <button
             key={o.id}
             type="button"
-            className={`menu-pick-btn ${o.id === value ? 'is-on' : ''}`}
+            className={`menu-pick-btn ${o.id === value ? 'is-on' : ''} ${o.locked ? 'is-locked' : ''}`}
             aria-pressed={o.id === value}
-            onClick={() => onPick(o.id)}
+            // Locked, not hidden: the ladder is the reason to come back, so
+            // it has to be visible before it is climbable.
+            aria-disabled={o.locked ? true : undefined}
+            title={o.locked}
+            onClick={() => { if (!o.locked) onPick(o.id); }}
           >
             {o.label}
           </button>
@@ -115,6 +124,31 @@ export default function Menu() {
     setCoven(id);
     try { localStorage.setItem('hexhold.coven', id); } catch { /* private mode */ }
   };
+  // The hex for this coven: remembered per coven, never above what is open.
+  const openHex = covenRecord?.hex ?? 1;
+  const [hexPicks, setHexPicks] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('hexhold.hex') ?? '{}') as Record<string, number>; } catch { return {}; }
+  });
+  const hex = Math.min(openHex, Math.max(1, hexPicks[coven] ?? openHex));
+  const pickHex = (level: number): void => {
+    const next = { ...hexPicks, [coven]: level };
+    setHexPicks(next);
+    writePick('hexhold.hex', JSON.stringify(next));
+  };
+  const hexOptions = HEXES.map((h) => ({
+    id: String(h.level),
+    label: h.name.replace('Hex ', ''),
+    blurb: `${h.name}. ${h.text}${h.level > 1 ? ' Every hex below it still applies.' : ''}`,
+    locked: h.level > openHex
+      ? `Win a run at Hex ${HEXES[h.level - 2].name.replace('Hex ', '')} as ${covenOf(coven).name} to open this.`
+      : undefined,
+  }));
+
+  // The Daily Rite: the same seeded table for everyone today.
+  const today = dayKey();
+  const todayCoven = covenOf(dailyCoven(today));
+  const todayBest = profile.daily[today];
+
   const [settings, setSettings] = useState(false);
   const [server, setServer] = useState(false);
   const [intro, setIntro] = useState(() => !hasSeenIntro());
@@ -162,8 +196,31 @@ export default function Menu() {
     try {
       const code = await createRoom(
         trimmed || 'Adept',
-        { maxPlayers: 4, private: true, botSkill: skill, speed },
+        { maxPlayers: 4, private: true, botSkill: skill, speed, hex },
         coven,
+      );
+      if (!code) return;
+      addBot(true);
+      addBot(true);
+      addBot(true);
+      startGame();
+    } finally {
+      setPracticing(false);
+    }
+  };
+
+  /** Same seat-three-bots-and-deal flow, at today's seed, coven and hex. */
+  const daily = async () => {
+    if (!connected || practicing) return;
+    setPracticing(true);
+    try {
+      const code = await createRoom(
+        trimmed || 'Adept',
+        {
+          maxPlayers: 4, private: true, botSkill: 'adept', speed,
+          hex: DAILY_HEX, seed: dailySeed(today),
+        },
+        todayCoven.id,
       );
       if (!code) return;
       addBot(true);
@@ -250,6 +307,13 @@ export default function Menu() {
                 ) : <em className="menu-covenrecord">never played</em>}
               </p>
 
+              <Picker
+                legend="Hex"
+                value={String(hex)}
+                options={hexOptions}
+                onPick={(v) => pickHex(Number(v))}
+              />
+
               <div className="menu-actions">
                 <Button tone="primary" size="lg" display block
                   loading={practicing} disabled={!connected || practicing}
@@ -258,6 +322,20 @@ export default function Menu() {
                 </Button>
                 <p className="menu-practicenote">
                   Three bots fill the table and the first hand deals itself.
+                </p>
+
+                <Button size="md" block disabled={!connected || practicing}
+                  onClick={() => void daily()}>
+                  Daily Rite &mdash; {todayCoven.name}
+                </Button>
+                <p className="menu-practicenote">
+                  Today&rsquo;s table, the same for everyone: one coven, Hex {HEXES[DAILY_HEX - 1].name.replace('Hex ', '')}, every deal and omen fixed.
+                  {todayBest ? (
+                    <em className="menu-covenrecord">
+                      {todayBest.won ? 'won today' : `best today: ${ordinal(todayBest.placement)} of ${todayBest.players}, ante ${todayBest.antesSurvived}`}
+                      {` · ${todayBest.attempts} attempt${todayBest.attempts === 1 ? '' : 's'}`}
+                    </em>
+                  ) : null}
                 </p>
 
                 {/* The host and join panes have always shown this; the home

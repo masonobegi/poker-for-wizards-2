@@ -65,6 +65,12 @@
   --text-2:      #c3bcab;
   --text-3:      #8c8576;
   --text-4:      #635d51;
+  /* Small print that still has to be read: captions, notes, blurbs under a
+     control. `--text-4` is for things that may be ignored (a build string, a
+     disabled label) and measures ~2.5:1 on a plate fill; this one clears
+     WCAG AA 4.5:1 against the lightest pixel of the plate's lamp gradient,
+     measured in the browser rather than against the flat token. */
+  --text-quiet:  #aaa293;
 
   /* --- brand / metal -----------------------------------------------------
      Brass, off the plate. The old gold was a screen yellow. */

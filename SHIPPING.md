@@ -79,7 +79,7 @@ Honest list, worst first.
    `body { overflow: hidden }`; treat older green runs of it as unproven.
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
-3. **The six-handed table is the slow configuration.** `npm run metrics -- 150 5` reads 17-23s a hand against a threshold that wants 12; the default practice table (you and three bots) runs about 15s. Bot think time already shortens as the table fills, and the remaining cost is real — six players, four streets, and six to nine spells a hand with a response window on each. It is worth another look, but not by making the spell layer quieter.
+3. **The six-handed table is the slow configuration.** `npm run metrics -- 180 6` reads about 20s a hand against a threshold that wants 12; the default practice table (you and three bots) now runs about 12s, down from 19s, after a resumed turn stopped paying a bot's full deliberation again after every cast (2026-09-25). Bot think time already shortens as the table fills, and the remaining cost is real — six players, four streets, and six to nine spells a hand with a response window on each. It is worth another look, but not by making the spell layer quieter.
 4. **Audio has never been heard by a human.** It is now measured a good deal harder than it was — every sound renders, none clip, each one sits within 3 dB of a hand-authored target level, the ladder from `ui_hover` up to `win_impossible` is checked end to end, and the table bed has content above the bass where a laptop speaker can actually reproduce it. That last one was a real bug found purely by measurement: the bed under most of a session was a 36 Hz sine and a pluck every ten seconds, which is silence on any speaker smaller than a subwoofer.
 
     None of that is listening. Measurement can tell you two sounds are 12 dB apart; it cannot tell you the counterspell sound is annoying by the fortieth time, that the table bed grates after an hour, or that the win sting is corny. Put headphones on before you ship.
@@ -89,9 +89,11 @@ Honest list, worst first.
    with two superposed cards take 39ms, and nine cards can reach 122ms. A wild
    slot carries one candidate face per rank per suit in play and the evaluator
    walks the product of five of them.
-7. **Content depth.** 71 sigils, 45 relics, 41 omens, 7 covens. Better than it
-   was, still under what a long-lived roguelike carries; replayability remains
-   the thing most likely to be criticised in reviews.
+7. **Content depth.** 71 sigils, 45 relics, 41 omens, 7 covens, 5 hexes per
+   coven and a Daily Rite. Hexes and the daily give a reason to start the next
+   run; the hex rules themselves were set without a human win rate, so Hex V
+   may be too easy or unwinnable. Replayability is still the thing most likely
+   to be criticised in reviews.
 8. **One language.** No localisation framework; all copy is inline English.
 
 ---

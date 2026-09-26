@@ -185,3 +185,10 @@ test('a table under six omens still deals and scores a hand', () => {
   }
   engine.dispose();
 });
+
+test('the promised impossible omen can always be drawn by its ante', async () => {
+  const { OMENS, IMPOSSIBLE_BY_ANTE, opensImpossible } = await import('../shared/omens');
+  const ready = OMENS.filter((o) => opensImpossible(o) && o.minAnte <= IMPOSSIBLE_BY_ANTE);
+  // More than one, so the guarantee still leaves the run a choice of which.
+  assert.ok(ready.length >= 2, `only ${ready.length} omen(s) can open the impossible hands by ante ${IMPOSSIBLE_BY_ANTE}`);
+});

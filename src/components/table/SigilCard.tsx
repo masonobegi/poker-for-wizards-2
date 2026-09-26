@@ -7,6 +7,7 @@ import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type Rarity, type SigilInstance } f
 import { EASE_OUT, ENTER_PANEL, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
 import SchoolDevice from '@/components/table/SchoolDevice';
+import type { BlockLabel } from '@/components/table/castBlock';
 
 /**
  * How hard a sigil glints under the pointer. The playing cards have had a
@@ -23,6 +24,12 @@ export interface SigilCardProps {
   castable: boolean;
   cost: number;
   affordable: boolean;
+  /**
+   * Why it cannot be cast, from the server's `castBlocks`. Without one, an
+   * uncastable sigil still gets a reason: the mana it needs if it is short,
+   * otherwise a generic one — a grey card with no reason reads as a bug.
+   */
+  lock?: BlockLabel | null;
   selected?: boolean;
   onCast?: (uid: string) => void;
   onDiscard?: (uid: string) => void;
@@ -36,7 +43,7 @@ export interface SigilCardProps {
  * given refs" error on every re-render of the sigil hand.
  */
 const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilCardBase({
-  inst, castable, cost, affordable, selected, onCast, onDiscard, index = 0, compact,
+  inst, castable, cost, affordable, lock, selected, onCast, onDiscard, index = 0, compact,
 }: SigilCardProps, ref) {
   const def = SIGIL_BY_ID[inst.defId];
   // `usable` must be computed before any early return so the hooks below
@@ -71,6 +78,10 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
 
   if (!def) return null;
   const school = SCHOOLS[def.school];
+  const why: BlockLabel | null = usable ? null
+    : lock ?? (!affordable
+      ? { short: `Needs ${cost} mana`, long: `Needs ${cost} mana — it arrives each street.`, kind: 'mana' }
+      : { short: 'Not now', long: 'It cannot be cast right now.', kind: 'rule' });
 
   return (
     <motion.div
@@ -78,6 +89,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
       className={[
         'sigil',
         usable ? 'is-castable' : 'is-locked',
+        why?.kind === 'mana' ? 'is-short' : '',
         selected ? 'is-selected' : '',
         compact ? 'is-compact' : '',
       ].filter(Boolean).join(' ')}
@@ -102,7 +114,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
       role={usable ? 'button' : undefined}
       tabIndex={usable ? 0 : -1}
       onKeyDown={(e) => { if (usable && e.key === 'Enter') onCast?.(inst.uid); }}
-      aria-label={`${def.name}, ${cost} mana`}
+      aria-label={`${def.name}, ${cost} mana${why ? `. ${why.long}` : ''}`}
     >
       <motion.div
         className="sigil-frame"
@@ -137,6 +149,14 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         </footer>
       </motion.div>
 
+      {/* Outside the frame, because the frame is what gets greyed: a reason
+          printed inside it would be dimmed along with the card it explains. */}
+      {why ? (
+        <span className={`sigil-lock sigil-lock--${why.kind}`} aria-hidden>
+          {why.short}
+        </span>
+      ) : null}
+
       {onDiscard ? (
         <button
           className="sigil-discard"
@@ -152,8 +172,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         <strong>{def.name}</strong>
         <p>{def.text}</p>
         <p className="sigil-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
-        {!affordable ? <p className="sigil-warn">Not enough mana.</p> : null}
-        {affordable && !castable ? <p className="sigil-warn">Cannot be cast right now.</p> : null}
+        {why ? <p className="sigil-warn">{why.long}</p> : null}
       </div>
     </motion.div>
   );

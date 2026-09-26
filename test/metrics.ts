@@ -37,6 +37,9 @@ let impossibleWins = 0;
 let eliminations = 0;
 let responseWindows = 0;
 let counters = 0;
+/** Casts whose own effect came back as a warning — a spell that did nothing. */
+let fizzles = 0;
+const seenLog = new Set<string>();
 
 const engine = new Engine(
   'METR', 'host',
@@ -95,6 +98,13 @@ function sample(t: Table): void {
       actionCount.set(a.kind, (actionCount.get(a.kind) ?? 0) + 1);
     }
   }
+  for (const l of t.log) {
+    if (seenLog.has(l.id)) continue;
+    seenLog.add(l.id);
+    // A countered sigil also logs a warning, but with no playerId: that is
+    // the counterspell working, not the spell failing on its own.
+    if (l.tone === 'warn' && l.playerId && l.school) fizzles++;
+  }
   if (t.stack && t.stack.pending.length > 0 && !seenStacks.has(t.stack.entries[0]?.id ?? '')) {
     seenStacks.add(t.stack.entries[0]?.id ?? '');
     responseWindows++;
@@ -143,6 +153,7 @@ function finish(): void {
   console.log(`    hands with any magic  ${pct(handsWithCast, handsStarted)}          ${flag(handsWithCast / Math.max(1, handsStarted), 0.5, 0.75, true)}`);
   console.log(`    response windows      ${responseWindows}`);
   console.log(`    countered             ${counters}`);
+  console.log(`    fizzled on their own  ${fizzles}  (${pct(fizzles, [...castCount.values()].reduce((a, b) => a + b, 0))} of casts)`);
   console.log(`    mana unspent at end   ${(manaWasted / Math.max(1, manaSamples)).toFixed(1)} per player   ${flag(manaWasted / Math.max(1, manaSamples), 4, 2)}`);
   const distinct = castCount.size;
   console.log(`    distinct sigils seen  ${distinct} of ${Object.keys(SIGIL_BY_ID).length}`);

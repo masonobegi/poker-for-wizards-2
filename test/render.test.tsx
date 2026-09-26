@@ -265,11 +265,35 @@ test('a finished run is banked against the coven it was played as', async () => 
   recordRun({ ...base, coven: 'ashen', won: false });
 
   const { covens } = loadProfile();
-  assert.deepEqual(covens.loom, { runs: 2, wins: 1, deepestAnte: 6, impossible: 2 });
-  assert.deepEqual(covens.ashen, { runs: 1, wins: 0, deepestAnte: 4, impossible: 0 });
+  // The loom's win, at the default hex, opened the next one.
+  assert.deepEqual(covens.loom, { runs: 2, wins: 1, deepestAnte: 6, impossible: 2, hex: 2 });
+  assert.deepEqual(covens.ashen, { runs: 1, wins: 0, deepestAnte: 4, impossible: 0, hex: 1 });
   // Seven separate records, not one pooled total: the whole point is that a
   // player can see which openings they have actually got anywhere with.
   assert.equal(covens.quiet, undefined, 'a coven never played should have no record');
+});
+
+test('a hex opens only by winning at the top open hex, never from a daily', async () => {
+  const { nextHex } = await import('../src/components/profile/profile');
+  assert.equal(nextHex(1, { won: true, hex: 1 }), 2);
+  assert.equal(nextHex(3, { won: true, hex: 2 }), 3, 'a win below the top does not climb');
+  assert.equal(nextHex(3, { won: false, hex: 3 }), 3, 'a loss does not climb');
+  assert.equal(nextHex(2, { won: true, hex: 2, daily: '2026-09-25' }), 2, 'a daily does not climb');
+  assert.equal(nextHex(5, { won: true, hex: 5 }), 5, 'the ladder has a top');
+});
+
+test('the best result of a day is kept, and every attempt counted', async () => {
+  const { recordRun, loadProfile } = await import('../src/components/profile/profile');
+  const base = {
+    at: Date.now(), players: 4, handsWon: 1, bestHand: '', bestCat: -1, impossible: 0,
+    omens: [], relics: [], coven: 'quiet', daily: '2026-09-25', hex: 2,
+  };
+  recordRun({ ...base, placement: 3, antesSurvived: 3, won: false });
+  recordRun({ ...base, placement: 2, antesSurvived: 5, won: false });
+  recordRun({ ...base, placement: 4, antesSurvived: 2, won: false });
+  const day = loadProfile().daily['2026-09-25'];
+  assert.equal(day.placement, 2);
+  assert.equal(day.attempts, 3);
 });
 
 test('a profile written before covens existed still loads', async () => {

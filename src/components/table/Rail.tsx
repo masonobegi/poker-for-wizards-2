@@ -7,6 +7,8 @@ import { CardRow } from '@/components/card/CardRow';
 import Avatar from '@/components/Avatar';
 import ManaPips from '@/components/table/ManaPips';
 import SigilCard from '@/components/table/SigilCard';
+import { blockLabel } from '@/components/table/castBlock';
+import { omenNumber, type ActiveOmen } from '@shared/omens';
 import { Tooltip } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import type { Targeting } from '@/scenes/GameTable';
@@ -27,11 +29,16 @@ export interface RailProps {
   onCancelCast: () => void;
 }
 
-/** Relic discounts are applied server-side; mirror them so costs read true. */
-function costOf(defId: string, relics: string[]): number {
+/**
+ * Relic discounts and omen surcharges are applied server-side; mirror both so
+ * costs read true. The omen half was missing, so under an omen that raises
+ * sigil costs every badge in the rail under-reported by one — and a sigil
+ * could look affordable while the server refused it for mana.
+ */
+function costOf(defId: string, relics: string[], omens: ActiveOmen[]): number {
   const def = SIGIL_BY_ID[defId];
   if (!def) return 0;
-  let delta = 0;
+  let delta = omenNumber(omens, (o) => o.sigilCost);
   for (const id of relics) delta += RELIC_BY_ID[id]?.sigils?.costDelta ?? 0;
   return Math.max(1, def.cost + delta);
 }
@@ -181,7 +188,9 @@ function RailBase({
         ) : null}
         <AnimatePresence mode="popLayout">
           {sigils.map((s, i) => {
-            const cost = costOf(s.defId, me.relics);
+            const cost = costOf(s.defId, me.relics, view.omens);
+            const block = view.castBlocks?.[s.uid];
+            const def = SIGIL_BY_ID[s.defId];
             return (
               <SigilCard
                 key={s.uid}
@@ -189,7 +198,10 @@ function RailBase({
                 index={i}
                 cost={cost}
                 castable={castable.has(s.uid)}
-                affordable={me.mana >= cost}
+                // The server's word wins over the mirrored cost: if it says
+                // mana is what is in the way, it is.
+                affordable={block ? block.why !== 'mana' && me.mana >= cost : me.mana >= cost}
+                lock={block && def ? blockLabel(block, def.timing, view.phase) : null}
                 selected={targeting?.uid === s.uid}
                 onCast={handleBeginCast}
                 onDiscard={sigils.length > 1 ? discardSigil : undefined}

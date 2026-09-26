@@ -246,3 +246,22 @@ test('a client cannot act out of turn', async () => {
     assert.equal(me?.chips, chipsBefore, 'an out-of-turn bet moved chips');
   }
 });
+
+test('a table nobody is watching stops counting as active', async () => {
+  const { Engine } = await import('../server/game/engine');
+  const e = new Engine('IDLE', 'host', {}, () => {}, () => {});
+  const hero = e.addPlayer('host', 'Hero')!;
+  e.addBot();
+  e.dispose();
+  const tick = (e as unknown as { tick(): void }).tick.bind(e);
+  const old = Date.now() - 3 * 60 * 60 * 1000;
+
+  hero.connected = false;
+  e.table.lastActivity = old;
+  tick();
+  assert.equal(e.table.lastActivity, old, 'an abandoned table must be able to go idle and be reaped');
+
+  hero.connected = true;
+  tick();
+  assert.ok(e.table.lastActivity > old, 'a table someone is at stays alive');
+});

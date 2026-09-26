@@ -312,6 +312,10 @@ here passed every harness in the repo; none of it has been judged by a person.
 | Bot difficulty | `server/game/bots.ts` (`BANDS`) | Novice/adept/master, where skill is a blurred equity read rather than random play. `adept` is asserted identical to what shipped. What needs a person: whether **novice** is beatable-but-not-boring, and whether **master** is hard-without-being-unfair. The numbers say the bands differ; only play says they are *fun*. |
 | Table speed | `server/game/bots.ts` (`TEMPO`) | Relaxed/standard/blitz. `standard` is asserted identical to what shipped. Blitz has a floor so it can never cut the showdown reveal short — confirm that holds at a five-way all-in showdown, which is the longest reveal in the game. |
 | The settings persist | `src/scenes/Menu.tsx` | `localStorage` under `hexhold.botSkill` / `hexhold.speed`. Wrapped in try/catch for private windows. |
+| Bots preview a spell before casting | `server/game/bots.ts` (`preview`, `bestTargets`) | Fizzles went 12% -> 0% and bots stopped countering harmless peeks. Whether their magic now reads as *intent* to a human across the table is the whole point and only play can say. |
+| Hexes I-V | `shared/hexes.ts`, `server/game/engine.ts` `start` | Each level is one rule on top of the last. No human win rate exists for any of them. Watch whether Hex II (bots with relics) is a step or a wall. |
+| Daily Rite | `shared/hexes.ts`, `src/scenes/Menu.tsx` | Same seed means same deals, omens and Market offers. Play it twice on one day and confirm hand one deals identically. |
+| Impossible-hand promise | `shared/omens.ts` `IMPOSSIBLE_BY_ANTE` | Impossible hands in 5/10 bot runs, up from 2/8. Could now feel scripted at ante 3; could still be too rare for a human who folds a lot. |
 
 ### The end-of-run recap, specifically
 

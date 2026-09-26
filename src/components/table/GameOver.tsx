@@ -13,6 +13,8 @@ import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_PLAYFUL, T_REDUCED } from '@/style
 import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/lib/visuals';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
+import { HEXES, MAX_HEX } from '@shared/hexes';
+import { covenOf } from '@shared/covens';
 
 /** However long a banner claims, the panel is never held back further. */
 const MAX_WAIT_MS = 4500;
@@ -116,7 +118,19 @@ export default function GameOver({ view }: { view: TableView }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.38 }}
           >
-            <span className="eyebrow">Your run</span>
+            <span className="eyebrow">
+              Your run
+              {view.config.seed?.startsWith('daily:') ? ' · Daily Rite' : ''}
+              {(view.config.hex ?? 1) > 1 ? ` · ${HEXES[(view.config.hex ?? 1) - 1].name}` : ''}
+            </span>
+
+            {/* What the win bought. Stated as what is open rather than as
+                news, because a replayed win at the same hex is still true. */}
+            {view.winnerId === me.id && !view.config.seed && (view.config.hex ?? 1) < MAX_HEX ? (
+              <p className="gameover-unlock">
+                {HEXES[view.config.hex ?? 1].name} is open for {covenOf(me.coven).name}.
+              </p>
+            ) : null}
 
             <div className="gameover-runstats">
               <span><strong>{view.ante}</strong> antes</span>

@@ -11,11 +11,14 @@
  * humans use magic teaches the wrong lesson.
  */
 import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards';
-import { evaluate } from '../../shared/hand';
+import { evalComplexity, evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
-import type { BetAction, BotSkill, Player, SigilTargets, Table, TableSpeed } from '../../shared/types';
+import type {
+  BetAction, BotSkill, Player, SigilTargets, StackEntry, Table, TableSpeed,
+} from '../../shared/types';
 import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
+import { resolveStack } from './magic';
 import { config } from '../config';
 
 interface Personality {
@@ -165,7 +168,7 @@ export function equity(t: Table, p: Player, rng: Rng): number {
  * Rough win probability from rolling out the rest of the board and giving each
  * live opponent two random unseen cards.
  */
-function computeEquity(t: Table, p: Player, rng: Rng): number {
+function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): number {
   const opponents = live(t).filter((q) => q.id !== p.id);
   if (opponents.length === 0) return 1;
 
@@ -186,9 +189,9 @@ function computeEquity(t: Table, p: Player, rng: Rng): number {
   // A sharper read costs more rollouts and a blurrier one costs fewer, which
   // is also why a novice table is cheaper to run than a master one.
   const band = skillOf(t);
-  const sims = exotic
+  const sims = fixedSims ?? (exotic
     ? Math.max(8, Math.round(16 * band.sims))
-    : Math.max(12, Math.round((base / crowd) * band.sims));
+    : Math.max(12, Math.round((base / crowd) * band.sims)));
 
   let wins = 0;
   let ties = 0;
@@ -488,6 +491,152 @@ function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets 
 
 export interface BotCast { uid: string; targets: SigilTargets }
 
+// ---------------------------------------------------------------------------
+// Looking before casting
+// ---------------------------------------------------------------------------
+
+/**
+ * What a stack would do to one player if it resolved now.
+ *
+ * Bots used to cast at random targets without asking whether the spell would
+ * do anything, so the ledger filled with fizzles — "Nothing has burned yet",
+ * "The card was already decided" — and a player watching the table learned
+ * nothing from an opponent's magic. The game's promise is that magic is
+ * readable. Now a bot plays each option out on a copy of the table and looks
+ * at the result first.
+ *
+ * The copy has its draw pile shuffled before anything resolves. Without that,
+ * a spell that deals a fresh card (Rewind, Burn) would show the bot the real
+ * next card, and the bot would be reading the deck.
+ */
+interface Preview {
+  /** A caster's note came back as a warning: the spell did nothing. */
+  fizzled: boolean;
+  /** Seat's equity after the stack resolves, minus before. 0 when unmeasured. */
+  delta: number;
+  /** False when the equity reads were skipped for time or board cost. */
+  measured: boolean;
+}
+
+/**
+ * `seed` drives the equity rollouts. Both sides of a comparison use the same
+ * one, so the before and after reads share their random runouts and the
+ * difference is the spell rather than sampling noise — at the sample sizes a
+ * bot can afford, two independent reads disagree by several points on their
+ * own.
+ */
+function preview(
+  t: Table, seatId: string, entries: StackEntry[], seed: number, casterId?: string,
+): Preview | null {
+  let copy: Table;
+  try {
+    copy = structuredClone({ ...t, log: [], stack: null });
+  } catch {
+    return null;
+  }
+  const world = new Rng(seed ^ 0x5bd1e995);
+  copy.deck = world.shuffle(copy.deck);
+
+  const seat = copy.players.find((q) => q.id === seatId);
+  if (!seat || seat.folded) return null;
+  // Resolving on the copy is cheap and is all a fizzle check needs. The two
+  // equity reads are the expensive part, and only they are budgeted.
+  let measured = performance.now() <= previewDeadline && !tooCostly(copy, seat);
+  const before = measured ? computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS) : 0;
+
+  copy.stack = { entries: structuredClone(entries), pending: [], closesAt: 0 };
+  try {
+    resolveStack({ t: copy, rng: world, fx: [] });
+  } catch {
+    return null;
+  }
+
+  const fizzled = casterId !== undefined
+    && copy.log.some((l) => l.tone === 'warn' && l.playerId === casterId);
+  const out = seat.folded || seat.eliminated;
+  if (measured && !out && tooCostly(copy, seat)) measured = false;
+  if (!measured) return { fizzled, delta: 0, measured };
+  const after = out ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
+  return { fizzled, delta: after - before, measured };
+}
+
+/**
+ * Both reads of a comparison take the same sample size. The normal read drops
+ * to 16 rollouts on an exotic board, so a spell that superposes a card would
+ * otherwise be compared at 80 before and 16 after, and the difference would be
+ * mostly noise.
+ */
+const PREVIEW_SIMS = 40;
+
+/**
+ * Wall-clock allowance for previews in one bot decision.
+ *
+ * A preview is two equity reads, and on a board full of wilds and superposed
+ * cards one evaluation can take tens of milliseconds. The server runs every
+ * table on one thread, so an unbounded look-ahead on a pathological board
+ * stalls every other table with it. Past the budget a preview still checks
+ * for a fizzle, but skips the equity reads and judges the spell as neutral.
+ */
+const PREVIEW_BUDGET_MS = 30;
+
+/**
+ * The budget is only checked between previews, and one preview on a board of
+ * wilds can take seconds on its own, so a board that expensive is not
+ * previewed at all. Measured on a four-wild turn: 3.4s a decision with
+ * previews, 49ms without. A full board with one wild reads under 800.
+ */
+const PREVIEW_COMPLEXITY = 1500;
+function tooCostly(t: Table, p: Player): boolean {
+  const cards = cardsOf(t, [...scoringHole(t, p), ...t.board]);
+  return evalComplexity({ cards, viewerId: p.id, mods: modsFor(t, p) }) > PREVIEW_COMPLEXITY;
+}
+let previewDeadline = 0;
+const startPreviewBudget = (): void => { previewDeadline = performance.now() + PREVIEW_BUDGET_MS; };
+
+const seedFrom = (rng: Rng): number => Math.floor(rng.next() * 2 ** 32);
+
+function entryFor(p: Player, def: SigilDef, targets: SigilTargets, t: Table): StackEntry {
+  return {
+    id: 'preview', casterId: p.id, sigilId: def.id, targets,
+    countered: false, costPaid: manaCost(p, def, t),
+  };
+}
+
+/** Candidate targetings to compare. Card and rank choices get a few tries. */
+const TARGET_TRIES: Partial<Record<SigilDef['target'], number>> = {
+  own_card: 2, board_card: 3, any_card: 3, two_cards: 3, rank: 3, suit: 3,
+};
+
+/**
+ * The best targeting for a spell, or null when every option fizzles or makes
+ * the caster's own hand worse.
+ */
+function bestTargets(
+  t: Table, p: Player, def: SigilDef, rng: Rng,
+): { targets: SigilTargets; delta: number } | null {
+  const tries = TARGET_TRIES[def.target] ?? 1;
+  const seen = new Set<string>();
+  const seed = seedFrom(rng);
+  let best: { targets: SigilTargets; delta: number } | null = null;
+
+  for (let i = 0; i < tries; i++) {
+    const targets = targetsFor(t, p, def, rng);
+    if (!targets) continue;
+    const key = JSON.stringify(targets);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const pv = preview(t, p.id, [entryFor(p, def, targets, t)], seed, p.id);
+    // A preview that could not run is not evidence against the spell.
+    if (!pv) { best ??= { targets, delta: 0 }; continue; }
+    if (pv.fizzled) continue;
+    // Hurting yourself is only a mistake when it is more than sampling noise.
+    if (pv.delta < -0.06) continue;
+    if (!best || pv.delta > best.delta) best = { targets, delta: pv.delta };
+  }
+  return best;
+}
+
 /** A sigil to fire during this bot's own action window, or nothing. */
 export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
   if (!t.config.magicEnabled || t.stack) return null;
@@ -498,6 +647,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     .filter(({ s, def }) => def && !def.timing.includes('response') && canCast(t, p, s).ok);
 
   if (options.length === 0) return null;
+  startPreviewBudget();
 
   // Hold a little back for a counterspell, but only while mana is actually
   // scarce. Reserving unconditionally left bots sitting on a full pool all
@@ -534,9 +684,16 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
 
     if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
 
-    const targets = targetsFor(t, p, def, rng);
-    if (!targets) continue;
-    return { uid: s.uid, targets };
+    // Look before casting: never a spell that does nothing or clearly hurts
+    // the caster, and the best of a few targetings rather than the first.
+    // Spells whose value is not equity — a peek, an extra betting round —
+    // preview as neutral and keep the roll above.
+    const pick = bestTargets(t, p, def, rng);
+    if (!pick) continue;
+    // Inside the noise band a spell is judged on the roll above alone; below
+    // it, a small loss is cast only sometimes.
+    if (pick.delta < -0.03 && !rng.chance(0.4)) continue;
+    return { uid: s.uid, targets: pick.targets };
   }
   return null;
 }
@@ -559,9 +716,29 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
     .filter(({ s, def }) => def?.timing.includes('response') && canCast(t, p, s).ok);
   if (options.length === 0) return null;
 
+  // Answer what hurts, not whatever is loudest. Compare this seat's equity
+  // with the top entry resolving against the same stack with it countered.
+  // Bots used to Nullify each other's harmless Foresights in a chain, which
+  // made a response window mean nothing.
+  const entries = t.stack.entries;
+  startPreviewBudget();
+  const seed = seedFrom(rng);
+  const asIs = preview(t, p.id, entries, seed);
+  const answered = preview(
+    t, p.id, entries.map((e, i) => (i === entries.length - 1 ? { ...e, countered: true } : e)), seed,
+  );
+  const harm = asIs?.measured && answered?.measured ? answered.delta - asIs.delta : null;
+
   const threat = incoming.rarity === 'mythic' ? 1 : incoming.rarity === 'rare' ? 0.8 : 0.55;
-  const want = (aimedAtMe ? 1.1 : 0.55) * threat * (0.7 + pr.arcane);
-  if (!rng.chance(Math.min(0.9, want))) return null;
+  let want = (aimedAtMe ? 1.1 : 0.55) * threat * (0.7 + pr.arcane);
+  if (harm !== null) {
+    // Harm is in equity points. Under noise, a spell that does not touch this
+    // seat is only worth answering now and then — a mind that never counters
+    // a peek is as readable as one that always does.
+    if (harm < 0.03) want = aimedAtMe ? want * 0.35 : 0.06 * pr.arcane;
+    else want *= 1 + harm * 5;
+  }
+  if (!rng.chance(Math.min(0.92, want))) return null;
 
   const { s, def } = rng.pick(options);
   const targets = def.id === 'redirect' || def.id === 'reflect'

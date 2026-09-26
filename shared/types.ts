@@ -23,6 +23,21 @@ export type Phase =
 export const STREETS: Phase[] = ['preflop', 'flop', 'turn', 'river'];
 export const isStreet = (p: Phase): boolean => STREETS.includes(p);
 
+/**
+ * Why a sigil in your hand is not castable right now, most permanent reason
+ * first: a card that is on the wrong street says so even if you are also
+ * short of mana, because mana arrives by itself and the street does not.
+ * `mana` is only reported when it is the one thing in the way.
+ */
+export type CastBlock =
+  | { why: 'off' }        // magic is disabled at this table
+  | { why: 'out' }        // folded or eliminated
+  | { why: 'stack' }      // the stack is open and this is not a response
+  | { why: 'responded' }  // already answered this response window
+  | { why: 'response' }   // a response, and nothing is being cast
+  | { why: 'timing' }     // not castable on this street; see the def's timing
+  | { why: 'mana'; need: number };
+
 export type ActionKind = 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'allin';
 
 export interface BetAction {
@@ -307,6 +322,13 @@ export interface RoomConfig {
   botSkill: BotSkill;
   /** How fast the table runs. */
   speed: TableSpeed;
+  /** Difficulty level, 1 to MAX_HEX. See shared/hexes.ts. */
+  hex: number;
+  /**
+   * A fixed seed for the table, or absent for a fresh one. Only the Daily
+   * Rite sets it; the server accepts nothing but a daily seed from a client.
+   */
+  seed?: string;
 }
 
 export const DEFAULT_CONFIG: RoomConfig = {
@@ -328,6 +350,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   private: false,
   botSkill: 'adept',
   speed: 'standard',
+  hex: 1,
 };
 
 /** Everything a single client is allowed to know, projected for that client. */
@@ -383,6 +406,13 @@ export interface TableView {
   yourTurn: boolean;
   /** Sigil uids this client may legally cast right now. */
   castable: string[];
+  /**
+   * Why each of this client's other sigils cannot be cast, keyed by uid.
+   * Only ever about the viewer's own hand, and derived from state the viewer
+   * can already see (their mana, the street, whether the stack is open), so
+   * it tells them nothing new — it just says it instead of greying the card.
+   */
+  castBlocks: Record<string, CastBlock>;
   hostId: string;
   winnerId: string | null;
 }
