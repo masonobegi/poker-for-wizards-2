@@ -25,7 +25,7 @@ import {
   freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
 } from './table';
 import {
-  castSigil, clearHandMagic, drawId, giveSigil, passResponse,
+  bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
   randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
   type MagicCtx,
 } from './magic';
@@ -242,6 +242,7 @@ export class Engine {
 
     clearHandMagic(t);
     reapConjured(t);
+    bindInscribedPairs(t);
 
     t.handNumber += 1;
     t.payout = null;
@@ -502,11 +503,70 @@ export class Engine {
       if (c) c.amber = true;
     }
 
+    this.resolveMirrored(dealt);
+
     this.fx.push({ t: 'deal', cardIds: dealt, to: 'board', stagger: 140 });
     this.fx.push({ t: 'sfx', name: `street_${phase}` });
     log(t, `${phase[0].toUpperCase()}${phase.slice(1)}: ${dealt.map((id) => describeCard(t, id)).join(' ')}`, 'plain');
 
     if (phase === 'river') grantInformantVision(t, this.rng);
+  }
+
+  /**
+   * The Twinned inscribes cards Mirrored and promises each one copies the
+   * community card to its left. The mark alone is inert — `mirror` and `graft`
+   * copy the faces themselves and carry it only as a tag — so a card the omen
+   * inscribed has to take its neighbour's identity as it lands.
+   *
+   * Resolved in deal order, so two mirrored cards in a row chain down the board
+   * rather than both copying the same original. The leftmost community card has
+   * nothing to its left and stays itself.
+   */
+  private resolveMirrored(dealt: string[]): void {
+    const t = this.table;
+    for (const id of dealt) {
+      const i = t.board.indexOf(id);
+      if (i <= 0) continue;
+      const dst = card(t, id);
+      if (!dst || !dst.marks.includes('mirrored')) continue;
+      const src = card(t, t.board[i - 1]);
+      if (!src || src.id === dst.id) continue;
+      dst.faces = src.faces.map((f) => ({ ...f }));
+      dst.collapsed = src.collapsed;
+      dst.veil = src.veil;
+      this.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
+      log(t, `The board holds two of ${describeCard(t, src.id)}.`, 'impossible');
+    }
+  }
+
+  /**
+   * The Kindling: a card inscribed Burning leaves the board at the end of the
+   * street it landed on. Same mechanics as the `burn` sigil — the slot is
+   * remembered so the gap stays visible.
+   *
+   * The floor is what keeps a showdown evaluable: a hand needs five cards, and
+   * two of them are the hole, so the board has to reach showdown holding three.
+   * Streets still to come each bring one, so the board may fall to one at the
+   * end of the flop, two at the end of the turn, and three on the river.
+   */
+  private burnOffBoard(): void {
+    const t = this.table;
+    const toCome = t.phase === 'flop' ? 2 : t.phase === 'turn' ? 1 : 0;
+    const floor = Math.max(0, 3 - toCome);
+
+    for (const id of [...t.board]) {
+      if (t.board.length <= floor) break;
+      const c = card(t, id);
+      if (!c || !c.marks.includes('burning') || c.amber) continue;
+      const slot = t.board.indexOf(id);
+      if (slot < 0) continue;
+      t.board.splice(slot, 1);
+      t.burnedSlots.push(slot);
+      t.discard.push(id);
+      this.fx.push({ t: 'burn', cardId: id });
+      this.fx.push({ t: 'sfx', name: 'card_burn' });
+      log(t, `${describeCard(t, id)} burns away.`, 'impossible');
+    }
   }
 
   private advanceStreet(): void {
@@ -515,6 +575,7 @@ export class Engine {
     t.actingUntil = null;
     this.clearWait();
 
+    this.burnOffBoard();
     if (live(t).length <= 1) { this.toShowdown(); return; }
 
     const next = this.streetAfter(t.phase);

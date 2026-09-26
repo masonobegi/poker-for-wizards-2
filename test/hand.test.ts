@@ -246,3 +246,45 @@ test('hand names pluralise every rank correctly', () => {
     assert.match(name, new RegExp(plural), `rank ${rank}: expected "${plural}" in "${name}"`);
   }
 });
+
+/**
+ * A category shift (a relic promoting, a curse demoting) keeps the ranks the
+ * original category produced, so a promoted Five of a Kind reaches Flush House
+ * holding one rank where the name reads two. That printed "Flush House, Kings
+ * over undefineds" on the payout banner — the banner for the rarest hand in
+ * the game. Only reachable once Five of a Kind started occurring at all.
+ */
+test('no hand name can render an absent rank', () => {
+  const cats = [
+    Cat.HighCard, Cat.Pair, Cat.TwoPair, Cat.Trips, Cat.Straight, Cat.Flush,
+    Cat.FullHouse, Cat.Quads, Cat.StraightFlush, Cat.FiveOfAKind,
+    Cat.FlushHouse, Cat.FlushFive,
+  ];
+  for (const cat of cats) {
+    // One rank is what the five-of-a-kind family carries; four is a full read.
+    for (const ranks of [[13], [13, 4], [13, 4, 9], [13, 4, 9, 2]]) {
+      const name = describeHand({
+        cat, ranks, score: 0, usedIds: [], usedFaces: [],
+        name: '', impossible: false,
+      } as Parameters<typeof describeHand>[0]);
+      assert.ok(
+        !/undefined|NaN/.test(name),
+        `${Cat[cat]} with ${ranks.length} rank(s) rendered "${name}"`,
+      );
+    }
+  }
+});
+
+test('a promoted five of a kind names itself without a phantom pair', () => {
+  // A real Five of a Kind: four Kings and a wild. It carries one rank.
+  const cards = 'KS KH KD KC 2C 3D 4H'.split(' ').map(C);
+  cards[4].marks.push('wild');
+  const five = evaluate({ cards, viewerId: null, mods: {} });
+  assert.equal(five.cat, Cat.FiveOfAKind, 'the setup really is five of a kind');
+  assert.equal(five.ranks.length, 1, 'and it carries a single rank');
+
+  // A relic lifts it one category, into a name that reads two ranks.
+  const lifted = evaluate({ cards, viewerId: null, mods: { categoryShift: 1 } });
+  assert.equal(lifted.cat, Cat.FlushHouse);
+  assert.ok(!/undefined/.test(lifted.name), `rendered "${lifted.name}"`);
+});

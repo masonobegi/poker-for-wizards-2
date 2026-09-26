@@ -192,3 +192,161 @@ test('the promised impossible omen can always be drawn by its ante', async () =>
   // More than one, so the guarantee still leaves the run a choice of which.
   assert.ok(ready.length >= 2, `only ${ready.length} omen(s) can open the impossible hands by ante ${IMPOSSIBLE_BY_ANTE}`);
 });
+
+/**
+ * The Twinned marks four cards Mirrored and tells the player, in the banner,
+ * that each one copies the community card to its left. The mark on its own is
+ * inert — the evaluator does not read it, and the two sigils that apply it
+ * copy the faces themselves — so without the deal-time resolution this omen
+ * did nothing at all while still counting as one that opens the impossible
+ * hands, quietly spending a run's guarantee on a rule that never fired.
+ *
+ * Both of these dispose in a finally: an engine left alive keeps its timers,
+ * and a failing assertion would hang the suite instead of reporting.
+ */
+type DealsStreets = { dealStreet(phase: string): void };
+
+const faceKey = (t: ReturnType<typeof table>['table'], id: string) => {
+  const c = t.cards.get(id)!;
+  const f = c.faces[c.collapsed ?? 0];
+  return `${f.rank}${f.suit}`;
+};
+
+/** A table whose every card carries the mark, so the flop cannot miss it. */
+function markedTable() {
+  const engine = table(3);
+  const t = engine.table;
+  engine.start();
+  for (const c of t.cards.values()) {
+    if (!c.marks.includes('mirrored')) c.marks.push('mirrored');
+  }
+  t.board.length = 0;
+  return { engine, t };
+}
+
+test('a Mirrored board card copies the community card to its left', () => {
+  const { engine, t } = markedTable();
+  try {
+    (engine as unknown as DealsStreets).dealStreet('flop');
+    assert.ok(t.board.length >= 3, 'flop dealt');
+    for (let i = 1; i < t.board.length; i++) {
+      assert.equal(
+        faceKey(t, t.board[i]), faceKey(t, t.board[i - 1]),
+        `board card ${i} is Mirrored and should carry the identity of the one to its left`,
+      );
+    }
+  } finally {
+    engine.dispose();
+  }
+});
+
+test('the leftmost community card has nothing to mirror', () => {
+  const { engine, t } = markedTable();
+  try {
+    const fromDeck = new Set([...t.cards.values()].map((c) => c.id));
+    (engine as unknown as DealsStreets).dealStreet('flop');
+    assert.ok(fromDeck.has(t.board[0]), 'first board card came from the deck');
+  } finally {
+    engine.dispose();
+  }
+});
+
+test('an unmarked board stays as it was dealt', () => {
+  const engine = table(3);
+  const t = engine.table;
+  engine.start();
+  try {
+    t.board.length = 0;
+    (engine as unknown as DealsStreets).dealStreet('flop');
+    const keys = t.board.map((id) => faceKey(t, id));
+    assert.equal(new Set(keys).size, keys.length, 'no card duplicated without the mark');
+  } finally {
+    engine.dispose();
+  }
+});
+
+/**
+ * The Kindling inscribes five cards Burning and promises they leave the board
+ * at the end of the street they land on. Nothing read the mark: it drew a
+ * flame in the client and changed no rule.
+ */
+test('a Burning board card leaves the board at the end of its street', () => {
+  const engine = table(3);
+  const t = engine.table;
+  engine.start();
+  try {
+    for (const c of t.cards.values()) {
+      if (!c.marks.includes('burning')) c.marks.push('burning');
+    }
+    t.board.length = 0;
+    t.phase = 'flop';
+    (engine as unknown as DealsStreets).dealStreet('flop');
+    const afterDeal = t.board.length;
+    assert.ok(afterDeal >= 3, 'flop dealt');
+
+    (engine as unknown as { burnOffBoard(): void }).burnOffBoard();
+    assert.ok(t.board.length < afterDeal, 'burning cards left the board');
+    assert.equal(t.discard.length > 0, true, 'they went to the discard');
+  } finally {
+    engine.dispose();
+  }
+});
+
+test('burning never strips the board below what a showdown can score', () => {
+  // Five cards and two in the hole have to make a hand, so the board must
+  // reach showdown holding three. Each street still to come brings one.
+  for (const [phase, floor] of [['flop', 1], ['turn', 2], ['river', 3]] as const) {
+    const engine = table(3);
+    const t = engine.table;
+    engine.start();
+    try {
+      for (const c of t.cards.values()) {
+        if (!c.marks.includes('burning')) c.marks.push('burning');
+      }
+      t.board.length = 0;
+      t.phase = phase;
+      (engine as unknown as DealsStreets).dealStreet('flop');
+      (engine as unknown as DealsStreets).dealStreet('turn');
+      (engine as unknown as DealsStreets).dealStreet('river');
+      (engine as unknown as { burnOffBoard(): void }).burnOffBoard();
+      assert.equal(
+        t.board.length, floor,
+        `on the ${phase} the board should stop burning at ${floor}`,
+      );
+    } finally {
+      engine.dispose();
+    }
+  }
+});
+
+/**
+ * The Binding and The Bindings inscribe the Bound mark, but propagation keys
+ * off `entangledWith`, which nothing set for an omen and which clearHandMagic
+ * wipes every hand. Both omens were inert.
+ */
+test('Bound cards from an omen are partnered, and stay partnered across hands', () => {
+  const engine = table(3);
+  const t = engine.table;
+  engine.start();
+  try {
+    const ids = [...t.cards.values()].slice(0, 4).map((c) => c.id);
+    for (const id of ids) t.cards.get(id)!.marks.push('bound');
+
+    (engine as unknown as { beginHand(): void }).beginHand();
+    const partners = ids.map((id) => t.cards.get(id)!.entangledWith);
+    assert.equal(partners.filter(Boolean).length, 4, 'every Bound card has a partner');
+    for (const id of ids) {
+      const mine = t.cards.get(id)!;
+      const theirs = t.cards.get(mine.entangledWith!)!;
+      assert.equal(theirs.entangledWith, id, 'the pairing points both ways');
+    }
+
+    // A second hand wipes entanglement; the omen's binding must come back.
+    const before = ids.map((id) => t.cards.get(id)!.entangledWith);
+    (engine as unknown as { beginHand(): void }).beginHand();
+    const after = ids.map((id) => t.cards.get(id)!.entangledWith);
+    assert.deepEqual(after, before, 'the same two cards are bound every hand');
+  } finally {
+    engine.dispose();
+  }
+});

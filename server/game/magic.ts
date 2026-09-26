@@ -127,6 +127,28 @@ export function propagateEntanglement(ctx: MagicCtx, id: string): void {
   ctx.fx.push({ t: 'entangle', cardIds: [a.id, b.id] });
 }
 
+/**
+ * The Binding and The Bindings inscribe cards Bound, but the mark carries no
+ * partner — `propagateEntanglement` pairs by `entangledWith`, which
+ * `clearHandMagic` wipes at the end of every hand along with the sigil's
+ * one-hand entanglements. Without this the two omens announced a permanent
+ * rule and then did nothing at all.
+ *
+ * Re-tied at the start of each hand. Sorting by id keeps the same two cards
+ * partnered for the whole run, which is what "two cards in the shared deck are
+ * Bound" promises; a card the omen did not mark is left alone, so a sigil's
+ * own entanglement later in the hand still overrides it.
+ */
+export function bindInscribedPairs(t: Table): void {
+  const bound = [...t.cards.values()]
+    .filter((c) => c.marks.includes('bound'))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let i = 0; i + 1 < bound.length; i += 2) {
+    bound[i].entangledWith = bound[i + 1].id;
+    bound[i + 1].entangledWith = bound[i].id;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Sigil supply
 // ---------------------------------------------------------------------------

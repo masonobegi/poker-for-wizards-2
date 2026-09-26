@@ -104,17 +104,26 @@ export function describe(r: HandResult): string {
     const name = n(x);
     return /(?:s|x|z|ch|sh)$/i.test(name) ? `${name}es` : `${name}s`;
   };
+  /**
+   * A category shift moves a hand up or down the ladder but keeps the ranks the
+   * old category produced, so a promoted Five of a Kind arrives at Flush House
+   * carrying one rank where two are read. Naming the pair it does not have
+   * printed "Kings over undefineds" on the payout banner.
+   */
+  const pairing = (label: string, join: string) => (
+    b === undefined ? `${label}, ${p(a)}` : `${label}, ${p(a)} ${join} ${p(b)}`
+  );
   switch (r.cat) {
     case Cat.FlushFive: return `Flush Five, ${p(a)}`;
-    case Cat.FlushHouse: return `Flush House, ${p(a)} over ${p(b)}`;
+    case Cat.FlushHouse: return pairing('Flush House', 'over');
     case Cat.FiveOfAKind: return `Five of a Kind, ${p(a)}`;
     case Cat.StraightFlush: return a === 14 ? 'Royal Flush' : `Straight Flush, ${n(a)} high`;
     case Cat.Quads: return `Four of a Kind, ${p(a)}`;
-    case Cat.FullHouse: return `Full House, ${p(a)} over ${p(b)}`;
+    case Cat.FullHouse: return pairing('Full House', 'over');
     case Cat.Flush: return `Flush, ${n(a)} high`;
     case Cat.Straight: return `Straight, ${n(a)} high`;
     case Cat.Trips: return `Three of a Kind, ${p(a)}`;
-    case Cat.TwoPair: return `Two Pair, ${p(a)} and ${p(b)}`;
+    case Cat.TwoPair: return pairing('Two Pair', 'and');
     case Cat.Pair: return `Pair of ${p(a)}`;
     default: return `${n(a)} High`;
   }
