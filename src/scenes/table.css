@@ -1928,6 +1928,30 @@
   overflow: hidden;
 }
 
+/*
+ * Short screens anchor the panel to the top of the felt instead of 250px off
+ * its bottom.
+ *
+ * Measured at 1280x800, the Steam Deck: the felt runs 63..542, the HUD bar
+ * covers 0..51, and a 271px panel sitting 250px off the felt's bottom put its
+ * own top at y=20 — above the felt entirely and 31px underneath the HUD, which
+ * painted over the board row. That row is the panel's own copy of the
+ * community cards, carried precisely because the panel covers the real board
+ * at this height, so the one thing meant to compensate was the thing being
+ * hidden. The same overhang swallowed an opponent's seat whole, name, chips
+ * and fold badge with it.
+ *
+ * Anchoring to the felt's top needs no per-resolution number: the felt already
+ * starts below the HUD, so the panel always clears it. Measured after: panel
+ * top 70, nothing behind the HUD, and seats fully hidden went 1 -> 0.
+ */
+@media (max-height: 820px) {
+  .showdown {
+    top: 8px;
+    bottom: auto;
+  }
+}
+
 /* The board row inside the panel. Cards that scored read at full strength;
    the rest dim, so "Flush, King high" can be checked against the felt. */
 .showdown-board {
