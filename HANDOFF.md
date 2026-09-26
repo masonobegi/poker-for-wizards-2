@@ -316,6 +316,9 @@ here passed every harness in the repo; none of it has been judged by a person.
 | Hexes I-V | `shared/hexes.ts`, `server/game/engine.ts` `start` | Each level is one rule on top of the last. No human win rate exists for any of them. Watch whether Hex II (bots with relics) is a step or a wall. |
 | Daily Rite | `shared/hexes.ts`, `src/scenes/Menu.tsx` | Same seed means same deals, omens and Market offers. Play it twice on one day and confirm hand one deals identically. |
 | Impossible-hand promise | `shared/omens.ts` `IMPOSSIBLE_BY_ANTE` | Impossible hands in 5/10 bot runs, up from 2/8. Could now feel scripted at ante 3; could still be too rare for a human who folds a lot. |
+| Mirrored, at last | `server/game/engine.ts` `resolveMirrored` | The Twinned's cards now copy the community card to their left as they land, which the omen always claimed they did. Watch whether a board that suddenly holds two of the same card reads as a *rule* or as a rendering bug — it is the one mechanic here that looks like a mistake when it works. |
+| Burning, at last | `server/game/engine.ts` `burnOffBoard` | The Kindling's cards now leave the board at the end of their street. A board that shrinks mid-hand is legible on paper and may be disorienting in play; the floor stops it below what a showdown can score, so the failure mode to watch for is confusion, not a crash. |
+| Bound, at last | `server/game/magic.ts` `bindInscribedPairs` | The Binding's cards are tied in pairs at the start of every hand, so changing one changes the other. Whether a player can *see* that the two are linked is unproven — the client draws an entangle effect, but only when something changes one of them. |
 
 ### The end-of-run recap, specifically
 

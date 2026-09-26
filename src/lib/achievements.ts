@@ -9,6 +9,7 @@
 import { ACHIEVEMENT_BY_ID, CAT_ACHIEVEMENT, type AchievementId } from '@shared/achievements';
 import type { TableView } from '@shared/types';
 import type { FxEvent } from '@shared/protocol';
+import { STACK_SIGILS } from '@shared/sigils';
 import { onFx } from '@/store/net';
 
 const KEY = 'hexhold.achievements';
@@ -98,6 +99,10 @@ function watchEffects(e: FxEvent, youId: string | null): void {
     c.counters += 1;
     writeCounters(c);
     unlock('counterspell');
+    // The Last Word: the sigil you just answered was itself an answer to one.
+    // Nothing awarded this before — the counter was tallied and the tally was
+    // never read, so one of the twenty achievements could not be obtained.
+    if (STACK_SIGILS.has(e.sigilId)) unlock('counterspelled_twice');
   }
   if (e.t === 'eliminate') eliminationsThisRun += 1;
 }

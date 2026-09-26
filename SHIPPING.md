@@ -94,6 +94,15 @@ Honest list, worst first.
    run; the hex rules themselves were set without a human win rate, so Hex V
    may be too easy or unwinnable. Replayability is still the thing most likely
    to be criticised in reviews.
+
+    Four of those omens did nothing at all until 2026-09-26. The Twinned, The
+    Kindling, The Binding and The Bindings each inscribe a mark — Mirrored,
+    Burning, Bound — that no engine code read, so they landed with a banner
+    naming a permanent rule and changed no rule. They are implemented now, and
+    `test/content.test.ts` fails if any mark is written but never acted on.
+    Worth knowing when reading older balance numbers: every measurement taken
+    before that date was taken against a game where roughly one omen in ten
+    was inert.
 8. **One language.** No localisation framework; all copy is inline English.
 
 ---

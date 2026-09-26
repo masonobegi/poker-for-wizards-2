@@ -69,7 +69,7 @@ export const MARKS: Record<MarkId, MarkDef> = {
   prism:    { id: 'prism',    name: 'Prism',    glyph: '◈', color: '#7ee8fa', blurb: 'Counts as any suit.' },
   blooded:  { id: 'blooded',  name: 'Blooded',  glyph: '✚', color: '#ff6b81', blurb: 'Scores one rank higher.' },
   leaden:   { id: 'leaden',   name: 'Leaden',   glyph: '▼', color: '#9aa4b2', blurb: 'Scores one rank lower.' },
-  mirrored: { id: 'mirrored', name: 'Mirrored', glyph: '⧉', color: '#c4a7ff', blurb: 'Copies the board card to its left.' },
+  mirrored: { id: 'mirrored', name: 'Mirrored', glyph: '⧉', color: '#c4a7ff', blurb: 'On the board, copies the card to its left.' },
   cursed:   { id: 'cursed',   name: 'Cursed',   glyph: '☠', color: '#8b5cf6', blurb: 'Its holder ranks one category lower.' },
   burning:  { id: 'burning',  name: 'Burning',  glyph: '🜂', color: '#ff9a3c', blurb: 'Burns away at the end of the street.' },
   bound:    { id: 'bound',    name: 'Bound',    glyph: '∞', color: '#5eead4', blurb: 'Entangled — changing one changes both.' },

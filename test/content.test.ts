@@ -30,6 +30,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { MARKS, type MarkId } from '../shared/cards';
 import { OMENS, DUPLICATING_MARKS, opensImpossible } from '../shared/omens';
+import { ACHIEVEMENTS, CAT_ACHIEVEMENT } from '../shared/achievements';
 
 const src = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
@@ -105,5 +106,36 @@ test('the marks that carry the impossible-hand promise all do something', () => 
       readsMark(mark),
       `${o.name} is allowed to satisfy the guarantee but its mark ${mark} is inert`,
     );
+  }
+});
+
+/**
+ * An achievement nothing awards is worse than an achievement that does not
+ * exist: it ships in the Steam manifest, shows up in the player's list at 0%,
+ * and is the first thing an achievement hunter files a thread about.
+ *
+ * `counterspelled_twice` ("Counter a counterspell") was exactly that. The
+ * watcher counted every counter the player cast into local storage and never
+ * read the tally back, so twenty achievements shipped and nineteen could be
+ * earned.
+ */
+test('every achievement has something that can award it', () => {
+  const watcher = src('src/lib/achievements.ts');
+  const mapped = new Set(Object.values(CAT_ACHIEVEMENT));
+  const unreachable = ACHIEVEMENTS
+    .map((a) => a.id)
+    .filter((id) => !mapped.has(id) && !watcher.includes(`'${id}'`));
+  assert.deepEqual(
+    unreachable, [],
+    `nothing in the watcher can unlock: ${unreachable.join(', ')}`,
+  );
+});
+
+test('the Steam manifest never offers an achievement the game cannot give', () => {
+  // The manifest is generated from the same array, so a gap here ships.
+  const api = ACHIEVEMENTS.map((a) => a.api);
+  assert.equal(new Set(api).size, api.length, 'duplicate Steam api name');
+  for (const a of ACHIEVEMENTS) {
+    assert.ok(a.api && a.name && a.text, `${a.id} is missing manifest copy`);
   }
 });

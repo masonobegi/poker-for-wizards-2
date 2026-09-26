@@ -568,6 +568,16 @@ export const RESPONSE_SIGILS = new Set(
   SIGILS.filter((s) => s.timing.includes('response')).map((s) => s.id),
 );
 
+/**
+ * The sigils that answer another sigil on the stack rather than the table —
+ * this game's counterspells. Derived from the target, so a new one joins the
+ * set by being written, and "counter a counterspell" cannot drift away from
+ * what the sigils actually do.
+ */
+export const STACK_SIGILS = new Set(
+  SIGILS.filter((s) => s.target === 'stack').map((s) => s.id),
+);
+
 export const RARITY_WEIGHT: Record<Rarity, number> = { common: 10, rare: 4, mythic: 1 };
 
 export const RARITY_COLOR: Record<Rarity, string> = {
