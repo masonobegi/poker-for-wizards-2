@@ -519,7 +519,18 @@ async function runResolution(browser, res) {
         // Showdown panel.
         const showdownVisible = await page.locator('.showdown').first().isVisible().catch(() => false);
         if (showdownVisible && !seen.showdown) {
-          await page.waitForTimeout(300);
+          /*
+           * The panel springs in from y:30, its rows stagger to a 0.5s delay,
+           * and the winning hand decodes on a 430ms lead. At the old 300ms this
+           * screenshotted and then ran the layout checks in the middle of all
+           * of that: the 1280x800 capture showed the panel still in flight,
+           * with its top row sliced by its own overflow, which reads exactly
+           * like a layout bug at the one resolution that matters most.
+           *
+           * These shots are also the starting point for store screenshots, so
+           * a mid-animation frame is worth avoiding twice over.
+           */
+          await page.waitForTimeout(1400);
           await page.screenshot({ path: await shot(dir, 'showdown') }).catch(() => {});
           seen.showdown = true;
           fail('showdown', await checkOverflowX(page));
