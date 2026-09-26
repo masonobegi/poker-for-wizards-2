@@ -1073,7 +1073,14 @@ export class Engine {
 
   private tick(): void {
     const t = this.table;
-    t.lastActivity = Math.max(t.lastActivity, Date.now() - 60_000);
+    // A running game keeps its table alive, but only while somebody is there
+    // to watch it. Bumping this on every tick unconditionally meant the
+    // reaper's idle test could never pass: a table everyone had left played
+    // bot-only hands forever, and a server restored from its database kept
+    // dozens of them running.
+    if (t.players.some((p) => !p.isBot && p.connected)) {
+      t.lastActivity = Math.max(t.lastActivity, Date.now() - 60_000);
+    }
 
     // Stack windows close on their own.
     if (t.stack && stackReady(t) && this.onDeadline) {
