@@ -52,6 +52,26 @@ function deserialize(s: SerializedTable): Table | null {
       shop: new Map(shop ?? []),
     };
 
+    /*
+     * Everything but `cards` and `players` was spread out of the stored blob
+     * and cast to a Table, so a row written by an older build restores with
+     * whatever fields that build happened to save. A table whose blinds came
+     * back null reached postBlinds and threw on `t.sb.toLocaleString()` once a
+     * tick, for ever, behind the stall guard.
+     *
+     * The blinds are derivable from the config, so repair them rather than
+     * throwing the game away. Anything not derivable is left to the checks
+     * below, which drop the table instead of restoring one that cannot run.
+     */
+    if (!Number.isFinite(table.bb) || table.bb <= 0) table.bb = table.config?.baseBlind ?? 0;
+    if (!Number.isFinite(table.sb) || table.sb <= 0) table.sb = Math.floor(table.bb / 2);
+    if (!Number.isFinite(table.bb) || table.bb <= 0) return null;
+
+    for (const key of ['pot', 'currentBet', 'minRaise', 'ante', 'handNumber', 'dealerSeat'] as const) {
+      if (!Number.isFinite(table[key])) return null;
+    }
+    if (typeof table.phase !== 'string') return null;
+
     // A restored table has nobody connected yet — the clients have to come back.
     for (const p of table.players) {
       p.connected = false;

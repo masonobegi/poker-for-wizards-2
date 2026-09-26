@@ -155,3 +155,42 @@ test('a save from a different version is ignored rather than half-loaded', async
   assert.equal(b.rooms.count, 0, 'a future save version was loaded anyway');
   await halt(b);
 });
+
+/**
+ * A save at the CURRENT version, missing a field the engine does arithmetic on.
+ *
+ * `deserialize` validated that `cards` and `players` were arrays and spread
+ * everything else straight into a Table. A row written by an older build came
+ * back with null blinds, reached postBlinds and threw on
+ * `t.sb.toLocaleString()` once a tick for the life of the process — logged
+ * eight times on one server start, each one "recovered" by the stall guard,
+ * which is what kept it invisible.
+ *
+ * Note the failure mode if this regresses: the restored table crash-loops and
+ * holds the process open, so the suite hangs here rather than reporting. That
+ * is the bug, not the test — a table the engine cannot tick is what is being
+ * ruled out.
+ */
+test('a saved table with no blinds is repaired or dropped, never restored broken', async () => {
+  const { writeFileSync } = await import('node:fs');
+  const table = {
+    code: 'NULLBB', phase: 'deal', players: [], cards: [], actedThisStreet: [], shop: [],
+    board: [], discard: [], burnedSlots: [], omens: [], log: [], tempMarks: [],
+    pot: 0, pots: [], currentBet: 0, minRaise: 0, ante: 1, handNumber: 1, dealerSeat: 0,
+    bb: null, sb: null, mods: {}, stack: null, payout: null, winnerId: null,
+    actingId: null, actingUntil: null,
+    config: { baseBlind: 200, startingChips: 20000, responseSeconds: 10 },
+  };
+  writeFileSync(DB, JSON.stringify({ v: 2, at: Date.now(), tables: [table], tokens: [] }));
+
+  const b = await boot();
+  // Either it was dropped or it came back sane. What it must not be is a live
+  // table whose blinds are null, which is what used to happen.
+  const engines = (b.rooms as unknown as { engines: Map<string, { table: { sb: number; bb: number } }> }).engines;
+  for (const [code, engine] of engines) {
+    const { sb, bb } = engine.table;
+    assert.ok(Number.isFinite(sb) && sb > 0, `${code} restored with sb=${sb}`);
+    assert.ok(Number.isFinite(bb) && bb > 0, `${code} restored with bb=${bb}`);
+  }
+  await halt(b);
+});
