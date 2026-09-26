@@ -973,8 +973,21 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
         id: nanoid(8), casterId: caster.id, sigilId: target.sigilId,
         targets: { ...target.targets, ...tg }, countered: false, costPaid: 0,
       };
-      // Resolve the copy immediately, in this caster's name.
-      applyEffect(ctx, copy, stack, index);
+      /*
+       * Resolve the copy immediately, in this caster's name, standing where the
+       * sigil it copies stands — `index - 1`, not `index`.
+       *
+       * Passing `index` made the copy read the stack from the reflect's own
+       * position, so its `below()` returned the very entry being reflected.
+       * Reflecting a Reflect therefore copied itself and re-entered at the same
+       * index for ever: a stack overflow that killed the table, reachable by
+       * answering a Reflect with a Reflect. It also mis-aimed every other
+       * stack-targeting sigil a Reflect copied — a reflected Toll taxed itself.
+       *
+       * At `index - 1` the position strictly decreases on each hop, so a run of
+       * Reflects walks down the stack and stops at the bottom.
+       */
+      applyEffect(ctx, copy, stack, index - 1);
       note(`${caster.name} reflects ${SIGIL_BY_ID[target.sigilId]?.name} back through their own hands.`, 'impossible');
       break;
     }

@@ -350,3 +350,55 @@ test('Burn shortens the board and the hand still scores', () => {
   assert.equal(t.burnedSlots.length, 1);
   assert.ok(live(t).length > 0);
 });
+
+/**
+ * Reflect copies the sigil beneath it and resolves the copy in the reflector's
+ * name. It re-entered `applyEffect` at its OWN index, so the copy's idea of
+ * "the sigil below" was the entry being reflected — itself, when that entry was
+ * another Reflect. One player answering another's Reflect with a Reflect
+ * recursed until the stack overflowed and the table died: a crash any two
+ * players could cause on a public server, on purpose or by accident.
+ */
+function stackOf(ids: string[]) {
+  const { t, ctx } = freshTable();
+  // Everyone holds a Reflect and the mana for it before anything is cast:
+  // `respondersFor` builds the pending list from who can answer at that moment,
+  // so a sigil handed over later never gets a turn.
+  const uids = t.players.map((p) => {
+    p.mana = 999;
+    const mine = ids.slice(1).map((id) => {
+      const uid = nanoid(8);
+      p.sigils.push({ uid, defId: id });
+      return uid;
+    });
+    return mine;
+  });
+
+  const opener = t.players[0];
+  const openUid = nanoid(8);
+  opener.sigils.push({ uid: openUid, defId: ids[0] });
+  const first = castSigil(ctx, opener, openUid, {} as never);
+  assert.ok(first.ok, `${ids[0]} could not be cast: ${first.error}`);
+
+  // Each answer comes from a different player; one seat may answer only once.
+  ids.slice(1).forEach((id, i) => {
+    const p = t.players[(i + 1) % t.players.length];
+    const uid = uids[(i + 1) % t.players.length][i];
+    const res = castSigil(ctx, p, uid, {} as never);
+    assert.ok(res.ok, `${id} (answer ${i + 1}) could not be cast: ${res.error}`);
+  });
+  return { t, ctx };
+}
+
+test('a Reflect answering a Reflect resolves instead of overflowing the stack', () => {
+  const { ctx } = stackOf(['second_sight', 'reflect', 'reflect']);
+  assert.doesNotThrow(() => resolveStack(ctx), 'two Reflects overflowed the stack');
+});
+
+test('a Reflect aims the sigil it copies at the entry below that one', () => {
+  // Not just "does not throw": the copy has to resolve from where the sigil it
+  // copies stands, or a reflected stack-targeting sigil answers itself.
+  const { t, ctx } = stackOf(['second_sight', 'reflect']);
+  assert.doesNotThrow(() => resolveStack(ctx));
+  assert.equal(t.stack, null, 'the stack settled');
+});
