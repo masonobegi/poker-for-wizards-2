@@ -22,7 +22,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
+  contenders, freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
 } from './table';
 import {
   bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -239,6 +239,7 @@ export class Engine {
 
   private beginHand(): void {
     const t = this.table;
+    if (!this.canDealHand()) return;
 
     clearHandMagic(t);
     reapConjured(t);
@@ -367,15 +368,21 @@ export class Engine {
 
   private postBlinds(): void {
     const t = this.table;
-    const contenders = alive(t).filter((p) => !p.sittingOut);
-    const heads = contenders.length === 2;
+    const seats = contenders(t);
+    // beginHand holds the table until this is true. Saying so here means a
+    // route that ever gets round it reports what is wrong, rather than a
+    // TypeError on `undefined.seat` eleven frames down.
+    if (seats.length < 2) {
+      throw new Error(`postBlinds with ${seats.length} player(s) able to post`);
+    }
+    const heads = seats.length === 2;
 
     // Heads up, the button is the small blind.
     const sbPlayer = heads
-      ? contenders.find((p) => p.seat === t.dealerSeat) ?? contenders[0]
-      : nextSeat(t, t.dealerSeat, (p) => !p.eliminated && !p.sittingOut) ?? contenders[0];
+      ? seats.find((p) => p.seat === t.dealerSeat) ?? seats[0]
+      : nextSeat(t, t.dealerSeat, (p) => !p.eliminated && !p.sittingOut) ?? seats[0];
     const bbPlayer = nextSeat(t, sbPlayer.seat, (p) => !p.eliminated && !p.sittingOut && p.id !== sbPlayer.id)
-      ?? contenders.find((p) => p.id !== sbPlayer.id) ?? contenders[0];
+      ?? seats.find((p) => p.id !== sbPlayer.id) ?? seats[0];
 
     this.commit(sbPlayer, Math.min(t.sb, sbPlayer.chips));
     this.commit(bbPlayer, Math.min(t.bb, bbPlayer.chips));
@@ -748,6 +755,23 @@ export class Engine {
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
     this.wait(520, () => this.beginHand());
+  }
+
+  /**
+   * A hand needs two players who can actually post a blind. `alive` is not that
+   * test: restoring a table marks every human `sittingOut` until they
+   * reconnect, so a saved two-human table came back, passed an `alive >= 2`
+   * check, and threw out of postBlinds on every tick — recovered each time by
+   * the stall guard, which is not the same as not crashing.
+   *
+   * Holding instead of dealing lets the table sit until someone comes back;
+   * the reaper still takes it if nobody does.
+   */
+  private canDealHand(): boolean {
+    const t = this.table;
+    if (contenders(t).length >= 2) return true;
+    this.wait(1000, () => { if (this.canDealHand()) this.beginHand(); });
+    return false;
   }
 
   private endGame(): void {

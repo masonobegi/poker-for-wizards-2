@@ -148,6 +148,13 @@ export const alive = (t: Table): Player[] => seated(t).filter((p) => !p.eliminat
 export const live = (t: Table): Player[] => alive(t).filter((p) => !p.folded);
 /** Players who can still make a betting decision. */
 export const actable = (t: Table): Player[] => live(t).filter((p) => !p.allIn);
+/**
+ * Players a hand can actually be dealt to. `alive` is not enough: restoring a
+ * table marks every human `sittingOut` until they reconnect, so a saved
+ * two-human table comes back with two alive players and nobody to post a
+ * blind.
+ */
+export const contenders = (t: Table): Player[] => alive(t).filter((p) => !p.sittingOut);
 
 /** Next seat clockwise from `fromSeat` satisfying `pred`. */
 export function nextSeat(t: Table, fromSeat: number, pred: (p: Player) => boolean): Player | null {

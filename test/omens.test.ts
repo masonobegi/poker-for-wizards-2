@@ -350,3 +350,35 @@ test('Bound cards from an omen are partnered, and stay partnered across hands', 
     engine.dispose();
   }
 });
+
+/**
+ * Restoring a table marks every human `sittingOut` until they reconnect, so a
+ * saved two-human table comes back with two players alive and nobody able to
+ * post a blind. The pre-hand check counted `alive`, which that passes, and
+ * postBlinds then read `.seat` off `contenders[0]` — undefined. The table
+ * threw on every tick and the stall guard recovered it every time, which
+ * looked like a working restore and was 29 crashes a minute.
+ */
+test('a table whose players are all sitting out holds instead of crashing', () => {
+  const engine = table(3);
+  const t = engine.table;
+  engine.start();
+  try {
+    for (const p of t.players) p.sittingOut = true;
+    assert.doesNotThrow(
+      () => (engine as unknown as { beginHand(): void }).beginHand(),
+      'dealing a hand nobody can play should hold the table, not throw',
+    );
+
+    // One player back is still not enough for a blind on each side.
+    t.players[0].sittingOut = false;
+    assert.doesNotThrow(() => (engine as unknown as { beginHand(): void }).beginHand());
+
+    // Two are.
+    t.players[1].sittingOut = false;
+    assert.doesNotThrow(() => (engine as unknown as { beginHand(): void }).beginHand());
+    assert.equal(t.phase, 'preflop', 'with two able to post, the hand deals');
+  } finally {
+    engine.dispose();
+  }
+});
