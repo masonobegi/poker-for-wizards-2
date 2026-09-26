@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 198 tests: hand eval, sigils, omens, bots, hexes, DOM mounts, sockets
+npm test           # 204 tests: hand eval, sigils, omens, bots, hexes, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
