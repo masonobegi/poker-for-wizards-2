@@ -77,6 +77,15 @@ Honest list, worst first.
    those two.** Related: `responsive`'s viewport-overflow check was incapable
    of failing until it was fixed, because it clipped every element against
    `body { overflow: hidden }`; treat older green runs of it as unproven.
+0. **Three crashes were found in the server log during this pass, not by a
+   test.** A table restored from the save file threw once a tick for the life
+   of the process — twice over, from null blinds and from every human coming
+   back marked `sittingOut` — and a Reflect cast at a Reflect recursed until
+   the stack overflowed and killed the table, which any two players could do
+   to a public server. All three are fixed and covered, but note *how* they
+   survived: the stall guard caught and recovered each one, so a server
+   crashing at 1Hz looked from the outside like a server that was working.
+   Read `server.log` after a session; a quiet console is not evidence.
 1. **Nobody has played this against another human.** Every balance number comes from bots. Bots do not tilt, do not slow-roll, and do not think about what you think they have. Expect the sigil economy in particular to need another pass once real people are bluffing with it.
 2. **The Docker image is unbuilt** (above).
 3. **The six-handed table is the slow configuration.** `npm run metrics -- 180 6` reads about 20s a hand against a threshold that wants 12; the default practice table (you and three bots) now runs about 12s, down from 19s, after a resumed turn stopped paying a bot's full deliberation again after every cast (2026-09-25). Bot think time already shortens as the table fills, and the remaining cost is real — six players, four streets, and six to nine spells a hand with a response window on each. It is worth another look, but not by making the spell layer quieter.
