@@ -103,6 +103,17 @@ export class Engine {
     this.push();
   }
 
+  /**
+   * A bot's own pause, scaled by the same pacing dial as every table clock.
+   * The Market's browsing pauses used to be fixed milliseconds while the
+   * Market's own clock scaled, so at HEXHOLD_PACE=10 the Market shut in 0.3s
+   * before any bot had looked at it, and every fast harness run measured a
+   * game in which bots never bought anything.
+   */
+  private paced(ms: number): number {
+    return Math.round(ms * (config.pacePercent / 100));
+  }
+
   private wait(ms: number, then: () => void): void {
     this.deadline = Date.now() + Math.round(ms * (config.pacePercent / 100));
     this.onDeadline = then;
@@ -844,7 +855,7 @@ export class Engine {
     for (const p of alive(t)) {
       p.shopDone = false;
       t.shop.set(p.id, rollShop(t, p, this.stream(`shop:${t.ante}:${p.seat}`)));
-      if (p.isBot) this.botClock.set(p.id, Date.now() + 800 + this.rng.int(1500));
+      if (p.isBot) this.botClock.set(p.id, Date.now() + this.paced(800 + this.rng.int(1500)));
     }
 
     this.fx.push({ t: 'sfx', name: 'shop_open' });
@@ -1288,15 +1299,15 @@ export class Engine {
         const at = this.botClock.get(p.id) ?? 0;
         if (now < at) continue;
         const page = decideScribe(t, p, this.rng);
-        if (page && scribe(t, p, page.uid, page.text).ok) {
-          this.botClock.set(p.id, now + 500 + this.rng.int(900));
+        if (page && scribe(t, p, page.uid, page.text, page.replace).ok) {
+          this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
           this.flush();
           return;
         }
         const uid = decideShop(t, p, this.rng);
         if (uid) {
           buy(t, p, uid, this.rng);
-          this.botClock.set(p.id, now + 500 + this.rng.int(900));
+          this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
         } else {
           p.shopDone = true;
         }

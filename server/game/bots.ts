@@ -19,7 +19,7 @@ import { rosterFor } from './shop';
 import type {
   BetAction, BotSkill, Player, SigilTargets, StackEntry, Table, TableSpeed,
 } from '../../shared/types';
-import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
+import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, sigilHandSize, totalPot } from './table';
 import { resolveStack } from './magic';
 import { config } from '../config';
 
@@ -762,7 +762,9 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
 /** How often a bot writes on the page. A hook for the balance harness, which sets it per seat. */
 export const botScribe = { chanceFor: (_p: Player): number => 0.35 };
 
-export function decideScribe(t: Table, p: Player, rng: Rng): { uid: string; text: string } | null {
+export function decideScribe(
+  t: Table, p: Player, rng: Rng,
+): { uid: string; text: string; replace?: string } | null {
   const shop = t.shop.get(p.id);
   const page = shop?.items.find((i) => i.kind === 'scribe' && !shop.sold.includes(i.uid));
   // Decided once per market visit, not once per tick: the bot loop asks
@@ -774,7 +776,17 @@ export function decideScribe(t: Table, p: Player, rng: Rng): { uid: string; text
     .map((pr) => readSpell(pr.text, roster).spell)
     .filter((sp): sp is NonNullable<typeof sp> => !!sp && sp.price <= p.shards);
   if (!affordable.length) return null;
-  return { uid: page.uid, text: rng.pick(affordable).text };
+  // A bot's hand is nearly always full by the first Market, so writing means
+  // giving something up: the cheapest sigil that is not its counterspell.
+  let replace: string | undefined;
+  if (p.sigils.length >= sigilHandSize(p)) {
+    const spare = p.sigils
+      .filter((s) => !defOf(s)?.timing.includes('response') && !s.scribed)
+      .sort((a, b) => (defOf(a)?.cost ?? 0) - (defOf(b)?.cost ?? 0))[0];
+    if (!spare) return null;
+    replace = spare.uid;
+  }
+  return { uid: page.uid, text: rng.pick(affordable).text, replace };
 }
 
 /** Bots shop greedily but not stupidly: relics first, then sigils they can hold. */

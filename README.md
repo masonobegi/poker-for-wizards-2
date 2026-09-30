@@ -93,6 +93,22 @@ Suits merge. Aces start bridging both ends of the rank order. Every King is deal
 
 They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory: if no omen has seeded the deck with wild, prism or mirrored cards by ante three, that ante's omen is one that does.
 
+### Writing your own sigils
+
+Every Market has a **blank page**. Type what you want the sigil to do, in plain English, and it becomes a sigil in your hand:
+
+> *burn the river and read the chip leader's cards*
+> *hex everyone*
+> *make my worst card a copy of the river*
+
+There is no language model. `shared/scribe.ts` reads the sentence with ordered rule tables, the same way a search box parses a question, and turns it into one to three existing sigil effects. What it adds is the power a printed sigil does not have:
+
+- **Targets described, not picked.** "The chip leader", "whoever raised last", "the short stack", "my worst card", "the river" are worked out when the spell resolves, against the table as it is then.
+- **Bundles.** Up to three effects in one cast and one hand slot. One stack entry, so a single Nullify still eats the lot.
+- **The whole table.** "Everyone" or "every opponent" hits each of them.
+
+The price comes from the effects, never the wording: a sigil's own name costs exactly that sigil, every extra effect is +1 mana, aiming at everyone doubles that effect, and nothing costs more than 10. The reading updates as you type, says every guess out loud, and refuses what no sigil can do ("win the pot") with a sentence rather than a nearby wrong answer. Seven ready-made spells sit on the page as buttons for anyone who would rather tap than type.
+
 ### Hexes and the Daily Rite
 
 Each coven has a ladder of five **hexes**. Hex I is the game as described above. Each level adds one rule and keeps every rule below it: opponents open with a relic, an omen is in force before the first card, the Market charges you a quarter more, the blinds climb every two hands. Winning a run at the highest hex open to a coven opens the next one.
