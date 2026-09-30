@@ -46,6 +46,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
   inst, castable, cost, affordable, lock, selected, onCast, onDiscard, index = 0, compact,
 }: SigilCardProps, ref) {
   const def = defOf(inst);
+  const written = inst.scribed;
   // `usable` must be computed before any early return so the hooks below
   // always run in the same order, whether or not `def` resolves.
   const usable = !!def && castable && affordable;
@@ -92,6 +93,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         why?.kind === 'mana' ? 'is-short' : '',
         selected ? 'is-selected' : '',
         compact ? 'is-compact' : '',
+        written ? 'is-written' : '',
       ].filter(Boolean).join(' ')}
       data-sigil-uid={inst.uid}
       style={{
@@ -131,7 +133,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         <header className="sigil-head">
           <span className="sigil-cost mono">{cost}</span>
           <span className="sigil-school">
-            {def.timing.includes('response') ? 'Response' : school.name}
+            {written ? 'Written' : def.timing.includes('response') ? 'Response' : school.name}
           </span>
         </header>
 
@@ -140,12 +142,16 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           <span className="sigil-glyph"><Mark kind="sigil" id={def.id} fallback={def.glyph} /></span>
         </div>
 
-        <h4 className="sigil-name">{def.name}</h4>
+        {/* A written sigil's name is the sentence its owner wrote, in their
+            hand, not a title: that is what makes it theirs. */}
+        {written
+          ? <h4 className="sigil-name sigil-name--written">&ldquo;{written.text}&rdquo;</h4>
+          : <h4 className="sigil-name">{def.name}</h4>}
 
         {!compact ? <p className="sigil-text">{def.text}</p> : null}
 
         <footer className="sigil-foot">
-          <span className="sigil-rarity">{def.rarity}</span>
+          <span className="sigil-rarity">{written ? `${written.clauses.length} effect${written.clauses.length === 1 ? '' : 's'}` : def.rarity}</span>
         </footer>
       </motion.div>
 
@@ -169,7 +175,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
       ) : null}
 
       <div className="sigil-tip" role="tooltip">
-        <strong>{def.name}</strong>
+        <strong>{written ? `“${written.text}”` : def.name}</strong>
         <p>{def.text}</p>
         <p className="sigil-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
         {why ? <p className="sigil-warn">{why.long}</p> : null}
