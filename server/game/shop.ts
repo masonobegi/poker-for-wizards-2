@@ -15,7 +15,7 @@ import { SCRIBED_ID, SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
 import { giveSigil } from './magic';
-import { log, maxManaFor, sigilHandSize } from './table';
+import { log, refreshMaxMana, sigilHandSize } from './table';
 
 /*
  * The rite pool, weighted.
@@ -135,7 +135,7 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
     case 'relic': {
       if (p.relics.includes(item.id)) return { ok: false, error: 'You already own it' };
       p.relics.push(item.id);
-      p.maxMana = maxManaFor(p);
+      refreshMaxMana(p, t);
       break;
     }
     case 'rite': {
@@ -145,7 +145,8 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
       break;
     }
     case 'mana': {
-      p.maxMana += item.amount;
+      p.attuned = (p.attuned ?? 0) + item.amount;
+      refreshMaxMana(p, t);
       break;
     }
   }

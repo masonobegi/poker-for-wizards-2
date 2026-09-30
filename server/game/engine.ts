@@ -22,7 +22,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  contenders, freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
+  contenders, freeSeat, live, log, maxManaFor, nextSeat, refreshMaxMana, seated, sigilHandSize,
 } from './table';
 import {
   bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -212,6 +212,7 @@ export class Engine {
       p.relics = [];
       p.eliminated = false;
       p.handsWon = 0;
+      p.attuned = 0;
       p.maxMana = maxManaFor(p, t);
 
       // The coven is the run's opening decision, and it is expressed entirely
@@ -296,7 +297,7 @@ export class Engine {
       p.hole = [];
       p.lastAction = undefined;
       p.shopDone = false;
-      p.maxMana = maxManaFor(p, t);
+      refreshMaxMana(p, t);
       // Two at the top of the hand, not three. At three, a measured session
       // ended every hand with four unspent mana per player out of a ceiling
       // of eight — which means casting was never a choice, only a chore you
@@ -904,7 +905,7 @@ export class Engine {
       }
     }
 
-    for (const p of t.players) p.maxMana = maxManaFor(p, t);
+    for (const p of t.players) refreshMaxMana(p, t);
 
     const detail = omen.rank ? `${RANK_NAME[omen.rank]}s` : '';
     log(t, `OMEN — ${def.name}: ${def.text}${detail ? ` (${detail})` : ''}`, 'impossible');

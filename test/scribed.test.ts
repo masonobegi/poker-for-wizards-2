@@ -117,3 +117,36 @@ test('a full hand can make room, and gives nothing up if the page is refused', (
   assert.ok(scribe(t, hero, 'pg', 'burn the river', 's1').ok);
   assert.deepEqual(hero.sigils.map((s) => s.defId), ['nullify', 'foresight', 'hex', SCRIBED_ID]);
 });
+
+test('bought max mana survives the next hand, and a relic keeps an omen\'s bonus', async () => {
+  const { Engine } = await import('../server/game/engine');
+  const { buy } = await import('../server/game/shop');
+  const e = new Engine('MANA', 'host', { ...DEFAULT_CONFIG }, () => {}, () => {});
+  const hero = e.addPlayer('host', 'Hero')!;
+  e.addBot();
+  e.start();
+  e.dispose();
+  const t = e.table;
+  t.omens.push({ id: 'feast', ante: 2 });
+  hero.shards = 50;
+  const base = hero.maxMana;
+
+  t.shop.set(hero.id, {
+    items: [
+      { kind: 'mana', uid: 'm', price: 6, amount: 1 },
+      { kind: 'relic', uid: 'r', id: 'leyline', price: 6 },
+    ],
+    sold: [], rerollCost: 3, closesAt: 0,
+  });
+  assert.ok(buy(t, hero, 'm', new Rng('b')).ok);
+  const bought = hero.maxMana;
+  assert.ok(bought > base, 'the purchase should raise the ceiling');
+
+  hero.mana = hero.maxMana;
+  assert.ok(buy(t, hero, 'r', new Rng('b')).ok);
+  assert.ok(hero.maxMana >= bought, 'buying a relic dropped the ceiling');
+  assert.ok(hero.mana <= hero.maxMana, 'mana over its own cap');
+
+  (e as unknown as { beginHand(): void }).beginHand();
+  assert.ok(hero.maxMana >= bought, 'the next hand took the bought mana back');
+});

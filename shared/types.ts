@@ -73,6 +73,8 @@ export interface Player {
 
   mana: number;
   maxMana: number;
+  /** Max mana bought at the Market this run. Part of `maxManaFor`, so it survives every recompute. */
+  attuned?: number;
   sigils: SigilInstance[];
   relics: string[];
   /** The coven this player sat down as. See shared/covens.ts. */

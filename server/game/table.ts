@@ -249,7 +249,23 @@ export function modsFor(t: Table, p: Player): RuleMods {
 
 export const maxManaFor = (p: Player, t?: Table): number =>
   8 + relicNumber(p.relics, (r) => r.mana?.max)
+    + (p.attuned ?? 0)
     + (t ? omenNumber(t.omens, (o) => o.mana?.max) : 0);
+
+/**
+ * Recompute a player's mana ceiling and keep their pool under it.
+ *
+ * Every change to the ceiling goes through here. The Market used to call
+ * `maxManaFor(p)` without the table, which dropped any omen's bonus the moment
+ * a relic was bought and left the pool above its own cap; and the Attunement it
+ * sold added to `maxMana` directly, which the next hand's recompute quietly
+ * took back. Both are covered by keeping the ceiling a pure function of what
+ * the player owns and the omens in force, and computing it in one place.
+ */
+export function refreshMaxMana(p: Player, t: Table): void {
+  p.maxMana = maxManaFor(p, t);
+  p.mana = Math.min(p.mana, p.maxMana);
+}
 
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
