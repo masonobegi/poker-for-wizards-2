@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGame, useMe, useView } from '@/store/net';
-import { SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
+import { defOf, type SigilDef } from '@shared/sigils';
 import type { SigilTargets } from '@shared/types';
 import { Button, Modal } from '@/components/ui/kit';
 
@@ -130,7 +130,7 @@ export default function GameTable() {
 
   const beginCast = useCallback((uid: string) => {
     const inst = me?.sigils?.find((s) => s.uid === uid);
-    const def = inst ? SIGIL_BY_ID[inst.defId] : undefined;
+    const def = inst ? defOf(inst) : undefined;
     if (!def) return;
     if (def.target === 'none' || def.target === 'stack') {
       cast(uid, {});

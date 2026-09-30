@@ -19,12 +19,14 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import './shop.css';
 import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 import { Mark, type MarkKind } from '@/art/marks';
+import Scribe from './Scribe';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
   const reduced = useReducedMotionPref();
   const { buy, reroll, shopDone } = useGame();
   const shop = view.shop;
   const [left, setLeft] = useState(0);
+  const [writing, setWriting] = useState(false);
 
   useEffect(() => {
     if (!shop?.closesAt) return;
@@ -37,6 +39,9 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
   if (!shop) return null;
 
   const others = view.players.filter((p) => !p.isYou && !p.eliminated);
+  const page = shop.items.find((i) => i.kind === 'scribe');
+  const pageUsed = page ? shop.sold.includes(page.uid) : true;
+  const wares = shop.items.filter((i) => i.kind !== 'scribe');
 
   return (
     <motion.div
@@ -66,7 +71,7 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
 
         <div className="shop-grid">
           <AnimatePresence mode="popLayout">
-            {shop.items.map((item, i) => (
+            {wares.map((item, i) => (
               <ShopCard
                 key={item.uid}
                 item={item}
@@ -79,6 +84,28 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
             ))}
           </AnimatePresence>
         </div>
+
+        {page ? (
+          writing && !pageUsed ? (
+            <Scribe view={view} me={me} uid={page.uid} onClose={() => setWriting(false)} />
+          ) : (
+            <div className={`scribe-strip ${pageUsed ? 'is-used' : ''}`}>
+              <span className="scribe-strip__glyph" aria-hidden>✎</span>
+              <div>
+                <strong>A Blank Page</strong>
+                <p>{pageUsed
+                  ? 'Written on. The sigil is in your hand.'
+                  : 'Write your own sigil in plain words — combine effects, aim at the chip leader or everyone at once. The words set the price.'}
+                </p>
+              </div>
+              {!pageUsed ? (
+                <Button size="sm" tone="primary" onClick={() => setWriting(true)}>
+                  Write &mdash; from ◆{page.price}
+                </Button>
+              ) : null}
+            </div>
+          )
+        ) : null}
 
         <footer className="shop-foot">
           <Button

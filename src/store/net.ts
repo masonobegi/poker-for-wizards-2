@@ -96,6 +96,8 @@ interface GameStore {
   discardSigil(uid: string): void;
 
   buy(uid: string): void;
+  /** Write a sigil on the Market's blank page. Resolves with the server's verdict. */
+  scribe(uid: string, text: string, replace?: string): Promise<{ ok: boolean; error?: string }>;
   reroll(): void;
   shopDone(): void;
 
@@ -256,6 +258,13 @@ export const useGame = create<GameStore>((set, get) => ({
   discardSigil(uid) { get().socket?.emit('game:discardSigil', { uid }); },
 
   buy(uid) { get().socket?.emit('shop:buy', { uid }); },
+  scribe(uid, text, replace) {
+    const s = get().socket;
+    if (!s) return Promise.resolve({ ok: false, error: 'Not connected' });
+    return new Promise((resolve) => {
+      s.emit('shop:scribe', { uid, text, replace }, (a: { ok: boolean; error?: string }) => resolve(a));
+    });
+  },
   reroll() { get().socket?.emit('shop:reroll'); },
   shopDone() { get().socket?.emit('shop:done'); },
 
