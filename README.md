@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 204 tests: hand eval, sigils, omens, bots, hexes, DOM mounts, sockets
+npm test           # 219 tests: hand eval, sigils, omens, bots, hexes, the spell reader, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
@@ -28,6 +28,7 @@ npm run audio      # renders every sound offline and measures the mix
 npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
 npm run metrics -- 150 5  # balance report: pacing, magic rate, fizzles, action spread
 HEXHOLD_PACE=10 npm run runs -- 8 4 400  # full runs to game over: length, depth, impossible hands
+HEXHOLD_PACE=10 npx tsx test/balance-scribe.ts 30  # does writing sigils give an edge?
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
