@@ -778,6 +778,8 @@ export const botScribe = {
     ({ novice: 0.15, adept: 0.35, master: 0.6 } as const)[t?.config.botSkill ?? 'adept'] ?? 0.35,
   /** The balance harness swaps in its own sentences to test the strongest writing. */
   drafts: null as ((t: Table, p: Player) => Draft[] | null) | null,
+  /** Take an affordable relic before writing. The balance harness turns it off to measure the page itself. */
+  relicFirst: true,
 };
 
 export interface Draft { text: string; weight: number }
@@ -832,7 +834,7 @@ export function decideScribe(
   // relic cost measured runs more than the written sigil ever won back.
   const relicFirst = shop.items.some((i) => i.kind === 'relic' && !shop.sold.includes(i.uid)
     && i.price <= p.shards && !p.relics.includes(i.id));
-  if (relicFirst) return null;
+  if (relicFirst && botScribe.relicFirst) return null;
   const roster = rosterFor(t, p);
   const scored = (botScribe.drafts?.(t, p) ?? draftsFor(t, p))
     .map((dr) => ({ dr, sp: readSpell(dr.text, roster).spell }))

@@ -81,6 +81,9 @@ async function half(mode: Mode): Promise<Out[]> {
   const writer = mode !== 'never';
   botScribe.chanceFor = (p) => (writer && p.id === 'host' ? 1 : 0);
   botScribe.drafts = mode === 'sharp' ? () => SHARP : null;
+  // Measure the page, not the shopping order: a writer that always buys a
+  // relic first barely writes at all.
+  botScribe.relicFirst = !writer;
   // Runs share the hook, so a half plays its runs together and the halves in turn.
   return Promise.all(Array.from({ length: RUNS }, (_, i) => play(i, writer)));
 }
