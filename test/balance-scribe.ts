@@ -10,7 +10,7 @@
  * Run: HEXHOLD_PACE=10 npx tsx test/balance-scribe.ts [runs] [maxSeconds]
  */
 import { Engine } from '../server/game/engine';
-import { botScribe } from '../server/game/bots';
+import { botScribe, type Draft } from '../server/game/bots';
 import { SCRIBED_ID } from '../shared/sigils';
 import type { FxEvent } from '../shared/protocol';
 
@@ -59,14 +59,35 @@ function play(seed: number, writer: boolean): Promise<Out> {
   });
 }
 
-async function half(writer: boolean): Promise<Out[]> {
+/**
+ * The strongest sentences the reader will accept: whole-table effects and
+ * bundles aimed at the leader. Weighted toward the expensive ones, so the
+ * probe writes the most powerful spell it can afford every time — the
+ * player a price has to hold against, not the average one.
+ */
+const SHARP: Draft[] = [
+  { text: 'hex everyone', weight: 6 },
+  { text: "see everyone's cards", weight: 4 },
+  { text: "drain everyone's mana", weight: 6 },
+  { text: "hex the chip leader and drain their mana", weight: 6 },
+  { text: 'make my cards wild', weight: 7 },
+  { text: 'make my worst card wild and protect it', weight: 6 },
+  { text: "burn the river and see the chip leader's cards", weight: 5 },
+];
+
+type Mode = 'never' | 'situational' | 'sharp';
+
+async function half(mode: Mode): Promise<Out[]> {
+  const writer = mode !== 'never';
   botScribe.chanceFor = (p) => (writer && p.id === 'host' ? 1 : 0);
+  botScribe.drafts = mode === 'sharp' ? () => SHARP : null;
   // Runs share the hook, so a half plays its runs together and the halves in turn.
   return Promise.all(Array.from({ length: RUNS }, (_, i) => play(i, writer)));
 }
 
-const control = await half(false);
-const written = await half(true);
+const control = await half('never');
+const written = await half('situational');
+const sharp = await half('sharp');
 
 const sum = (xs: Out[]) => ({
   placement: xs.reduce((a, o) => a + o.placement, 0) / xs.length,
@@ -80,4 +101,6 @@ const w = sum(written);
 console.log(`\n${RUNS} runs a half, four-handed, seat 0 is the probe (1st is best, 2.5 is average)`);
 console.log(`  never writes   avg place ${c.placement.toFixed(2)}   won ${c.wins}/${RUNS}${c.unfinished ? `   (${c.unfinished} timed out)` : ''}`);
 console.log(`  always writes  avg place ${w.placement.toFixed(2)}   won ${w.wins}/${RUNS}   pages written ${w.written}, cast ${w.cast}${w.unfinished ? `   (${w.unfinished} timed out)` : ''}`);
+const x = sum(sharp);
+console.log(`  writes sharp   avg place ${x.placement.toFixed(2)}   won ${x.wins}/${RUNS}   pages written ${x.written}, cast ${x.cast}${x.unfinished ? `   (${x.unfinished} timed out)` : ''}`);
 process.exit(0);
