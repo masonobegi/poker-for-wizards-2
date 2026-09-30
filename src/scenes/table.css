@@ -2288,3 +2288,11 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* The words are the card, so the art steps back to a small pen mark and the
+   compiled rules to two lines (the tooltip carries them in full). Without
+   this the sentence got one and a half lines and was cut mid-word. */
+.sigil.is-written .sigil-art { min-height: clamp(16px, calc(var(--card-h) * 0.13), 22px); }
+.sigil.is-written .sigil-device { display: none; }
+.sigil.is-written .sigil-glyph { font-size: 0.8em; }
+.sigil.is-written .sigil-name--written { flex: 0 0 auto; }
+.sigil.is-written .sigil-text { -webkit-line-clamp: 2; line-clamp: 2; }

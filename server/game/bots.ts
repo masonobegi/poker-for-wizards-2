@@ -827,6 +827,12 @@ export function decideScribe(
   if (!shop || !page || !new Rng(`${t.seed}:scribe:${t.ante}:${p.id}`).chance(botScribe.chanceFor(p, t))) {
     return null;
   }
+  // A relic is permanent and a written sigil is spent once, so a relic it
+  // can afford comes first; the page gets what is left. Writing before the
+  // relic cost measured runs more than the written sigil ever won back.
+  const relicFirst = shop.items.some((i) => i.kind === 'relic' && !shop.sold.includes(i.uid)
+    && i.price <= p.shards && !p.relics.includes(i.id));
+  if (relicFirst) return null;
   const roster = rosterFor(t, p);
   const scored = (botScribe.drafts?.(t, p) ?? draftsFor(t, p))
     .map((dr) => ({ dr, sp: readSpell(dr.text, roster).spell }))
