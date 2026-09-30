@@ -78,7 +78,10 @@ function cards(t: Table, caster: Player, ref: CardRef): string[] {
     return id ? [id] : [];
   }
   return players(t, caster, ref.who)
-    .map((p) => holeCard(t, p, ref.pick))
+    .map((p) => (ref.rank
+      // "my 2": the hole card that is a two, on any of its possible faces.
+      ? p.hole.find((id) => card(t, id)?.faces.some((f) => f.rank === ref.rank))
+      : holeCard(t, p, ref.pick)))
     .filter((id): id is string => !!id);
 }
 

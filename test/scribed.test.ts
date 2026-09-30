@@ -150,3 +150,18 @@ test('bought max mana survives the next hand, and a relic keeps an omen\'s bonus
   (e as unknown as { beginHand(): void }).beginHand();
   assert.ok(hero.maxMana >= bought, 'the next hand took the bought mana back');
 });
+
+test('"my <rank>" finds the hole card of that rank, and "my cards" means both', () => {
+  const { t, hero } = river();
+  const [a, b] = hero.hole.map((id) => t.cards.get(id)!);
+  const name = ({ 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine',
+    10: 'ten', 11: 'jack', 12: 'queen', 13: 'king', 14: 'ace' } as Record<number, string>)[b.faces[0].rank];
+  castWords(t, hero, `make my ${name} wild`);
+  assert.ok(b.marks.includes('wild'), 'the named card should be wild');
+  if (a.faces[0].rank !== b.faces[0].rank) assert.ok(!a.marks.includes('wild'), 'the other card was touched');
+
+  const r2 = river();
+  r2.hero.mana = 10;
+  castWords(r2.t, r2.hero, 'make my cards wild');
+  for (const id of r2.hero.hole) assert.ok(r2.t.cards.get(id)!.marks.includes('wild'));
+});

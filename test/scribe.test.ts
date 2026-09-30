@@ -63,6 +63,38 @@ const BANK: Array<[string, Array<[string, string?]>]> = [
   ['cold read wren, then steal her sigils', [['cold_read', 'Wren'], ['larceny', 'Wren']]],
   ['split my worst card then read the leader\'s hand', [['superpose', 'your worst card'], ['cold_read', 'the chip leader']]],
   ['hex mordant', [['hex', 'Mordent']]],
+
+  // Found by writing sentences the way a player would, not the way the
+  // tables were written. Each one was misread or refused before.
+  ['get rid of the turn', [['burn', 'the turn']]],
+  ['blow up the highest card on the board', [['burn', 'the highest community card']]],
+  ['i want to see what wren has', [['cold_read', 'Wren']]],
+  ['what is sable holding', [['cold_read', 'Sable']]],
+  ["reveal everybody's hands", [['cold_read', 'every opponent']]],
+  ['peek at the deck', [['second_sight']]],
+  ['make my cards wild', [['wild_rite', 'your first card'], ['wild_rite', 'your second card']]],
+  ['turn my 2 into a wild card', [['wild_rite', 'your Two']]],
+  ['make my king wild', [['wild_rite', 'your King']]],
+  ['give me an extra card', [['conjure']]],
+  ['give me more mana', [['borrowed_time']]],
+  ['take a sigil from the chip leader', [['larceny', 'the chip leader']]],
+  ["make the chip leader's hand worse", [['hex', 'the chip leader']]],
+  ['trade my worst card with sable', [['yoke', 'Sable']]],
+  ['copy the river into my hand', [['counterfeit', 'the river']]],
+  ['duplicate my best card', [['graft']]],
+  ['make the river match my best card', [['mirror', 'your best card, the river']]],
+  ['make the board invisible', [['nightfall']]],
+  ['give me a new river', [['rewind']]],
+  ['deal an extra river', [['sixth_card']]],
+  ['collapse everything', [['observer_effect']]],
+  ['make all undecided cards land on their best face', [['cascade']]],
+  ['merge my cards', [['weld', 'your first card, your second card']]],
+  ['tax everyone', [['tithe']]],
+  ['burn the turn and river', [['burn', 'the turn'], ['burn', 'the river']]],
+  ['hex wren and sable', [['hex', 'Wren'], ['hex', 'Sable']]],
+  ["read wren and sable's cards", [['cold_read', 'Wren'], ['cold_read', 'Sable']]],
+  ['make my worst card wild and protect it', [['wild_rite', 'your worst card'], ['amber', 'your worst card']]],
+  ['turn my worst card into a spade', [['transmute', 'your worst card, Spades']]],
 ];
 
 /** Things the reader must refuse rather than guess at. */
@@ -71,6 +103,8 @@ const REFUSE: string[] = [
   'unmake', 'hex me', 'burn the river, burn the turn, burn the flop, draw two sigils',
   '', '   ', 'drain every opponent\'s mana and hex everyone',
   'foresight and sixth card',
+  // A nearby effect would do something else; these must be refused instead.
+  'make my card an ace', 'make every heart a spade',
 ];
 
 /** The same kinds of noise the sports bank adds. */

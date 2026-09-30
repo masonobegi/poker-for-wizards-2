@@ -54,7 +54,8 @@ export type HolePick = 'best' | 'worst' | 'first' | 'second';
 export type BoardPick = 'last' | 'river' | 'turn' | 'flop1' | 'flop2' | 'flop3' | 'best' | 'worst';
 
 export type CardRef =
-  | { k: 'hole'; who: Who; pick: HolePick }
+  /** `rank`, when set, picks the hole card of that rank ("my 2") ahead of `pick`. */
+  | { k: 'hole'; who: Who; pick: HolePick; rank?: Rank }
   | { k: 'board'; pick: BoardPick };
 
 export interface Clause {
@@ -181,34 +182,34 @@ const EFFECTS: Effect[] = [
   // --- whole-table and very specific phrasings first
   { id: 'schrodinger', re: /\bschr[oö]e?dinger|\b(whole|entire) flop\b.*\bundecided|\bundecided flop\b/, need: 'none' },
   { id: 'probability_storm', re: /\bprobability storm|\b(split|superpose)s?\b.*\b(every|all|whole)\b.*\b(community|board)\b/, need: 'none' },
-  { id: 'decohere', re: /\bdecohere|\bevery undecided\b.*\bworst\b/, need: 'none' },
-  { id: 'cascade', re: /\bcascade|\bevery undecided\b.*\b(highest|best)\b/, need: 'none' },
-  { id: 'observer_effect', re: /\bobserver effect|\bkindest face|\bevery undecided\b.*\bkind/, need: 'none' },
+  { id: 'decohere', re: /\bdecohere|\b(every|all) undecided\b.*\bworst\b/, need: 'none' },
+  { id: 'cascade', re: /\bcascade|\b(every|all) undecided\b.*\b(highest|best)\b/, need: 'none' },
+  { id: 'observer_effect', re: /\bobserver effect|\bkindest face|\b(every|all) undecided\b.*\bkind|\b(collapse|settle) (everything|all|every card)\b/, need: 'none' },
   { id: 'decay', re: /\bdecay|\bundecided cards?\b.*\blose\b/, need: 'none' },
   { id: 'salt_the_earth', re: /\bsalt the earth|\bscour|\b(strip|wipe|remove)\b.*\bevery mark/, need: 'none' },
   { id: 'conflagration', re: /\bconflagration|\beveryone (burns|redraws)|\ball players (burn|redraw)/, need: 'none' },
-  { id: 'tithe', re: /\btithe|\beveryone (else )?pays me|\btax the table/, need: 'none' },
-  { id: 'nightfall', re: /\bnightfall|\b(table|board) goes dark|\bdarken the (board|table)|\bnobody (can )?sees? the board/, need: 'none' },
+  { id: 'tithe', re: /\btithe|\b(everyone|everybody|all of them)( else)? pays? me|\bpay me\b|\btax\b/, need: 'none' },
+  { id: 'nightfall', re: /\bnightfall|\b(table|board) goes dark|\bdarken the (board|table)|\bnobody (can )?sees? the board|\b(board|table)\b.*\binvisible|\bhide the board/, need: 'none' },
   { id: 'reweave', re: /\breweave|\b(redeal|reshuffle|replace) the (whole |entire )?board\b|\bnew board\b/, need: 'none' },
   { id: 'chain', re: /\bchain\b|\bpass(es)? .*\bleft\b/, need: 'none' },
   { id: 'echo_hand', re: /\becho of a hand|\brun the river twice|\bsecond timeline/, need: 'none' },
   { id: 'stutter', re: /\bstutter|\bstreet happens twice|\breplay (this|the) street/, need: 'none' },
   { id: 'stall', re: /\bstall\b|\b(extra|another|one more) (round of )?betting|\bone more round\b/, need: 'none' },
   { id: 'long_memory', re: /\blong memory|\bcards remember/, need: 'none' },
-  { id: 'borrowed_time', re: /\bborrowed time|\bborrow (four |4 )?mana|\b(take|get|gain) (four|4) mana/, need: 'none' },
+  { id: 'borrowed_time', re: /\bborrowed time|\bborrow (four |4 )?mana|\b(take|get|gain) (four|4) mana|\b(give me|get|gain) (more|extra|some) mana/, need: 'none' },
   { id: 'second_wind', re: /\bsecond wind|\bdraw (two |2 )?(more |extra )?sigils?\b|\b(more|extra) sigils\b/, need: 'none' },
   { id: 'first_draft', re: /\bfirst draft|\bnext card\b.*\bwild\b/, need: 'none' },
-  { id: 'sixth_card', re: /\bsixth card|\b(deal|add) (an? )?(extra|sixth|another|more) (community |board )?card/, need: 'none' },
+  { id: 'sixth_card', re: /\bsixth card|\b(deal|add) (an? )?(extra|sixth|another|more) (community |board )?(card|river)/, need: 'none' },
   { id: 'ashes', re: /\bashes\b|\b(bring|return|put) back the (burn(ed|t)|destroyed)|\bunburn/, need: 'none' },
   { id: 'resonance', re: /\bresonance|\b(match|take) the suit of the (first )?(community |board )?card/, need: 'none' },
   { id: 'tessellate', re: /\btessellate|\b(swap|trade) (my )?(the )?ranks/, need: 'none' },
   { id: 'graft', re: /\bgraft\b|\bsame card twice|\bmy (one )?card .*\bcopy of my other/, need: 'none' },
   { id: 'gloaming', re: /\bgloaming|\b(hide|protect|shield|ward) (my )?(hole )?(cards|hand)\b/, need: 'none' },
   { id: 'veiled_wager', re: /\bveiled wager|\b(hide|conceal|mask) my (next )?bet/, need: 'none' },
-  { id: 'second_sight', re: /\bsecond sight|\b(look|peek|see|read)( at)? the (next|top) (three |3 )?cards?/, need: 'none' },
+  { id: 'second_sight', re: /\bsecond sight|\b(look|peek|see|read|check)( at)? (the )?(next|top) ((three|3) )?cards?|\b(look|peek|see)( at)? (the top of )?the deck\b/, need: 'none' },
   { id: 'foresight', re: /\bforesight|\b(see|look at|peek at|read|know) the river\b/, need: 'none' },
-  { id: 'rewind', re: /\brewind|\b(redeal|re-deal|undo|take back|deal again)\b/, need: 'none' },
-  { id: 'conjure', re: /\bconjure|\b(create|summon|make|invent) a (new |brand new )?card|\bthird hole card/, need: 'none' },
+  { id: 'rewind', re: /\brewind|\b(redeal|re-deal|redraw|undo|take back|deal again)\b|\bnew (river|turn)\b/, need: 'none' },
+  { id: 'conjure', re: /\bconjure|\b(create|summon|make|invent) a (new |brand new )?card|\bthird (hole )?card|\b(give me|get|deal me) (an? )?(extra|another|new|fresh) (hole )?card/, need: 'none' },
 
   // --- aimed at players
   { id: 'the_ledger_sigil', re: /\bledger\b|\bread the room|\b(see|look at|read|peek at|reveal)\b.*\bsigils\b/, need: 'player' },
@@ -218,12 +219,12 @@ const EFFECTS: Effect[] = [
   { id: 'blind_spot', re: /\bblind spot|\bblind\b|\bcan'?t see the board/, need: 'player' },
   { id: 'doppelganger', re: /\bdoppel|\b(copy|clone|duplicate)\b.*\b(their|his|her|opponent'?s?)\b.*\bcard/, need: 'player' },
   { id: 'sympathy', re: /\bsympathy|\bshare (hole )?cards/, need: 'player' },
-  { id: 'yoke', re: /\byoke\b|\b(swap|trade|exchange) (a |one )?cards? with/, need: 'player' },
-  { id: 'larceny', re: /\blarceny|\bsteal\b.*\bsigil|\bsteal from/, need: 'player' },
+  { id: 'yoke', re: /\byoke\b|\b(swap|trade|exchange)\b(?!.*\bdeck\b).*\bwith\b/, need: 'player' },
+  { id: 'larceny', re: /\blarceny|\bsteal\b.*\bsigil|\bsteal from|\b(take|grab|swipe|pinch) (a |one |their )?sigil/, need: 'player' },
   { id: 'blight', re: /\bblight|\b(rot|destroy|delete|ruin)\b.*\bsigil/, need: 'player' },
   { id: 'sever', re: /\bsever|\b(drain|take|steal|remove|empty|burn)\b.*\bmana\b|\bno (more )?mana\b/, need: 'player' },
-  { id: 'hex', re: /\bhex\b|\bcurse\b|\bone category lower|\b(weaken|downgrade)\b/, need: 'player' },
-  { id: 'cold_read', re: /\bcold read|\b(see|look at|peek at|read|reveal|show me|spy on)\b.*\b(cards?|hand)\b/, need: 'player' },
+  { id: 'hex', re: /\bhex\b|\bcurse\b|\bone category lower|\b(weaken|downgrade)\b|\bworse\b/, need: 'player' },
+  { id: 'cold_read', re: /\bcold read|\b(see|look at|peek at|read|reveal|show me|spy on)\b.*\b(cards?|hands?)\b|\bsee what\b|\bwhat\b.*\b(has|have|holding|hold|got)\b/, need: 'player' },
 
   // --- ranks and suits
   { id: 'sealed_rank', re: /\bseal(ed)?\b|\bface ?down\b/, need: 'rank' },
@@ -234,19 +235,19 @@ const EFFECTS: Effect[] = [
   // --- cards
   { id: 'inscribe', re: /\binscribe|\b(permanent(ly)?|forever)\b/, need: 'card', home: MINE('best') },
   { id: 'wild_rite', re: /\bwild rite|\bwild\b/, need: 'hole', home: MINE('worst') },
-  { id: 'transmute', re: /\btransmute|\bchange\b.*\bsuit|\bmake\b.*\b(hearts?|spades?|diamonds?|clubs?)\b/, need: 'card+suit', home: MINE('worst') },
+  { id: 'transmute', re: /\btransmute|\bchange\b.*\bsuit|\b(make|turn|change)\b.*\b(hearts?|spades?|diamonds?|clubs?)\b/, need: 'card+suit', home: MINE('worst') },
   { id: 'gild', re: /\bgild|\bevery suit|\ball suits/, need: 'board', home: BOARD('last') },
   { id: 'counterfeit', re: /\bcounterfeit|\b(copy|take)\b.*\b(river|turn|community|board)\b.*\binto my hand/, need: 'board', home: BOARD('best') },
   { id: 'twin', re: /\btwin\b|\b(copy|put) my\b.*\bon(to)? the board/, need: 'hole', home: MINE('best') },
   { id: 'weld', re: /\bweld|\b(merge|fuse)\b/, need: 'two' },
-  { id: 'mirror', re: /\bmirror\b|\b(copy|duplicate)\b|\bcopy of\b/, need: 'two' },
+  { id: 'mirror', re: /\bmirror\b|\b(copy|duplicate)\b|\bcopy of\b|\bmatch\b/, need: 'two' },
   { id: 'entangle', re: /\bentangle|\bbind\b|\blink\b|\btie\b/, need: 'two' },
   { id: 'erase', re: /\berase|\bremove\b.*\bfrom the game|\bnever printed/, need: 'card', home: BOARD('best') },
   { id: 'palimpsest', re: /\bpalimpsest|\b(replace|rewrite)\b.*\btwice/, need: 'board', home: BOARD('last') },
   { id: 'divergence', re: /\bdivergen|\bdiverge|\bdifferent (card|face) (to|for) (me|everyone)/, need: 'board', home: BOARD('last') },
-  { id: 'burn', re: /\bburn|\bdestroy|\b(remove|kill|delete)\b.*\b(river|turn|community|board|flop)\b/, need: 'board', home: BOARD('last') },
+  { id: 'burn', re: /\bburn|\bdestroy|\bnuke|\bblow up|\bget rid of|\btrash|\bwipe out|\b(remove|kill|delete)\b.*\b(river|turn|community|board|flop)\b/, need: 'board', home: BOARD('last') },
   { id: 'unweave', re: /\bunweave|\b(strip|remove|wipe)\b.*\bmarks?\b/, need: 'card', home: BOARD('last') },
-  { id: 'amber', re: /\bamber|\b(protect|freeze|lock|shield|save)\b/, need: 'card', home: MINE('best') },
+  { id: 'amber', re: /\bamber|\b(protect|freeze|lock|shield|save|guard)\b/, need: 'card', home: MINE('best') },
   { id: 'fracture', re: /\bfracture|\binto three|\bthree (possible )?faces/, need: 'card', home: MINE('worst') },
   { id: 'unsettle', re: /\bunsettle|\bundecided again/, need: 'card', home: BOARD('last') },
   { id: 'quantum_leap', re: /\bquantum leap|\b(swap|trade|switch|exchange)\b.*\bdeck\b/, need: 'hole', home: MINE('worst') },
@@ -264,6 +265,17 @@ const REFUSALS: Array<[RegExp, string]> = [
     'No sigil removes a player. Hit their hand instead: try "hex the chip leader".'],
   [/\bcounter(spell)?\b|\bnullify\b|\bredirect\b|\breflect\b|\btoll\b/,
     'Answers to other spells cannot be scribed; they have to be held ready. Nullify is sold in the Market.'],
+];
+
+/**
+ * Refusals that win even when an effect's words also appear, because the
+ * nearby effect would do something the player did not ask for.
+ */
+const HARD_REFUSALS: Array<[RegExp, string]> = [
+  [/\b(every|all)\b.*\b(hearts?|spades?|diamonds?|clubs?)\b.*\b(hearts?|spades?|diamonds?|clubs?)\b/,
+    'No sigil changes a whole suit. Transmute changes one card: try "make my worst card a spade".'],
+  [/\b(make|turn|change)\b.*\bcards?\b.*\b(into|to|an?)\b\s*(an? )?(aces?|kings?|queens?|jacks?|tens?|nines?|eights?|sevens?|sixes|six|fives?|fours?|threes?|twos?|deuces?)\b/,
+    'No sigil names a card\'s rank outright. A Wild counts as any rank: try "make my worst card wild".'],
 ];
 
 // ---------------------------------------------------------------------------
@@ -400,13 +412,15 @@ const SUIT_WORDS: Array<[RegExp, Suit]> = [
 const SUIT_NAME: Record<Suit, string> = { H: 'Hearts', S: 'Spades', D: 'Diamonds', C: 'Clubs' };
 
 const BOARD_PATTERNS: Array<[RegExp, BoardPick]> = [
-  [/\bthe river\b/, 'river'],
-  [/\bthe turn\b/, 'turn'],
+  [/\b(the )?river\b/, 'river'],
+  // "turn" is also a verb ("turn my card wild"), so it needs "the" or to sit
+  // in a list of streets ("the turn and river", "river and turn").
+  [/\bthe turn\b|\b(and|&) turn\b|\bturn (?=(and|&) (the )?river)/, 'turn'],
   [/\b(the )?first flop card\b|\bflop'?s first\b/, 'flop1'],
   [/\b(the )?second flop card\b|\bflop'?s second\b/, 'flop2'],
   [/\b(the )?third flop card\b|\bflop'?s third\b/, 'flop3'],
-  [/\b(the )?(highest|best|top|strongest) (community|board) card\b|\bboard'?s (highest|best)\b/, 'best'],
-  [/\b(the )?(lowest|worst|weakest) (community|board) card\b|\bboard'?s (lowest|worst)\b/, 'worst'],
+  [/\b(the )?(highest|best|top|strongest) (community |board )?card on the board\b|\b(the )?(highest|best|top|strongest) (community|board) card\b|\bboard'?s (highest|best)\b/, 'best'],
+  [/\b(the )?(lowest|worst|weakest) (community |board )?card on the board\b|\b(the )?(lowest|worst|weakest) (community|board) card\b|\bboard'?s (lowest|worst)\b/, 'worst'],
   [/\b(the )?(last|newest|latest|most recent) (community |board )?card\b/, 'last'],
   [/\b(a|one|any|the) (community|board) card\b|\bthe board\b|\bthe flop\b/, 'last'],
 ];
@@ -429,13 +443,26 @@ function findCards(text: string, whoHits: WhoHit[]): { refs: Array<{ ref: CardRe
       rest = blank(rest, m);
     }
   }
+  // "my 2", "my king": a hole card chosen by what it is, not where it sits.
+  // The "my" it used is spent, so "turn my 2 into a wild card" is one card.
+  const spent = new Set<number>();
+  for (;;) {
+    const m = rest.match(/\bmy (aces?|kings?|queens?|jacks?|tens?|nines?|eights?|sevens?|six(es)?|fives?|fours?|threes?|twos?|deuces?|10|[2-9])\b/);
+    if (!m) break;
+    const rank = /^\d+$/.test(m[1]) ? Number(m[1]) : RANK_WORDS.find(([re]) => re.test(m[1]))?.[1];
+    if (rank) {
+      refs.push({ ref: { k: 'hole', who: { k: 'me' }, pick: 'best', rank }, at: m.index ?? 0 });
+      spent.add(m.index ?? 0);
+    }
+    rest = blank(rest, m);
+  }
   // Hole cards belong to whoever is named next to the word "card".
   const picks: Array<[number, number]> = [];
-  const holeWord = /\b(hole )?(cards?|hand)\b/g;
+  const holeWord = /\b(hole )?(cards?|hands?)\b/g;
   for (const m of rest.matchAll(holeWord)) {
     const at = m.index ?? 0;
     const owner = [...whoHits].reverse().find((h) => h.at <= at) ?? whoHits[0];
-    if (!owner) continue;
+    if (!owner || spent.has(owner.at)) continue;
     const from = Math.max(0, at - 24);
     const window = rest.slice(from, at);
     const hit = PICK_WORDS.find(([re]) => re.test(window));
@@ -443,7 +470,14 @@ function findCards(text: string, whoHits: WhoHit[]): { refs: Array<{ ref: CardRe
       const pm = window.match(hit[0])!;
       picks.push([from + (pm.index ?? 0), pm[0].length]);
     }
-    refs.push({ ref: { k: 'hole', who: owner.who, pick: hit?.[1] ?? 'best' }, at });
+    // "my cards", "both my cards": every one of them, not the best one.
+    const plural = /s$/.test(m[2]) || /\bboth\b/.test(window);
+    if (!hit && plural && owner.who.k !== 'each') {
+      refs.push({ ref: { k: 'hole', who: owner.who, pick: 'first' }, at });
+      refs.push({ ref: { k: 'hole', who: owner.who, pick: 'second' }, at: at + 0.5 });
+    } else {
+      refs.push({ ref: { k: 'hole', who: owner.who, pick: hit?.[1] ?? 'best' }, at });
+    }
   }
   rest = rest.replace(holeWord, (w) => ' '.repeat(w.length));
   for (const [at, len] of picks) rest = rest.slice(0, at) + ' '.repeat(len) + rest.slice(at + len);
@@ -458,6 +492,7 @@ const STOP = new Set([
   'i', 'me', 'my', 'mine', 'let', 'can', 'will', 'as', 'who', 'whoever', 'has', 'have', 'else', 'hand',
   'hole', 'too', 'also', 'both', 'by', 'same', 'right', 'away', 'off', 'which', 'what',
   'permanently', 'forever', 'again', 'mana', 'sigil', 'sigils', 'cast', 'spell',
+  'put', 'mark', 'game', 'face', 'faces', 'land', 'lands', 'give', 'get', 'take', 'please', 'there', 'some',
 ]);
 
 function leftovers(rest: string): string[] {
@@ -489,6 +524,7 @@ const BOARD_LABEL: Record<BoardPick, string> = {
 export function cardLabel(r: CardRef): string {
   if (r.k === 'board') return BOARD_LABEL[r.pick];
   const whose = r.who.k === 'me' ? 'your' : r.who.k === 'player' ? `${r.who.name}'s` : `${whoLabel(r.who)}'s`;
+  if (r.rank) return `${whose} ${RANK_NAME[r.rank]}`;
   const pick = { best: 'best', worst: 'worst', first: 'first', second: 'second' }[r.pick];
   return `${whose} ${pick} card`;
 }
@@ -542,7 +578,10 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
 
   const clauses: Clause[] = [];
   let lastWho: Who | undefined;
+  let lastCards: CardRef[] | undefined;
   for (const part of parts) {
+    const hard = HARD_REFUSALS.find(([re]) => re.test(part));
+    if (hard) return fail(hard[1]);
     const hit = matchEffect(part);
     if (!hit) {
       const refusal = REFUSALS.find(([re]) => re.test(part));
@@ -570,11 +609,23 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
       const c = findCards(rest, whoHits);
       cardRefs = c.refs;
       rest = c.rest;
+      // "make my worst card wild and protect it": "it" is the last card named.
+      if (!cardRefs.length && lastCards && /\b(it|them)\b/.test(rest)) {
+        cardRefs = lastCards.map((ref, i) => ({ ref, at: i }));
+      }
+      // A single-card effect takes only the kind of card it can act on; the
+      // rest are extra clauses below, never silently kept or dropped.
+      if (fx.need === 'hole') cardRefs = cardRefs.filter((r) => r.ref.k === 'hole');
+      if (fx.need === 'board') cardRefs = cardRefs.filter((r) => r.ref.k === 'board');
     }
+    let extraWho: Who[] = [];
 
     switch (fx.need) {
       case 'player': {
-        const target = whoHits.find((h) => h.who.k !== 'me')?.who;
+        const targets = whoHits.filter((h) => h.who.k !== 'me').map((h) => h.who);
+        const target = targets[0];
+        // "hex wren and sable": one clause per player named.
+        extraWho = targets.slice(1);
         if (!target) {
           if (whoHits.some((h) => h.who.k === 'me')) {
             return fail(`${def.name} has to be aimed at an opponent, not at you. Name one, or say "the chip leader".`);
@@ -613,10 +664,18 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
         }
         clause.cards = [ref];
         if (fx.need === 'card+suit') {
-          const sw = SUIT_WORDS.find(([re]) => re.test(rest));
+          // The suit the card becomes is the last one named: "turn my heart
+          // into a spade" is Spades.
+          let sw: { suit: Suit; at: number; len: number } | undefined;
+          for (const [re, suit] of SUIT_WORDS) {
+            const m = rest.match(new RegExp(re.source, 'g'));
+            if (!m) continue;
+            const at = rest.lastIndexOf(m[m.length - 1]);
+            if (!sw || at > sw.at) sw = { suit, at, len: m[m.length - 1].length };
+          }
           if (!sw) return fail(`${def.name} needs a suit. Say which, e.g. "make my worst card hearts".`);
-          clause.suit = sw[1];
-          rest = blank(rest, rest.match(sw[0]));
+          clause.suit = sw.suit;
+          for (const [re] of SUIT_WORDS) rest = rest.replace(new RegExp(re.source, 'g'), (w) => ' '.repeat(w.length));
         }
         if (fx.id === 'inscribe') {
           const mk = (Object.keys(MARKS) as MarkId[]).find((k) => new RegExp(`\\b${k}\\b`).test(rest));
@@ -627,13 +686,20 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
         break;
       }
       case 'two': {
+        // "duplicate my best card": one of your own cards, copied onto the
+        // other, is Graft — the only copy a single card can make.
+        if (fx.id === 'mirror' && cardRefs.length === 1 && cardRefs[0].ref.k === 'hole' && cardRefs[0].ref.who.k === 'me') {
+          clause.sigil = 'graft';
+          notes.push('One card named — read as Graft: your other card becomes a copy of it.');
+          break;
+        }
         if (cardRefs.length < 2) {
           return fail(`${def.name} needs two cards, e.g. "${def.name.toLowerCase()} the river and my best card".`);
         }
         clause.cards = [cardRefs[0].ref, cardRefs[1].ref];
         // "make my card a copy of the river": the card before "copy of" is the
         // one that changes, and the engine wants the source first.
-        const of = part.search(/\b(copy|duplicate|twin|clone) of\b/);
+        const of = part.search(/\b((copy|duplicate|twin|clone) of|match(es)?)\b/);
         if (of >= 0 && cardRefs[0].at < of && cardRefs[1].at > of) clause.cards.reverse();
         break;
       }
@@ -650,6 +716,7 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
     const unused = leftovers(rest).filter((w) => !RANK_WORDS.some(([re]) => re.test(w)) || fx.need !== 'rank');
     if (unused.length) notes.push(`Ignored "${unused.join(' ')}" in "${part}".`);
 
+    if (clause.cards?.length) lastCards = clause.cards;
     clause.who && (lastWho = clause.who);
     const holeOwner = clause.cards?.find((r) => r.k === 'hole');
     if (holeOwner?.k === 'hole' && holeOwner.who.k !== 'me') lastWho = holeOwner.who;
@@ -658,6 +725,11 @@ export function readSpell(raw: string, roster: Roster): ScribeRead {
 
     // "burn the river and the turn": one effect, two cards. Each extra card is
     // its own clause, priced as one, rather than a word silently dropped.
+    for (const who of extraWho) {
+      const copy: Clause = { ...clause, who };
+      clauses.push(copy);
+      understood.push(clauseLabel(copy));
+    }
     const single = fx.need === 'card' || fx.need === 'hole' || fx.need === 'board' || fx.need === 'card+suit';
     if (single) {
       for (const extra of cardRefs.slice(1)) {
