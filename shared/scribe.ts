@@ -127,14 +127,17 @@ export const MAX_TEXT = 160;
  *   - smart targets are free. Finding the chip leader by yourself is the
  *     reason to write a spell at all.
  *
- * Shards: the sigils' own shop prices, the same surcharges, and 2 for the
+ * Shards: the sigils' own shop prices, 2 more per extra effect, and 1 for the
  * ink — so writing out a sigil the Market already sells is always a little
  * worse than buying it, and scribing only pays when you use what it adds.
+ * (Measured 2026-10: at 3 per effect and 2 for ink, a bot always writing the
+ * strongest spell it could afford placed no better than one that never
+ * wrote, so both came down a step.)
  */
 export const COMBO_MANA = 1;
 export const EACH_MULT = 2;
-export const COMBO_SHARDS = 3;
-export const INK_SHARDS = 2;
+export const COMBO_SHARDS = 2;
+export const INK_SHARDS = 1;
 
 export function priceOf(clauses: Clause[]): { cost: number; price: number } {
   let cost = 0;

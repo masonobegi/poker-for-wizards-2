@@ -14,7 +14,7 @@ import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards
 import { evalComplexity, evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, defOf, entryDef, type SigilDef, type SigilInstance } from '../../shared/sigils';
-import { SCRIBE_PRESETS, readSpell } from '../../shared/scribe';
+import { readSpell } from '../../shared/scribe';
 import { rosterFor } from './shop';
 import type {
   BetAction, BotSkill, Player, SigilTargets, StackEntry, Table, TableSpeed,
@@ -685,6 +685,15 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
       want *= spill > 0 ? 1 + spill * 0.3 : 1.25;
     }
 
+    // A full table shares the magic out rather than multiplying it. Every
+    // cast costs the whole table a resolution and often a response window,
+    // and six players each casting as eagerly as they would heads-up made a
+    // six-handed hand 9.4 spells and 22 seconds long. Past four players,
+    // each one's appetite shrinks so the table's total stays about level —
+    // the same bargain think time already makes.
+    const seats = live(t).length;
+    if (seats > 4) want *= 4 / seats;
+
     if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
 
     // Look before casting: never a spell that does nothing or clearly hurts
@@ -751,16 +760,63 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
 }
 
 /**
- * Sometimes a bot writes a sigil instead of buying one.
+ * Sometimes a bot writes a sigil instead of buying one — and writes one that
+ * fits where it stands.
  *
- * Bots do not compose sentences; they pick one of the ready-made spells a
- * player is offered, which goes through the same reader and the same prices.
- * It is here so a table of bots exercises written sigils end to end — the
- * simulator's invariants then cover them — and so a human sees opponents
- * using the page too.
+ * Bots used to pick a ready-made spell at random, and cast fewer than half of
+ * what they wrote: a Hex that only works on the turn and river, written by a
+ * bot with no reason to hex anyone, sat in the hand. A watching player learned
+ * nothing about what the page can do. Now a bot builds sentences out of the
+ * table it is at — a player behind aims at the chip leader by name, a player
+ * ahead protects what it has, a player sitting on mana bundles — and prefers
+ * spells castable on more streets, because a sigil never cast is shards
+ * thrown away. Everything still goes through the same reader and prices as a
+ * human's words; a bot cannot write anything a player could not.
  */
-/** How often a bot writes on the page. A hook for the balance harness, which sets it per seat. */
-export const botScribe = { chanceFor: (_p: Player): number => 0.35 };
+export const botScribe = {
+  chanceFor: (p: Player, t?: Table): number =>
+    ({ novice: 0.15, adept: 0.35, master: 0.6 } as const)[t?.config.botSkill ?? 'adept'] ?? 0.35,
+  /** The balance harness swaps in its own sentences to test the strongest writing. */
+  drafts: null as ((t: Table, p: Player) => Draft[] | null) | null,
+  /** Take an affordable relic before writing. The balance harness turns it off to measure the page itself. */
+  relicFirst: true,
+};
+
+export interface Draft { text: string; weight: number }
+
+export function draftsFor(t: Table, p: Player): Draft[] {
+  const rivals = live(t).filter((q) => q.id !== p.id && !q.eliminated);
+  const avg = t.players.filter((q) => !q.eliminated).reduce((a, q) => a + q.chips, 0)
+    / Math.max(1, t.players.filter((q) => !q.eliminated).length);
+  const behind = p.chips < avg * 0.85;
+  const ahead = p.chips > avg * 1.25;
+  const leader = rivals.reduce<Player | undefined>((a, q) => (!a || q.chips > a.chips ? q : a), undefined);
+  const lead = leader?.name ?? 'the chip leader';
+  const crowded = rivals.length >= 3;
+
+  const d: Draft[] = [
+    { text: 'make my worst card wild', weight: 1.2 },
+    { text: 'burn the newest card and look at the next three cards', weight: 1 },
+    { text: "see the chip leader's cards", weight: 0.9 },
+    { text: 'split my worst card', weight: 0.7 },
+  ];
+  if (behind) {
+    d.push(
+      { text: `hex ${lead}`, weight: 1.6 },
+      { text: `drain ${lead}'s mana`, weight: 1.3 },
+      { text: `read ${lead}'s hand then steal their sigils`, weight: 1.2 },
+    );
+  }
+  if (ahead) {
+    d.push(
+      { text: 'protect my cards and draw two sigils', weight: 1.4 },
+      { text: 'hex whoever raised last', weight: 1.1 },
+    );
+  }
+  if (crowded) d.push({ text: "drain everyone's mana", weight: 1.1 }, { text: "see everyone's cards", weight: 1 });
+  if (p.maxMana >= 10) d.push({ text: 'make my worst card wild and protect it', weight: 1.3 });
+  return d;
+}
 
 export function decideScribe(
   t: Table, p: Player, rng: Rng,
@@ -770,12 +826,28 @@ export function decideScribe(
   // Decided once per market visit, not once per tick: the bot loop asks
   // again after every purchase, and a fresh roll each time would make writing
   // nearly certain.
-  if (!shop || !page || !new Rng(`${t.seed}:scribe:${t.ante}:${p.id}`).chance(botScribe.chanceFor(p))) return null;
+  if (!shop || !page || !new Rng(`${t.seed}:scribe:${t.ante}:${p.id}`).chance(botScribe.chanceFor(p, t))) {
+    return null;
+  }
+  // A relic is permanent and a written sigil is spent once, so a relic it
+  // can afford comes first; the page gets what is left. Writing before the
+  // relic cost measured runs more than the written sigil ever won back.
+  const relicFirst = shop.items.some((i) => i.kind === 'relic' && !shop.sold.includes(i.uid)
+    && i.price <= p.shards && !p.relics.includes(i.id));
+  if (relicFirst && botScribe.relicFirst) return null;
   const roster = rosterFor(t, p);
-  const affordable = SCRIBE_PRESETS
-    .map((pr) => readSpell(pr.text, roster).spell)
-    .filter((sp): sp is NonNullable<typeof sp> => !!sp && sp.price <= p.shards);
-  if (!affordable.length) return null;
+  const scored = (botScribe.drafts?.(t, p) ?? draftsFor(t, p))
+    .map((dr) => ({ dr, sp: readSpell(dr.text, roster).spell }))
+    .filter((x): x is { dr: Draft; sp: NonNullable<typeof x.sp> } =>
+      !!x.sp && x.sp.price <= p.shards && x.sp.cost <= p.maxMana - 1)
+    // Castable on more streets is cast more often; mana it costs is mana
+    // not spent on anything else.
+    .map((x) => ({ ...x, score: x.dr.weight * (0.5 + x.sp.timing.length / 8) / (1 + x.sp.cost / 8) }));
+  if (!scored.length) return null;
+  const total = scored.reduce((a, x) => a + x.score, 0);
+  let roll = rng.next() * total;
+  const pick = scored.find((x) => (roll -= x.score) <= 0) ?? scored[scored.length - 1];
+
   // A bot's hand is nearly always full by the first Market, so writing means
   // giving something up: the cheapest sigil that is not its counterspell.
   let replace: string | undefined;
@@ -786,7 +858,7 @@ export function decideScribe(
     if (!spare) return null;
     replace = spare.uid;
   }
-  return { uid: page.uid, text: rng.pick(affordable).text, replace };
+  return { uid: page.uid, text: pick.sp.text, replace };
 }
 
 /** Bots shop greedily but not stupidly: relics first, then sigils they can hold. */

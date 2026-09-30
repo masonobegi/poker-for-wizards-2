@@ -72,3 +72,29 @@ test('a bot rarely counters a spell that does not touch its hand', () => {
   }
   assert.ok(answered / trials < 0.2, `countered a harmless peek ${answered} times in ${trials}`);
 });
+
+test('every sentence a bot might write reads cleanly, whoever is at the table', async () => {
+  const { draftsFor } = await import('../server/game/bots');
+  const { readSpell } = await import('../shared/scribe');
+  const { rosterFor } = await import('../server/game/shop');
+  const { Engine } = await import('../server/game/engine');
+  for (let seed = 0; seed < 12; seed++) {
+    const e = new Engine(`DR${seed}`, 'host', { seed: `daily:2026-10-${String(seed + 1).padStart(2, '0')}` }, () => {}, () => {});
+    e.addPlayer('host', 'Hero');
+    for (let i = 0; i < 5; i++) e.addBot();
+    e.start();
+    e.dispose();
+    const t = e.table;
+    // Every situation: behind, ahead, rich in mana.
+    for (const p of t.players) {
+      for (const [chips, maxMana] of [[1000, 8], [90000, 8], [20000, 11]]) {
+        p.chips = chips; p.maxMana = maxMana;
+        for (const d of draftsFor(t, p)) {
+          const r = readSpell(d.text, rosterFor(t, p));
+          assert.ok(r.ok, `"${d.text}" for ${p.name}: ${r.error}`);
+          assert.equal(r.notes.filter((n) => /Ignored|Read "/.test(n)).length, 0, `"${d.text}": ${r.notes.join(' ')}`);
+        }
+      }
+    }
+  }
+});

@@ -2267,3 +2267,32 @@
   border: 1px solid color-mix(in srgb, var(--school, var(--line-soft)) 55%, transparent);
   z-index: var(--z-ui);
 }
+
+/* --- a written sigil ---------------------------------------------------------
+   Its name is the owner's own sentence, set as ink written onto the stock
+   rather than a title pressed into it: iron-gall blue, italic, a hair off
+   level. The compiled rules sit underneath where a printed sigil's text
+   goes, so it still reads like every other sigil at a glance. */
+.sigil.is-written .sigil-frame { border-style: dashed; }
+.sigil-name--written {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(10px, calc(var(--card-h) * 0.085), 13px);
+  line-height: 1.25;
+  color: #2a3a5c;
+  transform: rotate(-1.2deg);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* The words are the card, so the art steps back to a small pen mark and the
+   compiled rules to two lines (the tooltip carries them in full). Without
+   this the sentence got one and a half lines and was cut mid-word. */
+.sigil.is-written .sigil-art { min-height: clamp(16px, calc(var(--card-h) * 0.13), 22px); }
+.sigil.is-written .sigil-device { display: none; }
+.sigil.is-written .sigil-glyph { font-size: 0.8em; }
+.sigil.is-written .sigil-name--written { flex: 0 0 auto; }
+.sigil.is-written .sigil-text { -webkit-line-clamp: 2; line-clamp: 2; }

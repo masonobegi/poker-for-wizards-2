@@ -1325,8 +1325,9 @@ export class Engine {
     if (now < at) return;
     this.botClock.delete(acting.id);
 
-    // Two sigils in one window is a flourish; five is a cutscene.
-    const spell = (this.castsThisTurn.get(acting.id) ?? 0) < 2
+    // Two casts a turn is a flourish heads-up and a queue at a full table.
+    const castCap = live(t).length > 4 ? 1 : 2;
+    const spell = (this.castsThisTurn.get(acting.id) ?? 0) < castCap
       ? decideCast(t, acting, this.rng)
       : null;
     if (spell) {
