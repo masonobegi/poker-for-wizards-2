@@ -2,6 +2,7 @@ import type { CardEntity, CardView, Face, MarkId, Rank, Suit } from './cards';
 import type { RuleMods } from './hand';
 import type { SigilInstance } from './sigils';
 import type { ActiveOmen } from './omens';
+import type { Scribed } from './scribe';
 
 // ---------------------------------------------------------------------------
 // Phases
@@ -72,6 +73,8 @@ export interface Player {
 
   mana: number;
   maxMana: number;
+  /** Max mana bought at the Market this run. Part of `maxManaFor`, so it survives every recompute. */
+  attuned?: number;
   sigils: SigilInstance[];
   relics: string[];
   /** The coven this player sat down as. See shared/covens.ts. */
@@ -197,6 +200,8 @@ export interface StackEntry {
   /** Countered entries resolve to nothing but still show on the stack. */
   countered: boolean;
   costPaid: number;
+  /** A sigil written in words: resolved clause by clause. */
+  scribed?: Scribed;
 }
 
 export interface StackState {
@@ -252,7 +257,9 @@ export type ShopItem =
   | { kind: 'sigil'; id: string; uid: string; price: number }
   | { kind: 'relic'; id: string; uid: string; price: number }
   | { kind: 'rite'; uid: string; price: number; markId: MarkId; cardId: string; label: string }
-  | { kind: 'mana'; uid: string; price: number; amount: number };
+  | { kind: 'mana'; uid: string; price: number; amount: number }
+  /** A blank page: the buyer writes the sigil, and the words set the price. */
+  | { kind: 'scribe'; uid: string; price: number };
 
 export interface ShopState {
   items: ShopItem[];

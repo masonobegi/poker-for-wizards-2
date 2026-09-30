@@ -18,7 +18,10 @@ import {
 } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
-import { SIGIL_BY_ID, SCHOOLS, type SigilDef, type SigilInstance } from '../../shared/sigils';
+import {
+  SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
+} from '../../shared/sigils';
+import { resolveClause } from './scribed';
 import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
@@ -181,7 +184,7 @@ function respondersFor(t: Table, excludeId: string): string[] {
   return alive(t)
     .filter((p) => p.id !== excludeId && !p.folded)
     .filter((p) => p.sigils.some((s) => {
-      const def = SIGIL_BY_ID[s.defId];
+      const def = defOf(s);
       return def?.timing.includes('response') && p.mana >= manaCost(p, def, t);
     }))
     .map((p) => p.id);
@@ -197,7 +200,9 @@ export function castSigil(
   const check = canCast(t, p, inst);
   if (!check.ok) return { ok: false, error: check.reason };
 
-  const def = SIGIL_BY_ID[inst.defId];
+  const def = defOf(inst)!;
+  // A written sigil names its targets in words and finds them on resolution.
+  if (inst.scribed) targets = {};
   const targetError = validateTargets(t, p, def, targets);
   if (targetError) return { ok: false, error: targetError };
 
@@ -212,6 +217,7 @@ export function castSigil(
     targets,
     countered: false,
     costPaid: cost,
+    ...(inst.scribed ? { scribed: inst.scribed } : {}),
   };
 
   if (!t.stack) t.stack = { entries: [], pending: [], closesAt: 0 };
@@ -304,7 +310,7 @@ export function resolveStack(ctx: MagicCtx): void {
 
   for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
-    const def = SIGIL_BY_ID[e.sigilId];
+    const def = entryDef(e);
     if (e.countered) {
       ctx.fx.push({ t: 'fizzle', sigilId: e.sigilId });
       log(t, `${def?.name ?? 'A sigil'} is undone before it lands.`, 'warn');
@@ -319,7 +325,38 @@ export function resolveStack(ctx: MagicCtx): void {
   }
 }
 
+/**
+ * A written sigil: each clause is an ordinary sigil's effect, run once per
+ * target its description finds now. Every concrete targeting passes the same
+ * validation a hand-aimed cast does, so words cannot reach what a printed
+ * sigil could not.
+ */
+function applyScribed(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: number): void {
+  const { t } = ctx;
+  const caster = byId(t, e.casterId);
+  if (!caster || !e.scribed) return;
+  log(t, `${caster.name}'s written sigil: ${e.scribed.rules}`, 'magic', { school: e.scribed.school, playerId: caster.id });
+  for (const clause of e.scribed.clauses) {
+    const def = SIGIL_BY_ID[clause.sigil];
+    if (!def) continue;
+    const { targets, missing } = resolveClause(t, caster, clause);
+    if (missing) {
+      log(t, `${def.name} finds nothing: ${missing}.`, 'warn', { school: def.school, playerId: caster.id });
+      continue;
+    }
+    for (const tg of targets) {
+      const why = validateTargets(t, caster, def, tg);
+      if (why) {
+        log(t, `${def.name} cannot land: ${why.toLowerCase()}.`, 'warn', { school: def.school, playerId: caster.id });
+        continue;
+      }
+      applyEffect(ctx, { ...e, sigilId: def.id, targets: tg, scribed: undefined }, stack, index);
+    }
+  }
+}
+
 function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: number): void {
+  if (e.scribed) { applyScribed(ctx, e, stack, index); return; }
   const { t, rng } = ctx;
   const caster = byId(t, e.casterId);
   const def = SIGIL_BY_ID[e.sigilId];
@@ -956,14 +993,14 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       target.countered = true;
       ctx.fx.push({ t: 'counter', sigilId: target.sigilId, casterId: caster.id });
       ctx.fx.push({ t: 'sfx', name: 'spell_counter' });
-      note(`${caster.name} nullifies ${SIGIL_BY_ID[target.sigilId]?.name}.`, 'impossible');
+      note(`${caster.name} nullifies ${entryDef(target)?.name}.`, 'impossible');
       break;
     }
     case 'redirect': {
       const target = below();
       if (!target) { note('Nothing to redirect.', 'warn'); break; }
       target.targets = { ...target.targets, ...tg };
-      note(`${caster.name} steers ${SIGIL_BY_ID[target.sigilId]?.name} somewhere else.`, 'impossible');
+      note(`${caster.name} steers ${entryDef(target)?.name} somewhere else.`, 'impossible');
       break;
     }
     case 'reflect': {
@@ -972,6 +1009,9 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       const copy: StackEntry = {
         id: nanoid(8), casterId: caster.id, sigilId: target.sigilId,
         targets: { ...target.targets, ...tg }, countered: false, costPaid: 0,
+        // A reflected written sigil keeps its words, read from the reflector's
+        // seat: "my worst card" is now theirs.
+        ...(target.scribed ? { scribed: target.scribed } : {}),
       };
       /*
        * Resolve the copy immediately, in this caster's name, standing where the
@@ -988,7 +1028,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
        * Reflects walks down the stack and stops at the bottom.
        */
       applyEffect(ctx, copy, stack, index - 1);
-      note(`${caster.name} reflects ${SIGIL_BY_ID[target.sigilId]?.name} back through their own hands.`, 'impossible');
+      note(`${caster.name} reflects ${entryDef(target)?.name} back through their own hands.`, 'impossible');
       break;
     }
     case 'toll': {
@@ -999,10 +1039,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       if (!owner || owner.mana < due) {
         target.countered = true;
         ctx.fx.push({ t: 'counter', sigilId: target.sigilId, casterId: caster.id });
-        note(`${owner?.name ?? 'The caster'} cannot pay the toll. ${SIGIL_BY_ID[target.sigilId]?.name} fizzles.`, 'impossible');
+        note(`${owner?.name ?? 'The caster'} cannot pay the toll. ${entryDef(target)?.name} fizzles.`, 'impossible');
       } else {
         owner.mana -= due;
-        note(`${owner.name} pays ${due} more mana to keep ${SIGIL_BY_ID[target.sigilId]?.name} alive.`);
+        note(`${owner.name} pays ${due} more mana to keep ${entryDef(target)?.name} alive.`);
       }
       break;
     }

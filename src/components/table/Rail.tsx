@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
-import { SIGIL_BY_ID } from '@shared/sigils';
+import { defOf, type SigilInstance } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { CardRow } from '@/components/card/CardRow';
 import Avatar from '@/components/Avatar';
@@ -35,8 +35,8 @@ export interface RailProps {
  * sigil costs every badge in the rail under-reported by one — and a sigil
  * could look affordable while the server refused it for mana.
  */
-function costOf(defId: string, relics: string[], omens: ActiveOmen[]): number {
-  const def = SIGIL_BY_ID[defId];
+function costOf(inst: SigilInstance, relics: string[], omens: ActiveOmen[]): number {
+  const def = defOf(inst);
   if (!def) return 0;
   let delta = omenNumber(omens, (o) => o.sigilCost);
   for (const id of relics) delta += RELIC_BY_ID[id]?.sigils?.costDelta ?? 0;
@@ -71,7 +71,7 @@ function RailBase({
 
   const handleBeginCast = (uid: string): void => {
     const inst = sigils.find((s) => s.uid === uid);
-    const def = inst ? SIGIL_BY_ID[inst.defId] : undefined;
+    const def = inst ? defOf(inst) : undefined;
     const originEl = railRef.current?.querySelector(`[data-sigil-uid="${CSS.escape(uid)}"]`) ?? null;
     if (def) {
       if (def.target === 'none' || def.target === 'stack') {
@@ -188,9 +188,9 @@ function RailBase({
         ) : null}
         <AnimatePresence mode="popLayout">
           {sigils.map((s, i) => {
-            const cost = costOf(s.defId, me.relics, view.omens);
+            const cost = costOf(s, me.relics, view.omens);
             const block = view.castBlocks?.[s.uid];
-            const def = SIGIL_BY_ID[s.defId];
+            const def = defOf(s);
             return (
               <SigilCard
                 key={s.uid}

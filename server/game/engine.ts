@@ -22,7 +22,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  contenders, freeSeat, live, log, maxManaFor, nextSeat, seated, sigilHandSize,
+  contenders, freeSeat, live, log, maxManaFor, nextSeat, refreshMaxMana, seated, sigilHandSize,
 } from './table';
 import {
   bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -30,8 +30,10 @@ import {
   type MagicCtx,
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
-import { buy, payInterest, reroll, rollShop } from './shop';
-import { decideAction, decideCast, decideResponse, decideShop, thinkTime, TEMPO } from './bots';
+import { buy, payInterest, reroll, rollShop, scribe } from './shop';
+import {
+  decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
+} from './bots';
 import { COVENS, DEFAULT_COVEN, covenOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
@@ -99,6 +101,17 @@ export class Engine {
       this.fx = [];
     }
     this.push();
+  }
+
+  /**
+   * A bot's own pause, scaled by the same pacing dial as every table clock.
+   * The Market's browsing pauses used to be fixed milliseconds while the
+   * Market's own clock scaled, so at HEXHOLD_PACE=10 the Market shut in 0.3s
+   * before any bot had looked at it, and every fast harness run measured a
+   * game in which bots never bought anything.
+   */
+  private paced(ms: number): number {
+    return Math.round(ms * (config.pacePercent / 100));
   }
 
   private wait(ms: number, then: () => void): void {
@@ -199,6 +212,7 @@ export class Engine {
       p.relics = [];
       p.eliminated = false;
       p.handsWon = 0;
+      p.attuned = 0;
       p.maxMana = maxManaFor(p, t);
 
       // The coven is the run's opening decision, and it is expressed entirely
@@ -283,7 +297,7 @@ export class Engine {
       p.hole = [];
       p.lastAction = undefined;
       p.shopDone = false;
-      p.maxMana = maxManaFor(p, t);
+      refreshMaxMana(p, t);
       // Two at the top of the hand, not three. At three, a measured session
       // ended every hand with four unspent mana per player out of a ceiling
       // of eight — which means casting was never a choice, only a chore you
@@ -842,7 +856,7 @@ export class Engine {
     for (const p of alive(t)) {
       p.shopDone = false;
       t.shop.set(p.id, rollShop(t, p, this.stream(`shop:${t.ante}:${p.seat}`)));
-      if (p.isBot) this.botClock.set(p.id, Date.now() + 800 + this.rng.int(1500));
+      if (p.isBot) this.botClock.set(p.id, Date.now() + this.paced(800 + this.rng.int(1500)));
     }
 
     this.fx.push({ t: 'sfx', name: 'shop_open' });
@@ -891,7 +905,7 @@ export class Engine {
       }
     }
 
-    for (const p of t.players) p.maxMana = maxManaFor(p, t);
+    for (const p of t.players) refreshMaxMana(p, t);
 
     const detail = omen.rank ? `${RANK_NAME[omen.rank]}s` : '';
     log(t, `OMEN — ${def.name}: ${def.text}${detail ? ` (${detail})` : ''}`, 'impossible');
@@ -918,6 +932,15 @@ export class Engine {
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
     this.wait(320, () => this.beginHand());
+  }
+
+  shopScribe(id: string, uid: string, text: string, replaceUid?: string): { ok: boolean; error?: string } {
+    const p = byId(this.table, id);
+    if (!p || this.table.phase !== 'shop') return { ok: false, error: 'The market is closed' };
+    const r = scribe(this.table, p, uid, text, replaceUid);
+    if (r.ok) this.fx.push({ t: 'sfx', name: 'inscribe' });
+    this.flush();
+    return r;
   }
 
   shopBuy(id: string, uid: string): { ok: boolean; error?: string } {
@@ -1276,10 +1299,16 @@ export class Engine {
         if (!p.isBot || p.shopDone) continue;
         const at = this.botClock.get(p.id) ?? 0;
         if (now < at) continue;
+        const page = decideScribe(t, p, this.rng);
+        if (page && scribe(t, p, page.uid, page.text, page.replace).ok) {
+          this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
+          this.flush();
+          return;
+        }
         const uid = decideShop(t, p, this.rng);
         if (uid) {
           buy(t, p, uid, this.rng);
-          this.botClock.set(p.id, now + 500 + this.rng.int(900));
+          this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
         } else {
           p.shopDone = true;
         }

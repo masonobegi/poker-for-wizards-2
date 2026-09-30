@@ -9,7 +9,7 @@
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
-import { SCHOOLS, SIGIL_BY_ID, type SigilDef } from '@shared/sigils';
+import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
@@ -34,7 +34,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const reducedMotion = useReducedMotionPref();
 
   const responses = (me.sigils ?? []).filter((s) => {
-    const def = SIGIL_BY_ID[s.defId];
+    const def = defOf(s);
     if (!def?.timing.includes('response')) return false;
     let delta = 0;
     for (const id of me.relics) delta += RELIC_BY_ID[id]?.sigils?.costDelta ?? 0;
@@ -82,7 +82,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
 
             <ol className="stack-list">
               {[...view.stackEntries].reverse().map((e, i) => {
-                const def = SIGIL_BY_ID[e.sigilId];
+                const def = entryDef(e);
                 const school = SCHOOLS[e.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil;
                 return (
                   <motion.li
@@ -122,7 +122,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                 <p className="stack-ask">Answer it?</p>
                 <div className="stack-options">
                   {responses.map((s) => {
-                    const def = SIGIL_BY_ID[s.defId];
+                    const def = defOf(s);
                     if (!def) return null;
                     const school = SCHOOLS[def.school];
                     return (

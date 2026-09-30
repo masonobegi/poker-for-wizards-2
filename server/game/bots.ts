@@ -13,11 +13,13 @@
 import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards';
 import { evalComplexity, evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
-import { SIGIL_BY_ID, type SigilDef } from '../../shared/sigils';
+import { SIGIL_BY_ID, defOf, entryDef, type SigilDef, type SigilInstance } from '../../shared/sigils';
+import { SCRIBE_PRESETS, readSpell } from '../../shared/scribe';
+import { rosterFor } from './shop';
 import type {
   BetAction, BotSkill, Player, SigilTargets, StackEntry, Table, TableSpeed,
 } from '../../shared/types';
-import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, totalPot } from './table';
+import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, sigilHandSize, totalPot } from './table';
 import { resolveStack } from './magic';
 import { config } from '../config';
 
@@ -595,10 +597,11 @@ const startPreviewBudget = (): void => { previewDeadline = performance.now() + P
 
 const seedFrom = (rng: Rng): number => Math.floor(rng.next() * 2 ** 32);
 
-function entryFor(p: Player, def: SigilDef, targets: SigilTargets, t: Table): StackEntry {
+function entryFor(p: Player, def: SigilDef, targets: SigilTargets, t: Table, inst?: SigilInstance): StackEntry {
   return {
     id: 'preview', casterId: p.id, sigilId: def.id, targets,
     countered: false, costPaid: manaCost(p, def, t),
+    ...(inst?.scribed ? { scribed: inst.scribed } : {}),
   };
 }
 
@@ -612,7 +615,7 @@ const TARGET_TRIES: Partial<Record<SigilDef['target'], number>> = {
  * the caster's own hand worse.
  */
 function bestTargets(
-  t: Table, p: Player, def: SigilDef, rng: Rng,
+  t: Table, p: Player, def: SigilDef, rng: Rng, inst?: SigilInstance,
 ): { targets: SigilTargets; delta: number } | null {
   const tries = TARGET_TRIES[def.target] ?? 1;
   const seen = new Set<string>();
@@ -626,7 +629,7 @@ function bestTargets(
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const pv = preview(t, p.id, [entryFor(p, def, targets, t)], seed, p.id);
+    const pv = preview(t, p.id, [entryFor(p, def, targets, t, inst)], seed, p.id);
     // A preview that could not run is not evidence against the spell.
     if (!pv) { best ??= { targets, delta: 0 }; continue; }
     if (pv.fizzled) continue;
@@ -643,7 +646,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
   const pr = personalityOf(p, t.config.botSkill);
 
   const options = p.sigils
-    .map((s) => ({ s, def: SIGIL_BY_ID[s.defId] }))
+    .map((s) => ({ s, def: defOf(s)! }))
     .filter(({ s, def }) => def && !def.timing.includes('response') && canCast(t, p, s).ok);
 
   if (options.length === 0) return null;
@@ -652,7 +655,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
   // Hold a little back for a counterspell, but only while mana is actually
   // scarce. Reserving unconditionally left bots sitting on a full pool all
   // game and the table never saw any magic.
-  const holdsAnswer = p.sigils.some((s) => SIGIL_BY_ID[s.defId]?.timing.includes('response'));
+  const holdsAnswer = p.sigils.some((s) => defOf(s)?.timing.includes('response'));
   const reserve = holdsAnswer && p.mana <= 6 ? 1 : 0;
 
   const eq = t.board.length > 0 ? equity(t, p, rng) : 0.5;
@@ -688,7 +691,7 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     // the caster, and the best of a few targetings rather than the first.
     // Spells whose value is not equity — a peek, an extra betting round —
     // preview as neutral and keep the roll above.
-    const pick = bestTargets(t, p, def, rng);
+    const pick = bestTargets(t, p, def, rng, s);
     if (!pick) continue;
     // Inside the noise band a spell is judged on the roll above alone; below
     // it, a small loss is cast only sometimes.
@@ -705,14 +708,14 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
   const top = t.stack.entries[t.stack.entries.length - 1];
   if (top.casterId === p.id) return null;
 
-  const incoming = SIGIL_BY_ID[top.sigilId];
+  const incoming = entryDef(top);
   if (!incoming) return null;
 
   const aimedAtMe = top.targets.playerId === p.id
     || (top.targets.cardIds ?? []).some((id) => p.hole.includes(id));
 
   const options = p.sigils
-    .map((s) => ({ s, def: SIGIL_BY_ID[s.defId] }))
+    .map((s) => ({ s, def: defOf(s)! }))
     .filter(({ s, def }) => def?.timing.includes('response') && canCast(t, p, s).ok);
   if (options.length === 0) return null;
 
@@ -747,11 +750,53 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
   return { uid: s.uid, targets };
 }
 
+/**
+ * Sometimes a bot writes a sigil instead of buying one.
+ *
+ * Bots do not compose sentences; they pick one of the ready-made spells a
+ * player is offered, which goes through the same reader and the same prices.
+ * It is here so a table of bots exercises written sigils end to end — the
+ * simulator's invariants then cover them — and so a human sees opponents
+ * using the page too.
+ */
+/** How often a bot writes on the page. A hook for the balance harness, which sets it per seat. */
+export const botScribe = { chanceFor: (_p: Player): number => 0.35 };
+
+export function decideScribe(
+  t: Table, p: Player, rng: Rng,
+): { uid: string; text: string; replace?: string } | null {
+  const shop = t.shop.get(p.id);
+  const page = shop?.items.find((i) => i.kind === 'scribe' && !shop.sold.includes(i.uid));
+  // Decided once per market visit, not once per tick: the bot loop asks
+  // again after every purchase, and a fresh roll each time would make writing
+  // nearly certain.
+  if (!shop || !page || !new Rng(`${t.seed}:scribe:${t.ante}:${p.id}`).chance(botScribe.chanceFor(p))) return null;
+  const roster = rosterFor(t, p);
+  const affordable = SCRIBE_PRESETS
+    .map((pr) => readSpell(pr.text, roster).spell)
+    .filter((sp): sp is NonNullable<typeof sp> => !!sp && sp.price <= p.shards);
+  if (!affordable.length) return null;
+  // A bot's hand is nearly always full by the first Market, so writing means
+  // giving something up: the cheapest sigil that is not its counterspell.
+  let replace: string | undefined;
+  if (p.sigils.length >= sigilHandSize(p)) {
+    const spare = p.sigils
+      .filter((s) => !defOf(s)?.timing.includes('response') && !s.scribed)
+      .sort((a, b) => (defOf(a)?.cost ?? 0) - (defOf(b)?.cost ?? 0))[0];
+    if (!spare) return null;
+    replace = spare.uid;
+  }
+  return { uid: page.uid, text: rng.pick(affordable).text, replace };
+}
+
 /** Bots shop greedily but not stupidly: relics first, then sigils they can hold. */
 export function decideShop(t: Table, p: Player, rng: Rng): string | null {
   const shop = t.shop.get(p.id);
   if (!shop) return null;
-  const affordable = shop.items.filter((i) => !shop.sold.includes(i.uid) && i.price <= p.shards);
+  // A blank page is not bought, it is written on: see decideScribe.
+  const affordable = shop.items.filter(
+    (i) => i.kind !== 'scribe' && !shop.sold.includes(i.uid) && i.price <= p.shards,
+  );
   if (affordable.length === 0) return null;
 
   const order = ['relic', 'mana', 'sigil', 'rite'];

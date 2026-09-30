@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 204 tests: hand eval, sigils, omens, bots, hexes, DOM mounts, sockets
+npm test           # 219 tests: hand eval, sigils, omens, bots, hexes, the spell reader, DOM mounts, sockets
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
@@ -28,6 +28,7 @@ npm run audio      # renders every sound offline and measures the mix
 npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
 npm run metrics -- 150 5  # balance report: pacing, magic rate, fizzles, action spread
 HEXHOLD_PACE=10 npm run runs -- 8 4 400  # full runs to game over: length, depth, impossible hands
+HEXHOLD_PACE=10 npx tsx test/balance-scribe.ts 30  # does writing sigils give an edge?
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.
@@ -92,6 +93,22 @@ At every ante a new **omen** lands on the table. It is permanent, it applies to 
 Suits merge. Aces start bridging both ends of the rank order. Every King is dealt face down before anyone has seen it. Three cards in the shared deck quietly become Wild and nobody is told which. One rank is struck from the game entirely. At ante five, the worst hand starts winning every pot.
 
 They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory: if no omen has seeded the deck with wild, prism or mirrored cards by ante three, that ante's omen is one that does.
+
+### Writing your own sigils
+
+Every Market has a **blank page**. Type what you want the sigil to do, in plain English, and it becomes a sigil in your hand:
+
+> *burn the river and read the chip leader's cards*
+> *hex everyone*
+> *make my worst card a copy of the river*
+
+There is no language model. `shared/scribe.ts` reads the sentence with ordered rule tables, the same way a search box parses a question, and turns it into one to three existing sigil effects. What it adds is the power a printed sigil does not have:
+
+- **Targets described, not picked.** "The chip leader", "whoever raised last", "the short stack", "my worst card", "the river" are worked out when the spell resolves, against the table as it is then.
+- **Bundles.** Up to three effects in one cast and one hand slot. One stack entry, so a single Nullify still eats the lot.
+- **The whole table.** "Everyone" or "every opponent" hits each of them.
+
+The price comes from the effects, never the wording: a sigil's own name costs exactly that sigil, every extra effect is +1 mana, aiming at everyone doubles that effect, and nothing costs more than 10. The reading updates as you type, says every guess out loud, and refuses what no sigil can do ("win the pot") with a sentence rather than a nearby wrong answer. Seven ready-made spells sit on the page as buttons for anyone who would rather tap than type.
 
 ### Hexes and the Daily Rite
 

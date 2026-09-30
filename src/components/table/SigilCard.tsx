@@ -3,7 +3,7 @@ import { motion, useAnimationControls } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { useFinePointer } from '@/components/fx/useFinePointer';
 import { usePointerFoil } from '@/components/fx/usePointerFoil';
-import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR, type Rarity, type SigilInstance } from '@shared/sigils';
+import { SCHOOLS, defOf, RARITY_COLOR, type Rarity, type SigilInstance } from '@shared/sigils';
 import { EASE_OUT, ENTER_PANEL, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
 import SchoolDevice from '@/components/table/SchoolDevice';
@@ -45,7 +45,7 @@ export interface SigilCardProps {
 const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilCardBase({
   inst, castable, cost, affordable, lock, selected, onCast, onDiscard, index = 0, compact,
 }: SigilCardProps, ref) {
-  const def = SIGIL_BY_ID[inst.defId];
+  const def = defOf(inst);
   // `usable` must be computed before any early return so the hooks below
   // always run in the same order, whether or not `def` resolves.
   const usable = !!def && castable && affordable;

@@ -218,3 +218,85 @@
   .shopcard-text { min-height: 0; }
   .shopcard-impossible { display: none; }
 }
+
+/* --- the blank page ---------------------------------------------------------
+   A strip under the wares rather than a sixth card: it is not a thing on a
+   shelf but a thing you make, and it needs the width for a sentence. */
+.scribe-strip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(233, 222, 199, 0.04);
+}
+.scribe-strip strong { font-family: var(--font-display); letter-spacing: 0.08em; color: var(--gold); }
+.scribe-strip p { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; }
+.scribe-strip.is-used { opacity: 0.7; }
+.scribe-strip__glyph { font-size: 26px; color: var(--gold); }
+
+.scribe {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(9, 7, 6, 0.45);
+}
+.scribe-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.scribe-sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 4px; text-wrap: pretty; }
+.scribe-input {
+  width: 100%;
+  resize: none;
+  padding: 10px 12px;
+  font: inherit;
+  /* 16px keeps a phone from zooming the page on focus. */
+  font-size: max(16px, var(--fs-md));
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.scribe-input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.scribe-reading { display: grid; gap: 4px; min-height: 3.2em; }
+.scribe-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.scribe-chip {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.scribe-cost { font-size: var(--fs-sm); color: var(--text-2); }
+.scribe-cost strong { color: var(--gold); }
+.scribe-hint, .scribe-note { font-size: var(--fs-xs); color: var(--text-quiet); }
+.scribe-error { font-size: var(--fs-sm); font-weight: 600; color: var(--bad); }
+.scribe-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.scribe-preset {
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  border: 1px solid var(--line-soft);
+  background: rgba(0, 0, 0, 0.25);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.scribe-preset:hover { color: var(--text); border-color: var(--line); }
+.scribe-preset:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.scribe-preset .mono { color: var(--gold); margin-left: 4px; }
+.scribe-foot { display: flex; justify-content: flex-end; gap: var(--s-2); }
+@media (max-width: 720px) {
+  .scribe-strip { grid-template-columns: auto 1fr; }
+  .scribe-strip .btn { grid-column: 1 / -1; }
+}
+.scribe-replace { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.scribe-preset.is-on { color: var(--void); background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-color: var(--gold); }

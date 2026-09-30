@@ -598,11 +598,17 @@ async function runResolution(browser, res) {
 
 // ---------------------------------------------------------------------------
 
-const browser = await launch({ headless: !HEADED });
 const results = [];
 for (const res of RESOLUTIONS) {
   console.log(`\n▶ ${res.name} — ${res.width}x${res.height} ${res.note ? `(${res.note})` : ''}`);
+  // A fresh browser per resolution. One browser for all seven carried the
+  // renderer's memory from 1280x800 up through 4K and ultrawide, and on an
+  // ordinary desktop the page crashed partway through the large ones — on
+  // main as well as on branches, so it read as a regression that was not
+  // there. Each resolution passes on its own; now each one runs on its own.
+  const browser = await launch({ headless: !HEADED });
   const r = await runResolution(browser, res);
+  await browser.close();
   results.push(r);
   console.log(`  screenshots: menu=${r.seen.menu ? 'y' : 'n'} table=${r.seen.table ? 'y' : 'n'} market=${r.seen.market ? 'y' : 'n'} showdown=${r.seen.showdown ? 'y' : 'n'}`);
   if (r.fails.length) {
@@ -612,7 +618,6 @@ for (const res of RESOLUTIONS) {
     console.log('  ✔ no failures');
   }
 }
-await browser.close();
 
 // --- final table -------------------------------------------------------
 console.log('\n\n══════════════════════════ RESPONSIVE REPORT ══════════════════════════');

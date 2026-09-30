@@ -58,7 +58,7 @@ const HINTS: HintDef[] = [
   {
     id: 'shop_open',
     place: 'shop',
-    text: 'The Market is open. Spend shards on sigils, relics, and rites for the rest of the run.',
+    text: 'The Market is open. Spend shards on sigils, relics and rites — or write your own sigil on the blank page below them.',
     match: (v, s) => v.phase === 'shop' && s.marketSettled,
   },
 ];
