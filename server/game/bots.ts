@@ -685,6 +685,15 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
       want *= spill > 0 ? 1 + spill * 0.3 : 1.25;
     }
 
+    // A full table shares the magic out rather than multiplying it. Every
+    // cast costs the whole table a resolution and often a response window,
+    // and six players each casting as eagerly as they would heads-up made a
+    // six-handed hand 9.4 spells and 22 seconds long. Past four players,
+    // each one's appetite shrinks so the table's total stays about level —
+    // the same bargain think time already makes.
+    const seats = live(t).length;
+    if (seats > 4) want *= 4 / seats;
+
     if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
 
     // Look before casting: never a spell that does nothing or clearly hurts
