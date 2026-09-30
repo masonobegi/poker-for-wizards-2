@@ -6,6 +6,8 @@
  * with a binder clip and a good memory has been cut.
  */
 
+import type { Scribed } from './scribe';
+
 export type School = 'entropy' | 'veil' | 'chronos' | 'bind' | 'ruin' | 'weave';
 
 export interface SchoolDef {
@@ -590,6 +592,39 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 export interface SigilInstance {
   uid: string;
   defId: string;
+  /** Present on a sigil its owner wrote in words. See shared/scribe.ts. */
+  scribed?: Scribed;
 }
 
-export const defOf = (s: SigilInstance): SigilDef => SIGIL_BY_ID[s.defId];
+/** The id every scribed sigil carries. Its behaviour lives in `scribed`. */
+export const SCRIBED_ID = 'scribed';
+
+/**
+ * A scribed sigil, dressed as an ordinary one, so every rule that asks "what
+ * does this cost, when can it be cast, what school is it" asks one question.
+ * It targets nothing at cast time: its targets are descriptions, worked out
+ * when it resolves.
+ */
+export function scribedDef(sp: Scribed): SigilDef {
+  return {
+    id: SCRIBED_ID,
+    name: sp.name,
+    school: sp.school,
+    glyph: '✎',
+    cost: sp.cost,
+    timing: sp.timing,
+    target: 'none',
+    rarity: sp.clauses.length > 1 ? 'rare' : 'common',
+    text: sp.rules,
+    impossible: 'A spell nobody printed, written at the table in plain words.',
+    price: sp.price,
+    botBias: 0.7,
+  };
+}
+
+/** Every sigil in a hand or on the stack, fixed or written. */
+export const defOf = (s: { defId: string; scribed?: Scribed }): SigilDef | undefined =>
+  s.scribed ? scribedDef(s.scribed) : SIGIL_BY_ID[s.defId];
+
+export const entryDef = (e: { sigilId: string; scribed?: Scribed }): SigilDef | undefined =>
+  e.scribed ? scribedDef(e.scribed) : SIGIL_BY_ID[e.sigilId];

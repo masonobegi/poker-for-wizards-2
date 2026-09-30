@@ -14,7 +14,7 @@ import {
 } from '../../shared/cards';
 import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
 import { hasVision, mergeRelicMods, relicNumber } from '../../shared/relics';
-import { SIGIL_BY_ID, type SigilDef, type SigilInstance } from '../../shared/sigils';
+import { SIGIL_BY_ID, defOf, entryDef, type SigilDef, type SigilInstance } from '../../shared/sigils';
 import {
   DEFAULT_CONFIG, emptyForeknowledge, isStreet,
   type HandRead, type LogEntry, type LogTone, type Phase, type Player, type PlayerView,
@@ -367,7 +367,7 @@ export interface CastCheck { ok: boolean; reason?: string }
  * whichever order the checks run in; only the reported reason depends on it.
  */
 export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock | null {
-  const def = SIGIL_BY_ID[inst.defId];
+  const def = defOf(inst);
   if (!def || !t.config.magicEnabled) return { why: 'off' };
   if (p.folded || p.eliminated) return { why: 'out' };
 
@@ -387,7 +387,7 @@ export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock |
 }
 
 export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
-  if (!SIGIL_BY_ID[inst.defId]) return { ok: false, reason: 'Unknown sigil' };
+  if (!defOf(inst)) return { ok: false, reason: 'Unknown sigil' };
   const block = castBlock(t, p, inst);
   if (!block) return { ok: true };
   switch (block.why) {
@@ -418,7 +418,7 @@ export function phaseLabel(p: Phase): string {
 }
 
 export function stackEntryView(t: Table, e: StackEntry) {
-  const def = SIGIL_BY_ID[e.sigilId];
+  const def = entryDef(e);
   const caster = byId(t, e.casterId);
   return {
     ...e,

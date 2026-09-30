@@ -11,6 +11,7 @@ import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard
 import { config } from '../config';
 import { covenOf } from '../../shared/covens';
 import { clampHex, isDailySeed } from '../../shared/hexes';
+import { MAX_TEXT } from '../../shared/scribe';
 
 const MAX_NAME = 16;
 const CHAT_LIMIT = 200;
@@ -286,6 +287,21 @@ export function attach(io: Server): Rooms {
       touch();
       const r = e.shopBuy(s.playerId, uid);
       if (!r.ok && r.error) socket.emit('toast', { text: r.error, tone: 'warn' });
+    });
+
+    // Writing a sigil. The text is read again on the server; the client's own
+    // reading is only a preview.
+    socket.on('shop:scribe', (p: unknown, ack?: unknown) => {
+      const s = seat(); const e = engine();
+      if (!s || !e) return;
+      const uid = clean((p as { uid?: string })?.uid, 24);
+      const text = clean((p as { text?: string })?.text, MAX_TEXT);
+      if (!uid || !text) return;
+      touch();
+      const replace = clean((p as { replace?: string })?.replace, 24) || undefined;
+      const r = e.shopScribe(s.playerId, uid, text, replace);
+      if (typeof ack === 'function') ack({ ok: r.ok, error: r.error });
+      else if (!r.ok && r.error) socket.emit('toast', { text: r.error, tone: 'warn' });
     });
 
     socket.on('shop:reroll', () => {

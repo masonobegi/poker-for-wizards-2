@@ -30,8 +30,10 @@ import {
   type MagicCtx,
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
-import { buy, payInterest, reroll, rollShop } from './shop';
-import { decideAction, decideCast, decideResponse, decideShop, thinkTime, TEMPO } from './bots';
+import { buy, payInterest, reroll, rollShop, scribe } from './shop';
+import {
+  decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
+} from './bots';
 import { COVENS, DEFAULT_COVEN, covenOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
@@ -920,6 +922,15 @@ export class Engine {
     this.wait(320, () => this.beginHand());
   }
 
+  shopScribe(id: string, uid: string, text: string, replaceUid?: string): { ok: boolean; error?: string } {
+    const p = byId(this.table, id);
+    if (!p || this.table.phase !== 'shop') return { ok: false, error: 'The market is closed' };
+    const r = scribe(this.table, p, uid, text, replaceUid);
+    if (r.ok) this.fx.push({ t: 'sfx', name: 'inscribe' });
+    this.flush();
+    return r;
+  }
+
   shopBuy(id: string, uid: string): { ok: boolean; error?: string } {
     const p = byId(this.table, id);
     if (!p || this.table.phase !== 'shop') return { ok: false, error: 'The market is closed' };
@@ -1276,6 +1287,12 @@ export class Engine {
         if (!p.isBot || p.shopDone) continue;
         const at = this.botClock.get(p.id) ?? 0;
         if (now < at) continue;
+        const page = decideScribe(t, p, this.rng);
+        if (page && scribe(t, p, page.uid, page.text).ok) {
+          this.botClock.set(p.id, now + 500 + this.rng.int(900));
+          this.flush();
+          return;
+        }
         const uid = decideShop(t, p, this.rng);
         if (uid) {
           buy(t, p, uid, this.rng);

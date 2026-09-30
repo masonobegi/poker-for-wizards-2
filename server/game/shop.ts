@@ -7,10 +7,11 @@
  * hand three hands later. That tension is the point.
  */
 import { hexPrice } from '../../shared/hexes';
+import { INK_SHARDS, readSpell, type Roster, type ScribeRead } from '../../shared/scribe';
 import { nanoid } from 'nanoid';
 import { MARKS, type MarkId, faceLabel } from '../../shared/cards';
 import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
+import { SCRIBED_ID, SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
 import { giveSigil } from './magic';
@@ -96,6 +97,9 @@ export function rollShop(t: Table, p: Player, rng: Rng, rerolls = 0): ShopState 
   } else {
     items.push(rollSigilItem(rng));
   }
+  // Every Market has a blank page. Its listed price is the least a written
+  // sigil can cost; the words decide the rest. See shared/scribe.ts.
+  items.push({ kind: 'scribe', uid: nanoid(8), price: SCRIBE_FLOOR });
 
   // Hex IV: the Market charges a human a quarter more. Applied to the listed
   // price, so what the player is shown is what they pay.
@@ -121,6 +125,8 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
   if (p.shards < item.price) return { ok: false, error: 'Not enough shards' };
 
   switch (item.kind) {
+    case 'scribe':
+      return { ok: false, error: 'Write the sigil first' };
     case 'sigil': {
       if (p.sigils.length >= sigilHandSize(p)) return { ok: false, error: 'Your hand is full' };
       giveSigil(t, p, { uid: nanoid(8), defId: item.id });
@@ -150,9 +156,54 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
   const label = item.kind === 'sigil' ? SIGIL_BY_ID[item.id]?.name
     : item.kind === 'relic' ? RELIC_BY_ID[item.id]?.name
       : item.kind === 'rite' ? item.label
-        : `+${item.amount} max mana`;
+        : item.kind === 'mana' ? `+${item.amount} max mana` : 'a blank page';
   log(t, `${p.name} buys ${label}.`, 'magic', { playerId: p.id });
   return { ok: true, note: label };
+}
+
+/** The cheapest sigil a page can hold: the ink and the cheapest effect. */
+export const SCRIBE_FLOOR = INK_SHARDS + Math.min(
+  ...Object.values(SIGIL_BY_ID).filter((d) => !d.timing.includes('response')).map((d) => d.price),
+);
+
+/** The roster a writer can name: everyone still at the table. */
+export const rosterFor = (t: Table, p: Player): Roster => ({
+  selfId: p.id,
+  players: t.players.filter((q) => !q.eliminated).map((q) => ({ id: q.id, name: q.name })),
+});
+
+/**
+ * Write a sigil onto the Market's blank page.
+ *
+ * The client shows a reading as the player types, but the server reads the
+ * words again and charges what its own reading costs: a client that lies about
+ * the price, or runs an older reader, gets what the words actually say.
+ */
+export function scribe(
+  t: Table, p: Player, uid: string, text: string, replaceUid?: string,
+): BuyResult & { read?: ScribeRead } {
+  const shop = t.shop.get(p.id);
+  if (!shop) return { ok: false, error: 'The market is closed' };
+  const item = shop.items.find((i) => i.uid === uid);
+  if (!item || item.kind !== 'scribe') return { ok: false, error: 'No blank page here' };
+  if (shop.sold.includes(uid)) return { ok: false, error: 'You have already written on this page' };
+  // A full hand can make room: the new sigil takes the place of one the
+  // player names. Nothing is given up until the page is actually paid for.
+  const full = p.sigils.length >= sigilHandSize(p);
+  const replacing = full && replaceUid ? p.sigils.find((s) => s.uid === replaceUid) : undefined;
+  if (full && !replacing) return { ok: false, error: 'Your hand is full — choose a sigil for this one to replace.' };
+
+  const read = readSpell(text, rosterFor(t, p));
+  if (!read.ok || !read.spell) return { ok: false, error: read.error, read };
+  const price = hexPrice(read.spell.price, t.config.hex ?? 1, p.isBot);
+  if (p.shards < price) return { ok: false, error: `That sigil costs ${price} shards; you have ${p.shards}.`, read };
+
+  p.shards -= price;
+  shop.sold.push(uid);
+  if (replacing) p.sigils = p.sigils.filter((s) => s.uid !== replacing.uid);
+  giveSigil(t, p, { uid: nanoid(8), defId: SCRIBED_ID, scribed: read.spell });
+  log(t, `${p.name} writes a sigil of their own.`, 'magic', { playerId: p.id });
+  return { ok: true, note: read.spell.name, read };
 }
 
 export function reroll(t: Table, p: Player, rng: Rng): BuyResult {
