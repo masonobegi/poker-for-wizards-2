@@ -176,3 +176,12 @@ errors, `npm run sim` reports no deadlocks across long bot games, and the only
 changes to `server/` in this work were removed unused imports (verifiable in
 `git diff server/`). It is worth a look before release, but it is a harness
 problem, not a gameplay one.
+
+**A pacing dial that scales some clocks and not others measures a different
+game.** `HEXHOLD_PACE=10` shortened every table clock to a tenth, including
+the Market's, but a bot's browsing pauses were plain milliseconds. At that
+pace the Market closed in 0.3s, before any bot had looked at it, so every
+fast `metrics`, `runs` and `sim` measurement was a game in which bots never
+bought a sigil, a relic or a rite. Two balance claims were made on that
+evidence. Nothing failed; the runs just quietly measured the wrong thing.
+Any delay a bot takes now goes through the same dial (`Engine.paced`).
