@@ -71,7 +71,9 @@
   }
 }
 
-.vfx-vignette.is-on { opacity: 1; }
+.vfx-vignette.is-on { opacity: 0.4; }
+/* 0.4, not 1: it remains for all-ins and knock-outs, which are rare, and even
+   there a full-strength coloured wash read as a flash rather than a mood. */
 
 /* --- film grain ----------------------------------------------------------- */
 

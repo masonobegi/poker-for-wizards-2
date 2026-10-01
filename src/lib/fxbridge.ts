@@ -115,7 +115,11 @@ export function installFxBridge(): () => void {
           : screenCentre();
         if (ids.length) ids.forEach((id) => whenCard(id, (el) => burstAt('cast', el, { school: e.school })));
         else burst('cast', screenCentre(), { school: e.school });
-        vignette(colour, 700);
+        // No screen-edge wash on a cast. Every cast tinted the whole screen
+        // in its school's colour for 0.7s, and at a few casts a hand that was
+        // a coloured light flashing behind everything (a player's report;
+        // test/flicker.mjs caught frames where the felt itself turned blue).
+        // The spell card in the middle of the screen now carries the moment.
         // A ring pushed out through the shader backdrop, in the school's
         // colour. Fire-and-forget: it is decoration, and on a machine with no
         // GL the import resolves to a module whose pulse goes nowhere.

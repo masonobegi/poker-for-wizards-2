@@ -57,6 +57,10 @@ const SHAKE_FREQ = 44;
 const SHAKE_CLAMP_PX = 34;
 const SHAKE_CLAMP_DEG = 2.2;
 const FLASH_DECAY = 0.26;
+/** The strongest a full-screen flash may ever be, as a fraction of full opacity. */
+const FLASH_MAX = 0.35;
+/** Flashes closer together than this are dropped, not stacked. */
+const FLASH_GAP_MS = 1200;
 const QUEUE_LIMIT = 64;
 
 interface ShakeSlot {
@@ -92,6 +96,7 @@ class VfxEngine {
   private flashAmp = 0;
   private flashColor = '#ffffff';
   private flashApplied = -1;
+  private lastFlashAt = -Infinity;
 
   private chromaT = 0;
   private chromaDur = 0;
@@ -280,9 +285,28 @@ class VfxEngine {
 
   /* ------------------------------------------------------------- flash -- */
 
+  /**
+   * A full-screen colour wash, now a glow rather than a strobe.
+   *
+   * Every caller asked for 0.3 to 0.7 of full screen, and they fire on
+   * counters, seals, several spells, omens and big wins — at a six-handed
+   * table that was a bright full-screen flash every few seconds, which a
+   * player reported as flashing lights behind everything. Measured with
+   * test/flicker.mjs, single frames jumped across 100k+ pixels at once.
+   *
+   * Two limits, applied here so no caller can opt out of them: strength is
+   * scaled to at most FLASH_MAX of the screen, and a flash within
+   * FLASH_GAP_MS of the last one is dropped rather than stacked. Both sit
+   * well inside the general-flash guidance (no more than three a second, and
+   * not at high contrast across a large area).
+   */
   flash(color: string, power = 0.55): void {
-    const p = clamp(prefersReducedMotion() ? power * 0.25 : power, 0, 1);
+    const now = performance.now();
+    if (now - this.lastFlashAt < FLASH_GAP_MS) return;
+    const scaled = power * FLASH_MAX;
+    const p = clamp(prefersReducedMotion() ? 0 : scaled, 0, FLASH_MAX);
     if (p <= 0) return;
+    this.lastFlashAt = now;
     this.flashColor = color;
     if (p > this.flashAmp) this.flashAmp = p;
     const att = this.att;

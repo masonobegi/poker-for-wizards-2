@@ -118,8 +118,28 @@ function makeStopper(
 }
 
 // ---------------------------------------------------------------------------
-// menu — slow dark ambient
+// menu — a slow progression with a picked line over it
 // ---------------------------------------------------------------------------
+
+/**
+ * The menu used to be one held D minor chord with a bell every ten seconds,
+ * which a player described, fairly, as one long drone. Nothing moved, so
+ * nothing told the ear it was music rather than hum.
+ *
+ * Now it is a four-chord loop in D minor (i, VI, III, VII — Dm, Bb, F, C),
+ * one chord every 6.4 seconds, with the pad gliding between voicings rather
+ * than cutting, and a soft picked arpeggio walking the chord tones on top at
+ * about 75 BPM with rests in it so it breathes. Same key as every other mood,
+ * so the crossfade into the table still lands.
+ */
+const MENU_CHORDS: ReadonlyArray<readonly [number, number, number, number]> = [
+  [38, 45, 50, 53], // Dm: D2 A2 D3 F3
+  [34, 41, 46, 50], // Bb: Bb1 F2 Bb2 D3
+  [41, 48, 53, 57], // F:  F2 C3 F3 A3
+  [36, 43, 48, 52], // C:  C2 G2 C3 E3
+];
+const MENU_BAR = 6.4;
+const MENU_STEP = 0.8;
 
 function buildMenuLayer(g: MusicGraph, t0: number): Layer {
   const { ctx } = g;
@@ -130,70 +150,101 @@ function buildMenuLayer(g: MusicGraph, t0: number): Layer {
   const nodes: AudioNode[] = [out];
   const sources: AudioScheduledSourceNode[] = [];
 
-  // Sustained minor drone: 3-4 detuned saws through one lowpass filter.
+  // --- pad: four voices that glide to each new chord ------------------------
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.Q.setValueAtTime(0.9, t0);
-  filter.frequency.setValueAtTime(650, t0);
+  filter.Q.setValueAtTime(0.8, t0);
+  filter.frequency.setValueAtTime(900, t0);
   filter.connect(out);
   nodes.push(filter);
 
-  const droneGain = ctx.createGain();
-  droneGain.gain.setValueAtTime(0.5, t0);
-  droneGain.connect(filter);
-  nodes.push(droneGain);
+  const padGain = ctx.createGain();
+  padGain.gain.setValueAtTime(0.32, t0);
+  padGain.connect(filter);
+  nodes.push(padGain);
 
-  const chord = [MIDI.D2, MIDI.F2, MIDI.A2, MIDI.D3];
-  chord.forEach((m, i) => {
+  const pad = MENU_CHORDS[0].map((m, i) => {
     const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
+    osc.type = i === 0 ? 'triangle' : 'sawtooth';
     osc.frequency.setValueAtTime(mtof(m), t0);
-    osc.detune.setValueAtTime((i % 2 === 0 ? -1 : 1) * (6 + i * 2), t0);
+    osc.detune.setValueAtTime((i % 2 === 0 ? -1 : 1) * (5 + i * 2), t0);
     const voice = ctx.createGain();
-    voice.gain.setValueAtTime(0.22, t0);
+    voice.gain.setValueAtTime(i === 0 ? 0.3 : 0.16, t0);
     osc.connect(voice);
-    voice.connect(droneGain);
+    voice.connect(padGain);
     osc.start(t0);
     sources.push(osc);
     nodes.push(voice);
+    return osc;
   });
 
-  // Slow LFO breathing the filter cutoff.
+  // The filter opens and closes once per bar, so each chord swells in.
   const lfo = ctx.createOscillator();
   lfo.type = 'sine';
-  lfo.frequency.setValueAtTime(0.045, t0);
+  lfo.frequency.setValueAtTime(1 / MENU_BAR, t0);
   const lfoAmt = ctx.createGain();
-  lfoAmt.gain.setValueAtTime(340, t0);
+  lfoAmt.gain.setValueAtTime(380, t0);
   lfo.connect(lfoAmt);
   lfoAmt.connect(filter.frequency);
   lfo.start(t0);
   sources.push(lfo);
   nodes.push(lfoAmt);
 
-  // Heavy reverb send on the drone.
   const send = ctx.createGain();
-  send.gain.setValueAtTime(0.42, t0);
-  droneGain.connect(send);
+  send.gain.setValueAtTime(0.4, t0);
+  padGain.connect(send);
   send.connect(g.reverb);
   nodes.push(send);
 
-  // Sparse bell motif, every 8-12s, heavily reverberant.
-  let nextBell = t0 + rand(2, 5);
+  // --- events: chord changes, the picked line, the odd bell -----------------
   const voiceGraph: VoiceGraph = { ctx, dest: out, reverb: g.reverb };
+  let bar = 0;
+  let nextBar = t0 + MENU_BAR;
+  let nextStep = t0 + 1.2;
+  let nextBell = t0 + rand(6, 10);
+  let stepInBar = 0;
+  const chordAt = (t: number): readonly number[] =>
+    MENU_CHORDS[Math.floor(Math.max(0, t - t0) / MENU_BAR) % MENU_CHORDS.length];
+
   function tick(windowEnd: number): void {
+    while (nextBar < windowEnd) {
+      bar += 1;
+      const chord = MENU_CHORDS[bar % MENU_CHORDS.length];
+      // A glide, not a cut: about a third of a second to settle.
+      pad.forEach((osc, i) => osc.frequency.setTargetAtTime(mtof(chord[i]), nextBar, 0.12));
+      nextBar += MENU_BAR;
+    }
+    while (nextStep < windowEnd) {
+      // Eight steps a bar; rest on some so the line has phrases, not a ticker.
+      const rest = stepInBar === 7 || (stepInBar % 2 === 1 && chance(0.35));
+      if (!rest) {
+        const chord = chordAt(nextStep);
+        const up = [chord[1], chord[2], chord[3], chord[2] + 12][stepInBar % 4] + 12;
+        pluck(voiceGraph, {
+          at: nextStep,
+          freq: mtof(up),
+          decay: 1.4,
+          gain: stepInBar === 0 ? 0.13 : 0.085,
+          pan: rand(-0.35, 0.35),
+          send: 0.55,
+          bright: 0.45,
+        });
+      }
+      stepInBar = (stepInBar + 1) % 8;
+      nextStep += MENU_STEP;
+    }
     while (nextBell < windowEnd) {
-      const note = pick(D_PENT) + (chance(0.3) ? 12 : 0);
       fmBell(voiceGraph, {
         at: nextBell,
-        carrier: mtof(note),
-        ratio: pick([1.41, 2, 2.76]),
-        index: rand(1, 2.4),
-        decay: rand(1.6, 2.6),
-        gain: rand(0.05, 0.09),
+        carrier: mtof(chordAt(nextBell)[3] + 24),
+        ratio: pick([2, 2.76]),
+        index: rand(1, 1.8),
+        decay: rand(1.8, 2.6),
+        gain: rand(0.035, 0.06),
         pan: rand(-0.5, 0.5),
-        send: 0.8,
+        send: 0.85,
       });
-      nextBell += rand(8, 12);
+      nextBell += rand(12, 18);
     }
   }
 
