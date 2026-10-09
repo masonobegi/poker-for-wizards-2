@@ -185,7 +185,10 @@ def place(bg: Image.Image, block: Image.Image, cx: float, cy: float) -> Image.Im
 def save(img: Image.Image, name: str, size: tuple[int, int]):
     assert img.size == size, f"{name}: {img.size} != {size}"
     OUT.mkdir(parents=True, exist_ok=True)
-    img.save(OUT / name, optimize=True)
+    if name.endswith(".jpg"):
+        img.convert("RGB").save(OUT / name, quality=95, optimize=True)
+    else:
+        img.save(OUT / name, optimize=True)
     print(f"  {name:28s} {size[0]}x{size[1]}")
 
 
@@ -196,7 +199,11 @@ def main():
     # Header capsule 920x430: the felt and the seats, title centred.
     bg = grade(cover(table, 920, 430, focus=(0.43, 0.36), zoom=1.25), dark=0.7, blur=1.2)
     bg = vignette(bg, 0.9)
-    save(place(bg, title_block(560), 0.5, 0.5), "header_capsule_920x430.png", (920, 430))
+    header = place(bg, title_block(560), 0.5, 0.5)
+    save(header, "header_capsule_920x430.png", (920, 430))
+    # Library header capsule 920x430: its own upload slot since Valve split
+    # the store and library assets (2024). Same art, so the two agree.
+    save(header, "library_header_920x430.png", (920, 430))
 
     # Small capsule 462x174: legibility first, nearly all title.
     bg = grade(cover(table, 462, 174, focus=(0.43, 0.36), zoom=1.1), dark=0.85, blur=2.5)
@@ -230,8 +237,25 @@ def main():
     logo.save(OUT / "library_logo_1280x720.png", optimize=True)
     print("  library_logo_1280x720.png    1280x720 (transparent)")
 
-    # Community icon 184x184 and the Windows .ico the build uses.
+    # Community icon 184x184 and the Windows .ico the build uses. Steam's
+    # form asks for the community icon as a .jpg; the .png is kept as well.
     save(emblem(184).convert("RGB"), "community_icon_184x184.png", (184, 184))
+    save(emblem(184), "community_icon_184x184.jpg", (184, 184))
+
+    # Shortcut icon 256x256: the desktop and Start-menu shortcut Steam makes
+    # (Steam builds its .ico from this PNG). Transparent corners kept.
+    save(emblem(256), "shortcut_icon_256x256.png", (256, 256))
+
+    # Page background 1438x810 (optional slot): the table, dark and soft, so
+    # the store text over it stays readable.
+    bg = grade(cover(table, 1438, 810, focus=(0.43, 0.38), zoom=1.0), dark=0.95, blur=8)
+    save(vignette(bg, 0.95), "page_background_1438x810.png", (1438, 810))
+
+    # Event cover 800x450: needed for each announcement or event, including
+    # the launch one. The main capsule's composition at event size.
+    bg = grade(cover(table, 800, 450, focus=(0.43, 0.42), zoom=1.15), dark=0.66, blur=1.0)
+    bg = vignette(bg, 0.9)
+    save(place(bg, title_block(500, with_emblem=True), 0.5, 0.47), "event_cover_800x450.png", (800, 450))
     ico = Image.open(ICON).convert("RGBA")
     ico.save(OUT / "hexhold.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     ico.save(ROOT / "electron" / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
