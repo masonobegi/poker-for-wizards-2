@@ -33,3 +33,6 @@ server/**/*.js
 test/**/*.js
 vite.config.js
 recordings/
+
+# Raw harness captures; the curated set lives in steam/screenshots/
+steam/screenshots/raw/

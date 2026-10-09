@@ -261,6 +261,14 @@ export function attach(io: Server): Rooms {
       if (!r.ok && r.error) socket.emit('toast', { text: r.error, tone: 'warn' });
     });
 
+    // The menu pauses a table only when you are the one human at it.
+    socket.on('game:pause', (p: unknown) => {
+      const s = seat(); const e = engine();
+      if (!s || !e) return;
+      touch();
+      e.setPaused(s.playerId, p === true);
+    });
+
     socket.on('game:pass', () => {
       const s = seat(); const e = engine();
       if (!s || !e) return;

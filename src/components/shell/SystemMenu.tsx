@@ -1,8 +1,8 @@
 /**
- * The Escape-key system menu. This is a *menu*, not a pause: HEXHOLD is
- * real-time multiplayer and nothing about opening it stops the table, the
- * clock, or the other players — it only stops blocking pointer input to the
- * felt underneath while it's open.
+ * The Escape-key system menu. At a table where you are the only human —
+ * practice against bots, the offline game — opening it pauses the hand: every
+ * clock stops and the bots wait. At a table with other people it is a menu,
+ * not a pause, because one player cannot stop another's game.
  *
  * Self-contained: mount it once as a sibling of the scene tree (it renders
  * nothing until Escape is pressed while `screen === 'game'`) and it handles
@@ -37,11 +37,24 @@ function isTypingTarget(el: EventTarget | null): el is HTMLElement {
 export default function SystemMenu() {
   const screen = useGame((s) => s.screen);
   const leave = useGame((s) => s.leave);
+  const setPaused = useGame((s) => s.setPaused);
+  const solo = useGame((s) => {
+    const players = s.view?.players ?? [];
+    return players.length > 0 && players.filter((p) => !p.isBot).length === 1;
+  });
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<MenuView>('menu');
   const headingId = useId();
   const subId = useId();
   const trapRef = useFocusTrap<HTMLDivElement>(open);
+
+  // Pause while the menu is open, at a solo table. Always unpause on close or
+  // unmount, so a menu torn down by a scene change cannot leave a table frozen.
+  useEffect(() => {
+    if (!open || !solo) return undefined;
+    setPaused(true);
+    return () => setPaused(false);
+  }, [open, solo, setPaused]);
 
   // Leaving the game scene (e.g. the table itself sent us back to the menu)
   // closes any menu we had open over it.
@@ -107,9 +120,9 @@ export default function SystemMenu() {
                 <header className="hh-menu-head">
                   <h2 id={headingId} className="hh-menu-title display">Menu</h2>
                   <p id={subId} className="hh-menu-sub">
-                    The table keeps running — this doesn&apos;t pause the hand. Your
-                    seat is still yours; you&apos;ll just miss your turn if it comes
-                    up while you&apos;re in here.
+                    {solo
+                      ? 'Paused. The bots will wait for you.'
+                      : 'The table keeps running — other players are still at it. Your seat is still yours; you’ll just miss your turn if it comes up while you’re in here.'}
                   </p>
                 </header>
 
@@ -138,7 +151,7 @@ export default function SystemMenu() {
                     Leave Table
                   </Button>
                   {desktop ? (
-                    <Button block tone="danger" onClick={() => window.close()}>
+                    <Button block tone="danger" onClick={() => { void getHexholdApi()?.quit(); }}>
                       Quit
                     </Button>
                   ) : null}

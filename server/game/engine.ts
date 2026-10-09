@@ -42,6 +42,9 @@ export type Push = () => void;
 
 const TICK_MS = 120;
 
+/** A solo pause lets go on its own after this long. */
+const PAUSE_MAX_MS = 30 * 60_000;
+
 export class Engine {
   readonly table: Table;
   private rng: Rng;
@@ -55,6 +58,8 @@ export class Engine {
   private idleSince = 0;
   /** Sigils each bot has cast in its current action window. */
   private castsThisTurn = new Map<string, number>();
+  /** When the only human at the table paused it from the menu. 0 = running. */
+  private pausedAt = 0;
 
   constructor(
     code: string,
@@ -160,6 +165,41 @@ export class Engine {
       const next = t.players.find((q) => !q.isBot);
       if (next) t.hostId = next.id;
     }
+    this.flush();
+  }
+
+  /**
+   * Pause, for a table with exactly one human: practice against bots, which is
+   * how the desktop game is played offline. Opening the menu there stops the
+   * hand, the way any single-player game's pause does. A table with two humans
+   * never pauses: one player cannot stop another's game. Every clock that was
+   * running is pushed back by however long the pause lasted, and a pause left
+   * alone past PAUSE_MAX_MS lets go so an abandoned table is still reaped.
+   */
+  setPaused(id: string, on: boolean): boolean {
+    const humans = this.table.players.filter((p) => !p.isBot);
+    if (humans.length !== 1 || humans[0].id !== id) return false;
+    if (on) {
+      if (!this.pausedAt) this.pausedAt = Date.now();
+      return true;
+    }
+    this.resume();
+    return true;
+  }
+
+  get paused(): boolean { return this.pausedAt > 0; }
+
+  private resume(): void {
+    if (!this.pausedAt) return;
+    const held = Date.now() - this.pausedAt;
+    this.pausedAt = 0;
+    const t = this.table;
+    if (this.deadline) this.deadline += held;
+    for (const [k, v] of this.botClock) this.botClock.set(k, v + held);
+    if (t.actingUntil) t.actingUntil += held;
+    if (t.stack?.closesAt) t.stack.closesAt += held;
+    for (const sh of t.shop.values()) if (sh.closesAt) sh.closesAt += held;
+    this.idleSince = 0;
     this.flush();
   }
 
@@ -1198,6 +1238,11 @@ export class Engine {
     // dozens of them running.
     if (t.players.some((p) => !p.isBot && p.connected)) {
       t.lastActivity = Math.max(t.lastActivity, Date.now() - 60_000);
+    }
+
+    if (this.pausedAt) {
+      if (Date.now() - this.pausedAt < PAUSE_MAX_MS) return;
+      this.resume();
     }
 
     // Stack windows close on their own.

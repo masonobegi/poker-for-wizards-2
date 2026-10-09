@@ -50,16 +50,32 @@ const notes = [];
 const fail = (t) => { failures.push(t); console.log(`  ✗ ${t}`); };
 const pass = (t) => { notes.push(t); console.log(`  ✓ ${t}`); };
 
+/**
+ * The environment for the game. ELECTRON_RUN_AS_NODE must not leak through:
+ * anything launched from inside VS Code (an extension host, a terminal agent)
+ * inherits it as 1, which makes HEXHOLD.exe run as plain Node and die with
+ * "bad option: --remote-debugging-port".
+ */
+function launchEnv() {
+  const env = { ...process.env, HEXHOLD_USER_DATA: USER_DATA };
+  delete env.ELECTRON_RUN_AS_NODE;
+  return env;
+}
+
 async function start() {
   const app = await electron.launch({
     executablePath: EXE,
     // A proxy that goes nowhere: anything that is not loopback fails, which is
-    // what a machine with no network looks like to the game.
-    args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=<-loopback>'],
-    env: { ...process.env, HEXHOLD_USER_DATA: USER_DATA },
+    // what a machine with no network looks like to the game. Chromium bypasses
+    // proxies for loopback by default, so the game's own server still answers.
+    // (Do NOT add --proxy-bypass-list=<-loopback>: that rule *removes* the
+    // loopback bypass and the game cannot reach its own server.)
+    args: ['--proxy-server=http://127.0.0.1:9'],
+    env: launchEnv(),
     timeout: 60_000,
   });
   const page = await app.firstWindow();
+  await page.waitForURL(/^http:\/\/127\.0\.0\.1:\d+\//, { timeout: 30_000 }).catch(() => {});
   const external = [];
   const errors = [];
   page.on('request', (r) => {
@@ -131,7 +147,7 @@ if (font.cinzel && font.loaded.some((f) => /cinzel/i.test(f))) pass(`Cinzel load
 else fail(`display face did not load: ${JSON.stringify(font)}`);
 
 const version = await page.locator('.menu-version').first().innerText().catch(() => '');
-if (/^v\d+\.\d+\.\d+/.test(version.trim())) pass(`menu shows ${version.trim()}`);
+if (/^v\d+\.\d+\.\d+/i.test(version.trim())) pass(`menu shows ${version.trim()}`);
 else fail(`menu version reads "${version}"`);
 
 const quitShown = await page.locator('button:has-text("Quit")').first().isVisible().catch(() => false);
@@ -174,6 +190,14 @@ const devtools = await app.evaluate(({ BrowserWindow }) => {
 });
 if (!devtools) pass('DevTools cannot be opened'); else fail('DevTools opened in the packaged build');
 
+// Store screenshots read better without first-run hint toasts on them.
+if (SHOTS) {
+  await page.evaluate(() => localStorage.setItem('hexhold.hints.seen', JSON.stringify(Object.fromEntries(
+    ['response_window', 'castable_sigil', 'shop_open', 'holdem', 'mana', 'sigils', 'stack', 'deck', 'hands', 'shop', 'coven']
+      .map((k) => [k, true]),
+  ))));
+}
+
 // A marker in storage, to look for after the relaunch.
 await page.evaluate(() => localStorage.setItem('hexhold.packagedProbe', String(Date.now())));
 const probe = await page.evaluate(() => localStorage.getItem('hexhold.packagedProbe'));
@@ -190,6 +214,8 @@ const t0 = Date.now();
 let turns = 0;
 const seen = new Set();
 const taken = new Set();
+let lastFrame = Date.now();
+let frame = 0;
 while (atTable && Date.now() - t0 < SECONDS * 1000) {
   const phase = await page.evaluate(() => {
     if (document.querySelector('.gameover')) return 'gameover';
@@ -207,6 +233,11 @@ while (atTable && Date.now() - t0 < SECONDS * 1000) {
     await shot(page, want);
   }
   if (phase === 'gameover') break;
+  // Extra frames to choose store screenshots from.
+  if (SHOTS && Date.now() - lastFrame > 12_000) {
+    lastFrame = Date.now();
+    await shot(page, `t${String(++frame).padStart(2, '0')}-${phase.replace(/[^a-z]/g, '') || 'table'}`);
+  }
 
   const letResolve = page.locator('button:has-text("Let it resolve")').first();
   if (await letResolve.isVisible().catch(() => false)) { await letResolve.click().catch(() => {}); continue; }
@@ -252,9 +283,15 @@ while (atTable && Date.now() - t0 < SECONDS * 1000) {
 if (turns > 0) pass(`played ${turns} turns; phases seen: ${[...seen].join(', ')}`);
 else if (atTable) fail('never got a turn at the table');
 
-// The pause menu, by Escape, as a player reaches it.
+// The pause menu, by Escape, as a player reaches it. Solo practice pauses.
 await page.keyboard.press('Escape');
 await page.waitForTimeout(700);
+const pausedText = await page.locator('.hh-menu-sub').first().innerText().catch(() => '');
+const ledger1 = await page.locator('.log, [class*="ledger"]').first().innerText().catch(() => '');
+await page.waitForTimeout(6000);
+const ledger2 = await page.locator('.log, [class*="ledger"]').first().innerText().catch(() => '');
+if (/paused/i.test(pausedText) && ledger1 === ledger2) pass('the menu pauses a solo table (nothing moved for 6s)');
+else fail(`menu did not pause: "${pausedText.slice(0, 60)}", ledger ${ledger1 === ledger2 ? 'still' : 'moved'}`);
 await shot(page, '11-menu-overlay');
 
 if (external.length) fail(`made ${external.length} non-local request(s): ${[...new Set(external)].slice(0, 5).join(', ')}`);

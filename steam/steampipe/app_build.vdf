@@ -1,0 +1,18 @@
+"AppBuild"
+{
+	// Replace APP_ID and the two DEPOT_ID_* values with the numbers Steamworks
+	// gives you (App Admin > SteamPipe > Depots). They are placeholders on
+	// purpose: there is no real App ID in this repository.
+	"AppID" "APP_ID"
+	"Desc" "HEXHOLD 0.9.0"
+	"BuildOutput" "..\build-output\"
+	"ContentRoot" "..\..\release\"
+	"SetLive" ""
+	"Preview" "0"
+
+	"Depots"
+	{
+		"DEPOT_ID_WINDOWS" "depot_build_windows.vdf"
+		"DEPOT_ID_LINUX" "depot_build_linux.vdf"
+	}
+}

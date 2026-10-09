@@ -93,6 +93,8 @@ interface GameStore {
   act(action: BetAction): void;
   cast(uid: string, targets: SigilTargets): void;
   pass(): void;
+  /** Pause a table where you are the only human; the server ignores it otherwise. */
+  setPaused(on: boolean): void;
   discardSigil(uid: string): void;
 
   buy(uid: string): void;
@@ -255,6 +257,7 @@ export const useGame = create<GameStore>((set, get) => ({
   act(action) { get().socket?.emit('game:action', action); },
   cast(uid, targets) { get().socket?.emit('game:cast', { uid, targets }); },
   pass() { get().socket?.emit('game:pass'); },
+  setPaused(on) { get().socket?.emit('game:pause', on); },
   discardSigil(uid) { get().socket?.emit('game:discardSigil', { uid }); },
 
   buy(uid) { get().socket?.emit('shop:buy', { uid }); },

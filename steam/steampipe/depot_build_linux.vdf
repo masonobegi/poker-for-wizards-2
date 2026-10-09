@@ -1,0 +1,16 @@
+"DepotBuild"
+{
+	"DepotID" "DEPOT_ID_LINUX"
+	// Relative to the app build's ContentRoot (release/). Produced by
+	// `npm run package:linux`, or `npx electron-builder --linux dir`.
+	"ContentRoot" "linux-unpacked\"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+
+	"FileExclusion" "steam_appid.txt"
+}
