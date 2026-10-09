@@ -65,7 +65,8 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
           </div>
           <div className="shop-purse">
             <span className="shop-shards mono">◆ {me.shards}</span>
-            <span className="shop-clock mono">{left}s</span>
+            {/* A solo Market has no clock (closesAt 0): it waits for Done. */}
+            {shop.closesAt ? <span className="shop-clock mono">{left}s</span> : null}
           </div>
         </header>
 

@@ -1515,6 +1515,22 @@
 .ab-inner { display: grid; gap: var(--s-3); width: min(760px, 100%); }
 
 .ab-buttons { display: flex; gap: var(--s-2); justify-content: center; flex-wrap: wrap; }
+/* The second-press prompt for a guarded shortcut (fold a free check, all in). */
+.ab-confirm {
+  justify-self: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  color: var(--gold);
+  background: rgba(240, 196, 101, 0.1);
+  border: 1px solid rgba(240, 196, 101, 0.35);
+}
+.ab-confirm kbd {
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
 .ab-buttons .btn { min-width: 132px; }
 .ab-buttons kbd {
   font-family: var(--font-mono);

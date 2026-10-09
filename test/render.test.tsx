@@ -330,3 +330,58 @@ test('the intro flow opens on its first panel', async () => {
   assert.ok(html.length > 400, 'the intro rendered nothing');
   assert.match(text, /skip/i, 'the intro cannot be skipped');
 });
+
+test('one press of F never folds a free check, and one press of A never shoves', async () => {
+  // From the 2026-10-09 playtest: LB (F) folded a free check and Y (A) went all
+  // in, each on a single press. The pad sends those same keys.
+  define('HTMLInputElement', dom.window.HTMLInputElement);
+  define('HTMLTextAreaElement', dom.window.HTMLTextAreaElement);
+  const { useGame } = await import('../src/store/net');
+  const ActionBar = (await import('../src/components/table/ActionBar')).default;
+  const { createRoot } = await import('react-dom/client');
+  const { act } = await import('react');
+
+  const sent: unknown[] = [];
+  const realAct = useGame.getState().act;
+  useGame.setState({ act: (a: unknown) => { sent.push(a); } } as never);
+
+  const base = {
+    yourTurn: true, currentBet: 0, minRaise: 200, bb: 200, pot: 300, phase: 'flop',
+    handNumber: 1, toCall: 0, actingUntil: Date.now() + 30_000,
+    config: { actionSeconds: 30 }, stack: null,
+  };
+  const me = { bet: 0, chips: 5000, folded: false, eliminated: false } as never;
+  const host = dom.window.document.createElement('div');
+  container.appendChild(host);
+  const root = createRoot(host);
+  const press = (key: string) => act(async () => {
+    dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key }));
+  });
+  try {
+    await act(async () => { root.render(<ActionBar view={{ ...base, canCheck: true } as never} me={me} blocked={false} />); });
+
+    await press('f');
+    assert.equal(sent.length, 0, 'a single F folded a free check');
+    assert.match(host.textContent ?? '', /again to fold/i, 'no prompt for the second press');
+    await press('f');
+    assert.deepEqual(sent, [{ kind: 'fold' }], 'two presses should fold');
+
+    sent.length = 0;
+    await press('a');
+    assert.equal(sent.length, 0, 'a single A went all in');
+    assert.match(host.textContent ?? '', /again to go all in/i);
+    await press('a');
+    assert.deepEqual(sent, [{ kind: 'allin' }], 'two presses should go all in');
+
+    // Facing a bet, folding is a real choice: one press still folds.
+    sent.length = 0;
+    await act(async () => {
+      root.render(<ActionBar view={{ ...base, canCheck: false, currentBet: 400, toCall: 400 } as never} me={me} blocked={false} />);
+    });
+    await press('f');
+    assert.deepEqual(sent, [{ kind: 'fold' }], 'facing a bet, F should fold at once');
+  } finally {
+    await act(async () => { root.unmount(); });
+    useGame.setState({ act: realAct } as never);
+  }
+});

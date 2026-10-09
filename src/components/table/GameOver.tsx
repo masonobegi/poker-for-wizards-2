@@ -107,7 +107,13 @@ export default function GameOver({ view }: { view: TableView }) {
           >
             <Avatar seed={winner.avatar} size={82} bot={winner.isBot} />
             <h2>{winner.name}</h2>
-            <p>took every chip on the table</p>
+            {/* A run also ends the hand the last human goes out, with bots
+                still holding chips; the chip leader takes the table then. */}
+            <p>
+              {view.players.some((p) => p.id !== winner.id && p.chips > 0)
+                ? `led with ${winner.chips.toLocaleString()} chips when the last player went out`
+                : 'took every chip on the table'}
+            </p>
           </motion.div>
         ) : null}
 

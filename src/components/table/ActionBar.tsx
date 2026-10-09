@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, TableView } from '@shared/types';
 import { Button, Range } from '@/components/ui/kit';
@@ -7,6 +7,19 @@ import { playSfx } from '@/lib/sound';
 import { TurnTimer } from '@/components/fx/TurnTimer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { EASE_OUT, ENTER, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
+
+/**
+ * How long a guarded shortcut waits for its second press.
+ *
+ * Two shortcuts could throw a hand away in one press: F (LB on a pad) folded
+ * even when checking was free, and A (Y on a pad) shoved the whole stack. A
+ * playtester pressed Y expecting "info" and lost a run in minute six. Both
+ * now ask for a second press. The on-screen buttons are unchanged: a click
+ * is deliberate.
+ */
+const CONFIRM_MS = 1500;
+
+type Guarded = 'fold' | 'allin';
 
 export interface ActionBarProps {
   view: TableView;
@@ -46,7 +59,27 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
       .filter((p) => p.value < maxTotal);
   }, [view.currentBet, pot, maxTotal, minRaise]);
 
-  const send = (fn: () => void) => { fn(); setRaising(false); };
+  const [armed, setArmed] = useState<Guarded | null>(null);
+  const armedRef = useRef<{ what: Guarded; at: number } | null>(null);
+  const disarm = () => { armedRef.current = null; setArmed(null); };
+  const arm = (what: Guarded) => {
+    armedRef.current = { what, at: Date.now() };
+    setArmed(what);
+    playSfx('ui_tick', { vol: 0.5 });
+  };
+  const isArmed = (what: Guarded) => {
+    const a = armedRef.current;
+    return !!a && a.what === what && Date.now() - a.at < CONFIRM_MS;
+  };
+  // A new decision starts unarmed, and an armed key lets go on its own.
+  useEffect(() => { disarm(); }, [view.handNumber, view.phase, view.yourTurn]);
+  useEffect(() => {
+    if (!armed) return undefined;
+    const id = window.setTimeout(disarm, CONFIRM_MS);
+    return () => window.clearTimeout(id);
+  }, [armed]);
+
+  const send = (fn: () => void) => { fn(); setRaising(false); disarm(); };
   const canRaise = me.chips > 0 && maxTotal > view.currentBet;
   const isBet = view.currentBet === 0;
 
@@ -56,10 +89,16 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const k = e.key.toLowerCase();
-      if (k === 'f') send(() => act({ kind: 'fold' }));
-      else if (k === 'c') send(() => act(view.canCheck ? { kind: 'check' } : { kind: 'call' }));
+      if (k === 'f') {
+        // Folding a free check is never what a single press meant.
+        if (view.canCheck && !isArmed('fold')) { arm('fold'); return; }
+        send(() => act({ kind: 'fold' }));
+      } else if (k === 'c') send(() => act(view.canCheck ? { kind: 'check' } : { kind: 'call' }));
       else if (k === 'r' && canRaise) setRaising((v) => !v);
-      else if (k === 'a' && canRaise) send(() => act({ kind: 'allin' }));
+      else if (k === 'a' && canRaise) {
+        if (!isArmed('allin')) { arm('allin'); return; }
+        send(() => act({ kind: 'allin' }));
+      }
       else if (k === 'enter' && raising) send(() => act({ kind: isBet ? 'bet' : 'raise', amount }));
       else if (k === 'escape') setRaising(false);
     };
@@ -130,6 +169,14 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                   </div>
               </div>
             </div>
+
+            {armed ? (
+              <div className="ab-confirm" role="status">
+                {armed === 'fold'
+                  ? <>Checking is free. Press <kbd data-pad="LB">F</kbd> again to fold.</>
+                  : <>Press <kbd data-pad="Y">A</kbd> again to go all in.</>}
+              </div>
+            ) : null}
 
             <div className="ab-buttons">
               <Button tone="danger" size="lg" onClick={() => send(() => act({ kind: 'fold' }))}>

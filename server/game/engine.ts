@@ -45,6 +45,13 @@ const TICK_MS = 120;
 /** A solo pause lets go on its own after this long. */
 const PAUSE_MAX_MS = 30 * 60_000;
 
+/**
+ * A solo table's Market has no clock: it closes when the player presses Done.
+ * This cap only exists so a Market left open in an abandoned window still
+ * lets the table be reaped, the same as a pause.
+ */
+const SOLO_MARKET_MAX_MS = PAUSE_MAX_MS;
+
 export class Engine {
   readonly table: Table;
   private rng: Rng;
@@ -178,7 +185,7 @@ export class Engine {
    */
   setPaused(id: string, on: boolean): boolean {
     const humans = this.table.players.filter((p) => !p.isBot);
-    if (humans.length !== 1 || humans[0].id !== id) return false;
+    if (!this.solo || humans[0].id !== id) return false;
     if (on) {
       if (!this.pausedAt) this.pausedAt = Date.now();
       return true;
@@ -188,6 +195,26 @@ export class Engine {
   }
 
   get paused(): boolean { return this.pausedAt > 0; }
+
+  /**
+   * Exactly one human at the table: practice against bots or the Daily Rite.
+   * Such a table can pause, its Market waits for the player, and it ends the
+   * moment that player is out. Two humans never get any of this.
+   */
+  get solo(): boolean {
+    return this.table.players.filter((p) => !p.isBot).length === 1;
+  }
+
+  /** At least one human sat down, and every one of them is out. */
+  private everyHumanOut(): boolean {
+    const humans = this.table.players.filter((p) => !p.isBot);
+    return humans.length > 0 && humans.every((p) => p.eliminated);
+  }
+
+  /** How long the Market stays open: the configured clock, or none when solo. */
+  private marketMs(): number {
+    return this.solo ? SOLO_MARKET_MAX_MS : this.table.config.shopSeconds * 1000;
+  }
 
   private resume(): void {
     if (!this.pausedAt) return;
@@ -808,6 +835,11 @@ export class Engine {
     }
 
     if (alive(t).length <= 1) { this.endGame(); return; }
+    // Nobody left to play for. A solo run used to make its player sit through
+    // the bots finishing the table with no skip: minutes of dead air on every
+    // first bust, inside Steam's two-hour refund window. The run ends here and
+    // the chip leader takes the table.
+    if (this.everyHumanOut()) { this.endGame(); return; }
 
     const antePassed = t.handNumber % anteLength(t) === 0;
     if (antePassed) { this.openShop(); return; }
@@ -836,14 +868,23 @@ export class Engine {
 
   private endGame(): void {
     const t = this.table;
-    const last = alive(t)[0];
+    // Usually one player is left. When the run ends because every human is
+    // out, the bots still standing are ranked by chips.
+    const standing = alive(t).sort((a, b) => b.chips - a.chips);
+    const last = standing[0];
     t.phase = 'gameover';
     t.winnerId = last?.id ?? null;
     t.actingId = null;
     this.clearWait();
     if (last) {
-      log(t, `${last.name} takes the table.`, 'win', { playerId: last.id });
-      this.fx.push({ t: 'banner', text: `${last.name} WINS`, sub: 'The table is closed', tone: 'win' });
+      const early = standing.length > 1;
+      log(t, early
+        ? `${last.name} leads with ${last.chips.toLocaleString()} chips and takes the table.`
+        : `${last.name} takes the table.`, 'win', { playerId: last.id });
+      this.fx.push({
+        t: 'banner', text: `${last.name} WINS`,
+        sub: early ? 'You are out. The table is closed' : 'The table is closed', tone: 'win',
+      });
       this.fx.push({ t: 'sfx', name: 'victory' });
     }
     this.fx.push({ t: 'music', mood: 'menu' });
@@ -893,15 +934,19 @@ export class Engine {
     t.phase = 'shop';
 
     payInterest(t);
+    const untimed = this.solo;
     for (const p of alive(t)) {
       p.shopDone = false;
-      t.shop.set(p.id, rollShop(t, p, this.stream(`shop:${t.ante}:${p.seat}`)));
+      const shop = rollShop(t, p, this.stream(`shop:${t.ante}:${p.seat}`));
+      // No clock to show: a solo Market closes when the player presses Done.
+      if (untimed) shop.closesAt = 0;
+      t.shop.set(p.id, shop);
       if (p.isBot) this.botClock.set(p.id, Date.now() + this.paced(800 + this.rng.int(1500)));
     }
 
     this.fx.push({ t: 'sfx', name: 'shop_open' });
     this.flush();
-    this.wait(t.config.shopSeconds * 1000, () => this.closeShop());
+    this.wait(this.marketMs(), () => this.closeShop());
   }
 
   /**
@@ -1304,7 +1349,7 @@ export class Engine {
     if (this.idleSince === 0) { this.idleSince = now; return; }
     // The market legitimately sits still while people shop, so give it longer
     // than a betting round before deciding it is wedged.
-    const grace = t.phase === 'shop' ? t.config.shopSeconds * 1000 + 4000 : 4000;
+    const grace = t.phase === 'shop' ? this.marketMs() + 4000 : 4000;
     if (now - this.idleSince < grace) return;
 
     this.idleSince = 0;
