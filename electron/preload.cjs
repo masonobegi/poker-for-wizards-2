@@ -27,6 +27,10 @@ const { contextBridge, ipcRenderer } = require('electron');
   try {
     const saved = ipcRenderer.sendSync('hexhold:storage:load');
     if (saved && typeof saved === 'object') {
+      // The file is the whole truth. The shell already clears every origin's
+      // storage at launch (main.cjs); clearing here as well means a key the
+      // player deleted can never come back from this origin's old copy.
+      localStorage.clear();
       for (const [k, v] of Object.entries(saved)) {
         if (typeof v === 'string') localStorage.setItem(k, v);
       }

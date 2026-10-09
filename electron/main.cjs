@@ -6,12 +6,13 @@
  * same build therefore plays single-player-with-bots offline, and can host a
  * table for friends on the same network, with no separate server to deploy.
  */
-const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('electron');
 const path = require('node:path');
 const { fork } = require('node:child_process');
 const net = require('node:net');
 const fs = require('node:fs');
 const steam = require('./steam.cjs');
+const display = require('./display.cjs');
 
 const isDev = !app.isPackaged;
 
@@ -19,6 +20,16 @@ const isDev = !app.isPackaged;
 // a real player's save (test/packaged.mjs). Must happen before anything reads
 // userData.
 if (process.env.HEXHOLD_USER_DATA) app.setPath('userData', process.env.HEXHOLD_USER_DATA);
+
+// Test harnesses only (test/packaged.mjs): run silent and out of sight, so a
+// test can play the real exe while someone is using the machine. The window
+// sits off every display, never takes focus and keeps rendering.
+const OFFSCREEN = process.env.HEXHOLD_TEST_OFFSCREEN === '1';
+if (OFFSCREEN) {
+  app.commandLine.appendSwitch('mute-audio');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+}
 
 /**
  * Display settings the renderer cannot apply itself.
@@ -64,13 +75,24 @@ function storageFile() {
   return path.join(app.getPath('userData'), 'hexhold-storage.json');
 }
 function readStorage() {
+  let text;
   try {
-    const raw = JSON.parse(fs.readFileSync(storageFile(), 'utf8'));
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    text = fs.readFileSync(storageFile(), 'utf8');
+  } catch {
+    return {}; // first launch: no save yet
+  }
+  try {
+    const raw = JSON.parse(text);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('not an object');
     const out = {};
     for (const [k, v] of Object.entries(raw)) if (typeof v === 'string') out[k] = v;
     return out;
-  } catch {
+  } catch (err) {
+    // A save that exists but cannot be read is about to be overwritten by the
+    // first flush. Keep a copy, so a damaged file is a support question with
+    // an answer rather than lost progress.
+    try { fs.copyFileSync(storageFile(), `${storageFile()}.unreadable-${Date.now()}`); } catch { /* best effort */ }
+    recordCrash('save file unreadable, starting fresh', err);
     return {};
   }
 }
@@ -223,14 +245,25 @@ function stateFile() {
   return path.join(app.getPath('userData'), 'window-state.json');
 }
 
+/** The minimum window, shrunk to fit the smallest attached display. */
+function minWindow() {
+  try {
+    const { screen } = require('electron');
+    return display.minWindowSize(screen.getAllDisplays().map((d) => d.workAreaSize));
+  } catch {
+    return display.minWindowSize([]);
+  }
+}
+
 function loadWindowState() {
   const fallback = { width: 1440, height: 900, maximized: false, fullscreen: false };
   try {
     const raw = JSON.parse(fs.readFileSync(stateFile(), 'utf8'));
     const { screen } = require('electron');
+    const min = minWindow();
     const bounds = {
-      width: Math.max(1024, Math.min(7680, raw.width | 0 || fallback.width)),
-      height: Math.max(680, Math.min(4320, raw.height | 0 || fallback.height)),
+      width: Math.max(min.width, Math.min(7680, raw.width | 0 || fallback.width)),
+      height: Math.max(min.height, Math.min(4320, raw.height | 0 || fallback.height)),
       x: Number.isInteger(raw.x) ? raw.x : undefined,
       y: Number.isInteger(raw.y) ? raw.y : undefined,
       maximized: !!raw.maximized,
@@ -268,14 +301,17 @@ function saveWindowState() {
 
 function createWindow() {
   const state = loadWindowState();
+  const min = minWindow();
+  if (OFFSCREEN) Object.assign(state, { x: 10000, y: 0, maximized: false, fullscreen: false });
   win = new BrowserWindow({
     width: state.width,
     height: state.height,
     x: state.x,
     y: state.y,
-    minWidth: 1024,
-    minHeight: 680,
+    minWidth: min.width,
+    minHeight: min.height,
     show: false,
+    ...(OFFSCREEN ? { skipTaskbar: true, focusable: false } : {}),
     backgroundColor: '#05060c',
     autoHideMenuBar: true,
     title: 'HEXHOLD',
@@ -286,6 +322,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      ...(OFFSCREEN ? { backgroundThrottling: false } : {}),
     },
   });
 
@@ -306,6 +343,7 @@ function createWindow() {
   win.on('close', saveWindowState);
 
   win.once('ready-to-show', () => {
+    if (OFFSCREEN) { win.showInactive(); return; }
     win.show();
     if (isDev) win.webContents.openDevTools({ mode: 'detach' });
   });
@@ -352,10 +390,14 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  // A shipped build has no menu at all. Electron's default one is hidden by
-  // autoHideMenuBar but still live, and its accelerators include Reload
-  // (Ctrl+R) and Toggle Developer Tools (Ctrl+Shift+I).
-  if (!isDev) Menu.setApplicationMenu(null);
+  // A shipped build has no menu on Windows and Linux. Electron's default one
+  // is hidden by autoHideMenuBar but still live, and its accelerators include
+  // Reload (Ctrl+R) and Toggle Developer Tools (Ctrl+Shift+I). macOS keeps the
+  // app and Edit menus, or Cmd+C/V/X/A and Cmd+Q stop working (display.cjs).
+  if (!isDev) {
+    const template = display.releaseMenuTemplate(process.platform);
+    Menu.setApplicationMenu(template ? Menu.buildFromTemplate(template) : null);
+  }
 
   // Optional, and silent when absent.
   steam.init(process.resourcesPath, { dev: isDev, root: path.join(__dirname, '..') });
@@ -365,12 +407,27 @@ app.whenReady().then(async () => {
   }
 
   try {
-    serverPort = await freePort();
+    // HEXHOLD_PORT is for test/packaged.mjs, which needs an old port to come
+    // back on purpose. A player never sets it.
+    const forced = Number.parseInt(process.env.HEXHOLD_PORT ?? '', 10);
+    serverPort = forced > 0 && forced < 65536 ? forced : await freePort();
     await startServer(serverPort);
   } catch (err) {
     dialog.showErrorBox('HEXHOLD could not start', String(err?.message ?? err));
     app.quit();
     return;
+  }
+
+  // hexhold-storage.json is the only source of truth for the page's storage.
+  // Every launch is a new 127.0.0.1:<port> origin, and Chromium keeps each
+  // origin's localStorage forever. Without this, a launch that lands on a port
+  // used before would seed on top of that origin's stale keys and flush them
+  // back into the save: a reset profile or a deleted reconnect seat returns.
+  // It also stops one dead copy of the save piling up per launch.
+  try {
+    await session.defaultSession.clearStorageData({ storages: ['localstorage'] });
+  } catch (err) {
+    recordCrash('could not clear stale page storage', err);
   }
 
   createWindow();
@@ -417,23 +474,27 @@ ipcMain.on('hexhold:storage:load', (e) => { e.returnValue = readStorage(); });
 ipcMain.on('hexhold:storage:save', (e, json) => { e.returnValue = writeStorage(json); });
 
 // --- Display ----------------------------------------------------------------
-const WINDOW_SIZES = [
-  [1280, 720], [1280, 800], [1366, 768], [1600, 900],
-  [1920, 1080], [1920, 1200], [2560, 1440], [3840, 2160],
-];
+// Sizes cross this bridge in real pixels; Electron works in DIPs. See
+// display.cjs for the conversion and why it matters on a scaled display.
 function displayState() {
   if (!win || win.isDestroyed()) return null;
   const { screen } = require('electron');
-  const area = screen.getDisplayMatching(win.getBounds()).workAreaSize;
-  const [width, height] = win.getContentSize();
+  const where = screen.getDisplayMatching(win.getBounds());
+  const [cw, ch] = win.getContentSize();
+  const [ow, oh] = win.getSize();
+  const current = display.toPixels({ width: cw, height: ch }, where.scaleFactor);
   return {
     mode: win.isFullScreen() ? 'fullscreen' : win.isMaximized() ? 'maximized' : 'windowed',
-    width,
-    height,
+    width: current.width,
+    height: current.height,
     vsync: readSettings().vsync,
     vsyncActive: launchSettings.vsync,
-    sizes: WINDOW_SIZES.filter(([w, h]) => w <= area.width && h <= area.height)
-      .map(([w, h]) => ({ width: w, height: h })),
+    sizes: display.fittingSizes({
+      workArea: where.workAreaSize,
+      scaleFactor: where.scaleFactor,
+      frame: display.frameOf({ width: ow, height: oh }, { width: cw, height: ch }),
+      min: minWindow(),
+    }),
   };
 }
 ipcMain.handle('hexhold:display', () => displayState());
@@ -443,11 +504,14 @@ ipcMain.handle('hexhold:setDisplay', (_e, req) => {
   else if (req.mode === 'maximized') { win.setFullScreen(false); win.maximize(); }
   else if (req.mode === 'windowed') { win.setFullScreen(false); win.unmaximize(); }
   if (Number.isInteger(req.width) && Number.isInteger(req.height)
-      && WINDOW_SIZES.some(([w, h]) => w === req.width && h === req.height)) {
+      && display.WINDOW_SIZES.some(([w, h]) => w === req.width && h === req.height)) {
     if (win.isFullScreen()) win.setFullScreen(false);
     if (win.isMaximized()) win.unmaximize();
-    win.setContentSize(req.width, req.height);
-    win.center();
+    const { screen } = require('electron');
+    const { scaleFactor } = screen.getDisplayMatching(win.getBounds());
+    const dip = display.toDip({ width: req.width, height: req.height }, scaleFactor);
+    win.setContentSize(dip.width, dip.height);
+    if (!OFFSCREEN) win.center();
   }
   if (typeof req.vsync === 'boolean') writeSettings({ ...readSettings(), vsync: req.vsync });
   return displayState();

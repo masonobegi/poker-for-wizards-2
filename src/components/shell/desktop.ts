@@ -18,13 +18,14 @@ export type DisplayMode = 'windowed' | 'maximized' | 'fullscreen';
 
 export interface DesktopDisplay {
   mode: DisplayMode;
+  /** The window's content size in real screen pixels, not DIPs. */
   width: number;
   height: number;
   /** What is saved for next launch. */
   vsync: boolean;
   /** What this launch is actually running with (a VSync change needs a restart). */
   vsyncActive: boolean;
-  /** Window sizes that fit on the display the window is on. */
+  /** Window sizes, in real screen pixels, that the display the window is on can honour. */
   sizes: { width: number; height: number }[];
 }
 

@@ -273,7 +273,8 @@ function VideoTab() {
 
 const MODES: { id: DisplayMode; label: string }[] = [
   { id: 'fullscreen', label: 'Fullscreen' },
-  { id: 'maximized', label: 'Borderless window' },
+  // A maximized window with its title bar. Fullscreen is the borderless mode.
+  { id: 'maximized', label: 'Maximized window' },
   { id: 'windowed', label: 'Windowed' },
 ];
 
@@ -332,8 +333,9 @@ function DisplaySettings() {
           })}
         </div>
         <p className="hh-field-hint">
-          Picking a size switches to a window. Use UI Scale below to make
-          everything larger or smaller at any size.
+          {d.sizes.length
+            ? 'Sizes are in screen pixels. Picking one switches to a window. Use UI Scale below to make everything larger or smaller at any size.'
+            : 'This display is too small for a fixed window size at its current scaling. Use Fullscreen or Maximized window, and UI Scale below.'}
         </p>
       </div>
 
@@ -462,7 +464,9 @@ function AboutTab() {
         Built with React, Framer Motion, Zustand, Socket.IO, Express and
         Electron (MIT), on Chromium (BSD and others). Every sound is
         synthesised at runtime; there are no third-party audio or image assets.
-        Full licence texts ship in the game folder.
+        Licences ship in the game folder: THIRD_PARTY.md beside the game,
+        the font licence in resources/client/fonts/OFL.txt, and each
+        package's own licence inside resources/app.asar.
       </p>
     </section>
   );

@@ -15,7 +15,12 @@
  *   - DevTools cannot be opened;
  *   - a practice run starts against bots and plays hands;
  *   - Quit closes every HEXHOLD process, the child game server included;
- *   - saved state survives a relaunch, although the server port changes.
+ *   - saved state survives a relaunch, although the server port changes;
+ *   - a key deleted in one session does not come back when a later launch
+ *     lands on a port an earlier one used (the shell clears stale storage).
+ *
+ * The game runs muted, off-screen and unfocusable (HEXHOLD_TEST_OFFSCREEN), so
+ * the harness can run while someone is using the machine.
  *
  * With --shots it also captures 1920x1080 store screenshots into
  * steam/screenshots/raw/.
@@ -25,6 +30,7 @@
 import { _electron as electron } from 'playwright';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -56,13 +62,42 @@ const pass = (t) => { notes.push(t); console.log(`  ✓ ${t}`); };
  * inherits it as 1, which makes HEXHOLD.exe run as plain Node and die with
  * "bad option: --remote-debugging-port".
  */
-function launchEnv() {
-  const env = { ...process.env, HEXHOLD_USER_DATA: USER_DATA };
+function launchEnv(port) {
+  const env = {
+    ...process.env,
+    HEXHOLD_USER_DATA: USER_DATA,
+    HEXHOLD_TEST_OFFSCREEN: '1',
+    HEXHOLD_PORT: String(port),
+  };
   delete env.ELECTRON_RUN_AS_NODE;
   return env;
 }
 
-async function start() {
+/**
+ * Two ports the OS says are free, held together so they cannot be the same.
+ * The harness picks the game's port itself so the relaunch checks are
+ * deterministic: a new port when it tests that the save survives one, and an
+ * old port when it tests that stale storage cannot return.
+ */
+function freePorts(n) {
+  return new Promise((resolve, reject) => {
+    const probes = [];
+    const ports = [];
+    const next = () => {
+      if (ports.length === n) {
+        let open = probes.length;
+        for (const p of probes) p.close(() => { if (--open === 0) resolve(ports); });
+        return;
+      }
+      const p = net.createServer();
+      p.on('error', reject);
+      p.listen(0, '127.0.0.1', () => { ports.push(p.address().port); probes.push(p); next(); });
+    };
+    next();
+  });
+}
+
+async function start(port) {
   const app = await electron.launch({
     executablePath: EXE,
     // A proxy that goes nowhere: anything that is not loopback fails, which is
@@ -70,8 +105,13 @@ async function start() {
     // proxies for loopback by default, so the game's own server still answers.
     // (Do NOT add --proxy-bypass-list=<-loopback>: that rule *removes* the
     // loopback bypass and the game cannot reach its own server.)
-    args: ['--proxy-server=http://127.0.0.1:9'],
-    env: launchEnv(),
+    args: [
+      '--proxy-server=http://127.0.0.1:9',
+      '--mute-audio',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+    ],
+    env: launchEnv(port),
     timeout: 60_000,
   });
   const page = await app.firstWindow();
@@ -113,9 +153,10 @@ function hexholdProcesses() {
 
 console.log(`▶ ${EXE}`);
 const before = hexholdProcesses();
+const [PORT_A, PORT_B] = await freePorts(2);
 
 // --- launch 1 ----------------------------------------------------------------
-let { app, page, external, errors } = await start();
+let { app, page, external, errors } = await start(PORT_A);
 
 if (SHOTS) {
   await app.evaluate(({ BrowserWindow }) => {
@@ -123,7 +164,7 @@ if (SHOTS) {
     w.setFullScreen(false);
     w.unmaximize();
     w.setContentSize(1920, 1080);
-    w.center();
+    w.setPosition(10000, 0); // stay off-screen
   });
 }
 
@@ -312,16 +353,39 @@ if (after <= before) pass('no HEXHOLD process left running (game server child in
 else fail(`${after - before} HEXHOLD process(es) still running after Quit`);
 
 // --- launch 2: does the save survive a new port? -------------------------------
-({ app, page, external, errors } = await start());
+({ app, page, external, errors } = await start(PORT_B));
 await page.locator('button', { hasText: /practice vs bots/i }).first()
   .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
 await page.waitForTimeout(800);
 const port2 = await page.evaluate(() => location.port);
 const probe2 = await page.evaluate(() => localStorage.getItem('hexhold.packagedProbe'));
 const introAgain = await page.locator('button:has-text("Skip")').first().isVisible().catch(() => false);
-if (probe2 === probe) pass(`saved state survived a relaunch (port ${port1} -> ${port2})`);
+// On the same port this would only prove Chromium's per-origin storage, not
+// the save file, so equal ports are a failure rather than a pass.
+if (port1 === port2) fail(`relaunch reused port ${port1}, so it did not test the save file`);
+else if (probe2 === probe) pass(`saved state survived a relaunch (port ${port1} -> ${port2})`);
 else fail(`saved state lost on relaunch (port ${port1} -> ${port2}): ${probe2} != ${probe}`);
 if (!introAgain) pass('intro not shown again on the second launch'); else fail('intro shown again on relaunch');
+
+// Delete the marker in this session, the way a profile reset deletes keys,
+// and give the preload's 1.5 s flush time to write the save file.
+await page.evaluate(() => localStorage.removeItem('hexhold.packagedProbe'));
+await page.waitForTimeout(2500);
+await app.close().catch(() => {});
+
+// --- launch 3: the first launch's port comes back --------------------------------
+// Chromium still holds launch 1's storage for 127.0.0.1:PORT_A, marker
+// included. Before 2026-10-09 the preload seeded on top of it, the marker came
+// back and the next flush wrote it into the save for good.
+({ app, page, external, errors } = await start(PORT_A));
+await page.locator('button', { hasText: /practice vs bots/i }).first()
+  .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
+await page.waitForTimeout(800);
+const port3 = await page.evaluate(() => location.port);
+const probe3 = await page.evaluate(() => localStorage.getItem('hexhold.packagedProbe'));
+if (port3 !== port1) fail(`launch 3 was meant to reuse port ${port1} but got ${port3}`);
+else if (probe3 === null) pass(`a key deleted on port ${port2} stayed deleted when port ${port1} came back`);
+else fail(`a deleted key came back from port ${port1}'s old storage: ${probe3}`);
 await app.close().catch(() => {});
 
 rmSync(USER_DATA, { recursive: true, force: true });

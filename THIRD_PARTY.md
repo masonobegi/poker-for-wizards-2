@@ -20,10 +20,23 @@ devices are drawn in code (`src/components/`, `src/art/`).
 | JetBrains Mono (500, 700) | JetBrains | SIL Open Font License 1.1 |
 
 OFL 1.1 allows bundling in a commercial product; the fonts may not be sold on
-their own, and the licence text must travel with them. The full OFL text is at
-<https://openfontlicense.org/open-font-license-official-text/>.
+their own, and the licence text must travel with them. It does:
+`public/fonts/OFL.txt` (each font's copyright line plus the full OFL 1.1 text,
+taken from the Google Fonts repository) ships as
+`resources/client/fonts/OFL.txt` in the game folder. Added 2026-10-09; before
+that only a URL shipped.
 
 The store art in `steam/art/` also uses Cinzel, under the same licence.
+
+## Where the licence texts are, in an installed copy
+
+- This file: `THIRD_PARTY.md`, beside the exe.
+- Fonts: `resources/client/fonts/OFL.txt`.
+- Electron and Chromium: `LICENSE.electron.txt` and `LICENSES.chromium.html`,
+  beside the exe.
+- npm packages: each package's own `LICENSE` file, inside `resources/app.asar`
+  (electron-builder copies the production dependencies there).
+  Reading them needs an asar tool, such as `npx @electron/asar extract`.
 
 ## Runtime and shell
 
