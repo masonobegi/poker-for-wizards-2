@@ -56,6 +56,12 @@ function writeSettings(next) {
     fs.writeFileSync(settingsFile(), JSON.stringify(next));
   } catch { /* a settings write must never crash the game */ }
 }
+// A desktop game plays its title music when it opens. Chromium's default
+// policy holds every AudioContext until the first click or key, so the title
+// screen was silent until the player touched something. The renderer starts
+// the music at once when it sees the desktop bridge (App.tsx).
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 const launchSettings = readSettings();
 if (!launchSettings.vsync) {
   app.commandLine.appendSwitch('disable-gpu-vsync');

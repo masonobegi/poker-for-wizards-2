@@ -4,6 +4,7 @@ import { useGame } from '@/store/net';
 import { installFxBridge } from '@/lib/fxbridge';
 import { fxRoot } from '@/lib/visuals';
 import { setMusic, unlockAudio } from '@/lib/sound';
+import { isDesktop } from '@/components/shell/desktop';
 import Menu from '@/scenes/Menu';
 import Lobby from '@/scenes/Lobby';
 import GameTable from '@/scenes/GameTable';
@@ -149,6 +150,9 @@ export default function App() {
       window.removeEventListener('pointerdown', go);
       window.removeEventListener('keydown', go);
     };
+    // The desktop shell lets audio start without a gesture (main.cjs), so the
+    // title screen has its music from the first frame instead of silence.
+    if (isDesktop()) { go(); return undefined; }
     window.addEventListener('pointerdown', go, { once: true });
     window.addEventListener('keydown', go, { once: true });
     return () => {

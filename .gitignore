@@ -36,3 +36,6 @@ recordings/
 
 # Raw harness captures; the curated set lives in steam/screenshots/
 steam/screenshots/raw/
+
+# Python bytecode from steam/make_*.py
+__pycache__/

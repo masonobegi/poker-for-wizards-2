@@ -171,6 +171,18 @@ if (SHOTS) {
 const menuUp = await page.locator('button', { hasText: /practice vs bots/i }).first()
   .waitFor({ state: 'visible', timeout: 30_000 }).then(() => true).catch(() => false);
 if (menuUp) pass('reached the main menu'); else fail('never reached the main menu');
+
+// Before any click or key: the shell's autoplay policy lets audio start, so
+// the title screen has music (the game itself is muted by --mute-audio).
+const audioState = await page.evaluate(async () => {
+  const c = new AudioContext();
+  await new Promise((r) => setTimeout(r, 200));
+  const s = c.state;
+  await c.close();
+  return s;
+}).catch((e) => String(e));
+if (audioState === 'running') pass('audio may start before any input (title music plays at launch)');
+else fail(`audio is held until a gesture: AudioContext is "${audioState}"`);
 await skipIntro(page);
 await page.waitForTimeout(1500);
 
