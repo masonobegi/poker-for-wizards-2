@@ -26,6 +26,11 @@
  * steam/screenshots/raw/.
  *
  * Run: npm run package:win && node test/packaged.mjs [seconds] [--shots]
+ *
+ * Linux, headless (no display at all, so nothing can appear): run
+ * scripts/linux-smoke.sh in WSL or on any x64 Linux. It copies
+ * release/linux-unpacked and runs this harness with HEXHOLD_EXE pointing at
+ * it and HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless".
  */
 import { _electron as electron } from 'playwright';
 import { execSync } from 'node:child_process';
@@ -41,6 +46,7 @@ const EXE = process.env.HEXHOLD_EXE
     ? 'release/win-unpacked/HEXHOLD.exe'
     : 'release/linux-unpacked/hexhold');
 const SHOT_DIR = path.resolve('steam/screenshots/raw');
+const HEADLESS = /--ozone-platform=headless/.test(process.env.HEXHOLD_EXTRA_ARGS ?? '');
 // A throwaway profile, so a test run never touches a real player's save.
 const USER_DATA = path.join(os.tmpdir(), `hexhold-packaged-${process.pid}`);
 
@@ -110,12 +116,30 @@ async function start(port) {
       '--mute-audio',
       '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding',
+      // Extra switches for the platform, space-separated. The Linux smoke run
+      // in WSL uses "--no-sandbox --ozone-platform=headless": no setuid
+      // sandbox helper on a copied folder, and no display at all, so nothing
+      // can appear on the desktop.
+      ...(process.env.HEXHOLD_EXTRA_ARGS ?? '').split(' ').filter(Boolean),
     ],
     env: launchEnv(port),
     timeout: 60_000,
   });
   const page = await app.firstWindow();
   await page.waitForURL(/^http:\/\/127\.0\.0\.1:\d+\//, { timeout: 30_000 }).catch(() => {});
+  if (HEADLESS) {
+    // Headless Ozone has a small virtual screen, and the off-screen x:10000
+    // the shell uses for tests puts the window outside it, where nothing can
+    // be clicked. With no display there is nobody to hide from: put the
+    // window on the virtual screen at a Steam Deck's 1280x800.
+    await app.evaluate(({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows()[0];
+      w.setPosition(0, 0);
+      w.setContentSize(1280, 800);
+    }).catch(() => {});
+    const [w, h] = await page.evaluate(() => [innerWidth, innerHeight]).catch(() => [0, 0]);
+    if (w !== 1280 || h !== 800) await page.setViewportSize({ width: 1280, height: 800 }).catch(() => {});
+  }
   const external = [];
   const errors = [];
   page.on('request', (r) => {
@@ -144,7 +168,13 @@ async function shot(page, name) {
 }
 
 function hexholdProcesses() {
-  if (process.platform !== 'win32') return 0;
+  if (process.platform !== 'win32') {
+    // Every process of the build runs the build's own binary: the shell, its
+    // renderers and helpers, and the game server it forks.
+    try {
+      return Number(execSync(`pgrep -fc -- ${JSON.stringify(EXE)}`, { encoding: 'utf8' }).trim()) || 0;
+    } catch { return 0; } // pgrep exits 1 when nothing matches
+  }
   try {
     const out = execSync('tasklist /FI "IMAGENAME eq HEXHOLD.exe" /FO CSV /NH', { encoding: 'utf8' });
     return out.split('\n').filter((l) => l.includes('HEXHOLD.exe')).length;

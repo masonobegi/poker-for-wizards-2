@@ -328,6 +328,11 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      // A shipped build has no DevTools at all. Closing them on
+      // 'devtools-opened' (below) is not enough on its own: on Linux the
+      // window was still open 800ms after openDevTools() (headless smoke run,
+      // 2026-10-09), so a player could get a console for a moment.
+      devTools: isDev,
       ...(OFFSCREEN ? { backgroundThrottling: false } : {}),
     },
   });
