@@ -48,7 +48,7 @@ html[data-gamepad='1'] .sigil:focus .sigil-tip {
   border-radius: var(--r-pill);
   background: rgba(9, 7, 6, 0.85);
   border: 1px solid var(--line-soft);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--text-4);
   pointer-events: none;

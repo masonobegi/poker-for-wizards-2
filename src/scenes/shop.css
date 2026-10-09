@@ -113,7 +113,7 @@
 .shopcard-kind {
   position: absolute;
   top: 8px; left: 14px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -160,7 +160,7 @@
 }
 
 .shopcard-text {
-  font-size: 10.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: #4a443a;
   text-align: center;
@@ -168,7 +168,7 @@
 }
 
 .shopcard-impossible {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
   font-style: italic;
   color: #6c6355;

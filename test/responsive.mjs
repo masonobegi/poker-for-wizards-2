@@ -165,7 +165,15 @@ async function checkFixedBottom(page) {
   }, [isVisible.toString(), tagOf.toString()]);
 }
 
-/** No visible text smaller than 10px anywhere on screen. */
+/**
+ * No visible text smaller than 12px anywhere on screen, at UI scale 100%.
+ *
+ * Valve's Deck Verified floor is 9px at 1280x800, with 12px recommended. The
+ * floor here was 10px until 2026-10-09, when a playtest found 47 rules at
+ * exactly 10px that were hard to read on a 7" screen; they, every 11px rule
+ * and the sigil cards' fluid floors went to 12px, and this check now holds
+ * the line there. Glyphs on a card face keep the 10px floor (see below).
+ */
 async function checkTinyText(page) {
   return page.evaluate(([isVisibleSrc, tagOfSrc, clippedRectSrc]) => {
     // eslint-disable-next-line no-eval
@@ -186,6 +194,11 @@ async function checkTinyText(page) {
         if (child.nodeType === 3 && child.textContent && child.textContent.trim()) { hasText = true; break; }
       }
       if (!hasText) continue;
+      // Glyphs drawn on a card face (the corner rank, a mark, the veil's "?",
+      // a badge) scale with the card itself, down to 10px on the smallest
+      // cards. They are art, not reading text, and a 12px floor there breaks
+      // the card. Still checked against Valve's 9px minimum.
+      const onCardFace = !!el.closest('.hx-card');
       if (!isVisible(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
@@ -195,7 +208,7 @@ async function checkTinyText(page) {
       const c = clippedRect(el);
       if (c.right <= c.left || c.bottom <= c.top) continue;
       const px = parseFloat(getComputedStyle(el).fontSize);
-      if (px && px < 9.9) {
+      if (px && px < (onCardFace ? 9.9 : 11.9)) {
         out.push(`${tagOf(el)} @ ${px.toFixed(1)}px ("${el.textContent.trim().slice(0, 24)}")`);
       }
     }

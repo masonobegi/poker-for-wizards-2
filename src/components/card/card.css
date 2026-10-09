@@ -515,7 +515,7 @@
   overflow: visible;
 }
 .hx-qring text {
-  font-size: 10px;
+  font-size: 12px;
   font-family: var(--font-display);
   fill: var(--entropy);
   filter: drop-shadow(0 0 1px color-mix(in srgb, var(--entropy) 70%, transparent));

@@ -12,8 +12,10 @@ import { existsSync } from 'node:fs';
 const override = process.env.HEXHOLD_CHROMIUM ?? process.env.PLAYWRIGHT_CHROMIUM_PATH;
 
 export function launch(opts = {}) {
-  if (override && existsSync(override)) return chromium.launch({ ...opts, executablePath: override });
-  return chromium.launch(opts);
+  // Harnesses run while someone may be using the machine: never make a sound.
+  const withMute = { ...opts, args: [...(opts.args ?? []), '--mute-audio'] };
+  if (override && existsSync(override)) return chromium.launch({ ...withMute, executablePath: override });
+  return chromium.launch(withMute);
 }
 
 export { chromium };

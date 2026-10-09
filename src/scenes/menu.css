@@ -248,7 +248,7 @@
   border: 1px solid var(--line-soft);
   background: rgba(10, 12, 24, 0.55);
   color: var(--text-2);
-  font: 600 11px/1 var(--font-ui);
+  font: 600 12px/1 var(--font-ui);
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast);
@@ -282,7 +282,7 @@
   display: block;
   margin-top: 3px;
   font-style: normal;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-quiet);
@@ -291,7 +291,7 @@
 /* The build string and the desktop-only way out. Both are deliberately the
    quietest things on the menu — present when looked for, invisible otherwise. */
 .menu-version {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-4);
   letter-spacing: 0.08em;
   opacity: 0.65;
@@ -319,7 +319,7 @@
 .menu-pick-legend {
   display: block;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-quiet);
@@ -361,7 +361,7 @@
 
 .menu-pick-blurb {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
   color: var(--text-quiet);
   min-height: 2.9em;

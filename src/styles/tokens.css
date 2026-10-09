@@ -157,7 +157,7 @@
   --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, var(--sym), monospace;
 
-  --fs-xs: 11px;
+  --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-md: 15px;
   --fs-lg: 19px;
