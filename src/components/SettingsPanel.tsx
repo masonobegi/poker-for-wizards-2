@@ -7,6 +7,7 @@ import {
   UI_SCALE_MAX,
   UI_SCALE_MIN,
   useParticleDensity,
+  useReducedFlashingSetting,
   useReducedMotionSetting,
   useSystemReducedMotion,
   useUiScale,
@@ -184,6 +185,7 @@ const PARTICLE_OPTIONS: ParticleDensity[] = ['off', 'low', 'full'];
 
 function VideoTab() {
   const [reduced, setReduced] = useReducedMotionSetting();
+  const [noFlashing, setNoFlashing] = useReducedFlashingSetting();
   // The attribute the app actually keys off is `manual || OS`, so the checkbox
   // has to show the effective state or it lies on a machine where the OS
   // preference is on — it would read unchecked while everything was reduced,
@@ -235,6 +237,20 @@ function VideoTab() {
           {systemReduced
             ? ' Your system already asks for reduced motion, so this is on and cannot be turned off here.'
             : ' Your system preference is respected automatically; this forces it on.'}
+        </p>
+      </div>
+
+      <div>
+        <Toggle
+          checked={noFlashing || reduced || systemReduced}
+          disabled={reduced || systemReduced}
+          onChange={setNoFlashing}
+          label="Reduce flashing"
+        />
+        <p className="hh-field-hint" style={{ marginTop: 6 }}>
+          Turns off screen flashes, colour splits and screen shake, and keeps
+          every other animation.
+          {reduced || systemReduced ? ' On, because reduced motion already covers it.' : ''}
         </p>
       </div>
 

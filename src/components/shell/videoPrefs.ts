@@ -12,6 +12,7 @@ export type ParticleDensity = 'off' | 'low' | 'full';
 const PARTICLES_KEY = 'hexhold.particles';
 const UI_SCALE_KEY = 'hexhold.uiScale';
 const REDUCED_KEY = 'hexhold.reducedMotion';
+const FLASHING_KEY = 'hexhold.reduceFlashing';
 
 export const DEFAULT_PARTICLE_DENSITY: ParticleDensity = 'full';
 export const DEFAULT_UI_SCALE = 1;
@@ -147,7 +148,9 @@ if (hasDom()) {
     window.matchMedia('(prefers-reduced-motion: reduce)')
       .addEventListener('change', () => {
         applyReducedMotion(reducedMotion);
+        applyReducedFlashing(reducedFlashing);
         for (const l of reducedListeners) l();
+        for (const l of flashingListeners) l();
       });
   } catch { /* ignore */ }
 }
@@ -180,4 +183,45 @@ export function useSystemReducedMotion(): boolean {
 export function useReducedMotionSetting(): [boolean, (v: boolean) => void] {
   const v = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
   return [v, setReducedMotion];
+}
+
+// ---------------------------------------------------------------------------
+// Reduce flashing. Screen flashes, colour splits and screen shake, and
+// nothing else: a player sensitive to flashing light can keep every other
+// animation. Reduced motion already covers all three, and the OS reduced-motion
+// preference turns this on as well. Published as `data-reduced-flashing`
+// for src/vfx/ (see prefersReducedFlashing in particles.ts).
+// ---------------------------------------------------------------------------
+
+function readReducedFlashing(): boolean {
+  try { return localStorage.getItem(FLASHING_KEY) === '1'; } catch { return false; }
+}
+
+function applyReducedFlashing(v: boolean): void {
+  if (!hasDom()) return;
+  const on = v || systemPrefersReduced();
+  try { document.documentElement.dataset.reducedFlashing = on ? '1' : ''; } catch { /* ignore */ }
+}
+
+let reducedFlashing = hasDom() ? readReducedFlashing() : false;
+applyReducedFlashing(reducedFlashing);
+const flashingListeners = new Set<() => void>();
+
+export function getReducedFlashing(): boolean { return reducedFlashing; }
+
+export function setReducedFlashing(v: boolean): void {
+  reducedFlashing = v;
+  applyReducedFlashing(v);
+  try { localStorage.setItem(FLASHING_KEY, v ? '1' : '0'); } catch { /* ignore */ }
+  for (const l of flashingListeners) l();
+}
+
+function subscribeReducedFlashing(fn: () => void): () => void {
+  flashingListeners.add(fn);
+  return () => { flashingListeners.delete(fn); };
+}
+
+export function useReducedFlashingSetting(): [boolean, (v: boolean) => void] {
+  const v = useSyncExternalStore(subscribeReducedFlashing, getReducedFlashing, () => false);
+  return [v, setReducedFlashing];
 }

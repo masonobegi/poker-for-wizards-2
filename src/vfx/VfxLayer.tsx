@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ParticleSystem,
+  prefersReducedFlashing,
   prefersReducedMotion,
   resolvePreset,
   type PresetName,
@@ -217,7 +218,7 @@ class VfxEngine {
     // written to `root.style.transform` inline — an inline declaration beats
     // any author rule, so the `.vfx-shaking { transform: none }` that used to
     // do this job could no longer reach it.
-    if (prefersReducedMotion()) return;
+    if (prefersReducedFlashing()) return;
     const p = power;
     if (p < 0.05) return;
     // Find a free slot, otherwise steal the weakest — repeated calls stack.
@@ -304,7 +305,7 @@ class VfxEngine {
     const now = performance.now();
     if (now - this.lastFlashAt < FLASH_GAP_MS) return;
     const scaled = power * FLASH_MAX;
-    const p = clamp(prefersReducedMotion() ? 0 : scaled, 0, FLASH_MAX);
+    const p = clamp(prefersReducedFlashing() ? 0 : scaled, 0, FLASH_MAX);
     if (p <= 0) return;
     this.lastFlashAt = now;
     this.flashColor = color;
@@ -358,7 +359,7 @@ class VfxEngine {
   /* --------------------------------------------------------- chromatic -- */
 
   chromatic(ms = 260): void {
-    if (prefersReducedMotion()) return;
+    if (prefersReducedFlashing()) return;
     const att = this.att;
     if (att === null) { this.defer(() => { this.chromatic(ms); }); return; }
     this.chromaDur = Math.max(0.05, ms / 1000);

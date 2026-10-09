@@ -162,6 +162,17 @@ export function prefersReducedMotion(): boolean {
   return reduced || reducedByAttribute();
 }
 
+/**
+ * True when screen flashes, colour splits and shake should not run: the
+ * player turned on Reduce flashing (Settings, Video; published on <html> by
+ * videoPrefs.ts), or asked for reduced motion, which covers them too.
+ */
+export function prefersReducedFlashing(): boolean {
+  if (prefersReducedMotion()) return true;
+  if (typeof document === 'undefined') return false;
+  return document.documentElement.dataset.reducedFlashing === '1';
+}
+
 /** Override the media query. Pass `null` to go back to following the OS. */
 export function setReducedMotion(value: boolean | null): void {
   reducedForced = value;

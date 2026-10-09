@@ -23,6 +23,7 @@ const KEYS = [
   'hexhold.particles',
   'hexhold.uiScale',
   'hexhold.reducedMotion',
+  'hexhold.reduceFlashing',
   'hexhold.seenIntro',
   'hexhold.hints.seen',
   'hexhold.name',

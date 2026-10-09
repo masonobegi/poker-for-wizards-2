@@ -52,6 +52,12 @@ repo), the final draft after two judges, with every claim checked against
 network" until someone has played against another human and Steam
 networking exists.
 
+**Photosensitivity line**, to add at the end of About This Game: "Contains
+flashing light effects. Settings, Video, Reduce flashing turns off screen
+flashes, colour splits and screen shake; it is on by default when your system
+asks for reduced motion." (True as of 2026-10-09: `src/vfx/VfxLayer.tsx`
+checks it for all three.)
+
 ## Feature bullets
 
 - 71 spells across six schools: superposition, secrecy, time, binding, ruin, and rewriting the deck itself.

@@ -385,3 +385,31 @@ test('one press of F never folds a free check, and one press of A never shoves',
     useGame.setState({ act: realAct } as never);
   }
 });
+
+test('Reduce flashing stops flashes, colour splits and shake, and leaves other motion on', async () => {
+  // From the 2026-10-09 playtest: the worst table frames still blink 30-70k
+  // pixels, and the only way to stop that was "Reduce motion", which also
+  // takes away every other animation.
+  const prefs = await import('../src/components/shell/videoPrefs');
+  const { prefersReducedFlashing, prefersReducedMotion } = await import('../src/vfx/particles');
+  try {
+    prefs.setReducedFlashing(false);
+    assert.equal(prefersReducedFlashing(), false);
+    prefs.setReducedFlashing(true);
+    assert.equal(document.documentElement.dataset.reducedFlashing, '1');
+    assert.equal(prefersReducedFlashing(), true, 'the VFX gate does not see the setting');
+    assert.equal(prefersReducedMotion(), false, 'reduce flashing must not switch off all motion');
+    assert.equal(localStorage.getItem('hexhold.reduceFlashing'), '1', 'the setting is not saved');
+  } finally {
+    prefs.setReducedFlashing(false);
+  }
+
+  // Each of the three effects checks the gate before it runs.
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/vfx/VfxLayer.tsx', import.meta.url), 'utf8');
+  for (const method of ['shake(power: number', 'flash(color: string', 'chromatic(ms = ']) {
+    const at = src.indexOf(`  ${method}`);
+    assert.ok(at > 0, `VfxLayer.${method.split('(')[0]} not found`);
+    assert.match(src.slice(at, at + 900), /prefersReducedFlashing\(\)/, `${method.split('(')[0]} ignores Reduce flashing`);
+  }
+});
