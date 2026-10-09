@@ -38,10 +38,10 @@ Each of these is checked by something you can run, not by assertion.
 None of this can be done from the repository. It all needs your Steam partner account.
 
 1. **Pay the Steam Direct fee and create the app.** You get an App ID.
-2. **Write the App ID into the build.** Either set `STEAM_APP_ID` in the environment, or drop a `steam_appid.txt` containing the number next to the binary. Nothing else needs changing — `electron/steam.cjs` picks it up and stays dormant without it.
+2. **Do not write the App ID into the build.** When Steam launches the game it sets `SteamAppId` (and `SteamGameId`), and `electron/steam.cjs` reads those first. Do **not** put a `steam_appid.txt` next to the binary: the SteamPipe depot scripts exclude it on purpose (`steam/steampipe/depot_build_*.vdf`), so a shipped copy never has one. The App ID only goes into those VDFs. To test a packaged build outside Steam, set `STEAM_APP_ID=<id>` for that launch. (Before 2026-10-09 the shell ignored `SteamAppId`, so a Steam-launched copy ran with Steam switched off.)
 3. **Install the native module:** `npm i steamworks.js`. It is already listed as an optional dependency, so a build without it still works.
 4. **Upload the achievements.** Run `npm run steam:manifest`; it writes `steam/achievements.json` and `steam/achievements.vdf` from the same definitions the game uses, so the names cannot drift. Twenty achievements, six of them hidden.
-5. **Enable Steam Cloud** in the app's settings, auto-cloud for `hexhold-save.json`. The sync code is written and dormant until then.
+5. **Enable Steam Cloud** in the app's settings (set a byte and file quota). The game already writes its save through the Cloud API as `hexhold-save.json` (`src/lib/cloud.ts`), so nothing else is required. `steam/steampipe/README.md` also describes Auto-Cloud for the on-disk `hexhold-storage.json`; use one of the two, not both, so two syncs can never disagree.
 6. **Store page assets.** Capsule images, header, screenshots, trailer. The `playthrough/` folder has clean 1440×900 captures of every phase that are a reasonable starting point for screenshots.
 7. **Age rating and content survey.** The game has gambling *mechanics* but no real-money gambling and no purchasable currency — the answer to "does your game contain gambling" is nuanced and you should read Valve's current wording rather than take mine.
 8. **Depot and build upload** via `steamcmd`. The packaged output in `release/win-unpacked/` is what you upload.
@@ -121,7 +121,7 @@ Honest list, worst first.
 - [ ] App ID created, written into the build
 - [ ] `npm i steamworks.js`
 - [ ] Achievements uploaded from `npm run steam:manifest`
-- [ ] Steam Cloud enabled for `hexhold-save.json`
+- [ ] Steam Cloud enabled with a quota (the game writes `hexhold-save.json` through the API)
 - [ ] `npm test && npm run play && npm run play:pad` all green
 - [ ] `npm run package:win` (and `:linux` for Deck) produce installers
 - [ ] Docker image built once and a real remote game played over it

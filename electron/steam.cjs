@@ -6,8 +6,12 @@
  * playing the DRM-free build will run it. So every call here is optional and
  * every failure is swallowed into a no-op.
  *
- * To turn it on: publish an App ID, `npm i steamworks.js`, and either set
- * STEAM_APP_ID or write the number into `steam_appid.txt` beside the binary.
+ * Where the App ID comes from (see resolveAppId):
+ *   - a copy launched by Steam: the SteamAppId / SteamGameId variables the
+ *     Steam client sets on every game it starts. This is the shipping path:
+ *     the SteamPipe depot scripts exclude steam_appid.txt from the upload;
+ *   - a local test of a packaged build outside Steam: STEAM_APP_ID=<id>;
+ *   - an unpackaged dev run: steam/dev/steam_appid.txt (480, Spacewar).
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -19,9 +23,28 @@ let reason = 'not initialised';
 
 const SPACEWAR = 480; // Valve's public test app. Development only.
 
-function resolveAppId(resourcesPath, opts = {}) {
-  const fromEnv = Number.parseInt(process.env.STEAM_APP_ID ?? '', 10);
-  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+/**
+ * A string that is a real 32-bit App ID, or 0.
+ *
+ * SteamGameId is a 64-bit game ID: equal to the App ID for a Steam game, but
+ * with high bits set for a mod or a non-Steam shortcut. Anything above 32 bits
+ * is therefore not an App ID and must not be passed to Steam as one.
+ */
+function parseAppId(value) {
+  if (typeof value !== 'string' || !/^\s*\d{1,20}\s*$/.test(value)) return 0;
+  const n = Number(value.trim());
+  return Number.isSafeInteger(n) && n > 0 && n <= 0xFFFFFFFF ? n : 0;
+}
+
+function resolveAppId(resourcesPath, opts = {}, env = process.env) {
+  // The Steam client's own variables come first: when Steam launched this
+  // process they are the truth, and a customer's copy has nothing else. Before
+  // 2026-10-09 they were ignored, so a Steam-launched build found no App ID and
+  // switched achievements, rich presence and Cloud off without a word.
+  for (const name of ['SteamAppId', 'SteamGameId', 'STEAM_APP_ID']) {
+    const n = parseAppId(env[name]);
+    if (n) return n;
+  }
   const dirs = [process.cwd(), resourcesPath, path.join(resourcesPath ?? '', '..')];
   // In development only, fall back to steam/dev/steam_appid.txt, which holds
   // the placeholder 480. It is never packaged: electron-builder ships
@@ -30,9 +53,8 @@ function resolveAppId(resourcesPath, opts = {}) {
   for (const dir of dirs) {
     if (!dir) continue;
     try {
-      const text = fs.readFileSync(path.join(dir, 'steam_appid.txt'), 'utf8');
-      const n = Number.parseInt(text.trim(), 10);
-      if (Number.isFinite(n) && n > 0) return n;
+      const n = parseAppId(fs.readFileSync(path.join(dir, 'steam_appid.txt'), 'utf8'));
+      if (n) return n;
     } catch { /* not there, which is fine */ }
   }
   return 0;
@@ -78,6 +100,7 @@ function safe(fn, fallback = undefined) {
 
 const api = {
   init,
+  resolveAppId,
   get enabled() { return enabled; },
   status: () => ({ enabled, appId, reason }),
 
