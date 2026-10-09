@@ -12,6 +12,8 @@
 					"name"		"First Blood"
 					"desc"		"Win your first pot."
 					"hidden"	"0"
+					"icon"		"achievements/first_blood.png"
+					"icon_gray"	"achievements/first_blood_locked.png"
 				}
 			}
 		}
@@ -29,6 +31,8 @@
 					"name"		"Last One Standing"
 					"desc"		"Win a run."
 					"hidden"	"0"
+					"icon"		"achievements/first_run.png"
+					"icon_gray"	"achievements/first_run_locked.png"
 				}
 			}
 		}
@@ -46,6 +50,8 @@
 					"name"		"Impossible"
 					"desc"		"Win with Five of a Kind — a hand fifty-two cards cannot make."
 					"hidden"	"0"
+					"icon"		"achievements/five_of_a_kind.png"
+					"icon_gray"	"achievements/five_of_a_kind_locked.png"
 				}
 			}
 		}
@@ -63,6 +69,8 @@
 					"name"		"Two Impossibilities"
 					"desc"		"Win with a Flush House."
 					"hidden"	"0"
+					"icon"		"achievements/flush_house.png"
+					"icon_gray"	"achievements/flush_house_locked.png"
 				}
 			}
 		}
@@ -80,6 +88,8 @@
 					"name"		"The Same Card, Five Times"
 					"desc"		"Win with a Flush Five."
 					"hidden"	"0"
+					"icon"		"achievements/flush_five.png"
+					"icon_gray"	"achievements/flush_five_locked.png"
 				}
 			}
 		}
@@ -97,6 +107,8 @@
 					"name"		"Nullified"
 					"desc"		"Counter an opponent’s sigil."
 					"hidden"	"0"
+					"icon"		"achievements/counterspell.png"
+					"icon_gray"	"achievements/counterspell_locked.png"
 				}
 			}
 		}
@@ -114,6 +126,8 @@
 					"name"		"The Last Word"
 					"desc"		"Counter a counterspell."
 					"hidden"	"1"
+					"icon"		"achievements/counterspelled_twice.png"
+					"icon_gray"	"achievements/counterspelled_twice_locked.png"
 				}
 			}
 		}
@@ -131,6 +145,8 @@
 					"name"		"Anything At All"
 					"desc"		"Win a pot using a Wild card."
 					"hidden"	"0"
+					"icon"		"achievements/wildcard.png"
+					"icon_gray"	"achievements/wildcard_locked.png"
 				}
 			}
 		}
@@ -148,6 +164,8 @@
 					"name"		"It Remembers"
 					"desc"		"Win with a card that has already won three pots."
 					"hidden"	"1"
+					"icon"		"achievements/long_memory.png"
+					"icon_gray"	"achievements/long_memory_locked.png"
 				}
 			}
 		}
@@ -165,6 +183,8 @@
 					"name"		"Collapsed In Your Favour"
 					"desc"		"Win a pot with a card that was undecided until the showdown."
 					"hidden"	"0"
+					"icon"		"achievements/quantum_win.png"
+					"icon_gray"	"achievements/quantum_win_locked.png"
 				}
 			}
 		}
@@ -182,6 +202,8 @@
 					"name"		"Nobody Saw It Coming"
 					"desc"		"Win a pot with a card that was sealed face down."
 					"hidden"	"1"
+					"icon"		"achievements/sealed_win.png"
+					"icon_gray"	"achievements/sealed_win_locked.png"
 				}
 			}
 		}
@@ -199,6 +221,8 @@
 					"name"		"Your Own Private Truth"
 					"desc"		"Win using a card that showed the rest of the table something else."
 					"hidden"	"1"
+					"icon"		"achievements/diverged_win.png"
+					"icon_gray"	"achievements/diverged_win_locked.png"
 				}
 			}
 		}
@@ -216,6 +240,8 @@
 					"name"		"Deep Water"
 					"desc"		"Reach ante 5."
 					"hidden"	"0"
+					"icon"		"achievements/ante_five.png"
+					"icon_gray"	"achievements/ante_five_locked.png"
 				}
 			}
 		}
@@ -233,6 +259,8 @@
 					"name"		"The Far End"
 					"desc"		"Reach ante 8."
 					"hidden"	"0"
+					"icon"		"achievements/ante_eight.png"
+					"icon_gray"	"achievements/ante_eight_locked.png"
 				}
 			}
 		}
@@ -250,6 +278,8 @@
 					"name"		"Purist"
 					"desc"		"Win a run without casting a single sigil."
 					"hidden"	"1"
+					"icon"		"achievements/purist.png"
+					"icon_gray"	"achievements/purist_locked.png"
 				}
 			}
 		}
@@ -267,6 +297,8 @@
 					"name"		"Archmage"
 					"desc"		"Cast 100 sigils."
 					"hidden"	"0"
+					"icon"		"achievements/archmage.png"
+					"icon_gray"	"achievements/archmage_locked.png"
 				}
 			}
 		}
@@ -284,6 +316,8 @@
 					"name"		"Upside Down"
 					"desc"		"Win a pot with the worst hand at the table."
 					"hidden"	"1"
+					"icon"		"achievements/the_inversion.png"
+					"icon_gray"	"achievements/the_inversion_locked.png"
 				}
 			}
 		}
@@ -301,6 +335,8 @@
 					"name"		"A Rulebook Nobody Wrote"
 					"desc"		"Play a hand with six omens in force."
 					"hidden"	"0"
+					"icon"		"achievements/six_omens.png"
+					"icon_gray"	"achievements/six_omens_locked.png"
 				}
 			}
 		}
@@ -318,6 +354,8 @@
 					"name"		"Kingmaker"
 					"desc"		"Eliminate three players in one run."
 					"hidden"	"0"
+					"icon"		"achievements/kingmaker.png"
+					"icon_gray"	"achievements/kingmaker_locked.png"
 				}
 			}
 		}
@@ -335,6 +373,8 @@
 					"name"		"Whale"
 					"desc"		"Win a pot worth a hundred big blinds."
 					"hidden"	"0"
+					"icon"		"achievements/whale.png"
+					"icon_gray"	"achievements/whale_locked.png"
 				}
 			}
 		}

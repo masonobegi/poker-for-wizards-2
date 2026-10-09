@@ -112,3 +112,40 @@ test('an unlock is written to storage so it survives a reload', async () => {
   assert.ok(raw, 'nothing was persisted');
   assert.ok((JSON.parse(raw) as string[]).includes('first_blood'));
 });
+
+/*
+ * The store side. Steamworks takes an achieved and an unachieved icon per
+ * achievement, 256x256. The manifest names them, and they must exist at that
+ * size, so an achievement added to the game without its icons (or a stale
+ * text-only set left beside the real one) fails here instead of in the
+ * partner site's upload form.
+ */
+test('every achievement in the Steam manifest has both icons, 256x256 PNG', async () => {
+  const { readFileSync, existsSync, readdirSync } = await import('node:fs');
+  const path = await import('node:path');
+  const { steamManifest } = await import('../shared/achievements.ts');
+  const steamDir = path.resolve('steam');
+  const pngSize = (file: string): [number, number] => {
+    const b = readFileSync(file);
+    assert.equal(b.toString('latin1', 1, 4), 'PNG', `${file} is not a PNG`);
+    return [b.readUInt32BE(16), b.readUInt32BE(20)];
+  };
+  const manifest = steamManifest();
+  assert.equal(manifest.length, 20);
+  const named = new Set<string>();
+  for (const a of manifest) {
+    for (const rel of [a.icon, a.iconLocked]) {
+      const file = path.join(steamDir, rel);
+      assert.ok(existsSync(file), `${a.name}: ${rel} is missing`);
+      assert.deepEqual(pngSize(file), [256, 256], `${rel} is not 256x256`);
+      named.add(path.basename(rel));
+    }
+  }
+  // The committed manifest is the generated one, icons included.
+  const committed = JSON.parse(readFileSync(path.join(steamDir, 'achievements.json'), 'utf8'));
+  assert.deepEqual(committed, manifest, 'steam/achievements.json is stale: run npm run steam:manifest');
+  // Nothing in the folder that the manifest does not name (an old set).
+  const extra = readdirSync(path.join(steamDir, 'achievements'))
+    .filter((f) => f.endsWith('.png') && f !== 'contact-sheet.png' && !named.has(f));
+  assert.deepEqual(extra, [], 'icons in steam/achievements/ that no achievement uses');
+});

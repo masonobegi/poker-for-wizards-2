@@ -119,15 +119,30 @@ export const CAT_ACHIEVEMENT: Partial<Record<Cat, AchievementId>> = {
   [Cat.FlushFive]: 'flush_five',
 };
 
+export type SteamAchievement = {
+  name: string;
+  displayName: string;
+  description: string;
+  hidden: '0' | '1';
+  /** Achieved icon, 256x256 PNG, relative to `steam/`. */
+  icon: string;
+  /** Unachieved (grey) icon, 256x256 PNG, relative to `steam/`. */
+  iconLocked: string;
+};
+
 /**
  * The Steam partner backend wants this as a list. Generating it from the same
- * array the game reads means the two can never disagree.
+ * array the game reads means the two can never disagree. The icons are named
+ * by API name in `steam/achievements/`, so an achievement added here without
+ * its icons fails `test/achievements.test.ts`.
  */
-export function steamManifest(): Array<{ name: string; displayName: string; description: string; hidden: '0' | '1' }> {
+export function steamManifest(): SteamAchievement[] {
   return ACHIEVEMENTS.map((a) => ({
     name: a.api,
     displayName: a.name,
     description: a.text,
     hidden: a.hidden ? '1' : '0',
+    icon: `achievements/${a.api}.png`,
+    iconLocked: `achievements/${a.api}_locked.png`,
   }));
 }

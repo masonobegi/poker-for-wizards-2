@@ -1,0 +1,21 @@
+api_name,display_name,description,hidden,icon_256,icon_locked_256,icon_64,icon_locked_64
+first_blood,First Blood,Win your first pot.,0,first_blood.png,first_blood_locked.png,64/first_blood.png,64/first_blood_locked.png
+first_run,Last One Standing,Win a run.,0,first_run.png,first_run_locked.png,64/first_run.png,64/first_run_locked.png
+five_of_a_kind,Impossible,Win with Five of a Kind — a hand fifty-two cards cannot make.,0,five_of_a_kind.png,five_of_a_kind_locked.png,64/five_of_a_kind.png,64/five_of_a_kind_locked.png
+flush_house,Two Impossibilities,Win with a Flush House.,0,flush_house.png,flush_house_locked.png,64/flush_house.png,64/flush_house_locked.png
+flush_five,"The Same Card, Five Times",Win with a Flush Five.,0,flush_five.png,flush_five_locked.png,64/flush_five.png,64/flush_five_locked.png
+counterspell,Nullified,Counter an opponent’s sigil.,0,counterspell.png,counterspell_locked.png,64/counterspell.png,64/counterspell_locked.png
+counterspelled_twice,The Last Word,Counter a counterspell.,1,counterspelled_twice.png,counterspelled_twice_locked.png,64/counterspelled_twice.png,64/counterspelled_twice_locked.png
+wildcard,Anything At All,Win a pot using a Wild card.,0,wildcard.png,wildcard_locked.png,64/wildcard.png,64/wildcard_locked.png
+long_memory,It Remembers,Win with a card that has already won three pots.,1,long_memory.png,long_memory_locked.png,64/long_memory.png,64/long_memory_locked.png
+quantum_win,Collapsed In Your Favour,Win a pot with a card that was undecided until the showdown.,0,quantum_win.png,quantum_win_locked.png,64/quantum_win.png,64/quantum_win_locked.png
+sealed_win,Nobody Saw It Coming,Win a pot with a card that was sealed face down.,1,sealed_win.png,sealed_win_locked.png,64/sealed_win.png,64/sealed_win_locked.png
+diverged_win,Your Own Private Truth,Win using a card that showed the rest of the table something else.,1,diverged_win.png,diverged_win_locked.png,64/diverged_win.png,64/diverged_win_locked.png
+ante_five,Deep Water,Reach ante 5.,0,ante_five.png,ante_five_locked.png,64/ante_five.png,64/ante_five_locked.png
+ante_eight,The Far End,Reach ante 8.,0,ante_eight.png,ante_eight_locked.png,64/ante_eight.png,64/ante_eight_locked.png
+purist,Purist,Win a run without casting a single sigil.,1,purist.png,purist_locked.png,64/purist.png,64/purist_locked.png
+archmage,Archmage,Cast 100 sigils.,0,archmage.png,archmage_locked.png,64/archmage.png,64/archmage_locked.png
+the_inversion,Upside Down,Win a pot with the worst hand at the table.,1,the_inversion.png,the_inversion_locked.png,64/the_inversion.png,64/the_inversion_locked.png
+six_omens,A Rulebook Nobody Wrote,Play a hand with six omens in force.,0,six_omens.png,six_omens_locked.png,64/six_omens.png,64/six_omens_locked.png
+kingmaker,Kingmaker,Eliminate three players in one run.,0,kingmaker.png,kingmaker_locked.png,64/kingmaker.png,64/kingmaker_locked.png
+whale,Whale,Win a pot worth a hundred big blinds.,0,whale.png,whale_locked.png,64/whale.png,64/whale_locked.png

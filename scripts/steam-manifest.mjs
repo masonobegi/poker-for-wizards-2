@@ -36,6 +36,8 @@ const vdf = [
     `\t\t\t\t\t"name"\t\t"${a.displayName}"`,
     `\t\t\t\t\t"desc"\t\t"${a.description.replace(/"/g, "'")}"`,
     `\t\t\t\t\t"hidden"\t"${a.hidden}"`,
+    `\t\t\t\t\t"icon"\t\t"${a.icon}"`,
+    `\t\t\t\t\t"icon_gray"\t"${a.iconLocked}"`,
     '\t\t\t\t}',
     '\t\t\t}',
     '\t\t}',

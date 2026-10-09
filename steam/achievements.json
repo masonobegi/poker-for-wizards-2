@@ -3,120 +3,160 @@
     "name": "first_blood",
     "displayName": "First Blood",
     "description": "Win your first pot.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/first_blood.png",
+    "iconLocked": "achievements/first_blood_locked.png"
   },
   {
     "name": "first_run",
     "displayName": "Last One Standing",
     "description": "Win a run.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/first_run.png",
+    "iconLocked": "achievements/first_run_locked.png"
   },
   {
     "name": "five_of_a_kind",
     "displayName": "Impossible",
     "description": "Win with Five of a Kind — a hand fifty-two cards cannot make.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/five_of_a_kind.png",
+    "iconLocked": "achievements/five_of_a_kind_locked.png"
   },
   {
     "name": "flush_house",
     "displayName": "Two Impossibilities",
     "description": "Win with a Flush House.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/flush_house.png",
+    "iconLocked": "achievements/flush_house_locked.png"
   },
   {
     "name": "flush_five",
     "displayName": "The Same Card, Five Times",
     "description": "Win with a Flush Five.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/flush_five.png",
+    "iconLocked": "achievements/flush_five_locked.png"
   },
   {
     "name": "counterspell",
     "displayName": "Nullified",
     "description": "Counter an opponent’s sigil.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/counterspell.png",
+    "iconLocked": "achievements/counterspell_locked.png"
   },
   {
     "name": "counterspelled_twice",
     "displayName": "The Last Word",
     "description": "Counter a counterspell.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/counterspelled_twice.png",
+    "iconLocked": "achievements/counterspelled_twice_locked.png"
   },
   {
     "name": "wildcard",
     "displayName": "Anything At All",
     "description": "Win a pot using a Wild card.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/wildcard.png",
+    "iconLocked": "achievements/wildcard_locked.png"
   },
   {
     "name": "long_memory",
     "displayName": "It Remembers",
     "description": "Win with a card that has already won three pots.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/long_memory.png",
+    "iconLocked": "achievements/long_memory_locked.png"
   },
   {
     "name": "quantum_win",
     "displayName": "Collapsed In Your Favour",
     "description": "Win a pot with a card that was undecided until the showdown.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/quantum_win.png",
+    "iconLocked": "achievements/quantum_win_locked.png"
   },
   {
     "name": "sealed_win",
     "displayName": "Nobody Saw It Coming",
     "description": "Win a pot with a card that was sealed face down.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/sealed_win.png",
+    "iconLocked": "achievements/sealed_win_locked.png"
   },
   {
     "name": "diverged_win",
     "displayName": "Your Own Private Truth",
     "description": "Win using a card that showed the rest of the table something else.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/diverged_win.png",
+    "iconLocked": "achievements/diverged_win_locked.png"
   },
   {
     "name": "ante_five",
     "displayName": "Deep Water",
     "description": "Reach ante 5.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/ante_five.png",
+    "iconLocked": "achievements/ante_five_locked.png"
   },
   {
     "name": "ante_eight",
     "displayName": "The Far End",
     "description": "Reach ante 8.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/ante_eight.png",
+    "iconLocked": "achievements/ante_eight_locked.png"
   },
   {
     "name": "purist",
     "displayName": "Purist",
     "description": "Win a run without casting a single sigil.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/purist.png",
+    "iconLocked": "achievements/purist_locked.png"
   },
   {
     "name": "archmage",
     "displayName": "Archmage",
     "description": "Cast 100 sigils.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/archmage.png",
+    "iconLocked": "achievements/archmage_locked.png"
   },
   {
     "name": "the_inversion",
     "displayName": "Upside Down",
     "description": "Win a pot with the worst hand at the table.",
-    "hidden": "1"
+    "hidden": "1",
+    "icon": "achievements/the_inversion.png",
+    "iconLocked": "achievements/the_inversion_locked.png"
   },
   {
     "name": "six_omens",
     "displayName": "A Rulebook Nobody Wrote",
     "description": "Play a hand with six omens in force.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/six_omens.png",
+    "iconLocked": "achievements/six_omens_locked.png"
   },
   {
     "name": "kingmaker",
     "displayName": "Kingmaker",
     "description": "Eliminate three players in one run.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/kingmaker.png",
+    "iconLocked": "achievements/kingmaker_locked.png"
   },
   {
     "name": "whale",
     "displayName": "Whale",
     "description": "Win a pot worth a hundred big blinds.",
-    "hidden": "0"
+    "hidden": "0",
+    "icon": "achievements/whale.png",
+    "iconLocked": "achievements/whale_locked.png"
   }
 ]
