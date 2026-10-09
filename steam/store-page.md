@@ -1,54 +1,83 @@
 # HEXHOLD: Steam store page draft
 
-Drafted 2026-10-09. Every claim below is checked against the build, apart from
-the ones marked **(check)**.
+Drafted 2026-10-09; the store copy was replaced the same day with the final
+version from `market/hexhold-store-copy.md`. Every claim is checked against the
+build, apart from the ones marked **(check)**.
 
-## Short description (≤300 characters)
+## Short description (264 characters, limit 300)
 
-> Texas Hold'em with a deck that breaks physics. Cards sit in two states at
-> once, the river can run twice, and every hand is a duel of sigils and
-> counterspells. Climb ante after ante against bots who cast back, or host a table
-> for friends.
+> Texas Hold'em where a card on the board can show you one face and your rivals another, and both readings score. Cast spells mid-hand, counter theirs, buy relics, survive omens that rewrite the rules for good, and chase Five of a Kind: a hand no real deck can make.
 
-(262 characters)
+## Capsule tagline (46 characters, limit 60)
 
-## Long description (Steam BBCode)
+> Texas Hold'em with a deck that breaks physics.
+
+## About This Game (Steam BBCode)
 
 ```
-[h2]Poker, until the deck stops obeying physics[/h2]
-HEXHOLD is Texas Hold'em played with impossible cards. A card can sit in two states until someone looks at it. The King you see is not the King your opponent sees. The river has run before, and it can run again.
+[b]A card on the board shows you one face and shows everyone else another, and both readings score.[/b] That is Divergence, one spell out of 71 in HEXHOLD: Texas Hold'em played with a deck that does not obey physics.
 
-[h2]Cast sigils between the bets[/h2]
+Underneath, it is plain Hold'em: two hole cards, five on the board, best hand wins. Then mana arrives every street, and the table starts casting.
+
+[h2]Spells that break the deck[/h2]
 [list]
-[*]71 sigils across six schools. Peek at the river, weld two cards into one, rot a hand, or counter the spell that was about to beat you.
-[*]A response window on every cast: answer it, or let it resolve.
-[*]Write your own sigils at the Market's blank page, in plain English.
+[*][b]Superpose[/b] a card into two cards at once. It stays undecided until showdown, then settles on whichever face helps its holder most.
+[*][b]Rewind[/b] the latest community card and deal a different one.
+[*][b]Sealed Rank:[/b] name a rank, and every card of it is dealt face down for the rest of the hand.
+[*][b]Nullify[/b] a spell on the stack. The last spell cast resolves first, so a counter eats what it answers.
 [/list]
 
-[h2]A run, not a session[/h2]
-[list]
-[*]Survive ante after ante as the blinds climb. Every ante break opens the Market and lands a new omen, a permanent rule that bends the table.
-[*]41 omens, 45 relics, 7 covens to play as, and 5 Hex levels for when the table gets easy.
-[*]A Daily Rite: the same deals and omens for everyone, once a day.
-[/list]
+[h2]A rulebook nobody wrote[/h2]
+At each new ante, an omen lands and never leaves. Suits merge. Every King is dealt face down. Three cards in the deck quietly turn Wild, and nobody is told which. From ante five, the omen that lands can make the worst hand win every pot. They stack.
 
-[h2]Made for a couch and a Deck[/h2]
-[list]
-[*]Full controller support, laid out for 1280x800.
-[*]Plays fully offline against bots in three skill bands and three table speeds.
-[*]Host a table for friends on your network.
-[*]Every sound is synthesised live. There is not a single audio file in the game.
-[/list]
+[h2]Hands a real deck can't make[/h2]
+Above the Straight Flush sit [b]Five of a Kind[/b], [b]Flush House[/b] and [b]Flush Five[/b]. Wild, mirrored and undecided cards make them reachable.
 
-No real money. Nothing to buy. Chips cannot be bought or cashed out.
+[h2]Write your own spells[/h2]
+Every Market has a blank page. Type a spell in plain English, like "burn the river and read the chip leader's cards", and it becomes a sigil in your hand, priced by what it does, not how you word it. A rules parser reads it, not an AI.
+
+[h2]Build the run[/h2]
+Pick one of seven covens, each opening with its own spells. Spend shards on relics that change the poker itself: four-card flushes, Jacks and Queens read as Kings, a hand that always scores one category higher.
+
+Or buy a rite, and write a permanent mark onto one exact card in the deck everyone draws from. The upgrade you paid for can turn up in an opponent's hand.
+
+Climb five hexes per coven, or play the Daily Rite: one seeded run a day, the same for everyone.
+
+Play solo against bots at three difficulties, or host a table on your local network. Full controller support.
 ```
 
-## Tags (up to 20, most important first)
+Copy source: `ops/session-2026-10-09/market/hexhold-store-copy.md` (masonobegi_webpage
+repo), the final draft after two judges, with every claim checked against
+`shared/*.ts`. Keep multiplayer wording to "host a table on your local
+network" until someone has played against another human and Steam
+networking exists.
 
-Card Game, Poker, Roguelite, Deckbuilding, Strategy, Magic, Turn-Based
-Strategy, Singleplayer, Multiplayer, Local Multiplayer, Online PvP, Replay
-Value, Indie, Fantasy, Dark Fantasy, Tabletop, Controller, Casual, 2D,
-Atmospheric
+## Feature bullets
+
+- 71 spells across six schools: superposition, secrecy, time, binding, ruin, and rewriting the deck itself.
+- A real spell stack: anyone holding a counterspell can answer, and the last spell cast resolves first.
+- 41 permanent omens that stack one per ante, from merged suits to a table where the worst hand wins.
+- Three hands no 52-card deck can produce: Five of a Kind, Flush House and Flush Five.
+- Rites write permanent marks onto exact cards in the shared deck, so your upgrade can land in a rival's hand.
+- A blank page in every Market: write your own spell in plain English, and a rules parser (not an AI) turns it into a sigil.
+- Seven covens, five hexes each, 45 relics, and a Daily Rite that deals the same seeded run to everyone.
+
+## Tags (16, most important first)
+
+Poker, Card Game, Roguelite, Magic, Strategy, Turn-Based, Fantasy, Roguelike
+Deckbuilder, Tabletop, Singleplayer, Replay Value, Controller, Multiplayer,
+Stylized, 2D, Indie
+
+Roguelike Deckbuilder sits at 8, not in the top five: there is a Market loop
+and rites mark the deck, but the deck is shared, so it is not a personal
+deckbuilder. Move it down or drop it if early reviews say "not a
+deckbuilder". The old list's Online PvP and Local Multiplayer are gone on
+purpose (see the multiplayer note above).
+
+## A/B short descriptions (runner-ups, every claim verified)
+
+- **B, roguelike framing (280 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build a run from 71 sigils and 45 relics. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
+- **C, social framing (283 characters), only after a real session with other people:** Texas Hold'em with a deck that breaks physics. Cast spells on a stack, counter the counterspell, and play under omens that rewrite the rules every ante. Host a table for friends on your network with a four-letter code, or fill the seats with bots. Five of a Kind is a real hand here.
 
 ## Genre
 
@@ -123,21 +152,38 @@ not (see HANDOFF.md section 5).
 
 ## Assets in this folder
 
+Checked 2026-10-09 against Valve's asset list (ops `steam-onboarding.md`,
+section 2.2). Every file is at Steam's exact size.
+
 | File | Steam slot |
 | --- | --- |
 | `art/header_capsule_920x430.png` | Header capsule |
 | `art/small_capsule_462x174.png` | Small capsule |
 | `art/main_capsule_1232x706.png` | Main capsule |
 | `art/vertical_capsule_748x896.png` | Vertical capsule |
+| `art/page_background_1438x810.png` | Page background (optional) |
+| `art/shortcut_icon_256x256.png` | Shortcut icon (Steam builds the .ico) |
+| `art/community_icon_184x184.jpg` | App (community) icon; the form wants .jpg (a .png copy is beside it) |
 | `art/library_capsule_600x900.png` | Library capsule |
+| `art/library_header_920x430.png` | Library header capsule (its own upload, same art as the store header) |
 | `art/library_hero_3840x1240.png` | Library hero (no text, as Steam requires) |
 | `art/library_logo_1280x720.png` | Library logo (transparent) |
-| `art/community_icon_184x184.png` | Community icon |
+| `art/event_cover_800x450.png` | Event cover, for the launch announcement and later events |
 | `art/hexhold.ico` | Client icon (also `electron/icon.ico`) |
-| `screenshots/*.png` | 8 screenshots, 1920x1080, from the packaged build |
+| `art/achievements/<api_name>.jpg`, `<api_name>_locked.jpg` | Achieved and unachieved icon for each of the 20 achievements, 256x256 (`art/achievements_sheet.png` shows them all; not an upload) |
+| `screenshots/*.png` | 1920x1080, from the packaged build |
 | `achievements.json`, `achievements.vdf` | 20 achievements, 6 hidden |
 
-All art is regenerated by `python steam/make_art.py` from the packaged game's
-own frames (`node test/packaged.mjs 200 --shots`), with the title in Cinzel.
-The library hero is a 1920px capture scaled to 3840px under a blur, so it is
-soft by design. A sharper one would need a 4K capture.
+**Screenshots: upload the six gameplay ones.** Valve's review wants
+screenshots that "only contain gameplay". `01-menu.png` and
+`11-menu-overlay.png` are the main menu and the pause menu, so leave them out:
+upload `02-your-turn`, `06-showdown`, `07-spell-stack`, `08-market`,
+`10-targeting` and `t03-showdown`.
+
+All capsule art is regenerated by `python steam/make_art.py` from the packaged
+game's own frames (`node test/packaged.mjs 200 --shots`), with the title in
+Cinzel. The library hero is a 1920px capture scaled to 3840px under a blur, so
+it is soft by design; a sharper one would need a 4K capture. The achievement
+icons come from `python steam/make_achievement_icons.py`: the game's emblem
+with a monogram per achievement. They are a complete, consistent set; bespoke
+art can replace any file under the same name.
