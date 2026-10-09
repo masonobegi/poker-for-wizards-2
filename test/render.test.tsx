@@ -380,6 +380,18 @@ test('one press of F never folds a free check, and one press of A never shoves',
     });
     await press('f');
     assert.deepEqual(sent, [{ kind: 'fold' }], 'facing a bet, F should fold at once');
+
+    // Settings > Gameplay > Confirm before folding, turned off: the player
+    // asked for one press, so a free check folds at once. (It used to be a
+    // switch nothing read.)
+    const { setPrefs } = await import('../src/components/shell/prefs');
+    setPrefs({ confirmFold: false });
+    try {
+      sent.length = 0;
+      await act(async () => { root.render(<ActionBar view={{ ...base, canCheck: true, handNumber: 2 } as never} me={me} blocked={false} />); });
+      await press('f');
+      assert.deepEqual(sent, [{ kind: 'fold' }], 'with the confirm turned off, one F should fold');
+    } finally { setPrefs({ confirmFold: true }); }
   } finally {
     await act(async () => { root.unmount(); });
     useGame.setState({ act: realAct } as never);

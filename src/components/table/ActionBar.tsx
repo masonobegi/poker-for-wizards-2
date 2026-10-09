@@ -4,6 +4,7 @@ import type { PlayerView, TableView } from '@shared/types';
 import { Button, Range } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import { playSfx } from '@/lib/sound';
+import { getPrefs } from '@/components/shell/prefs';
 import { TurnTimer } from '@/components/fx/TurnTimer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { EASE_OUT, ENTER, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
@@ -96,8 +97,9 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === 'f') {
-        // Folding a free check is never what a single press meant.
-        if (view.canCheck && !isArmed('fold')) { arm('fold'); return; }
+        // Folding a free check is never what a single press meant, unless the
+        // player turned off Settings > Gameplay > Confirm before folding.
+        if (view.canCheck && getPrefs().confirmFold && !isArmed('fold')) { arm('fold'); return; }
         send(() => act({ kind: 'fold' }));
       } else if (k === 'c') send(() => act(view.canCheck ? { kind: 'check' } : { kind: 'call' }));
       else if (k === 'r' && canRaise) setRaising((v) => !v);

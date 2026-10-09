@@ -376,20 +376,17 @@ function GameplayTab() {
 
   return (
     <section style={{ display: 'grid', gap: 'var(--s-4)' }}>
+      {/*
+        The only gameplay setting that does something. "Always show pot odds"
+        and "Auto-muck losing hands" sat here too, stored and read by nothing
+        (found 2026-10-09): a switch that does nothing reads as a bug in a
+        review. They come back when the table shows pot odds and the
+        showdown can muck (prefs.ts still stores both).
+      */}
       <Toggle
         checked={prefs.confirmFold}
         onChange={(v) => setPrefs({ confirmFold: v })}
-        label="Confirm before folding"
-      />
-      <Toggle
-        checked={prefs.showPotOdds}
-        onChange={(v) => setPrefs({ showPotOdds: v })}
-        label="Always show pot odds"
-      />
-      <Toggle
-        checked={prefs.autoMuck}
-        onChange={(v) => setPrefs({ autoMuck: v })}
-        label="Auto-muck losing hands"
+        label="Confirm before folding a free check (F / LB)"
       />
     </section>
   );
