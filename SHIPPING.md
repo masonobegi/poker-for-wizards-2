@@ -118,14 +118,14 @@ Honest list, worst first.
 
 ## Release checklist
 
-- [ ] App ID created, written into the build
+- [ ] App ID created, and written only into `steam/steampipe/*.vdf` (APP_ID, DEPOT_ID_WINDOWS, DEPOT_ID_LINUX), never into the build: Steam passes it at launch (step 2)
 - [ ] `npm i steamworks.js`
 - [ ] Achievements uploaded from `npm run steam:manifest`
 - [ ] Steam Cloud enabled with a quota (the game writes `hexhold-save.json` through the API)
 - [ ] `npm test && npm run play && npm run play:pad` all green
 - [ ] `npm run package:win` (and `:linux` for Deck) produce installers
 - [ ] Docker image built once and a real remote game played over it
-- [ ] Store page, capsules, trailer
+- [ ] Store page, capsules, trailer (controller support declared **Partial** until the on-screen keyboard, P8, is done: `steam/store-page.md`)
 - [ ] Age rating survey
 - [ ] A build played end to end on actual Steam Deck hardware
 - [ ] At least one full session against real humans

@@ -43,7 +43,7 @@ Or buy a rite, and write a permanent mark onto one exact card in the deck everyo
 
 Climb five hexes per coven, or play the Daily Rite: one seeded run a day, the same for everyone.
 
-Play solo against bots at three difficulties, or host a table on your local network. Full controller support.
+Play solo against bots at three difficulties, or host a table on your local network.
 ```
 
 Copy source: `ops/session-2026-10-09/market/hexhold-store-copy.md` (masonobegi_webpage
@@ -68,11 +68,14 @@ checks it for all three.)
 - A blank page in every Market: write your own spell in plain English, and a rules parser (not an AI) turns it into a sigil.
 - Seven covens, five hexes each, 45 relics, and a Daily Rite that deals the same seeded run to everyone.
 
-## Tags (16, most important first)
+## Tags (15, most important first)
 
 Poker, Card Game, Roguelite, Magic, Strategy, Turn-Based, Fantasy, Roguelike
-Deckbuilder, Tabletop, Singleplayer, Replay Value, Controller, Multiplayer,
-Stylized, 2D, Indie
+Deckbuilder, Tabletop, Singleplayer, Replay Value, Multiplayer, Stylized, 2D,
+Indie
+
+That is 15. **Controller** is left off until P8 is done (see Controller
+support below); add it back as the 16th tag then.
 
 Roguelike Deckbuilder sits at 8, not in the top five: there is a Market loop
 and rites mark the deck, but the deck is shared, so it is not a personal
@@ -114,14 +117,33 @@ voice). No localisation framework yet.
 
 ## Controller support
 
-**Full controller support** (Xbox layout). Every menu is reachable by d-pad or
-stick (`npm run play:pad`, 9/9 at 1280x800). Button prompts switch to pad
-glyphs while a pad is in use. PlayStation glyphs are not drawn; Steam Input
-presents a PS pad as an Xbox one, so the prompts name the Xbox buttons.
+**Declare Partial Controller Support** (Xbox layout) for launch, and do not
+put "Full controller support" in the copy, until P8 is done.
 
-Steam Deck: likely **Verified** once checked on hardware. 1280x800 layout and
-pad navigation are tested; text legibility at arm's length and frame rate are
-not (see HANDOFF.md section 5).
+What works with a pad: every menu is reachable by d-pad or stick
+(`npm run play:pad`, 9/9 at 1280x800), the whole table plays on the pad, and
+button prompts switch to pad glyphs while a pad is in use. PlayStation glyphs
+are not drawn; Steam Input presents a PS pad as an Xbox one, so the prompts
+name the Xbox buttons.
+
+What does not (P8, STEAM-READY.md section 10): the game never opens Steam's
+on-screen keyboard. With only a pad, **Join a Table** cannot take its
+four-letter code, **Host a Table** cannot change the name, and the Market's
+**blank page** (writing your own sigil, a headline feature) cannot take its
+words. Valve's Full Controller Support and Deck **Verified** both require
+text entry by controller, so neither can be claimed yet.
+
+Steam Deck: aim for **Playable** ("may need the on-screen keyboard opened by
+hand", STEAM + X) once checked on hardware. 1280x800 layout and pad
+navigation are tested; text legibility at arm's length and frame rate are not
+(see HANDOFF.md section 5). **Verified** waits on P8.
+
+When P8 lands (`ShowFloatingGamepadTextInput` on those three fields): switch
+the declaration to Full, put "Full controller support." back at the end of the
+About This Game paragraph on hosting, and add the **Controller** tag. The copy
+source (`ops/session-2026-10-09/market/hexhold-store-copy.md` in the
+masonobegi_webpage repo) still says "Full controller support" and lists the
+Controller tag: paste from this file, not from that one.
 
 ## Content survey: draft answers
 

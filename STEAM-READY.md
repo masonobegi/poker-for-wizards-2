@@ -18,7 +18,7 @@ Mason (section 10).
 
 | # | Finding | Status and proof |
 | --- | --- | --- |
-| R1 (high) | A Steam-launched copy never turned Steam on: `steam.cjs` ignored `SteamAppId`/`SteamGameId`, and the depot excludes `steam_appid.txt` | DONE. Reads Steam's variables first, rejects a non-Steam shortcut's 64-bit ID. `test/steam.test.ts` 5/5 (2 fail on the old resolver). `SHIPPING.md` step 2 rewritten. |
+| R1 (high) | A Steam-launched copy never turned Steam on: `steam.cjs` ignored `SteamAppId`/`SteamGameId`, and the depot excludes `steam_appid.txt` | DONE. Reads Steam's variables first, rejects a non-Steam shortcut's 64-bit ID. `test/steam.test.ts` 5/5 (2 fail on the old resolver). `SHIPPING.md` step 2 rewritten, and (second review) its release checklist no longer says "written into the build": the App ID goes only into `steam/steampipe/*.vdf`. |
 | R2, R3 | A launch that reused an old port brought deleted save keys back; every launch left a dead copy of the save | DONE. The shell clears page storage before loading, and the preload clears before seeding. Packaged harness launch 3 (old port back after a key was deleted elsewhere) passes; with both clears removed it fails: "a deleted key came back from port 54336's old storage". |
 | R4 | "Borderless window" was a maximized window | DONE. Renamed "Maximized window" (Fullscreen is the borderless mode). |
 | R5 | Window sizes said pixels, applied DIPs (1920x1080 made 2400x1350 at 125%; empty row at 1080p/150%) | DONE. `electron/display.cjs`; presets are real pixels, only offered when they fit; minimum window shrinks to the screen; an empty row explains itself. `test/display.test.ts` 6/6. |
@@ -26,13 +26,13 @@ Mason (section 10).
 | R7 | No menu on a Mac build broke Cmd+C/V/X/A and Cmd+Q | DONE (untested on a Mac). macOS gets app, Edit and Window roles only; unit-tested that no reload or DevTools role is in it. |
 | R8 | Relaunch check passed even on the same port | DONE. The harness picks its ports; equal ports fail. |
 | P1 | Busting at a solo table meant watching bots finish, no skip | DONE. When every human is out, the run ends that hand; the chip leader takes the table. `test/solo.test.ts` (fails on the old engine). |
-| P2 | LB/F folded a free check; Y/A shoved, one press each | DONE. Second press within 1.5s, with a prompt in pad glyphs. jsdom test in `render.test.tsx` (fails on the old ActionBar). |
-| P3 | 45s Market clock at solo tables | DONE. No clock solo; Done closes it; 30-minute abandon cap. Two-human tables keep 45s. `test/solo.test.ts`. |
+| P2 | LB/F folded a free check; Y/A shoved, one press each | DONE. Second press within 1.5s, with a prompt in pad glyphs. jsdom test in `render.test.tsx` (fails on the old ActionBar). Second review: **holding** F or A armed on the first keydown and confirmed on the OS key repeat (about 0.5s), so one long press still folded or shoved, as did a pad button Steam Input maps to a key. Every shortcut now ignores `e.repeat`; new jsdom test sends a keydown plus five repeats and asserts nothing was sent (fails before the fix). |
+| P3 | 45s Market clock at solo tables | DONE. No clock solo; Done closes it; 30-minute abandon cap. Two-human tables keep 45s. `test/solo.test.ts`. Second review found a **regression**: a bot with a full sigil hand and shards for a sigil chose that sigil every turn, the buy failed ("Your hand is full"), the engine ignored the failure, and the bot was never done, so a solo Market sat open up to 30 minutes after Done. The old test hid it by setting every bot's `shopDone` by hand. Fixed at the root: `decideShop` skips sigils with no room (and owned relics); a refused buy ends that bot's shopping; once every human is Done the bots stop browsing and the Market closes within 4s. Four new tests in `test/solo.test.ts` (all four fail on the old code), none touching bot `shopDone`. Probe of natural solo games to the first Market, Done pressed at once: old code 3 of 9 Markets still open after 600 ticks with 29 minutes left; fixed code 0 of 46, longest 1.4s after Done, bots still buying 2 to 8 items. |
 | P4 | 10px text on a Deck | DONE. Every 10, 10.5 and 11px rule, the xs token and the sigil cards' fluid floors are 12px. `npm run responsive` now enforces 12px (card-face glyphs keep 10px): see section 4. UI scale max left at 1.25 (see section 10). |
 | P5 | No way to stop flashes without losing all motion | DONE. Settings, Video, **Reduce flashing** (flashes, colour splits, shake); on when the OS asks for reduced motion. Test in `render.test.tsx`. Store-page line drafted. |
 | P6 | Spell overlay length setting | NOT DONE. The 2.6s hold (`StackOverlay.tsx` `LINGER_MS`) is confirmed to have no setting. Left for a decision on Brief's length and on what Off shows. |
 | P7 | Silent title screen | DONE. The shell allows audio without a gesture and the desktop app starts the menu music at once. Packaged harness: AudioContext runs before any input. |
-| P8 | No Steam on-screen keyboard for text fields | NOT DONE: needs the Steam client to test, and a choice between wiring `ShowFloatingGamepadTextInput` and hiding Join on a pad. |
+| P8 | No Steam on-screen keyboard for text fields | NOT DONE: needs the Steam client to test, and a choice between wiring `ShowFloatingGamepadTextInput` and hiding Join on a pad. **The store copy depends on it** (second review): `steam/store-page.md` claimed Full controller support, a Controller tag and "likely Verified", which Valve's rules do not allow while a pad cannot type. The page now says declare **Partial**, aim for Deck **Playable**, no Controller tag, and lists what to restore when P8 lands. |
 
 Found while working, not fixed: Settings, Gameplay has three toggles
 (**Confirm before folding** (on by default), Always show pot odds, Auto-muck)
@@ -84,7 +84,11 @@ or remove them before launch.
 - `npm run play:pad` (9/9 at 1280x800) was verified before this branch and
   not re-run.
 - Prompts are Xbox glyphs. No PlayStation glyphs. No Steam on-screen keyboard
-  yet (P8).
+  yet (P8), so a pad cannot type a table code, a name or a written sigil.
+  Until it is done the store declares **Partial** controller support and the
+  Deck target is **Playable**, not Verified (`steam/store-page.md`).
+- Held keys: every table shortcut ignores key repeat, so holding F or A (or a
+  pad button Steam Input maps to one) cannot confirm its own guard.
 - BLOCKED for Mason: real Deck hardware (legibility, frame rate).
 
 ## 5. Pause, Quit, saves: DONE
@@ -92,6 +96,10 @@ or remove them before launch.
 - Solo tables (practice, the Daily Rite) pause from the menu, have no Market
   clock, and end the moment the player is out. Tables with two humans do none
   of these. `test/pause.test.ts`, `test/solo.test.ts`.
+- Once every human at a table has pressed Done in the Market, bots stop
+  browsing and the Market closes within 4 seconds (any table; a shared
+  Market's own 45s clock is never lengthened). A bot whose purchase is
+  refused is done, and a bot never picks a sigil it has no room for.
 - Quit: the packaged harness's Quit click now closes the app, and no HEXHOLD
   process is left (it timed out under the morning's harness).
 
@@ -120,6 +128,7 @@ or remove them before launch.
   tagline, About This Game BBCode, 7 bullets, 16 tags, A/B variants) from
   `market/hexhold-store-copy.md`, plus a photosensitivity line. System
   requirements, languages, controller support, content survey and price kept.
+  Controller support is now **Partial** (P8, section 10).
 - Screenshots: 8 at 1920x1080. **Upload the 6 gameplay ones**; `01-menu` and
   `11-menu-overlay` are menus, which Valve's review rejects.
 - `steam/steampipe/`: app and depot VDFs (placeholders) and a README.
@@ -158,8 +167,11 @@ or remove them before launch.
 2. **The App ID** goes only into `steam/steampipe/*.vdf` (APP_ID,
    DEPOT_ID_WINDOWS, DEPOT_ID_LINUX). Nothing in the build changes: Steam
    passes the ID at launch.
-3. **Store page**: paste from `steam/store-page.md`; upload `steam/art/*`
-   (not `achievements_sheet.png`) and the six gameplay screenshots.
+3. **Store page**: paste from `steam/store-page.md`, not from the ops copy
+   draft (that one still says "Full controller support"); upload
+   `steam/art/*` (not `achievements_sheet.png`) and the six gameplay
+   screenshots. Declare **Partial Controller Support** and leave the
+   Controller tag off until P8 is done.
 4. **Achievements**: enter the 20 from `steam/achievements.json` and upload
    the 40 icons in `steam/art/achievements/` (or commission bespoke ones under
    the same names).
@@ -173,7 +185,13 @@ or remove them before launch.
    - P6: spell overlay length (Full / Brief / Off). What Brief's length is,
      and whether Off still shows a line in the log.
    - P8: Steam on-screen keyboard for Join, Host and the Scribe, or hide Join
-     on a pad for launch. Testing it needs the Steam client.
+     on a pad for launch. Testing it needs the Steam client. **The store page
+     depends on this**: Full Controller Support and Deck Verified both need
+     text entry by controller, so the copy now claims Partial and Playable.
+     When P8 is wired, `steam/store-page.md` "Controller support" lists the
+     three things to restore (the declaration, the copy line, the tag).
+     Join was not hidden on a pad: that would remove it for a Deck player
+     who opens the keyboard with STEAM + X, and that is this decision.
    - UI scale above 125%: `.app` uses CSS zoom, so 150% on a 1280x800 Deck
      would lay the game out at 853x533, under its 1024x680 minimum. Raising
      the cap safely needs a cap that depends on the window size.
