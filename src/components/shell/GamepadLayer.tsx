@@ -10,6 +10,7 @@
 import { useEffect } from 'react';
 import { PAD_GLYPH, onGamepad, startGamepad, type Pad } from '@/lib/gamepad';
 import { playSfx } from '@/lib/sound';
+import { focusQuietly, openSteamKeyboard, startSteamKeyboard } from '@/lib/steamKeyboard';
 import './gamepad.css';
 
 const FOCUSABLE = [
@@ -131,6 +132,7 @@ function sendKey(key: string): void {
 export default function GamepadLayer() {
   useEffect(() => {
     const stop = startGamepad();
+    const stopKeyboard = startSteamKeyboard();
 
     const off = onGamepad((button) => {
       const activeEl = document.activeElement as HTMLElement | null;
@@ -148,7 +150,8 @@ export default function GamepadLayer() {
             ? pick(current, button, all)
             : pick(null, button, all);
           if (next) {
-            next.focus({ preventScroll: true });
+            // Passing over a text field must not throw Steam's keyboard up.
+            focusQuietly(next, { preventScroll: true });
             next.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             playSfx('ui_hover', { vol: 0.3 });
           }
@@ -156,7 +159,11 @@ export default function GamepadLayer() {
         }
 
         case 'a': {
-          if (activeEl && activeEl !== document.body && typeof activeEl.click === 'function' && !typing) {
+          if (typing) {
+            // A on a text field means "type here": a pad cannot, so ask Steam
+            // for its on-screen keyboard (a no-op without Steam).
+            void openSteamKeyboard(activeEl);
+          } else if (activeEl && activeEl !== document.body && typeof activeEl.click === 'function') {
             activeEl.click();
             playSfx('ui_click');
           } else {
@@ -196,7 +203,7 @@ export default function GamepadLayer() {
       }
     });
 
-    return () => { off(); stop(); };
+    return () => { off(); stop(); stopKeyboard(); };
   }, []);
 
   // Only visible while a pad is in use (see gamepad.css).

@@ -87,7 +87,7 @@ test('a solo Market closes within seconds of Done, in natural games', () => {
     // Most seeds reach the Market; a bust before it (the run ends) is fine,
     // but a probe that never reaches a Market proves nothing.
     assert.ok(reached.length >= SEEDS - 2, `only ${reached.length} of ${SEEDS} seeded games reached a Market`);
-    const slow = reached.filter(([, o]) => o.kind === 'open' || o.afterDoneMs > DONE_TO_CLOSED_MAX_MS);
+    const slow = reached.filter(([, o]) => o.kind === 'open' || ('afterDoneMs' in o && o.afterDoneMs > DONE_TO_CLOSED_MAX_MS));
     assert.deepEqual(
       slow.map(([seed, o]) => `${seed}: ${o.kind} ${'afterDoneMs' in o ? Math.round(o.afterDoneMs / 1000) : '?'}s after Done`),
       [],

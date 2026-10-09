@@ -117,8 +117,8 @@ voice). No localisation framework yet.
 
 ## Controller support
 
-**Declare Partial Controller Support** (Xbox layout) for launch, and do not
-put "Full controller support" in the copy, until P8 is done.
+**Declare Partial Controller Support** (Xbox layout) until one check on a
+Steam Deck (below) passes; then switch to Full.
 
 What works with a pad: every menu is reachable by d-pad or stick
 (`npm run play:pad`, 9/9 at 1280x800), the whole table plays on the pad, and
@@ -126,22 +126,28 @@ button prompts switch to pad glyphs while a pad is in use. PlayStation glyphs
 are not drawn; Steam Input presents a PS pad as an Xbox one, so the prompts
 name the Xbox buttons.
 
-What does not (P8, STEAM-READY.md section 10): the game never opens Steam's
-on-screen keyboard. With only a pad, **Join a Table** cannot take its
-four-letter code, **Host a Table** cannot change the name, and the Market's
-**blank page** (writing your own sigil, a headline feature) cannot take its
-words. Valve's Full Controller Support and Deck **Verified** both require
-text entry by controller, so neither can be claimed yet.
+Text entry (P8, wired 2026-10-09): with a pad in use, pressing A on a text
+field, or a panel opening with its field focused, or a finger tapping a
+field, asks Steam for its floating on-screen keyboard
+(`ShowFloatingGamepadTextInput`, `electron/steam.cjs`, placed clear of the
+field). That covers **Join a Table**'s code, **Host a Table**'s name, the
+chat line and the Market's **blank page**. The d-pad passing over a field
+does not open it. Unit-tested against a stand-in for Steam
+(`test/keyboard.test.ts`, `test/steam.test.ts`); **not yet seen on a real
+Steam client**, which only a Deck or Big Picture can show.
 
-Steam Deck: aim for **Playable** ("may need the on-screen keyboard opened by
-hand", STEAM + X) once checked on hardware. 1280x800 layout and pad
-navigation are tested; text legibility at arm's length and frame rate are not
-(see HANDOFF.md section 5). **Verified** waits on P8.
+**The check that unlocks Full** (Mason, on a Deck in Game Mode, or Big
+Picture on the desktop with a pad, launched from Steam with the real App ID):
+Join a Table, press A on the code field, type a code on Steam's keyboard,
+press its Enter; then in a Market press A on the blank page and write a
+sigil. If both work: switch the declaration to Full, put "Full controller
+support." back at the end of the About This Game paragraph on hosting, add
+the **Controller** tag, and aim the Deck review at **Verified** (also needs
+the legibility and frame-rate pass on hardware). If the keyboard does not
+appear, keep Partial and aim for **Playable** ("may need the on-screen
+keyboard opened by hand", STEAM + X).
 
-When P8 lands (`ShowFloatingGamepadTextInput` on those three fields): switch
-the declaration to Full, put "Full controller support." back at the end of the
-About This Game paragraph on hosting, and add the **Controller** tag. The copy
-source (`ops/session-2026-10-09/market/hexhold-store-copy.md` in the
+The copy source (`ops/session-2026-10-09/market/hexhold-store-copy.md` in the
 masonobegi_webpage repo) still says "Full controller support" and lists the
 Controller tag: paste from this file, not from that one.
 

@@ -89,6 +89,30 @@ function minWindowSize(workAreas) {
  * menu at all they stop working. It gets those roles and nothing that reloads
  * or opens DevTools.
  */
+/**
+ * Where a text field is on the screen, in real pixels, for Steam's floating
+ * keyboard (ShowFloatingGamepadTextInput), which places itself so it does not
+ * cover that rectangle.
+ *
+ * The page reports the field in CSS pixels from the top-left of the viewport.
+ * The window's content area sits at `content` (DIPs, screen coordinates), the
+ * page may be zoomed by `zoom`, and the display scales DIPs by `scaleFactor`.
+ * Anything not a finite number is treated as 0, and the size is at least 1.
+ */
+function fieldToScreen(rect, content, scaleFactor, zoom = 1) {
+  const n = (v) => (Number.isFinite(v) ? v : 0);
+  const sf = scale(scaleFactor);
+  const z = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+  const r = rect ?? {};
+  const c = content ?? {};
+  return {
+    x: Math.round((n(c.x) + n(r.x) * z) * sf),
+    y: Math.round((n(c.y) + n(r.y) * z) * sf),
+    width: Math.max(1, Math.round(n(r.width) * z * sf)),
+    height: Math.max(1, Math.round(n(r.height) * z * sf)),
+  };
+}
+
 function releaseMenuTemplate(platform) {
   if (platform !== 'darwin') return null;
   return [{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }];
@@ -103,4 +127,5 @@ module.exports = {
   frameOf,
   minWindowSize,
   releaseMenuTemplate,
+  fieldToScreen,
 };

@@ -473,6 +473,16 @@ ipcMain.handle('steam:cloudWrite', (_e, file, contents) =>
   typeof file === 'string' && typeof contents === 'string'
     ? steam.cloudWrite(file, contents)
     : false);
+ipcMain.handle('steam:keyboard', (e, req) => {
+  // The field's rectangle comes from the page in CSS pixels; Steam wants it on
+  // the screen in real pixels so its keyboard can sit clear of it.
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (!win || !req || typeof req !== 'object') return false;
+  const { screen } = require('electron');
+  const { scaleFactor } = screen.getDisplayMatching(win.getBounds());
+  const at = display.fieldToScreen(req, win.getContentBounds(), scaleFactor, e.sender.getZoomFactor());
+  return steam.showKeyboard({ ...at, multiline: req.multiline === true });
+});
 ipcMain.handle('hexhold:version', () => app.getVersion());
 
 // --- Saved state (see storageFile) -----------------------------------------

@@ -75,5 +75,7 @@ contextBridge.exposeInMainWorld('hexhold', {
     setRichPresence: (key, value) => ipcRenderer.invoke('steam:presence', key, value),
     cloudRead: (file) => ipcRenderer.invoke('steam:cloudRead', file),
     cloudWrite: (file, contents) => ipcRenderer.invoke('steam:cloudWrite', file, contents),
+    /** Steam's on-screen keyboard beside a field ({x, y, width, height} in CSS px). */
+    showKeyboard: (req) => ipcRenderer.invoke('steam:keyboard', req),
   },
 });

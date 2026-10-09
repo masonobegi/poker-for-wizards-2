@@ -15,8 +15,13 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
+type KeyboardReq = { x?: number; y?: number; width?: number; height?: number; multiline?: boolean };
 const steam = require('../electron/steam.cjs') as {
   resolveAppId(resourcesPath: string | undefined, opts?: { dev?: boolean; root?: string }, env?: Record<string, string | undefined>): number;
+  init(resourcesPath: string | undefined, opts?: { dev?: boolean; env?: Record<string, string | undefined>; steamworks?: unknown }): boolean;
+  showKeyboard(req?: KeyboardReq): Promise<boolean>;
+  onSteamDeck(): boolean;
+  shutdown(): void;
 };
 
 /** A packaged-looking resources folder with nothing in it. */
@@ -64,4 +69,64 @@ test('nothing configured means 0, and Steam stays off', () => {
   try {
     assert.equal(steam.resolveAppId(r.dir, {}, {}), 0);
   } finally { r.done(); }
+});
+
+/*
+ * Steam's on-screen keyboard (playtest P8). A pad cannot type, and on a Deck
+ * in Game Mode no keyboard appears unless the game asks Steam for one.
+ */
+type FloatingCall = [mode: number, x: number, y: number, w: number, h: number];
+
+/** A stand-in for steamworks.js that records the keyboard calls. */
+function fakeSteamworks(answer: () => unknown) {
+  const calls: FloatingCall[] = [];
+  const module = {
+    init: () => ({
+      localplayer: { getName: () => 'tester' },
+      utils: {
+        showFloatingGamepadTextInput: (...a: FloatingCall) => { calls.push(a); return answer(); },
+        isSteamRunningOnSteamDeck: () => true,
+      },
+    }),
+  };
+  return { module, calls };
+}
+
+function withSteam(answer: () => unknown, fn: (calls: FloatingCall[]) => Promise<void>) {
+  const fake = fakeSteamworks(answer);
+  const log = console.log;
+  console.log = () => {};
+  try {
+    assert.equal(steam.init(undefined, { dev: true, env: { SteamAppId: '3456780' }, steamworks: fake.module }), true);
+  } finally { console.log = log; }
+  return fn(fake.calls).finally(() => steam.shutdown());
+}
+
+test('a text field asks Steam for its floating keyboard beside the field', async () => {
+  await withSteam(() => Promise.resolve(true), async (calls) => {
+    assert.equal(await steam.showKeyboard({ x: 400.4, y: 300, width: 320, height: 40 }), true);
+    assert.equal(await steam.showKeyboard({ x: 10, y: 500, width: 600, height: 120, multiline: true }), true);
+    // Single-line mode for an input, multi-line for the Scribe's textarea, and
+    // whole pixels, as the Steamworks call takes ints.
+    assert.deepEqual(calls, [[0, 400, 300, 320, 40], [1, 10, 500, 600, 120]]);
+    assert.equal(steam.onSteamDeck(), true);
+  });
+});
+
+test('a keyboard Steam declines, or a call that throws, is false and nothing else', async () => {
+  await withSteam(() => Promise.resolve(false), async () => {
+    assert.equal(await steam.showKeyboard({ x: 0, y: 0, width: 10, height: 10 }), false);
+  });
+  await withSteam(() => { throw new Error('old Steam client'); }, async () => {
+    assert.equal(await steam.showKeyboard({ x: 0, y: 0, width: 10, height: 10 }), false);
+  });
+  await withSteam(() => Promise.reject(new Error('refused')), async () => {
+    assert.equal(await steam.showKeyboard({ x: 0, y: 0, width: 10, height: 10 }), false);
+  });
+});
+
+test('without Steam the keyboard is a quiet no-op', async () => {
+  steam.shutdown();
+  assert.equal(await steam.showKeyboard({ x: 0, y: 0, width: 10, height: 10 }), false);
+  assert.equal(steam.onSteamDeck(), false);
 });

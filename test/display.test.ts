@@ -21,6 +21,12 @@ const display = require('../electron/display.cjs') as {
   frameOf(outer: Size, content: Size): Size;
   minWindowSize(areas: Size[]): Size;
   releaseMenuTemplate(platform: string): { role: string }[] | null;
+  fieldToScreen(
+    rect: { x: number; y: number; width: number; height: number },
+    content: { x: number; y: number },
+    sf: number,
+    zoom?: number,
+  ): { x: number; y: number; width: number; height: number };
 };
 
 const label = (s: Size[]) => s.map((z) => `${z.width}x${z.height}`);
@@ -75,4 +81,36 @@ test('release menu: none on Windows and Linux, editing roles only on macOS', () 
   assert.ok(roles.includes('appMenu') && roles.includes('editMenu'), roles.join());
   // viewMenu is the one carrying reload and toggleDevTools.
   for (const banned of ['viewMenu', 'reload', 'forceReload', 'toggleDevTools']) assert.ok(!roles.includes(banned), banned);
+});
+
+/*
+ * Steam's floating keyboard places itself clear of the text field, given the
+ * field in screen pixels. The page knows it in CSS pixels inside the window.
+ */
+test('a text field on a Deck in Game Mode is where the page says it is', () => {
+  // Fullscreen 1280x800 at 100%: the window's content is the screen.
+  assert.deepEqual(
+    display.fieldToScreen({ x: 400, y: 300, width: 320, height: 40 }, { x: 0, y: 0 }, 1),
+    { x: 400, y: 300, width: 320, height: 40 },
+  );
+});
+
+test('a field in a window on a scaled desktop maps to real screen pixels', () => {
+  // Window content at (100, 50) DIP on a 150% display, page zoom 1.
+  assert.deepEqual(
+    display.fieldToScreen({ x: 10.4, y: 20, width: 200, height: 30 }, { x: 100, y: 50 }, 1.5),
+    { x: 166, y: 105, width: 300, height: 45 },
+  );
+  // Page zoom scales the CSS rectangle before the display does.
+  assert.deepEqual(
+    display.fieldToScreen({ x: 10, y: 10, width: 100, height: 20 }, { x: 0, y: 0 }, 1, 1.25),
+    { x: 13, y: 13, width: 125, height: 25 },
+  );
+});
+
+test('a junk rectangle from the page cannot reach Steam as NaN or zero size', () => {
+  const r = display.fieldToScreen(
+    { x: Number.NaN, y: Infinity, width: -5, height: Number.NaN } as never, {} as never, Number.NaN, 0,
+  );
+  assert.deepEqual(r, { x: 0, y: 0, width: 1, height: 1 });
 });

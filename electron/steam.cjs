@@ -61,18 +61,18 @@ function resolveAppId(resourcesPath, opts = {}, env = process.env) {
 }
 
 function init(resourcesPath, opts = {}) {
-  appId = resolveAppId(resourcesPath, opts);
+  appId = resolveAppId(resourcesPath, opts, opts.env ?? process.env);
   if (!appId) { reason = 'no App ID configured'; return false; }
   if (appId === SPACEWAR && !opts.dev) {
     console.warn('[steam] running a packaged build as app 480 (Spacewar). '
       + 'That is for local testing only; ship with the real App ID.');
   }
 
-  let steamworks;
+  let steamworks = opts.steamworks ?? null; // a stand-in, for tests only
   try {
     // Optional dependency on purpose: absent in every build that is not
     // shipping through Steam.
-    steamworks = require('steamworks.js');
+    if (!steamworks) steamworks = require('steamworks.js');
   } catch {
     reason = 'steamworks.js is not installed';
     return false;
@@ -144,6 +144,35 @@ const api = {
 
   cloudDelete(file) {
     return safe(() => client.cloud.deleteFile(file), false);
+  },
+
+  // --- On-screen keyboard -------------------------------------------------
+  // A pad cannot type. On a Steam Deck in Game Mode (and in Big Picture) a
+  // game has to ask Steam for its keyboard; nothing appears by itself, so a
+  // controller player was stuck on a table code, a name or a written sigil.
+  // The floating keyboard types into whatever has focus, as real key events,
+  // so the page needs nothing else: Enter on it submits the field as usual.
+
+  /**
+   * Show Steam's floating keyboard beside a text field. `x`, `y`, `width`,
+   * `height` are the field in screen pixels, so the keyboard avoids it.
+   * Resolves true if Steam showed it, false in every other case (no Steam, a
+   * desktop not in Big Picture, an older Steam client).
+   */
+  showKeyboard({ x, y, width, height, multiline = false } = {}) {
+    const int = (v, min = 0) => Math.max(min, Math.round(Number.isFinite(v) ? v : 0));
+    // EFloatingGamepadTextInputMode: 0 single line, 1 multiple lines.
+    const mode = multiline ? 1 : 0;
+    const shown = safe(
+      () => client.utils.showFloatingGamepadTextInput(mode, int(x), int(y), int(width, 1), int(height, 1)),
+      false,
+    );
+    return Promise.resolve(shown).then((ok) => ok === true, () => false);
+  },
+
+  /** True on a Steam Deck. False without Steam. */
+  onSteamDeck() {
+    return safe(() => client.utils.isSteamRunningOnSteamDeck() === true, false);
   },
 
   /** Pump callbacks. Harmless when Steam is absent. */
