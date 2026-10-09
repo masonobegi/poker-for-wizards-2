@@ -88,6 +88,8 @@ def gradient_band(img: Image.Image, side: str, reach: float, alpha=235) -> Image
         for xx in range(0, w, 1):
             if side == "left":
                 f = 1 - xx / (w * reach)
+            elif side == "right":
+                f = 1 - (w - xx) / (w * reach)
             elif side == "bottom":
                 f = 1 - (h - yy) / (h * reach)
             elif side == "top":
@@ -97,6 +99,19 @@ def gradient_band(img: Image.Image, side: str, reach: float, alpha=235) -> Image
             if f > 0:
                 px[xx, yy] = round(alpha * min(1, f) ** 1.4)
     return Image.composite(Image.new("RGB", (w, h), INK), img, band)
+
+
+def keep_window(img: Image.Image, x0: float, x1: float, feather: int = 24) -> Image.Image:
+    """Ink over everything left of x0 and right of x1 (fractions of the width).
+
+    The capture around the hole cards holds a sigil card and the turn clock,
+    both with UI text; a capsule must show art and the name only.
+    """
+    w, h = img.size
+    mask = Image.new("L", (w, h), 255)
+    ImageDraw.Draw(mask).rectangle((round(x0 * w), 0, round(x1 * w), h), fill=0)
+    mask = mask.filter(ImageFilter.GaussianBlur(feather))
+    return Image.composite(Image.new("RGB", (w, h), INK), img, mask)
 
 
 def tracked_size(text: str, f: ImageFont.FreeTypeFont, tracking: float) -> tuple[int, int]:
@@ -149,8 +164,14 @@ def emblem(size: int) -> Image.Image:
     return Image.open(ICON).convert("RGBA").resize((size, size), Image.LANCZOS)
 
 
-def title_block(width: int, with_tag=True, with_emblem=False) -> Image.Image:
-    """The wordmark sized to a target width: HEXHOLD over IMPOSSIBLE POKER."""
+def title_block(width: int, with_tag=False, with_emblem=False) -> Image.Image:
+    """The wordmark sized to a target width: HEXHOLD, optionally over IMPOSSIBLE POKER.
+
+    Valve's capsule rule (2024): the header, small, main and vertical capsules
+    carry the game's art and its name or logo only. No tagline, no marketing
+    line, no quotes. So nothing here passes with_tag=True; the tagline lives in
+    the store copy (steam/store-page.md) instead.
+    """
     size = 200
     t = gold_text(None, "HEXHOLD", font(900, size))
     scale = width / t.width
@@ -208,21 +229,30 @@ def main():
     # Small capsule 462x174: legibility first, nearly all title.
     bg = grade(cover(table, 462, 174, focus=(0.43, 0.36), zoom=1.1), dark=0.85, blur=2.5)
     bg = vignette(bg, 0.95)
-    save(place(bg, title_block(380, with_tag=False), 0.5, 0.52), "small_capsule_462x174.png", (462, 174))
+    save(place(bg, title_block(380), 0.5, 0.52), "small_capsule_462x174.png", (462, 174))
 
-    # Main capsule 1232x706.
-    bg = grade(cover(table, 1232, 706, focus=(0.43, 0.42), zoom=1.15), dark=0.66, blur=1.0)
-    bg = vignette(bg, 0.9)
-    save(place(bg, title_block(760, with_emblem=True), 0.5, 0.47), "main_capsule_1232x706.png", (1232, 706))
+    # Main capsule 1232x706: the felt and the seats only. Zoomed past the
+    # rail so no hint toast or sigil text from the capture reads as copy.
+    bg = grade(cover(table, 1232, 706, focus=(0.45, 0.33), zoom=1.45), dark=0.7, blur=1.2)
+    bg = gradient_band(vignette(bg, 0.9), "bottom", 0.35)
+    save(place(bg, title_block(760, with_emblem=True), 0.5, 0.5), "main_capsule_1232x706.png", (1232, 706))
 
     # Vertical capsule 748x896: your hand and your sigils, title above.
-    bg = grade(cover(hand, 748, 896, focus=(0.19, 0.80), zoom=2.1), dark=0.45, blur=0.6)
-    bg = gradient_band(vignette(bg, 0.8), "top", 0.6)
+    # Cropped to the two hole cards: the sigil beside them and the turn clock
+    # carry UI text, which a capsule must not.
+    bg = grade(cover(hand, 748, 896, focus=(0.19, 0.78), zoom=2.1), dark=0.45, blur=0.6)
+    bg = vignette(bg, 0.8)
+    bg = keep_window(bg, 0.13, 0.85)
+    for side, reach in (("top", 0.6), ("bottom", 0.32)):
+        bg = gradient_band(bg, side, reach, alpha=250)
     save(place(bg, title_block(600, with_emblem=True), 0.5, 0.2), "vertical_capsule_748x896.png", (748, 896))
 
     # Library capsule 600x900.
-    bg = grade(cover(hand, 600, 900, focus=(0.19, 0.80), zoom=2.3), dark=0.45, blur=0.6)
-    bg = gradient_band(vignette(bg, 0.8), "top", 0.6)
+    bg = grade(cover(hand, 600, 900, focus=(0.185, 0.78), zoom=1.75), dark=0.45, blur=0.6)
+    bg = vignette(bg, 0.8)
+    bg = keep_window(bg, 0.12, 0.86)
+    for side, reach in (("top", 0.6), ("bottom", 0.32)):
+        bg = gradient_band(bg, side, reach, alpha=250)
     save(place(bg, title_block(500, with_emblem=True), 0.5, 0.18), "library_capsule_600x900.png", (600, 900))
 
     # Library hero 3840x1240: NO text, Steam lays the logo over it.
@@ -253,9 +283,9 @@ def main():
 
     # Event cover 800x450: needed for each announcement or event, including
     # the launch one. The main capsule's composition at event size.
-    bg = grade(cover(table, 800, 450, focus=(0.43, 0.42), zoom=1.15), dark=0.66, blur=1.0)
-    bg = vignette(bg, 0.9)
-    save(place(bg, title_block(500, with_emblem=True), 0.5, 0.47), "event_cover_800x450.png", (800, 450))
+    bg = grade(cover(table, 800, 450, focus=(0.45, 0.33), zoom=1.45), dark=0.7, blur=1.2)
+    bg = gradient_band(vignette(bg, 0.9), "bottom", 0.35)
+    save(place(bg, title_block(500, with_emblem=True), 0.5, 0.5), "event_cover_800x450.png", (800, 450))
     ico = Image.open(ICON).convert("RGBA")
     ico.save(OUT / "hexhold.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     ico.save(ROOT / "electron" / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
