@@ -5,12 +5,57 @@
  */
 const { contextBridge, ipcRenderer } = require('electron');
 
+/**
+ * Saved state that survives the port changing.
+ *
+ * The page is served from 127.0.0.1 on a port picked fresh every launch, and
+ * localStorage is per-origin, port included. So before any page script runs,
+ * seed localStorage from the copy the shell keeps in the user data folder, and
+ * flush it back whenever it changes. Preload shares the page's storage even
+ * with context isolation on.
+ */
+(() => {
+  let last = '';
+  const dump = () => {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k !== null) out[k] = localStorage.getItem(k) ?? '';
+    }
+    return JSON.stringify(out);
+  };
+  try {
+    const saved = ipcRenderer.sendSync('hexhold:storage:load');
+    if (saved && typeof saved === 'object') {
+      for (const [k, v] of Object.entries(saved)) {
+        if (typeof v === 'string') localStorage.setItem(k, v);
+      }
+    }
+    last = dump();
+  } catch { /* storage unavailable: the game still runs, it just forgets */ }
+
+  const flush = (sync) => {
+    try {
+      const now = dump();
+      if (now === last) return;
+      last = now;
+      if (sync) ipcRenderer.sendSync('hexhold:storage:save', now);
+      else ipcRenderer.send('hexhold:storage:save', now);
+    } catch { /* never let a save break the page */ }
+  };
+  setInterval(() => flush(false), 1500);
+  window.addEventListener('pagehide', () => flush(true));
+  window.addEventListener('beforeunload', () => flush(true));
+})();
+
 contextBridge.exposeInMainWorld('hexhold', {
   desktop: true,
   port: () => ipcRenderer.invoke('hexhold:port'),
   version: () => ipcRenderer.invoke('hexhold:version'),
   toggleFullscreen: (on) => ipcRenderer.invoke('hexhold:fullscreen', on),
   quit: () => ipcRenderer.invoke('hexhold:quit'),
+  display: () => ipcRenderer.invoke('hexhold:display'),
+  setDisplay: (req) => ipcRenderer.invoke('hexhold:setDisplay', req),
   crashLogPath: () => ipcRenderer.invoke('hexhold:crashLog'),
   reportCrash: (detail) => ipcRenderer.invoke('hexhold:reportCrash', String(detail).slice(0, 8000)),
 

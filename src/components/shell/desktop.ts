@@ -8,6 +8,24 @@ export interface HexholdDesktopApi {
   version(): Promise<string>;
   toggleFullscreen(on?: boolean): Promise<boolean>;
   quit(): Promise<void>;
+  /** Present in shells built after 2026-10-09; optional so older ones still type-check. */
+  display?(): Promise<DesktopDisplay | null>;
+  setDisplay?(req: Partial<{ mode: DisplayMode; width: number; height: number; vsync: boolean }>): Promise<DesktopDisplay | null>;
+  reportCrash?(detail: string): Promise<string>;
+}
+
+export type DisplayMode = 'windowed' | 'maximized' | 'fullscreen';
+
+export interface DesktopDisplay {
+  mode: DisplayMode;
+  width: number;
+  height: number;
+  /** What is saved for next launch. */
+  vsync: boolean;
+  /** What this launch is actually running with (a VSync change needs a restart). */
+  vsyncActive: boolean;
+  /** Window sizes that fit on the display the window is on. */
+  sizes: { width: number; height: number }[];
 }
 
 export function getHexholdApi(): HexholdDesktopApi | undefined {

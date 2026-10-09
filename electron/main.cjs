@@ -6,7 +6,7 @@
  * same build therefore plays single-player-with-bots offline, and can host a
  * table for friends on the same network, with no separate server to deploy.
  */
-const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const { fork } = require('node:child_process');
 const net = require('node:net');
@@ -14,6 +14,82 @@ const fs = require('node:fs');
 const steam = require('./steam.cjs');
 
 const isDev = !app.isPackaged;
+
+// Test harnesses point the game at a throwaway profile so a run never touches
+// a real player's save (test/packaged.mjs). Must happen before anything reads
+// userData.
+if (process.env.HEXHOLD_USER_DATA) app.setPath('userData', process.env.HEXHOLD_USER_DATA);
+
+/**
+ * Display settings the renderer cannot apply itself.
+ *
+ * VSync is a Chromium switch, so it has to be read before the app is ready and
+ * only takes effect on the next launch. Kept in its own small file in the
+ * per-user data folder (%APPDATA%/HEXHOLD on Windows, ~/.config/HEXHOLD on
+ * Linux and the Deck) next to window-state.json.
+ */
+function settingsFile() {
+  return path.join(app.getPath('userData'), 'settings.json');
+}
+function readSettings() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'));
+    return { vsync: raw.vsync !== false };
+  } catch {
+    return { vsync: true };
+  }
+}
+function writeSettings(next) {
+  try {
+    fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
+    fs.writeFileSync(settingsFile(), JSON.stringify(next));
+  } catch { /* a settings write must never crash the game */ }
+}
+const launchSettings = readSettings();
+if (!launchSettings.vsync) {
+  app.commandLine.appendSwitch('disable-gpu-vsync');
+  app.commandLine.appendSwitch('disable-frame-rate-limit');
+}
+
+/**
+ * The page's saved state, kept somewhere that does not move.
+ *
+ * The packaged game loads from http://127.0.0.1:<a free port>, and the port is
+ * different every launch. localStorage is keyed by origin, port included, so
+ * without this every launch would start with empty storage: settings, profile,
+ * achievements and the seen-the-intro flag all forgotten. The preload seeds
+ * localStorage from this file before the page runs and flushes it back here.
+ */
+function storageFile() {
+  return path.join(app.getPath('userData'), 'hexhold-storage.json');
+}
+function readStorage() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(storageFile(), 'utf8'));
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const out = {};
+    for (const [k, v] of Object.entries(raw)) if (typeof v === 'string') out[k] = v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+function writeStorage(json) {
+  if (typeof json !== 'string' || json.length > 4 * 1024 * 1024) return false;
+  try {
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    const file = storageFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    // Write then rename, so a crash mid-write cannot leave half a save.
+    fs.writeFileSync(`${file}.tmp`, json);
+    fs.renameSync(`${file}.tmp`, file);
+    return true;
+  } catch (err) {
+    recordCrash('save write failed', err);
+    return false;
+  }
+}
 
 /**
  * Crash reporting, the version that does not need a service.
@@ -93,6 +169,10 @@ function startServer(port) {
         PORT: String(port),
         CLIENT_DIR: clientDir,
         NODE_ENV: isDev ? 'development' : 'production',
+        // Never write into the install folder: under Steam that is
+        // steamapps/common, which a "verify files" can wipe.
+        PERSIST_FILE: process.env.PERSIST_FILE
+          ?? path.join(app.getPath('userData'), 'tables.db'),
       },
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     });
@@ -230,6 +310,11 @@ function createWindow() {
     if (isDev) win.webContents.openDevTools({ mode: 'detach' });
   });
 
+  // No developer tools in a shipped build, however they are asked for.
+  if (!isDev) {
+    win.webContents.on('devtools-opened', () => win.webContents.closeDevTools());
+  }
+
   // External links open in the real browser, never inside the game.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) shell.openExternal(url);
@@ -267,8 +352,13 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // A shipped build has no menu at all. Electron's default one is hidden by
+  // autoHideMenuBar but still live, and its accelerators include Reload
+  // (Ctrl+R) and Toggle Developer Tools (Ctrl+Shift+I).
+  if (!isDev) Menu.setApplicationMenu(null);
+
   // Optional, and silent when absent.
-  steam.init(process.resourcesPath);
+  steam.init(process.resourcesPath, { dev: isDev, root: path.join(__dirname, '..') });
   if (steam.enabled) {
     steam.setRichPresence('steam_display', '#Status_Playing');
     setInterval(() => steam.runCallbacks(), 1000).unref?.();
@@ -321,6 +411,47 @@ ipcMain.handle('steam:cloudWrite', (_e, file, contents) =>
     ? steam.cloudWrite(file, contents)
     : false);
 ipcMain.handle('hexhold:version', () => app.getVersion());
+
+// --- Saved state (see storageFile) -----------------------------------------
+ipcMain.on('hexhold:storage:load', (e) => { e.returnValue = readStorage(); });
+ipcMain.on('hexhold:storage:save', (e, json) => { e.returnValue = writeStorage(json); });
+
+// --- Display ----------------------------------------------------------------
+const WINDOW_SIZES = [
+  [1280, 720], [1280, 800], [1366, 768], [1600, 900],
+  [1920, 1080], [1920, 1200], [2560, 1440], [3840, 2160],
+];
+function displayState() {
+  if (!win || win.isDestroyed()) return null;
+  const { screen } = require('electron');
+  const area = screen.getDisplayMatching(win.getBounds()).workAreaSize;
+  const [width, height] = win.getContentSize();
+  return {
+    mode: win.isFullScreen() ? 'fullscreen' : win.isMaximized() ? 'maximized' : 'windowed',
+    width,
+    height,
+    vsync: readSettings().vsync,
+    vsyncActive: launchSettings.vsync,
+    sizes: WINDOW_SIZES.filter(([w, h]) => w <= area.width && h <= area.height)
+      .map(([w, h]) => ({ width: w, height: h })),
+  };
+}
+ipcMain.handle('hexhold:display', () => displayState());
+ipcMain.handle('hexhold:setDisplay', (_e, req) => {
+  if (!win || win.isDestroyed() || !req || typeof req !== 'object') return displayState();
+  if (req.mode === 'fullscreen') win.setFullScreen(true);
+  else if (req.mode === 'maximized') { win.setFullScreen(false); win.maximize(); }
+  else if (req.mode === 'windowed') { win.setFullScreen(false); win.unmaximize(); }
+  if (Number.isInteger(req.width) && Number.isInteger(req.height)
+      && WINDOW_SIZES.some(([w, h]) => w === req.width && h === req.height)) {
+    if (win.isFullScreen()) win.setFullScreen(false);
+    if (win.isMaximized()) win.unmaximize();
+    win.setContentSize(req.width, req.height);
+    win.center();
+  }
+  if (typeof req.vsync === 'boolean') writeSettings({ ...readSettings(), vsync: req.vsync });
+  return displayState();
+});
 // A packaged game needs a way out that is not the window chrome — the shell
 // runs frameless in fullscreen, where there is none.
 ipcMain.handle('hexhold:quit', () => { app.quit(); });

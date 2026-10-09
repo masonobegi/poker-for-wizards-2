@@ -30,7 +30,9 @@
     "steam:manifest": "tsx scripts/steam-manifest.mjs",
     "audio": "node test/audio.mjs",
     "responsive": "node test/responsive.mjs",
-    "audio:calibrate": "node scripts/calibrate-audio.mjs"
+    "audio:calibrate": "node scripts/calibrate-audio.mjs",
+    "play:packaged": "node test/packaged.mjs",
+    "steam:art": "python steam/make_art.py"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -64,7 +66,7 @@
   "build": {
     "appId": "com.hexhold.game",
     "productName": "HEXHOLD",
-    "copyright": "HEXHOLD",
+    "copyright": "Copyright © 2026 Mason Obegi",
     "directories": {
       "output": "release",
       "buildResources": "electron"
@@ -119,7 +121,16 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "HEXHOLD"
-    }
+    },
+    "asarUnpack": [
+      "node_modules/steamworks.js/**"
+    ],
+    "extraFiles": [
+      {
+        "from": "THIRD_PARTY.md",
+        "to": "THIRD_PARTY.md"
+      }
+    ]
   },
   "author": "Mason Obegi",
   "optionalDependencies": {

@@ -12,7 +12,8 @@ import {
   useUiScale,
   type ParticleDensity,
 } from '@/components/shell/videoPrefs';
-import { getHexholdApi } from '@/components/shell/desktop';
+import { getHexholdApi, type DesktopDisplay, type DisplayMode } from '@/components/shell/desktop';
+import { PAD_GLYPH } from '@/lib/gamepad';
 import { SoundTest } from '@/audio/SoundTest';
 import './shell/shell.css';
 
@@ -209,14 +210,18 @@ function VideoTab() {
     else await document.documentElement.requestFullscreen().catch(() => {});
   };
 
+  const desktopDisplay = !!getHexholdApi()?.display;
+
   return (
     <section style={{ display: 'grid', gap: 'var(--s-4)' }}>
-      <div className="row spread">
-        <span className="field-label">Fullscreen</span>
-        <Button size="sm" tone="ghost" onClick={() => { void toggleFullscreen(); }}>
-          {fullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-        </Button>
-      </div>
+      {desktopDisplay ? <DisplaySettings /> : (
+        <div className="row spread">
+          <span className="field-label">Fullscreen</span>
+          <Button size="sm" tone="ghost" onClick={() => { void toggleFullscreen(); }}>
+            {fullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          </Button>
+        </div>
+      )}
 
       <div>
         <Toggle
@@ -265,6 +270,85 @@ function VideoTab() {
   );
 }
 
+
+const MODES: { id: DisplayMode; label: string }[] = [
+  { id: 'fullscreen', label: 'Fullscreen' },
+  { id: 'maximized', label: 'Borderless window' },
+  { id: 'windowed', label: 'Windowed' },
+];
+
+type DisplayRequest = Partial<{ mode: DisplayMode; width: number; height: number; vsync: boolean }>;
+
+/**
+ * Display mode, window size and VSync. Desktop shell only: a browser tab
+ * cannot size its own window. All three are buttons rather than a <select>,
+ * because a native dropdown is a popup the gamepad focus model cannot reach.
+ */
+function DisplaySettings() {
+  const [d, setD] = useState<DesktopDisplay | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const read = () => {
+      void getHexholdApi()?.display?.().then((v) => { if (alive) setD(v ?? null); }).catch(() => {});
+    };
+    read();
+    // F11 and the window chrome can change the mode underneath this panel.
+    window.addEventListener('resize', read);
+    return () => { alive = false; window.removeEventListener('resize', read); };
+  }, []);
+
+  const apply = (req: DisplayRequest) => {
+    void getHexholdApi()?.setDisplay?.(req).then((v) => setD(v ?? null)).catch(() => {});
+  };
+
+  if (!d) return null;
+
+  return (
+    <>
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="field-label">Display mode</span>
+        <div className="hh-choice-row" role="group" aria-label="Display mode">
+          {MODES.map((m) => (
+            <Button key={m.id} size="sm" tone={d.mode === m.id ? 'primary' : 'ghost'}
+              aria-pressed={d.mode === m.id} onClick={() => apply({ mode: m.id })}>
+              {m.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="field-label">Window size</span>
+        <div className="hh-choice-row" role="group" aria-label="Window size">
+          {d.sizes.map((sz) => {
+            const on = d.mode === 'windowed' && d.width === sz.width && d.height === sz.height;
+            return (
+              <Button key={`${sz.width}x${sz.height}`} size="sm" tone={on ? 'primary' : 'ghost'}
+                aria-pressed={on} onClick={() => apply({ width: sz.width, height: sz.height })}>
+                <span className="mono">{sz.width}×{sz.height}</span>
+              </Button>
+            );
+          })}
+        </div>
+        <p className="hh-field-hint">
+          Picking a size switches to a window. Use UI Scale below to make
+          everything larger or smaller at any size.
+        </p>
+      </div>
+
+      <div>
+        <Toggle checked={d.vsync} onChange={(v) => apply({ vsync: v })} label="VSync" />
+        <p className="hh-field-hint" style={{ marginTop: 6 }}>
+          {d.vsync === d.vsyncActive
+            ? 'Locks the frame rate to your display. Off can tear, and costs battery on a Steam Deck.'
+            : 'Takes effect the next time HEXHOLD starts.'}
+        </p>
+      </div>
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Gameplay
 // ---------------------------------------------------------------------------
@@ -307,18 +391,37 @@ const SHORTCUTS: { key: string; action: string }[] = [
   { key: 'F11', action: 'Fullscreen' },
 ];
 
+const PAD_ROWS: { key: string; action: string }[] = [
+  { key: `${PAD_GLYPH.up}${PAD_GLYPH.down}${PAD_GLYPH.left}${PAD_GLYPH.right} / stick`, action: 'Move between buttons' },
+  { key: PAD_GLYPH.a, action: 'Select (Check / Call when nothing is selected)' },
+  { key: PAD_GLYPH.b, action: 'Back' },
+  { key: PAD_GLYPH.lb, action: 'Fold' },
+  { key: PAD_GLYPH.x, action: 'Raise' },
+  { key: PAD_GLYPH.y, action: 'All-in' },
+  { key: PAD_GLYPH.rb, action: 'Confirm' },
+  { key: PAD_GLYPH.start, action: 'Menu' },
+];
+
+function ShortcutList({ rows }: { rows: { key: string; action: string }[] }) {
+  return (
+    <dl className="hh-shortcuts">
+      {rows.map((row) => (
+        <div className="hh-shortcut-row" key={row.key}>
+          <dt><kbd className="hh-kbd">{row.key}</kbd></dt>
+          <dd style={{ margin: 0, color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>{row.action}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function ControlsTab() {
   return (
     <section style={{ display: 'grid', gap: 'var(--s-3)' }}>
-      <p className="hh-field-hint">Keyboard shortcuts, at the table.</p>
-      <dl className="hh-shortcuts">
-        {SHORTCUTS.map((row) => (
-          <div className="hh-shortcut-row" key={row.key}>
-            <dt><kbd className="hh-kbd">{row.key}</kbd></dt>
-            <dd style={{ margin: 0, color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>{row.action}</dd>
-          </div>
-        ))}
-      </dl>
+      <p className="hh-field-hint">Keyboard, at the table.</p>
+      <ShortcutList rows={SHORTCUTS} />
+      <p className="hh-field-hint">Controller (Xbox layout, as on a Steam Deck).</p>
+      <ShortcutList rows={PAD_ROWS} />
     </section>
   );
 }
@@ -349,6 +452,17 @@ function AboutTab() {
       <span className="hh-about-version mono">{versionLabel}</span>
       <p className="hh-about-credit">
         Impossible poker — a deck that does not obey physics. Built by Mason Obegi.
+      </p>
+      <h4 className="field-label" style={{ marginTop: 'var(--s-3)' }}>Credits</h4>
+      <p className="hh-field-hint">
+        Typefaces: Cinzel (Natanael Gama), Inter (Rasmus Andersson) and
+        JetBrains Mono (JetBrains), all under the SIL Open Font License 1.1.
+      </p>
+      <p className="hh-field-hint">
+        Built with React, Framer Motion, Zustand, Socket.IO, Express and
+        Electron (MIT), on Chromium (BSD and others). Every sound is
+        synthesised at runtime; there are no third-party audio or image assets.
+        Full licence texts ship in the game folder.
       </p>
     </section>
   );

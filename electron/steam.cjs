@@ -17,10 +17,17 @@ let appId = 0;
 let enabled = false;
 let reason = 'not initialised';
 
-function resolveAppId(resourcesPath) {
+const SPACEWAR = 480; // Valve's public test app. Development only.
+
+function resolveAppId(resourcesPath, opts = {}) {
   const fromEnv = Number.parseInt(process.env.STEAM_APP_ID ?? '', 10);
   if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-  for (const dir of [process.cwd(), resourcesPath, path.join(resourcesPath ?? '', '..')]) {
+  const dirs = [process.cwd(), resourcesPath, path.join(resourcesPath ?? '', '..')];
+  // In development only, fall back to steam/dev/steam_appid.txt, which holds
+  // the placeholder 480. It is never packaged: electron-builder ships
+  // electron/** only.
+  if (opts.dev && opts.root) dirs.push(path.join(opts.root, 'steam', 'dev'));
+  for (const dir of dirs) {
     if (!dir) continue;
     try {
       const text = fs.readFileSync(path.join(dir, 'steam_appid.txt'), 'utf8');
@@ -31,9 +38,13 @@ function resolveAppId(resourcesPath) {
   return 0;
 }
 
-function init(resourcesPath) {
-  appId = resolveAppId(resourcesPath);
+function init(resourcesPath, opts = {}) {
+  appId = resolveAppId(resourcesPath, opts);
   if (!appId) { reason = 'no App ID configured'; return false; }
+  if (appId === SPACEWAR && !opts.dev) {
+    console.warn('[steam] running a packaged build as app 480 (Spacewar). '
+      + 'That is for local testing only; ship with the real App ID.');
+  }
 
   let steamworks;
   try {
