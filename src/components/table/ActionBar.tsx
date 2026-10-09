@@ -88,6 +88,12 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
     if (!yourTurn) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Every shortcut is one decision per press. A held key auto-repeats
+      // after about half a second, inside the confirm window, so without this
+      // one long press of F or A armed and then confirmed itself (and a held
+      // pad button mapped to a key by Steam Input did the same). A held C
+      // would also carry its call into the next street.
+      if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === 'f') {
         // Folding a free check is never what a single press meant.

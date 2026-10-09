@@ -386,6 +386,58 @@ test('one press of F never folds a free check, and one press of A never shoves',
   }
 });
 
+test('holding F or A is one press: key repeat never confirms the guard', async () => {
+  // Holding a key past the OS repeat delay (about 500ms on Windows, 600ms on
+  // Linux and the Deck) sends a first keydown and then repeats with
+  // repeat:true, well inside the 1.5s confirm window. Steam Input sends the
+  // same when it maps a held pad button to a key. One long press must not
+  // fold a free check or go all in.
+  define('HTMLInputElement', dom.window.HTMLInputElement);
+  define('HTMLTextAreaElement', dom.window.HTMLTextAreaElement);
+  const { useGame } = await import('../src/store/net');
+  const ActionBar = (await import('../src/components/table/ActionBar')).default;
+  const { createRoot } = await import('react-dom/client');
+  const { act } = await import('react');
+
+  const sent: unknown[] = [];
+  const realAct = useGame.getState().act;
+  useGame.setState({ act: (a: unknown) => { sent.push(a); } } as never);
+
+  const base = {
+    yourTurn: true, currentBet: 0, minRaise: 200, bb: 200, pot: 300, phase: 'flop',
+    handNumber: 1, toCall: 0, actingUntil: Date.now() + 30_000,
+    config: { actionSeconds: 30 }, stack: null, canCheck: true,
+  };
+  const me = { bet: 0, chips: 5000, folded: false, eliminated: false } as never;
+  const host = dom.window.document.createElement('div');
+  container.appendChild(host);
+  const root = createRoot(host);
+  const hold = (key: string, repeats: number) => act(async () => {
+    dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key }));
+    for (let i = 0; i < repeats; i++) {
+      dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key, repeat: true }));
+    }
+  });
+  try {
+    await act(async () => { root.render(<ActionBar view={base as never} me={me} blocked={false} />); });
+
+    await hold('f', 5);
+    assert.equal(sent.length, 0, 'holding F folded a free check');
+    assert.match(host.textContent ?? '', /again to fold/i, 'the first keydown should still arm');
+
+    await act(async () => { root.render(<ActionBar view={{ ...base, handNumber: 2 } as never} me={me} blocked={false} />); });
+    await hold('a', 5);
+    assert.equal(sent.length, 0, 'holding A went all in');
+
+    // A second, deliberate press still confirms.
+    await hold('a', 0);
+    assert.deepEqual(sent, [{ kind: 'allin' }], 'a real second press should go all in');
+  } finally {
+    await act(async () => { root.unmount(); });
+    useGame.setState({ act: realAct } as never);
+  }
+});
+
 test('Reduce flashing stops flashes, colour splits and shake, and leaves other motion on', async () => {
   // From the 2026-10-09 playtest: the worst table frames still blink 30-70k
   // pixels, and the only way to stop that was "Reduce motion", which also
