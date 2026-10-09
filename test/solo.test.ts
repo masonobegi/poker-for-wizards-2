@@ -12,7 +12,12 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
+import { decideShop } from '../server/game/bots';
 import { Engine } from '../server/game/engine';
+import { SCRIBE_FLOOR } from '../server/game/shop';
+import { sigilHandSize } from '../server/game/table';
+import { Rng } from '../shared/rng';
+import { SIGILS } from '../shared/sigils';
 import { DEFAULT_CONFIG } from '../shared/types';
 
 type Internals = {
@@ -21,6 +26,7 @@ type Internals = {
   tick(): void;
   deadline: number;
   onDeadline: (() => void) | null;
+  botClock: Map<string, number>;
 };
 const internals = (e: Engine) => e as unknown as Internals;
 
@@ -94,4 +100,79 @@ test('a Market with two humans keeps its clock', () => {
   assert.ok(shop.closesAt > Date.now(), 'the shared Market lost its clock');
   const ms = internals(e).deadline - Date.now();
   assert.ok(ms <= DEFAULT_CONFIG.shopSeconds * 1000 + 50, `deadline ${ms}ms`);
+});
+
+/*
+ * The Market a solo player actually reaches. A bot's sigil hand is nearly
+ * always full by then (see decideScribe), and the earlier test above set every
+ * bot's shopDone by hand, which hid this: a bot with a full hand and shards
+ * for a sigil kept choosing that sigil, the buy failed with "Your hand is
+ * full" every time, and the bot was never done. With the 45s clock gone the
+ * player pressed Done and waited up to thirty minutes.
+ */
+function fullHandsAtMarket(): Engine {
+  const e = table(['host'], 3);
+  const t = e.table;
+  internals(e).openMarket();
+  for (const p of t.players.filter((q) => q.isBot)) {
+    while (p.sigils.length < sigilHandSize(p)) p.sigils.push({ uid: `fill${p.sigils.length}`, defId: SIGILS[0].id });
+    const shop = t.shop.get(p.id)!;
+    // Only sigils within reach, and too few shards for the blank page.
+    shop.items = shop.items.filter((i) => i.kind === 'sigil' || i.kind === 'scribe');
+    for (const i of shop.items) if (i.kind === 'sigil') i.price = SCRIBE_FLOOR - 1;
+    p.shards = SCRIBE_FLOOR - 1;
+  }
+  return e;
+}
+
+/** Let every bot take its next Market turn, as many times as `turns`. */
+function botTurns(e: Engine, turns: number): void {
+  for (let i = 0; i < turns && e.table.phase === 'shop'; i++) {
+    for (const k of internals(e).botClock.keys()) internals(e).botClock.set(k, 0);
+    internals(e).tick();
+  }
+}
+
+test('bots on full hands finish a solo Market on their own once the player is Done', () => {
+  const e = fullHandsAtMarket();
+  const t = e.table;
+  assert.ok(t.players.filter((p) => p.isBot).every((p) => !p.shopDone));
+  e.shopDone('host');
+  botTurns(e, 60);
+  assert.notEqual(t.phase, 'shop', 'a bot with a full hand kept trying to buy a sigil it could not hold');
+});
+
+test('a bot never chooses a sigil it has no room for', () => {
+  const e = fullHandsAtMarket();
+  const t = e.table;
+  const rng = new Rng('full-hand');
+  for (const p of t.players.filter((q) => q.isBot)) {
+    assert.equal(decideShop(t, p, rng), null, `${p.name} chose a sigil with a full hand`);
+  }
+});
+
+test('a bot whose purchase is refused is done, not stuck retrying it', () => {
+  // A rite on a card that has since left the deck: the bot wants it, and the
+  // Market refuses it. Twelve tables, so a bot that merely declined the rite
+  // on its first look cannot pass this by luck.
+  for (let n = 0; n < 12; n++) {
+    const e = table(['host'], 1);
+    const t = e.table;
+    internals(e).openMarket();
+    const bot = t.players.find((p) => p.isBot)!;
+    const shop = t.shop.get(bot.id)!;
+    shop.items = [{ kind: 'rite', uid: `gone${n}`, price: 1, markId: 'wild', cardId: 'no-such-card', label: 'Wild the Ghost' }];
+    bot.shards = 1;
+    e.shopDone('host');
+    botTurns(e, 1);
+    assert.ok(bot.shopDone || t.phase !== 'shop', 'a refused buy left the bot shopping');
+  }
+});
+
+test('once the solo player is Done, the Market closes in seconds, not half an hour', () => {
+  const e = fullHandsAtMarket();
+  e.shopDone('host');
+  assert.equal(e.table.phase, 'shop');
+  const ms = internals(e).deadline - Date.now();
+  assert.ok(ms <= 5_000, `the Market waits ${Math.round(ms / 1000)}s for the bots after the player is Done`);
 });

@@ -865,9 +865,16 @@ export function decideScribe(
 export function decideShop(t: Table, p: Player, rng: Rng): string | null {
   const shop = t.shop.get(p.id);
   if (!shop) return null;
-  // A blank page is not bought, it is written on: see decideScribe.
+  // A blank page is not bought, it is written on: see decideScribe. A sigil
+  // needs room in the hand, and a bot's hand is nearly always full by the
+  // first Market: choosing one anyway got "Your hand is full" back, and the
+  // bot chose the same sigil on its next turn, and the next, so it was never
+  // done and a solo Market sat open after the player pressed Done.
+  const roomForSigil = p.sigils.length < sigilHandSize(p);
   const affordable = shop.items.filter(
-    (i) => i.kind !== 'scribe' && !shop.sold.includes(i.uid) && i.price <= p.shards,
+    (i) => i.kind !== 'scribe' && !shop.sold.includes(i.uid) && i.price <= p.shards
+      && (i.kind !== 'sigil' || roomForSigil)
+      && (i.kind !== 'relic' || !p.relics.includes(i.id)),
   );
   if (affordable.length === 0) return null;
 

@@ -52,6 +52,14 @@ const PAUSE_MAX_MS = 30 * 60_000;
  */
 const SOLO_MARKET_MAX_MS = PAUSE_MAX_MS;
 
+/**
+ * Once every human has pressed Done, nobody is browsing: the bots stop pausing
+ * between purchases and the Market closes within this long. Without it a solo
+ * player who pressed Done waited on the bots, and the only clock left was the
+ * thirty-minute cap.
+ */
+const BOTS_AFTER_DONE_MS = 4000;
+
 export class Engine {
   readonly table: Table;
   private rng: Rng;
@@ -1052,7 +1060,18 @@ export class Engine {
     if (!p || t.phase !== 'shop') return;
     p.shopDone = true;
     this.flush();
-    if (alive(t).every((q) => q.shopDone)) this.closeShop();
+    if (alive(t).every((q) => q.shopDone)) { this.closeShop(); return; }
+    if (this.humansDoneShopping()) {
+      // Only ever shortens the clock: a shared Market's 45s can already be
+      // closer than this.
+      const soon = Date.now() + this.paced(BOTS_AFTER_DONE_MS);
+      if (!this.onDeadline || this.deadline > soon) this.wait(BOTS_AFTER_DONE_MS, () => this.closeShop());
+    }
+  }
+
+  /** Every human still in the run has pressed Done; only bots are shopping. */
+  private humansDoneShopping(): boolean {
+    return alive(this.table).every((q) => q.isBot || q.shopDone);
   }
 
   // ------------------------------------------------------------------ betting
@@ -1385,10 +1404,14 @@ export class Engine {
     }
 
     if (t.phase === 'shop') {
+      // The pause between a bot's purchases is browsing for the player to
+      // watch. Once every human is Done nobody is watching, so the bots finish
+      // on consecutive ticks instead of making the player wait for them.
+      const hurry = this.humansDoneShopping();
       for (const p of alive(t)) {
         if (!p.isBot || p.shopDone) continue;
         const at = this.botClock.get(p.id) ?? 0;
-        if (now < at) continue;
+        if (now < at && !hurry) continue;
         const page = decideScribe(t, p, this.rng);
         if (page && scribe(t, p, page.uid, page.text, page.replace).ok) {
           this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
@@ -1396,8 +1419,10 @@ export class Engine {
           return;
         }
         const uid = decideShop(t, p, this.rng);
-        if (uid) {
-          buy(t, p, uid, this.rng);
+        // A refused purchase ends the bot's shopping. Ignoring the refusal
+        // let a bot choose the same item every turn and never be done, which
+        // held a solo Market open with the player already finished.
+        if (uid && buy(t, p, uid, this.rng).ok) {
           this.botClock.set(p.id, now + this.paced(500 + this.rng.int(900)));
         } else {
           p.shopDone = true;
