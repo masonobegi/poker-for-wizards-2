@@ -23,7 +23,7 @@ import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
-import { LINGER_MS, usePrefs } from '@/components/shell/prefs';
+import { lingerFor, markSeen, timesSeen, usePrefs } from '@/components/shell/prefs';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
@@ -73,8 +73,8 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const [{ spellCards }] = usePrefs();
   // Read when the stack empties, not a dependency: changing the setting while
   // a card lingers must not strand it on screen.
-  const lingerMs = useRef(LINGER_MS.full);
-  lingerMs.current = LINGER_MS[spellCards] ?? LINGER_MS.full;
+  const mode = useRef(spellCards);
+  mode.current = spellCards;
 
   // Keep the last stack on screen for a moment after it resolves.
   const [lingering, setLingering] = useState<ShownEntry[] | null>(null);
@@ -88,9 +88,13 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
     if (!lastEntries.current.length) return undefined;
     const last = lastEntries.current;
     lastEntries.current = [];
-    if (lingerMs.current <= 0) { setLingering(null); return undefined; }
+    // The card shown is the top of the stack; Auto judges by that sigil.
+    const top = last[last.length - 1];
+    const ms = lingerFor(mode.current, timesSeen(top.sigilId), !!top.scribed);
+    if (ms <= 0) { setLingering(null); return undefined; }
+    markSeen(top.sigilId);
     setLingering(last);
-    const id = window.setTimeout(() => setLingering(null), lingerMs.current);
+    const id = window.setTimeout(() => setLingering(null), ms);
     return () => window.clearTimeout(id);
   }, [stack, view.stackEntries]);
   // A new hand clears anything left over from the last one.

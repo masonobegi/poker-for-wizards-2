@@ -478,12 +478,14 @@ test('Reduce flashing stops flashes, colour splits and shake, and leaves other m
   }
 });
 
-test('Spell cards: Full lingers to be read, Brief flashes, Off shows only what you can answer', async () => {
+test('Spell cards: Auto reads a new spell in full and a known one briefly; Full, Brief, Off', async () => {
   // From the playtest (P6): a cast fills the middle of the table for 2.6s
-  // after it resolves, and ante 1 averages 6.8 casts a hand. Full keeps that
-  // for a first run; Brief and Off are for hour three.
+  // after it resolves, and ante 1 averages 6.8 casts a hand. A first run
+  // needs Full; by hour three it is in the way (26% of your own turns,
+  // measured). Auto, the default since round 3, is Full until a sigil has
+  // resolved in front of you AUTO_LEARNED_AFTER times, then Brief.
   const StackOverlay = (await import('../src/components/table/StackOverlay')).default;
-  const { LINGER_MS } = await import('../src/components/shell/prefs');
+  const { LINGER_MS, AUTO_LEARNED_AFTER, resetSeen, timesSeen } = await import('../src/components/shell/prefs');
   const { setPrefs, getPrefs, DEFAULT_PREFS } = await import('../src/components/shell/prefs');
   const { createRoot } = await import('react-dom/client');
   const { act } = await import('react');
@@ -491,7 +493,8 @@ test('Spell cards: Full lingers to be read, Brief flashes, Off shows only what y
   const { MotionGlobalConfig } = await import('framer-motion');
   MotionGlobalConfig.skipAnimations = true;
 
-  assert.equal(DEFAULT_PREFS.spellCards, 'full', 'a first run reads every spell');
+  assert.equal(DEFAULT_PREFS.spellCards, 'auto', 'the default learns');
+  assert.equal(AUTO_LEARNED_AFTER, 3);
   assert.ok(LINGER_MS.full >= 2000 && LINGER_MS.brief > 0 && LINGER_MS.brief < 1000 && LINGER_MS.off === 0);
 
   const me = { id: 'me', name: 'You', sigils: [], mana: 5, relics: [] };
@@ -527,7 +530,24 @@ test('Spell cards: Full lingers to be read, Brief flashes, Off shows only what y
       await wait(450);
     }
     assert.equal(JSON.parse(localStorage.getItem('hexhold.prefs') ?? '{}').spellCards, 'off', 'the choice is not saved');
+
+    // Auto: a Burn never seen before stays to be read, three times; the
+    // fourth flashes by like Brief.
+    resetSeen();
+    setPrefs({ spellCards: 'auto' });
+    for (let n = 0; n <= AUTO_LEARNED_AFTER; n++) {
+      await render(view(true));
+      await render(view(false));
+      await wait(LINGER_MS.brief + 250);
+      const learned = n >= AUTO_LEARNED_AFTER;
+      assert.equal(shown(), !learned, `auto, reading ${n + 1}: ${learned ? 'a known spell lingered' : 'a new spell flashed by'}`);
+      await render({ ...(view(false) as object), handNumber: 3 + n });
+      await wait(50);
+    }
+    assert.equal(timesSeen('burn'), AUTO_LEARNED_AFTER + 1);
+    assert.ok(JSON.parse(localStorage.getItem('hexhold.seenSpells') ?? '{}').burn > 0, 'what was seen is not saved');
   } finally {
+    resetSeen();
     setPrefs({ spellCards: 'full' });
     MotionGlobalConfig.skipAnimations = false;
     await act(async () => { root.unmount(); });

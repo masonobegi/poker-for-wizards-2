@@ -378,6 +378,7 @@ function DisplaySettings() {
 // ---------------------------------------------------------------------------
 
 const SPELL_CARD_HINT: Record<SpellCards, string> = {
+  auto: 'A spell you have not seen three times stays up long enough to read; one you know flashes by.',
   full: 'A spell stays in the middle of the table for a few seconds after it resolves, long enough to read.',
   brief: 'A spell flashes up for under a second, for when you know the sigils by name.',
   off: 'Only spells you can answer take the middle of the table.',

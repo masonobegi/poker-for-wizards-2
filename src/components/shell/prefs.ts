@@ -8,12 +8,25 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * How long a resolved spell's card stays in the middle of the table.
- * Full: 2.6s, long enough to read a spell you have never seen. Brief: under a
- * second, a flash of the name for someone who knows the sigils. Off: only
- * when you can answer it; everything else goes to the ledger.
+ * Auto (the default): Full for a sigil you have not yet seen resolve
+ * AUTO_LEARNED_AFTER times, Brief once you have. Full: 2.6s, long enough to
+ * read a spell you have never seen. Brief: under a second, a flash of the name
+ * for someone who knows the sigils. Off: only when you can answer it;
+ * everything else goes to the ledger.
  */
-export type SpellCards = 'full' | 'brief' | 'off';
-export const SPELL_CARD_OPTIONS: readonly SpellCards[] = ['full', 'brief', 'off'];
+export type SpellCards = 'auto' | 'full' | 'brief' | 'off';
+export const SPELL_CARD_OPTIONS: readonly SpellCards[] = ['auto', 'full', 'brief', 'off'];
+
+/**
+ * Times a sigil has to resolve in front of you before Auto shows it briefly.
+ *
+ * Decided 2026-10-10 (FUN-REVIEW.md, round 3). Measured from the player's
+ * chair, a resolved card at Full covered the middle of the table for 26% of
+ * the player's own turns; Brief, 8%. The playtest's first-run reader needed
+ * Full to learn what Graft does, and the simulated Deck player switched to
+ * Brief after an hour. Three readings of the same spell is enough to know it.
+ */
+export const AUTO_LEARNED_AFTER = 3;
 
 /**
  * How long a resolved spell stays readable after the stack empties, by the
@@ -23,7 +36,50 @@ export const SPELL_CARD_OPTIONS: readonly SpellCards[] = ['full', 'brief', 'off'
  * so by hour three that is a lot of reading; Brief and Off are for then.
  * Off still shows any spell you can answer: the response window is a choice.
  */
-export const LINGER_MS: Readonly<Record<SpellCards, number>> = { full: 2600, brief: 800, off: 0 };
+export const LINGER_MS: Readonly<Record<Exclude<SpellCards, 'auto'>, number>> = { full: 2600, brief: 800, off: 0 };
+
+/**
+ * The linger for one resolved spell. Auto reads how many times you have seen
+ * this sigil resolve; a written (Scribe) sigil is new words every time, so it
+ * is always read in full.
+ */
+export function lingerFor(mode: SpellCards, timesSeen: number, scribed = false): number {
+  if (mode !== 'auto') return LINGER_MS[mode] ?? LINGER_MS.full;
+  return scribed || timesSeen < AUTO_LEARNED_AFTER ? LINGER_MS.full : LINGER_MS.brief;
+}
+
+const SEEN_KEY = 'hexhold.seenSpells';
+let seen: Record<string, number> | null = null;
+
+function seenMap(): Record<string, number> {
+  if (seen) return seen;
+  seen = {};
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '{}');
+    if (raw && typeof raw === 'object') {
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        if (typeof v === 'number' && Number.isFinite(v)) seen[k] = v;
+      }
+    }
+  } catch { /* unavailable: Auto then reads every spell in full this session */ }
+  return seen;
+}
+
+/** How many times this sigil has resolved in front of this player. */
+export const timesSeen = (sigilId: string): number => seenMap()[sigilId] ?? 0;
+
+/** Count one more reading of a resolved sigil. */
+export function markSeen(sigilId: string): void {
+  const m = seenMap();
+  m[sigilId] = Math.min(99, (m[sigilId] ?? 0) + 1);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(m)); } catch { /* private mode */ }
+}
+
+/** Tests only: forget what has been seen. */
+export function resetSeen(): void {
+  seen = {};
+  try { localStorage.removeItem(SEEN_KEY); } catch { /* unavailable */ }
+}
 
 export interface GameplayPrefs {
   /** Ask "are you sure?" before a fold goes to the server. */
@@ -40,7 +96,7 @@ const PREFS_KEY = 'hexhold.prefs';
 
 export const DEFAULT_PREFS: GameplayPrefs = {
   confirmFold: true,
-  spellCards: 'full',
+  spellCards: 'auto',
   showPotOdds: false,
   autoMuck: false,
 };

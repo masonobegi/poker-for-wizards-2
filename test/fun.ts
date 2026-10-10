@@ -37,7 +37,7 @@ import { SIGIL_BY_ID, defOf } from '../shared/sigils';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type BotSkill, type RoomConfig } from '../shared/types';
 import { DEMO_ANTES, DEMO_COVENS } from '../shared/demo';
-import { LINGER_MS } from '../src/components/shell/prefs';
+import { LINGER_MS, lingerFor } from '../src/components/shell/prefs';
 import type { FxEvent } from '../shared/protocol';
 
 const args = process.argv.slice(2);
@@ -141,6 +141,13 @@ export interface RunReport {
   bust?: { ante: number; hand: number; by: string; theirs: string; yours: string | null; you: string[]; facedAllIn: boolean };
 }
 
+/**
+ * Auto's memory of sigils seen, kept across the runs of one process: a chunk
+ * of seven seeds replays one player's first seven runs, in order, so the Auto
+ * figure is the average over a player's first week, not their first hour.
+ */
+const seenAcrossRuns = new Map<string, number>();
+
 function playRun(seed: string, coven: string): RunReport {
   const fxLog: FxEvent[] = [];
   const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX, ...(DEMO ? { demoAntes: DEMO_LEN } : {}) };
@@ -188,10 +195,14 @@ function playRun(seed: string, coven: string): RunReport {
   let revived: RunReport['revived'];
   // The spell overlay, replayed at each setting's linger.
   const overlay: Record<string, { total: number; yourTurn: number }> = {};
-  for (const k of Object.keys(LINGER_MS)) overlay[k] = { total: 0, yourTurn: 0 };
+  for (const k of [...Object.keys(LINGER_MS), 'auto']) overlay[k] = { total: 0, yourTurn: 0 };
   let resolvedAt = -Infinity;
   let resolvedHand = -1;
   let stackWasLive = false;
+  // Auto remembers across runs (seenAcrossRuns below).
+  const seenCount = seenAcrossRuns;
+  let liveTop: { sigilId: string; scribed: boolean } | null = null;
+  let autoMs = 0;
 
   let lastHand = 0;
   let nextAt = 0;
@@ -268,9 +279,20 @@ function playRun(seed: string, coven: string): RunReport {
 
     // ---- the spell overlay: what it would cover at each setting
     const stackLive = !!t.stack && t.stack.entries.length > 0;
-    if (stackWasLive && !stackLive) { resolvedAt = now; resolvedHand = t.handNumber; }
+    if (stackLive) {
+      const top = t.stack!.entries[t.stack!.entries.length - 1];
+      liveTop = { sigilId: top.sigilId, scribed: !!top.scribed };
+    }
+    if (stackWasLive && !stackLive) {
+      resolvedAt = now; resolvedHand = t.handNumber;
+      if (liveTop) {
+        const n = seenCount.get(liveTop.sigilId) ?? 0;
+        autoMs = lingerFor('auto', n, liveTop.scribed);
+        seenCount.set(liveTop.sigilId, n + 1);
+      }
+    }
     stackWasLive = stackLive;
-    for (const [k, ms] of Object.entries(LINGER_MS)) {
+    for (const [k, ms] of [...Object.entries(LINGER_MS), ['auto', autoMs] as const]) {
       // Off shows a live stack only when you can answer it.
       const showsLive = stackLive && (k !== 'off' || pendingMe);
       const lingers = !stackLive && resolvedHand === t.handNumber && now - resolvedAt < ms;
@@ -454,10 +476,10 @@ export function summarise(rs: RunReport[]): void {
   if (ov.length) {
     const yt = avg((r) => r.time['your turn'] ?? 0);
     const tt = avg((r) => Object.values(r.time).reduce((a, b) => a + b, 0));
-    const parts = Object.keys(LINGER_MS).map((k) => {
+    const parts = [...Object.keys(LINGER_MS), 'auto'].map((k) => {
       const tot = ov.reduce((a, r) => a + r.overlay![k].total, 0) / ov.length;
       const yours = ov.reduce((a, r) => a + r.overlay![k].yourTurn, 0) / ov.length;
-      return `${k} ${((tot / tt) * 100).toFixed(0)}% of the run, ${((yours / Math.max(1, yt)) * 100).toFixed(0)}% of your turns`;
+      return `${k === 'auto' ? 'auto (first 7 runs)' : k} ${((tot / tt) * 100).toFixed(0)}% of the run, ${((yours / Math.max(1, yt)) * 100).toFixed(0)}% of your turns`;
     });
     console.log(`  a spell card covers the table: ${parts.join(' · ')}`);
   }
