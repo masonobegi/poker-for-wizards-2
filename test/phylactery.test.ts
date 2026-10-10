@@ -137,5 +137,7 @@ test('Deal again starts the next run on a clean 52-card deck', () => {
   assert.equal(t.cards.size, 52);
   const faces = new Set([...t.cards.values()].map((c) => `${c.faces[0].rank}${c.faces[0].suit}`));
   assert.equal(faces.size, 52, 'a duplicate face survived into the new run');
-  assert.ok([...t.cards.values()].every((c) => c.marks.length === 0 && c.faces.length === 1));
+  // The first hand is already dealt, and a bot of the Unmoored holds a card in
+  // superposition: its printed face is still faces[0].
+  assert.ok([...t.cards.values()].every((c) => c.marks.length === 0), 'a mark survived into the new run');
 });
