@@ -282,6 +282,43 @@ async function checkClippedText(page) {
   }, [isVisible.toString(), tagOf.toString()]);
 }
 
+/**
+ * Every control a player can see must be reachable: on screen, or inside a
+ * box that scrolls. The menu at 1280x800 (a Steam Deck) ran 400-550px past
+ * the bottom of a container with `overflow: hidden` until 2026-10-10, so
+ * Daily Rite, hosting, Settings and Quit could not be reached by mouse or
+ * touch. Every other check here passed, because nothing was clipped: it was
+ * simply off the edge of a screen that does not scroll.
+ */
+async function checkReachable(page) {
+  return page.evaluate(([isVisibleSrc, tagOfSrc]) => {
+    // eslint-disable-next-line no-eval
+    const isVisible = eval(`(${isVisibleSrc})`);
+    // eslint-disable-next-line no-eval
+    const tagOf = eval(`(${tagOfSrc})`);
+    const out = [];
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const scrolls = (el) => {
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (/(auto|scroll)/.test(cs.overflowY) && a.scrollHeight > a.clientHeight + 1) return true;
+      }
+      return false;
+    };
+    for (const el of document.querySelectorAll('button, a[href], input, select, textarea, [role="radio"]')) {
+      if (!isVisible(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      const off = r.bottom > vh + 1 || r.top < -1 || r.right > vw + 1 || r.left < -1;
+      if (off && !scrolls(el)) {
+        out.push(`${tagOf(el)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 24)}" is off screen (${Math.round(r.top)}..${Math.round(r.bottom)} of ${vh}) and nothing scrolls to it`);
+      }
+    }
+    return [...new Set(out)].slice(0, 12);
+  }, [isVisible.toString(), tagOf.toString()]);
+}
+
 /** The action buttons must all be visible and at least 32px tall. */
 async function checkActionButtons(page) {
   return page.evaluate(() => {
@@ -471,6 +508,7 @@ async function runResolution(browser, res) {
     fail('menu', await checkFixedBottom(page));
     fail('menu', await checkTinyText(page));
     fail('menu', await checkClippedText(page));
+    fail('menu', await checkReachable(page));
 
     // --- connect + practice ----------------------------------------------
     const practice = page.locator('button', { hasText: /practice vs bots/i }).first();

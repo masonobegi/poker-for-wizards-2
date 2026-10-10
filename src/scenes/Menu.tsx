@@ -124,6 +124,10 @@ export default function Menu() {
   // whatever it was when the menu mounted.
   const [profile, setProfile] = useState(() => loadProfile());
   const covenRecord = profile.covens[coven];
+  // A demo coven that is held back still says what it is, on hover, focus or
+  // a tap, in the line under the picker (a tooltip never shows on a pad or a
+  // touchscreen, which is how a Deck plays the demo).
+  const [peek, setPeek] = useState<string | null>(null);
   const pickCoven = (id: string): void => {
     setProfile(loadProfile());
     setCoven(id);
@@ -295,20 +299,36 @@ export default function Menu() {
                     role="radio"
                     aria-checked={coven === c.id}
                     aria-disabled={locked || undefined}
+                    aria-label={locked ? `${c.name}, in the full game` : undefined}
                     className={`menu-coven ${coven === c.id ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
                     style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
-                    onClick={() => { if (!locked) pickCoven(c.id); }}
-                    title={locked ? `In the full game. ${c.text}` : c.style}
+                    onClick={() => { if (locked) setPeek(c.id); else { setPeek(null); pickCoven(c.id); } }}
+                    onMouseEnter={locked ? () => setPeek(c.id) : undefined}
+                    onMouseLeave={locked ? () => setPeek(null) : undefined}
+                    onFocus={locked ? () => setPeek(c.id) : undefined}
+                    onBlur={locked ? () => setPeek(null) : undefined}
+                    title={locked ? undefined : c.style}
                   >
                     <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
                     <span className="menu-coven__name">{c.name}</span>
+                    {locked ? (
+                      <svg className="menu-coven__lock" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+                        <rect x="3" y="7" width="10" height="7" rx="1.2" fill="currentColor" />
+                        <path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                      </svg>
+                    ) : null}
                   </button>
                   );
                 })}
               </div>
               <p className="menu-covennote">
-                {covenOf(coven).text}
-                {covenRecord ? (
+                {peek ? (
+                  <>
+                    <strong className="menu-covenpeek">{covenOf(peek).name}, in the full game.</strong>{' '}
+                    {covenOf(peek).text}
+                  </>
+                ) : covenOf(coven).text}
+                {peek ? null : covenRecord ? (
                   <em className="menu-covenrecord">
                     {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
                     {covenRecord.wins > 0 ? ` · ${covenRecord.wins} won` : ''}

@@ -4,16 +4,29 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  padding: var(--s-5);
 }
 
+/* The column scrolls, not the screen: the backdrop stays put behind it.
+   Until 2026-10-10 `.menu` clipped instead, and at 1280x800 (a Steam Deck)
+   the plate ran 400-550px past the bottom with no way to scroll: Daily
+   Rite, hosting, Settings and Quit could not be reached by mouse or touch,
+   and in the demo neither could Wishlist. `safe` keeps a tall column
+   starting at its top instead of centring it off both edges. */
 .menu-inner {
   position: relative;
   z-index: 2;
-  width: min(460px, 100%);
+  width: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-deep) transparent;
   display: grid;
   gap: var(--s-6);
   justify-items: center;
+  align-self: safe center;
+  padding: var(--s-5);
 }
 
 /* --- brand -------------------------------------------------------------- */
@@ -369,13 +382,29 @@
 
 /* The Next Fest demo (src/lib/demo.ts): locked covens stay visible. */
 .menu-coven.is-locked {
-  opacity: 0.42;
+  grid-template-columns: auto auto auto;
+  opacity: 0.55;
   filter: grayscale(0.7);
-  cursor: not-allowed;
+  cursor: help;
 }
+.menu-coven.is-locked:hover,
+.menu-coven.is-locked:focus-visible { opacity: 0.8; }
+.menu-coven__lock { color: var(--gold); opacity: 0.9; }
+.menu-covenpeek { color: var(--gold); font-weight: 600; }
 .menu-demonote {
   margin: 0;
   font-size: var(--fs-sm);
   color: var(--text-2);
   text-align: center;
+}
+
+/* The column is full width so its scrollbar sits at the screen edge; what is
+   in it keeps the old 460px measure. */
+.menu .menu-inner > * { width: min(460px, 100%); }
+
+/* A short screen spends its height on the buttons, not the logo. */
+@media (max-height: 860px) {
+  .menu .menu-inner { gap: var(--s-4); padding-top: var(--s-4); }
+  .menu .menu-sigil svg { width: 52px; height: 52px; }
+  .menu .menu-brand { gap: 2px; }
 }

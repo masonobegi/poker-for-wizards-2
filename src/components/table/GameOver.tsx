@@ -91,6 +91,32 @@ export default function GameOver({ view }: { view: TableView }) {
   const demo = !!view.config.demoAntes;
   const busted = me?.bustedBy;
 
+  const standings = (
+    <ul className="gameover-board">
+      {board.map((p, i) => (
+        <motion.li
+          key={p.id}
+          className={p.id === view.winnerId ? 'is-first' : ''}
+          initial={{ opacity: 0, x: -14 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ ...ENTER, delay: 0.5 + Math.min(i * 0.06, 0.3) }}
+        >
+          <span className="gameover-rank mono">{i + 1}</span>
+          <Avatar seed={p.avatar} size={28} bot={p.isBot} dim={p.eliminated} />
+          <span className="gameover-name">{p.name}</span>
+          <span className="gameover-relics">
+            {p.relics.map((id) => {
+              const r = RELIC_BY_ID[id];
+              return r ? <Mark key={id} kind="relic" id={id} fallback={r.glyph} title={r.name} /> : null;
+            })}
+          </span>
+          <span className="gameover-stat mono">{p.handsWon} won</span>
+          <span className="gameover-chips mono">{p.chips.toLocaleString()}</span>
+        </motion.li>
+      ))}
+    </ul>
+  );
+
   return (
     <motion.div
       className="gameover"
@@ -214,29 +240,7 @@ export default function GameOver({ view }: { view: TableView }) {
           </motion.div>
         ) : null}
 
-        <ul className="gameover-board">
-          {board.map((p, i) => (
-            <motion.li
-              key={p.id}
-              className={p.id === view.winnerId ? 'is-first' : ''}
-              initial={{ opacity: 0, x: -14 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ ...ENTER, delay: 0.5 + Math.min(i * 0.06, 0.3) }}
-            >
-              <span className="gameover-rank mono">{i + 1}</span>
-              <Avatar seed={p.avatar} size={28} bot={p.isBot} dim={p.eliminated} />
-              <span className="gameover-name">{p.name}</span>
-              <span className="gameover-relics">
-                {p.relics.map((id) => {
-                  const r = RELIC_BY_ID[id];
-                  return r ? <Mark key={id} kind="relic" id={id} fallback={r.glyph} title={r.name} /> : null;
-                })}
-              </span>
-              <span className="gameover-stat mono">{p.handsWon} won</span>
-              <span className="gameover-chips mono">{p.chips.toLocaleString()}</span>
-            </motion.li>
-          ))}
-        </ul>
+        {demo ? null : standings}
 
         {demo ? (
           <motion.div
@@ -272,6 +276,10 @@ export default function GameOver({ view }: { view: TableView }) {
           )}
           <Button tone="ghost" block onClick={leave}>Leave table</Button>
         </div>
+
+        {/* A demo ends on its pitch and the wishlist button, which have to be
+            on screen without scrolling at 1280x800; the standings follow. */}
+        {demo ? standings : null}
       </motion.div>
     </motion.div>
   );

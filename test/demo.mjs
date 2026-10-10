@@ -77,6 +77,13 @@ async function clickIf(page, sel) {
   return false;
 }
 
+/** The end screen's wishlist button has to be on screen without scrolling. */
+async function wishlistAboveFold(page, tag) {
+  const box = await page.locator('.gameover-actions button:has-text("Wishlist on Steam")').first().boundingBox().catch(() => null);
+  if (!box) fail(`${tag}: no wishlist button on the end screen`);
+  else if (box.y + box.height > H) fail(`${tag}: the end screen's wishlist button is below the fold (${Math.round(box.y + box.height)} of ${H})`);
+}
+
 /** Play one run to its end. `style` is 'fold' (survive) or 'shove' (bust). */
 async function playRun(page, style, tag) {
   const t0 = Date.now();
@@ -148,8 +155,30 @@ for (const gone of ['Daily Rite', 'Host a Table', 'Join with a Code']) {
 }
 if (!(await visible(page, 'button:has-text("Play the Demo")'))) fail('no "Play the Demo" button');
 if (!(await visible(page, '.menu-actions button:has-text("Wishlist on Steam")'))) fail('no wishlist button on the menu');
-// A locked coven must not be pickable.
+// The two buttons the demo exists for are on screen without scrolling.
+for (const label of ['Play the Demo', 'Wishlist on Steam']) {
+  const box = await page.locator(`.menu-actions button:has-text("${label}")`).first().boundingBox().catch(() => null);
+  if (!box || box.y + box.height > H) fail(`"${label}" is below the fold at ${W}x${H}`);
+}
+// Everything else on the menu can be scrolled to (it could not, at 1280x800,
+// until 2026-10-10: the menu clipped instead of scrolling).
+await page.mouse.move(W / 2, H / 2);
+for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, 400); await page.waitForTimeout(80); }
+await page.waitForTimeout(300);
+await shot(page, '02b-menu-scrolled');
+const settings = await page.locator('.menu button:has-text("Settings")').first().boundingBox().catch(() => null);
+if (!settings || settings.y + settings.height > H || settings.y < 0) fail('Settings cannot be scrolled onto the screen');
+for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, -400); await page.waitForTimeout(80); }
+await page.waitForTimeout(300);
+
+// A locked coven is marked, says what it is when pointed at, and cannot be picked.
 const lockedName = (await page.locator('.menu-coven.is-locked .menu-coven__name').first().innerText().catch(() => '')).trim();
+if (await page.locator('.menu-coven.is-locked .menu-coven__lock').count() !== 4) fail('the locked covens carry no lock');
+await page.locator('.menu-coven.is-locked').first().hover().catch(() => {});
+await page.waitForTimeout(200);
+const peek = await page.locator('.menu-covenpeek').first().innerText().catch(() => '');
+if (!/full game/i.test(peek)) fail('pointing at a locked coven does not say it is in the full game');
+else notes.push(`locked coven hover: ${peek}`);
 await page.locator('.menu-coven.is-locked').first().click().catch(() => {});
 if (await page.locator('.menu-coven.is-locked[aria-checked="true"]').count()) fail(`locked coven ${lockedName} could be picked`);
 await page.locator('.menu-coven', { hasText: 'The Twinned' }).first().click().catch(() => {});
@@ -179,6 +208,7 @@ if (survived !== null) {
   if (!/demo ends here/i.test(survived)) fail('a survived demo run does not say the demo ends there');
   if (!/In the full game/i.test(survived)) fail('no "In the full game" block on the demo end screen');
   if (!(await visible(page, '.gameover-actions button:has-text("Wishlist on Steam")'))) fail('no wishlist button on the end screen');
+  await wishlistAboveFold(page, 'survive');
   if (!(await visible(page, 'button:has-text("Play the demo again")'))) fail('no "Play the demo again" button');
 }
 
@@ -190,6 +220,7 @@ if (busted !== null) {
   if (/demo ends here/i.test(busted)) notes.push('the shove run survived all three antes (no bust line to check)');
   else if (!(await visible(page, '.gameover-bust'))) fail('a bust says nothing about who did it');
   else notes.push(`bust line: ${(await page.locator('.gameover-bust').innerText()).replace(/\s+/g, ' ')}`);
+  await wishlistAboveFold(page, 'bust');
 }
 
 await browser.close();
