@@ -4,17 +4,19 @@ Branch `steam-ready-2026-10-09`. **Ship the Steam depots from this branch
 only**: `main` and `feedback-1` lack the save fix, the solo pause, the
 playtest fixes and everything below.
 
-## Code-side readiness: 81% (17 of 21), up from 60% this morning
+## Code-side readiness: 95% (21 of 22), up from 60% this morning
 
-Measured against a fixed list of the 21 things code and files can do for a
-Steam launch (below), each DONE with proof or not. Before this pass: 10 done
-and 5 half-done (counted as half) = 12.5 of 21. After: 17 of 21. Nothing
-that needs Mason's account, hardware, money or judgement is in the count.
+Measured against a fixed list of the 22 things code and files can do for a
+Steam launch (below), each DONE with proof or not. This morning: 12.5 of 21
+(5 half-done counted as half). After the first finish pass: 17 of 21. Now:
+21 of 22 (item 22, Quit, was added when it was found). The one left, P6,
+waits on a decision only Mason can make. Nothing that needs his account,
+hardware, money or judgement is in the count.
 
 | # | Code-side item | Status | Proof |
 | --- | --- | --- | --- |
-| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt from `e78db5d`. Packaged harness: see section 2. |
-| 2 | Linux build (Steam Deck depot), current and launched | DONE (was: never built) | `release/linux-unpacked`, cross-built on Windows. Headless run in WSL: **20 of 20** (section 2). |
+| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt from `ce2e2c4` (the last code change). Packaged harness 21/21, quit harness 9/9 (section 2). |
+| 2 | Linux build (Steam Deck depot), current and launched | DONE (was: never built) | `release/linux-unpacked`, same commit. Headless in WSL: **21 of 21** at 1280x800 and at 1920x1080; quit harness 6/6 (section 2). |
 | 3 | Steamworks: App ID from Steam, achievements, rich presence, Cloud | DONE | `test/steam.test.ts`; dormant until an App ID exists. |
 | 4 | Achievements: 20 defined, manifests, icons | DONE (was: monogram icons the manifest did not name) | 40 drawn icons in `steam/achievements/`; `achievements.json`/`.vdf` name each pair; test fails if one is missing. |
 | 5 | Settings that all do something | DONE (was: 3 dead switches) | Confirm before folding drives the fold guard; the other two hidden. `render.test.tsx`. |
@@ -31,18 +33,33 @@ that needs Mason's account, hardware, money or judgement is in the count.
 | 16 | P7: title music at launch | DONE | Harness: AudioContext runs before any input, Windows and Linux. |
 | 17 | P8: Steam on-screen keyboard for text fields | DONE in code (was: none) | `test/keyboard.test.ts`, `test/steam.test.ts`, `test/display.test.ts`. Not yet seen on a Steam client (Mason, section 4). |
 | 18 | P6: spell overlay length (Full / Brief / Off) | NOT DONE | Needs a decision (see Mason later). `StackOverlay.tsx` `LINGER_MS = 2600`. |
-| 19 | UI scale above 125% | NOT DONE | `.app` uses CSS zoom: 150% on a 1280x800 Deck lays out at 853x533, under the 1024x680 minimum. Needs a cap that depends on the window size. |
-| 20 | `botmagic.test.ts` "rarely counters" is load-sensitive | NOT DONE | Bot previews have a wall-clock budget; under 100% CPU the test can fail. Give it a time-independent budget. `server/game/bots.ts` untouched. |
-| 21 | PlayStation button glyphs | NOT DONE | Steam Input presents a PS pad as Xbox, so prompts are correct through Steam; native glyphs are a post-launch nicety. |
+| 19 | UI scale above 125% | DONE (was: capped at 125%) | Up to 200%, applied as the page zoom and capped so the layout never drops under 1024x680 (Deck 117%, 1080p 158%, 1440p and up 200%). `npm run responsive` at 200%: 0 failures at 1280x800 and 1920x1080 (3 and 4 with the old CSS zoom). `test/uiscale.test.ts`; the packaged harness checks the zoom on Windows and Linux. |
+| 20 | Bot decisions independent of server load | DONE (was: `botmagic` failed under CPU load) | Preview budget on an injectable clock; tests run idle and overloaded simulated clocks. It found a real bug: under load bots Nullified 81 of 150 harmless peeks; now under 20% either way. |
+| 21 | PlayStation (and Nintendo) button glyphs | DONE (was: Xbox only) | Family from the `Gamepad.id` vendor (054c Sony, 057e Nintendo; the Deck and Steam Input stay Xbox); the legend, action bar and Controls follow the pad in hand. `test/padglyphs.test.ts` (5). |
+| 22 | Quit ends the game promptly | DONE (was: 4 to 12s, once over 15s) | Electron's native teardown kept the exe (GPU, audio, browser processes) alive after the window closed; `electron/shutdown.cjs` ends the tree on `quit`. `test/quit.mjs` (menu, table, spell stack; by pid; hidden, muted): before 0/9 under 3s, after 9/9 on Windows (slowest 827ms) and 6/6 on Linux. |
 
-Still code-side and not done, beyond 18-21: one packaged-harness run of
-three had Quit take over 15s to close the window (section 2). Not
-reproduced; worth a look at the quit path (`before-quit`, the preload's
-synchronous save on `beforeunload`) before upload.
+## 1. What the finish passes fixed (2026-10-09 evening)
 
-## 1. What this pass fixed (finish pass, 2026-10-09 evening)
+Commits `0d699ea..HEAD` on this branch. Second round (items 19 to 22):
 
-Commits `0d699ea..HEAD` on this branch.
+- **Quit**, root cause measured by pid: the window closed in ~150ms and the
+  shell's JavaScript finished ~100ms later, then Electron's native teardown
+  held HEXHOLD.exe 4 to 12s (GPU process and audio service 1.6 to 7s, then
+  the browser process). It was not the spell stack (menu quits were as
+  slow), and `app.exit()`/`process.exit()` do not skip it. Steam shows a
+  game running, and refuses a relaunch, until that process is gone. On
+  `quit` the packaged shell now ends its children and itself; every save is
+  already written by then (the harness's relaunch checks prove it).
+- **UI scale to 200%** as the page zoom (webFrame), so media queries and
+  measurements see the real layout size. CSS zoom (the old way, still the
+  browser build's, at most 125%) let the seats slide over the board.
+- **Bots and server load**: the preview budget read the wall clock, so a
+  busy machine changed what bots did (and failed the test). Simulated clock
+  in tests; an unmeasured preview still knows whether a spell touches the
+  seat.
+- **PlayStation and Nintendo glyphs**, from the pad in hand.
+
+First round:
 
 - **The Market hang is confirmed fixed.** The verifier reported that P3 (no
   Market clock solo) could hold a Market open up to 30 minutes after Done;
@@ -84,22 +101,29 @@ kit. Their proofs are in the commit messages.
 
 - **Windows**: `npm run package:win` (installer `HEXHOLD Setup 0.9.0.exe`,
   `HEXHOLD-0.9.0-win.zip`, `win-unpacked/`). `node test/packaged.mjs 60`
-  (muted, off-screen, unfocusable, offline): **20 of 20** on the final run.
-  Three runs of the final build: run 1 failed "app did not close on Quit"
-  (no process was left afterwards), run 2 failed the pause check (Escape
-  opened no menu: the harness player had likely busted and the run had
-  ended, P1), run 3 passed everything. Both look like harness races, but
-  the Quit one is listed under "still code-side" until it is explained.
+  (muted, off-screen, unfocusable, offline): **21 of 21**, now including UI
+  scale 200% applied as page zoom. `node test/quit.mjs 3` (quit from the
+  menu, a table and a spell stack; every game process timed by pid): **9 of
+  9**, slowest 827ms from the press to the last process gone. Earlier this
+  evening one harness run failed the pause check (Escape opened no menu
+  after the harness player busted and the run had ended, P1); it has not
+  recurred in the runs since.
 - **Linux**: `npx electron-builder --linux dir` (the depot uploads
   `release/linux-unpacked`). From Windows:
   `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless Ozone,
-  `--no-sandbox`, no display, so nothing appears): **20 of 20** at 1280x800:
+  `--no-sandbox`, no display, so nothing appears; xvfb would need root,
+  which this WSL does not give): **21 of 21** at 1280x800 and at 1920x1080
+  (`env HEXHOLD_TEST_SIZE=1920x1080`); with `env HEXHOLD_HARNESS=test/quit.mjs`
+  quit is 6 of 6, slowest 156ms after the press. Checked:
   menu, Cinzel offline, version, Settings tabs, no DevTools, a practice run
   at the table, the solo pause, no network, Quit leaves no process, the save
   surviving a new port, a deleted key staying deleted. Not tested: a GPU,
   sound out of a speaker, the Steam runtime container, a real Deck.
   AppImage and tar.gz (non-Steam) are configured but not built this pass.
-- **`npm test`**: **263 of 263** (was 247), on the final code.
+- **`npm test`**: **275 of 275** (was 247 this afternoon), on the final code.
+- **`npm run responsive`** with `HEXHOLD_UI_SCALE=2` (page zoom emulated):
+  1280x800 and 1920x1080, 0 failures. At the default scale this afternoon's
+  12px-floor run stands (no layout CSS changed since).
 - **`npx tsc --noEmit`**: clean.
 
 ## 3. Steamworks (dormant until an App ID exists)
@@ -117,7 +141,11 @@ kit. Their proofs are in the commit messages.
 ## 4. Controller and Steam Deck
 
 - Every menu reachable by pad (`npm run play:pad`, 9/9 at 1280x800, earlier
-  pass); the table plays on the pad; prompts switch to Xbox glyphs.
+  pass); the table plays on the pad; prompts show the buttons of the pad in
+  hand: Xbox (and the Deck), PlayStation or Nintendo. When Steam Input
+  remaps a PlayStation pad, the game sees a virtual Xbox pad and the prompts
+  say Xbox; reading the real type through the Steam Input API is a possible
+  later step.
 - Text entry by pad: wired (P8), unit-tested against a stand-in for Steam.
   **The store says Partial** until Mason sees it work once on a real Steam
   client; `steam/store-page.md` "Controller support" has the exact check and
@@ -152,9 +180,9 @@ kit. Their proofs are in the commit messages.
    Enter). Pass: declare Full, add the Controller tag, aim for Verified.
    Also legibility, frame rate, and one listening pass.
 5. **Decide**: P6 spell overlay length (the playtest suggests Full / Brief
-   at about 0.8s / Off as log only); UI scale above 125% (worth a
-   window-size cap?); whether the two hidden Gameplay switches are ever
-   built; the LAN server's `0.0.0.0` (a firewall prompt on first launch).
+   at about 0.8s / Off as log only), the last code-side item; whether the
+   two hidden Gameplay switches are ever built; the LAN server's `0.0.0.0`
+   (a firewall prompt on first launch).
 6. **Legal and naming**: trademark search on HEXHOLD, publisher name (the
    copyright line reads Mason Obegi), Australia's R 18+ for simulated
    gambling.

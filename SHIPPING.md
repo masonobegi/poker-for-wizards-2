@@ -123,7 +123,7 @@ Honest list, worst first.
 - [ ] Achievements uploaded from `npm run steam:manifest`
 - [ ] Steam Cloud enabled with a quota (the game writes `hexhold-save.json` through the API)
 - [ ] `npm test && npm run play && npm run play:pad` all green
-- [ ] `npm run package:win` and `npx electron-builder --linux dir` (the Linux depot is `release/linux-unpacked`; both cross-build on Windows), then `node test/packaged.mjs 60` and `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless, no root) both pass
+- [ ] `npm run package:win` and `npx electron-builder --linux dir` (the Linux depot is `release/linux-unpacked`; both cross-build on Windows), then `node test/packaged.mjs 60`, `node test/quit.mjs 3` and `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless, no root) all pass
 - [ ] Docker image built once and a real remote game played over it
 - [ ] Store page, capsules, trailer (controller support declared **Partial** until the on-screen keyboard, P8, is done: `steam/store-page.md`)
 - [ ] Age rating survey

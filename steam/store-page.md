@@ -122,9 +122,10 @@ Steam Deck (below) passes; then switch to Full.
 
 What works with a pad: every menu is reachable by d-pad or stick
 (`npm run play:pad`, 9/9 at 1280x800), the whole table plays on the pad, and
-button prompts switch to pad glyphs while a pad is in use. PlayStation glyphs
-are not drawn; Steam Input presents a PS pad as an Xbox one, so the prompts
-name the Xbox buttons.
+button prompts switch to the glyphs of the pad in hand while it is in use:
+Xbox (and the Deck), PlayStation (Cross, Circle, Square, Triangle, L1/R1)
+or Nintendo. When Steam Input remaps a PlayStation pad the game sees a
+virtual Xbox pad and shows Xbox prompts.
 
 Text entry (P8, wired 2026-10-09): with a pad in use, pressing A on a text
 field, or a panel opening with its field focused, or a finger tapping a
