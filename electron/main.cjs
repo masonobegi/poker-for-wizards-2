@@ -13,6 +13,7 @@ const net = require('node:net');
 const fs = require('node:fs');
 const steam = require('./steam.cjs');
 const display = require('./display.cjs');
+const { endProcessTree } = require('./shutdown.cjs');
 
 const isDev = !app.isPackaged;
 
@@ -552,3 +553,18 @@ app.on('window-all-closed', () => {
 });
 app.on('before-quit', () => { stopServer(); steam.shutdown(); });
 process.on('exit', stopServer);
+
+// Quit means gone: without this, Electron's native teardown kept HEXHOLD.exe
+// (and its GPU and audio processes) alive 4 to 12 seconds after the window
+// closed, so Steam showed the game running and refused a relaunch. See
+// shutdown.cjs for the measurements. Packaged builds only; not on macOS,
+// where the app outliving its windows is the platform's convention.
+if (!isDev && process.platform !== 'darwin') {
+  app.on('quit', () => endProcessTree({
+    selfPid: process.pid,
+    metrics: app.getAppMetrics(),
+    kill: (pid) => process.kill(pid),
+    exit: (code) => process.reallyExit(code),
+    before: stopServer,
+  }));
+}
