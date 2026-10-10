@@ -236,3 +236,45 @@ conditions that are not code: the store page must not sell online play
 until Steam invites exist (it is LAN or a self-hosted server today), and
 the capsule art must be commissioned. At $14.99, no: that needs Balatro's
 content depth and art.
+
+---
+
+# Round 3 (2026-10-10): earn the 8, or say the real number
+
+Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN3_BRIEF.md`. Mason's
+rule: "it has to earn the 8, and if it can't, fine, but no lying or moving
+the goalposts or adding shitty mechanics."
+
+## The rubric, locked before any change
+
+The review above gave one number, 7. Its criteria are its own sections: the
+five ranked refund reasons, "what makes it special", and the two gaps the
+verdict names (relics, art). They are scored here, each out of 10, from the
+evidence the review already had, re-measured on e011a88 (`npm run
+fun:batch -- 140 0`, adept bots, Hex I, aggressive player; it reproduced
+every published number). The total is the mean, rounded half up; an 8
+needs a mean of 7.5. No criterion is redefined after this point.
+
+| # | Criterion (where it comes from) | Evidence before (e011a88) | Before |
+|---|---|---|---|
+| 1 | The run shows itself before it can end (reason 1) | over before the first Market 12% (cautious player 9%); before ante 3 23%; survived 3 antes 71% | 6 |
+| 2 | The namesake shows up (reason 2) | an impossible hand in 39% of runs, 22% inside 3 antes; one of your own in 21% | 7 |
+| 3 | The run arc builds (reason 3) | stack at ante 7 19 bb; casts a hand 6.3 at ante 1, 2.2 at ante 7; biggest pot in the last 3 hands in 56% of runs | 7 |
+| 4 | Covens play differently and deliver their pitch (reason 4) | wins 2-7 of 20 per coven; the Unmoored dies earliest (ante 3.5); the Twinned, pitched as the impossible-hand coven, sees one in 35% of runs against the Ashen's 55%; the Loom ("writing on the deck") 25%, the fewest | 5 |
+| 5 | Little dead time, and the game says what happened (reason 5) | 9.3 real choices a minute; 38% of a run is not the player's decision; the end screen names the hand that busted you | 7 |
+| 6 | The special things show in the first 10 minutes | first cast 4 s; Scribe at the first Market (99 s); a deck-breaking omen at the first Market; an impossible hand in 22% of 3-ante demos | 8 |
+| 7 | Builds have depth; relics are more than numbers (verdict) | 36 distinct relics owned across 140 runs, overlap between runs 0.09; most relics are a number on a passive | 6 |
+| 8 | Presentation: art and feel (verdict) | clean CSS and SVG, synthesised sound, no illustrated assets | 6 |
+| | **Mean** | | **6.5, rounds to 7** |
+
+Which evidence is which: every number above is measured by the harness
+(simulated players driven by the bots' own decision code at a human pace).
+"Most relics are a number" and the art line are read from the code and from
+the three simulated reviews. Comparables are the market file
+(`market/poker-for-wizards-2.md`) and the sources named where they are used.
+
+What can move in code: 1, 2, 4, 5 and 6. Criterion 3 is already where the
+last pass put it. Criterion 7 is content work, and 8 needs an artist, so
+those two hold at 6 whatever happens here. That caps the honest mean at
+(10 + 10 + 7 + 10 + 10 + 10 + 6 + 6) / 8 = 8.6 in theory and makes 7.5 a
+real climb: it needs about eight points across criteria 1, 2, 4, 5 and 6.
