@@ -1,0 +1,403 @@
+/**
+ * Fun, measured from the player's chair.
+ *
+ * `metrics` and `runs` watch all-bot tables. A player's run is not that: it
+ * is one human seat at a solo table, so the run ends the moment they bust,
+ * the Market waits for them, and every second a bot spends thinking is a
+ * second the player spends watching. This harness plays that run.
+ *
+ * The "player" is a real human seat (not `isBot`), so every solo rule
+ * applies, driven by the bots' own decision code with a human's pace: a few
+ * seconds per decision and time to read the Market. Everything runs on a
+ * simulated clock (the engine's real 120ms tick), so a 10-minute run takes
+ * seconds and the times reported are game time, not harness time.
+ *
+ * It reports what predicts fun: the run arc (does it build to a climax), the
+ * difficulty curve by ante, build diversity by coven, how often the
+ * impossible hands show up, decision density, and dead time.
+ *
+ * Run: npx tsx test/fun.ts [runs] [first-seed] [--json out.json] [--coven id]
+ *      [--skill novice|adept|master] [--hex n] [--demo]
+ */
+import { mock } from 'node:test';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { Engine } from '../server/game/engine';
+import { decideAction, decideCast, decideResponse, decideScribe, decideShop } from '../server/game/bots';
+import { alive, byId, castableSigils, live, totalPot } from '../server/game/table';
+import { COVENS } from '../shared/covens';
+import { RELIC_BY_ID } from '../shared/relics';
+import { SIGIL_BY_ID, defOf } from '../shared/sigils';
+import { Rng } from '../shared/rng';
+import { DEFAULT_CONFIG, type BotSkill, type RoomConfig } from '../shared/types';
+import type { FxEvent } from '../shared/protocol';
+
+const args = process.argv.slice(2);
+const flag = (name: string): string | undefined => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const VALUED = new Set(['--json', '--coven', '--skill', '--hex', '--merge']);
+const positional = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && VALUED.has(args[i - 1])));
+const RUNS = Number(positional[0] ?? 12);
+const FIRST = Number(positional[1] ?? 0);
+const JSON_OUT = flag('--json');
+const ONLY_COVEN = flag('--coven');
+const SKILL = (flag('--skill') ?? 'adept') as BotSkill;
+const HEX = Number(flag('--hex') ?? 1);
+const DEMO = args.includes('--demo');
+
+const STEP = 120;
+/** A human's pace. Generous to the game: real players are slower. */
+const THINK_MS = 3500;
+const RESPOND_MS = 2500;
+const BROWSE_MS = 20000;
+const RUN_CAP_MS = 60 * 60_000;
+const IMPOSSIBLE = /Five of a Kind|Flush House|Flush Five/;
+const YOU = 'you';
+
+export interface AnteRow {
+  ante: number;
+  hands: number;
+  /** Your stack at the first hand of the ante, in big blinds. */
+  stackBB: number;
+  /** Mean pot at payout, in big blinds and in chips. */
+  potBB: number;
+  potChips: number;
+  allIns: number;
+  casts: number;
+  impossible: number;
+  /** The big blind at the ante's first hand. */
+  bb?: number;
+}
+
+export interface RunReport {
+  seed: string;
+  coven: string;
+  won: boolean;
+  bustAnte: number | null;
+  finalAnte: number;
+  hands: number;
+  minutes: number;
+  /** Seconds of game time to the first moment worth telling someone about. */
+  firstMomentS: number | null;
+  firstMomentKind: string | null;
+  firstMarketS: number | null;
+  impossibleSeen: number;
+  impossibleYours: number;
+  firstImpossibleAnte: number | null;
+  impossibleCtx?: Array<{ ante: number; hand: string; yours: boolean; omens: string[] }>;
+  biggestPotChips: number;
+  biggestPotAnte: number;
+  biggestPotHand: number;
+  /** Seconds of game time, by what the player was doing. */
+  time: Record<string, number>;
+  decisions: { bets: number; facingBet: number; checkOnly: number; casts: number; castChances: number;
+    responses: number; responseChances: number; buys: number; writes: number; markets: number };
+  relics: string[];
+  castSchools: Record<string, number>;
+  castIds: string[];
+  omens: string[];
+  antes: AnteRow[];
+}
+
+function playRun(seed: string, coven: string): RunReport {
+  const fxLog: FxEvent[] = [];
+  const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX };
+  const e = new Engine('FUN1', YOU, cfg, (fx) => { for (const f of fx) fxLog.push(f); }, () => {});
+  const t = e.table;
+  const rng = new Rng(`fun:${seed}`);
+  const t0 = Date.now();
+  const time: Record<string, number> = {};
+  const add = (k: string, ms: number): void => { time[k] = (time[k] ?? 0) + ms / 1000; };
+  const dec = { bets: 0, facingBet: 0, checkOnly: 0, casts: 0, castChances: 0, responses: 0, responseChances: 0, buys: 0, writes: 0, markets: 0 };
+  const antes = new Map<number, AnteRow & { pots: number[] }>();
+  const row = (a: number) => {
+    let r = antes.get(a);
+    if (!r) { r = { ante: a, hands: 0, stackBB: 0, potBB: 0, potChips: 0, allIns: 0, casts: 0, impossible: 0, pots: [] }; antes.set(a, r); }
+    return r;
+  };
+  const castIds: string[] = [];
+  const castSchools: Record<string, number> = {};
+  const impossibleCtx: Array<{ ante: number; hand: string; yours: boolean; omens: string[] }> = [];
+  let impossibleSeen = 0;
+  let impossibleYours = 0;
+  let firstImpossibleAnte: number | null = null;
+  let biggest = { chips: 0, ante: 0, hand: 0 };
+  let firstMoment: { s: number; kind: string } | null = null;
+  let firstMarketS: number | null = null;
+  let bustAnte: number | null = null;
+  const moment = (kind: string) => { if (!firstMoment) firstMoment = { s: (Date.now() - t0) / 1000, kind }; };
+
+  e.addPlayer(YOU, 'You');
+  const me = byId(t, YOU)!;
+  me.coven = coven;
+  for (let i = 0; i < 3; i++) e.addBot();
+  if (!e.start().ok) throw new Error('start failed');
+
+  let lastHand = 0;
+  let nextAt = 0;
+  let castsThisTurn = 0;
+  let turnKey = '';
+  let respondedTo = '';
+  let marketKey = '';
+  let foldedThisHand = false;
+  let elapsed = 0;
+
+  while (t.phase !== 'gameover' && elapsed < RUN_CAP_MS) {
+    // ---- bookkeeping on what the engine just said
+    for (const f of fxLog.splice(0)) {
+      if (f.t === 'win') {
+        const r = row(t.ante);
+        if (IMPOSSIBLE.test(f.handName)) {
+          impossibleSeen++; r.impossible++;
+          if (f.playerId === YOU) impossibleYours++;
+          impossibleCtx.push({ ante: t.ante, hand: f.handName, yours: f.playerId === YOU, omens: t.omens.map((o) => o.id) });
+          if (firstImpossibleAnte === null) firstImpossibleAnte = t.ante;
+          moment('impossible hand');
+        }
+      }
+      if (f.t === 'cast') {
+        row(t.ante).casts++;
+        if (f.casterId === YOU) {
+          moment('you cast a sigil');
+          castIds.push(f.sigilId);
+          const d = SIGIL_BY_ID[f.sigilId];
+          if (d) castSchools[d.school] = (castSchools[d.school] ?? 0) + 1;
+        }
+      }
+      if (f.t === 'counter') moment('a counterspell');
+      if (f.t === 'chips' && f.allIn) row(t.ante).allIns++;
+      if (f.t === 'eliminate' && f.playerId === YOU) bustAnte = t.ante;
+      if (f.t === 'banner' && /A new rule/.test(f.sub ?? '')) moment('an omen');
+    }
+    if (t.handNumber !== lastHand) {
+      lastHand = t.handNumber;
+      foldedThisHand = false;
+      const r = row(t.ante);
+      if (r.hands === 0) { r.stackBB = me.chips / t.bb; r.bb = t.bb; }
+      r.hands++;
+    }
+    if (t.phase === 'payout' && t.payout && !(t.payout as { _seen?: boolean })._seen) {
+      (t.payout as { _seen?: boolean })._seen = true;
+      const amt = t.payout.pots.reduce((a, p) => a + p.amount, 0);
+      row(t.ante).pots.push(amt);
+      if (amt > biggest.chips) biggest = { chips: amt, ante: t.ante, hand: t.handNumber };
+    }
+    if (me.folded && !me.eliminated) foldedThisHand = true;
+
+    // ---- what the player is doing right now, for the time ledger
+    const now = Date.now();
+    const pendingMe = !!t.stack && t.stack.pending.includes(YOU);
+    let state: string;
+    if (t.phase === 'shop') {
+      if (firstMarketS === null) firstMarketS = (now - t0) / 1000;
+      state = me.shopDone ? 'market: waiting on bots' : 'market: you shopping';
+    } else if (t.actingId === YOU && !t.stack) state = 'your turn';
+    else if (pendingMe) state = 'your response window';
+    else if (t.stack) state = foldedThisHand ? 'watching spells (folded)' : 'watching spells';
+    else if (t.actingId) state = foldedThisHand ? 'watching bots bet (folded)' : 'watching bots bet';
+    else if (t.phase === 'payout' || t.phase === 'showdown') state = 'showdown and payout';
+    else state = 'deal, streets, banners';
+    add(state, STEP);
+
+    // ---- the player acts, at a human pace
+    if (t.phase === 'shop' && !me.shopDone && !me.eliminated) {
+      const key = `m${t.ante}`;
+      if (marketKey !== key) { marketKey = key; nextAt = now + BROWSE_MS; dec.markets++; }
+      if (now >= nextAt) {
+        for (let guard = 0; guard < 8; guard++) {
+          const page = decideScribe(t, me, rng);
+          if (page && e.shopScribe(YOU, page.uid, page.text, page.replace).ok) { dec.writes++; continue; }
+          const uid = decideShop(t, me, rng);
+          if (uid && e.shopBuy(YOU, uid).ok) { dec.buys++; continue; }
+          break;
+        }
+        e.shopDone(YOU);
+      }
+    } else if (pendingMe) {
+      const key = `${t.stack!.entries.length}:${t.stack!.entries[t.stack!.entries.length - 1]?.id}`;
+      if (respondedTo !== key) { respondedTo = key; nextAt = now + RESPOND_MS; }
+      if (now >= nextAt) {
+        const hasAnswer = me.sigils.some((s) => defOf(s)?.timing.includes('response'));
+        if (hasAnswer) dec.responseChances++;
+        const r = decideResponse(t, me, rng);
+        if (r && e.cast(YOU, r.uid, r.targets).ok) { dec.responses++; moment('you countered'); } else e.pass(YOU);
+      }
+    } else if (t.actingId === YOU && !t.stack) {
+      const key = `${t.handNumber}:${t.phase}:${t.currentBet}:${me.bet}`;
+      if (turnKey !== key) {
+        turnKey = key; nextAt = now + THINK_MS;
+        castsThisTurn = 0;
+        if (castableSigils(t, me).length > 0) dec.castChances++;
+      }
+      if (now >= nextAt) {
+        const spell = castsThisTurn < 2 ? decideCast(t, me, rng) : null;
+        if (spell && e.cast(YOU, spell.uid, spell.targets).ok) {
+          castsThisTurn++; dec.casts++;
+          const def = SIGIL_BY_ID[me.sigils.find((s) => s.uid === spell.uid)?.defId ?? ''] ?? null;
+          void def;
+          nextAt = now + 1200;
+        } else {
+          const toCall = t.currentBet - me.bet;
+          const a = decideAction(t, me, rng);
+          if (e.act(YOU, a).ok) {
+            dec.bets++;
+            if (toCall > 0) dec.facingBet++; else dec.checkOnly++;
+          } else e.act(YOU, toCall > 0 ? { kind: 'fold' } : { kind: 'check' });
+          turnKey = '';
+        }
+      }
+    }
+
+    mock.timers.tick(STEP);
+    elapsed += STEP;
+  }
+
+  if (process.env.FUN_LOG) for (const l of t.log) process.stdout.write(`    | ${l.text}
+`);
+  const won = t.winnerId === YOU;
+  const finalAnte = t.ante;
+  const res: RunReport = {
+    seed, coven, won, bustAnte: won ? null : (bustAnte ?? finalAnte), finalAnte,
+    hands: t.handNumber,
+    minutes: (Date.now() - t0) / 60000,
+    firstMomentS: firstMoment ? (firstMoment as { s: number }).s : null,
+    firstMomentKind: firstMoment ? (firstMoment as { kind: string }).kind : null,
+    firstMarketS,
+    impossibleSeen, impossibleYours, firstImpossibleAnte, impossibleCtx,
+    biggestPotChips: biggest.chips, biggestPotAnte: biggest.ante, biggestPotHand: biggest.hand,
+    time, decisions: dec,
+    relics: [...me.relics],
+    castSchools, castIds,
+    omens: t.omens.map((o) => o.id),
+    antes: [...antes.values()].sort((a, b) => a.ante - b.ante).map(({ pots, ...r }) => ({
+      ...r,
+      potChips: pots.length ? Math.round(pots.reduce((a, b) => a + b, 0) / pots.length) : 0,
+      potBB: pots.length ? +(pots.reduce((a, b) => a + b, 0) / pots.length / (r.bb || bbAt(r.ante))).toFixed(1) : 0,
+      stackBB: +r.stackBB.toFixed(1),
+    })),
+  };
+  e.dispose();
+  return res;
+}
+
+/** The big blind at an ante, as the engine computes it with no omen in play. */
+function bbAt(ante: number): number {
+  return Math.round((200 * Math.pow(1.6, ante - 1)) / 50) * 50;
+}
+
+// The player's own casts are counted from the fx stream; this tags schools.
+const castHook = (id: string, out: RunReport) => {
+  const d = SIGIL_BY_ID[id];
+  if (d) out.castSchools[d.school] = (out.castSchools[d.school] ?? 0) + 1;
+};
+void castHook;
+
+// --merge <dir>: summarise the part*.json files a parallel batch wrote.
+const MERGE = flag('--merge');
+if (MERGE) {
+  const all: RunReport[] = readdirSync(MERGE).filter((f) => /^part\d+\.json$/.test(f))
+    .flatMap((f) => JSON.parse(readFileSync(join(MERGE, f), 'utf8')) as RunReport[]);
+  summarise(all);
+  process.exit(0);
+}
+
+mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: Date.UTC(2026, 9, 9, 12) });
+const warn = console.warn; const err = console.error;
+console.warn = () => {}; console.error = () => {};
+
+const covens = ONLY_COVEN ? [ONLY_COVEN] : COVENS.map((c) => c.id);
+const reports: RunReport[] = [];
+for (let i = FIRST; i < FIRST + RUNS; i++) {
+  const coven = covens[i % covens.length];
+  reports.push(playRun(`fun-${i}`, coven));
+}
+mock.timers.reset();
+console.warn = warn; console.error = err;
+
+if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports, null, 1));
+summarise(reports);
+void DEMO; void alive; void live; void totalPot; void RELIC_BY_ID;
+
+export function summarise(rs: RunReport[]): void {
+  const n = rs.length;
+  const avg = (f: (r: RunReport) => number) => rs.reduce((a, r) => a + f(r), 0) / Math.max(1, n);
+  const pct = (k: number, d = n) => `${d ? Math.round((k / d) * 100) : 0}%`;
+  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} ════`);
+  console.log(`  won ${rs.filter((r) => r.won).length}/${n} · avg ${avg((r) => r.hands).toFixed(1)} hands · ${avg((r) => r.minutes).toFixed(1)} min · final ante ${avg((r) => r.finalAnte).toFixed(1)}`);
+  const firsts = rs.filter((r) => r.firstMomentS !== null);
+  console.log(`  first moment worth telling a friend: median ${median(firsts.map((r) => r.firstMomentS!)).toFixed(0)}s (${tally(firsts.map((r) => r.firstMomentKind!))})`);
+  console.log(`  first Market: median ${median(rs.filter((r) => r.firstMarketS !== null).map((r) => r.firstMarketS!)).toFixed(0)}s`);
+  console.log(`  impossible hand seen: ${pct(rs.filter((r) => r.impossibleSeen > 0).length)} of runs · yours ${pct(rs.filter((r) => r.impossibleYours > 0).length)} · first at ante ${median(rs.filter((r) => r.firstImpossibleAnte).map((r) => r.firstImpossibleAnte!)).toFixed(1)} (median)`);
+
+  const early = (a: number) => rs.filter((r) => r.antes.some((x) => x.ante <= a && x.impossible > 0)).length;
+  console.log(`  impossible hand by ante 2: ${pct(early(2))} · by ante 3: ${pct(early(3))} · by ante 4: ${pct(early(4))} · per run ${(rs.reduce((a, r) => a + r.impossibleSeen, 0) / n).toFixed(2)}`);
+  console.log(`  run over before the first Market ${pct(rs.filter((r) => r.bustAnte === 1).length)} · before ante 3 ${pct(rs.filter((r) => r.bustAnte !== null && r.bustAnte < 3).length)} · survived 3 antes ${pct(rs.filter((r) => r.finalAnte >= 4 || r.won).length)}`);
+  console.log('\n  DIFFICULTY (bust hazard by ante: busted here / reached)');
+  const maxA = Math.max(...rs.map((r) => r.finalAnte));
+  for (let a = 1; a <= maxA; a++) {
+    const reached = rs.filter((r) => r.finalAnte >= a).length;
+    const bust = rs.filter((r) => r.bustAnte === a).length;
+    const ar = rs.flatMap((r) => r.antes.filter((x) => x.ante === a));
+    const sbb = ar.length ? ar.reduce((s, x) => s + x.stackBB, 0) / ar.length : 0;
+    const pot = ar.length ? ar.reduce((s, x) => s + x.potBB, 0) / ar.length : 0;
+    const potc = ar.length ? ar.reduce((s, x) => s + x.potChips, 0) / ar.length : 0;
+    const ai = ar.length ? ar.reduce((s, x) => s + x.allIns / Math.max(1, x.hands), 0) / ar.length : 0;
+    const casts = ar.length ? ar.reduce((s, x) => s + x.casts / Math.max(1, x.hands), 0) / ar.length : 0;
+    const imp = ar.reduce((s, x) => s + x.impossible, 0);
+    console.log(`    ante ${String(a).padStart(2)}  reached ${String(reached).padStart(3)}  bust ${pct(bust, reached).padStart(4)}  your stack ${sbb.toFixed(0).padStart(3)}bb  pot ${pot.toFixed(1).padStart(5)}bb (${Math.round(potc).toLocaleString().padStart(6)})  all-ins/hand ${ai.toFixed(2)}  casts/hand ${casts.toFixed(1)}  impossible ${imp}`);
+  }
+
+  console.log('\n  RUN ARC');
+  console.log(`    biggest pot lands at ${avg((r) => r.biggestPotHand / Math.max(1, r.hands) * 100).toFixed(0)}% of the run on average; in the last 3 hands in ${pct(rs.filter((r) => r.hands - r.biggestPotHand < 3).length)} of runs`);
+
+  console.log('\n  WHERE THE PLAYER\'S TIME GOES');
+  const keys = [...new Set(rs.flatMap((r) => Object.keys(r.time)))];
+  const tot = avg((r) => Object.values(r.time).reduce((a, b) => a + b, 0));
+  for (const k of keys.sort((a, b) => avg((r) => r.time[b] ?? 0) - avg((r) => r.time[a] ?? 0))) {
+    const s = avg((r) => r.time[k] ?? 0);
+    console.log(`    ${k.padEnd(28)} ${s.toFixed(0).padStart(5)}s  ${((s / tot) * 100).toFixed(0).padStart(3)}%`);
+  }
+
+  console.log('\n  DECISIONS (per run)');
+  const d = (k: keyof RunReport['decisions']) => avg((r) => r.decisions[k]);
+  const mins = avg((r) => r.minutes);
+  console.log(`    bets ${d('bets').toFixed(1)} (facing a bet ${d('facingBet').toFixed(1)}, free ${d('checkOnly').toFixed(1)}) · turns with a castable sigil ${d('castChances').toFixed(1)} · casts ${d('casts').toFixed(1)}`);
+  console.log(`    response windows holding an answer ${d('responseChances').toFixed(1)} · answered ${d('responses').toFixed(1)} · markets ${d('markets').toFixed(1)} · buys ${d('buys').toFixed(1)} · pages written ${d('writes').toFixed(1)}`);
+  const choices = d('facingBet') + d('castChances') + d('responseChances') + d('markets');
+  console.log(`    real choices per minute ${(choices / Math.max(0.1, mins)).toFixed(1)}`);
+
+  console.log('\n  BUILDS (by coven)');
+  for (const c of COVENS) {
+    const cr = rs.filter((r) => r.coven === c.id);
+    if (!cr.length) continue;
+    const relics = tally(cr.flatMap((r) => r.relics.filter((x) => x !== c.relic)), 3);
+    console.log(`    ${c.name.padEnd(16)} runs ${cr.length}  won ${cr.filter((r) => r.won).length}  ante ${(cr.reduce((a, r) => a + r.finalAnte, 0) / cr.length).toFixed(1)}  impossible ${pct(cr.filter((r) => r.impossibleSeen > 0).length, cr.length)}  bought ${relics || '—'}`);
+  }
+  const sets = rs.map((r) => new Set(r.relics));
+  let sim = 0; let pairs = 0;
+  for (let i = 0; i < sets.length; i++) for (let j = i + 1; j < sets.length; j++) {
+    const a = sets[i]; const b = sets[j];
+    const inter = [...a].filter((x) => b.has(x)).length;
+    const uni = new Set([...a, ...b]).size;
+    if (uni) { sim += inter / uni; pairs++; }
+  }
+  console.log(`    relic-set overlap between runs (Jaccard) ${(pairs ? sim / pairs : 0).toFixed(2)} · distinct relics owned across runs ${new Set(rs.flatMap((r) => r.relics)).size}`);
+  console.log(`    omens seen across runs ${new Set(rs.flatMap((r) => r.omens)).size} · most common ${tally(rs.flatMap((r) => r.omens), 4)}`);
+}
+
+function median(xs: number[]): number {
+  if (!xs.length) return NaN;
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+}
+
+function tally(xs: string[], top = 3): string {
+  const m = new Map<string, number>();
+  for (const x of xs) m.set(x, (m.get(x) ?? 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, top).map(([k, v]) => `${k} ${v}`).join(', ');
+}
+
+process.exit(0);
