@@ -23,6 +23,7 @@ import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
+import { usePrefs, type SpellCards } from '@/components/shell/prefs';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
@@ -38,8 +39,15 @@ export interface StackOverlayProps {
 
 type ShownEntry = TableView['stackEntries'][number];
 
-/** How long a resolved spell stays readable after the stack empties. */
-const LINGER_MS = 2600;
+/**
+ * How long a resolved spell stays readable after the stack empties, by the
+ * player's Settings > Gameplay > Spell cards choice. Full is the playtest's
+ * 2.6s (ceff08b): a first-time player has to be able to read an opponent's
+ * Graft. Measured from the player's chair, ante 1 averages 6.8 casts a hand,
+ * so by hour three that is a lot of reading; Brief and Off are for then.
+ * Off still shows any spell you can answer: the response window is a choice.
+ */
+export const LINGER_MS: Readonly<Record<SpellCards, number>> = { full: 2600, brief: 800, off: 0 };
 
 const RANKS: Record<number, string> = {
   2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', 7: 'Sevens', 8: 'Eights',
@@ -71,6 +79,11 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const mayRespond = !!stack?.pending.includes(me.id);
   const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotionPref();
+  const [{ spellCards }] = usePrefs();
+  // Read when the stack empties, not a dependency: changing the setting while
+  // a card lingers must not strand it on screen.
+  const lingerMs = useRef(LINGER_MS.full);
+  lingerMs.current = LINGER_MS[spellCards] ?? LINGER_MS.full;
 
   // Keep the last stack on screen for a moment after it resolves.
   const [lingering, setLingering] = useState<ShownEntry[] | null>(null);
@@ -82,15 +95,18 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
       return undefined;
     }
     if (!lastEntries.current.length) return undefined;
-    setLingering(lastEntries.current);
+    const last = lastEntries.current;
     lastEntries.current = [];
-    const id = window.setTimeout(() => setLingering(null), LINGER_MS);
+    if (lingerMs.current <= 0) { setLingering(null); return undefined; }
+    setLingering(last);
+    const id = window.setTimeout(() => setLingering(null), lingerMs.current);
     return () => window.clearTimeout(id);
   }, [stack, view.stackEntries]);
   // A new hand clears anything left over from the last one.
   useEffect(() => { setLingering(null); }, [view.handNumber]);
 
-  const live = !!(stack && view.stackEntries.length);
+  // With spell cards Off, a live stack is shown only when you can answer it.
+  const live = !!(stack && view.stackEntries.length) && (spellCards !== 'off' || mayRespond);
   const entries: ShownEntry[] = live ? view.stackEntries : (lingering ?? []);
 
   const responses = (me.sigils ?? []).filter((s) => {
@@ -106,7 +122,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const topId = view.stackEntries.length ? view.stackEntries[view.stackEntries.length - 1].id : null;
   const prevTopId = useRef<string | null>(null);
   useEffect(() => {
-    if (topId && topId !== prevTopId.current) shake(4, 140);
+    if (topId && topId !== prevTopId.current && (spellCards !== 'off' || mayRespond)) shake(4, 140);
     prevTopId.current = topId;
   }, [topId]);
 

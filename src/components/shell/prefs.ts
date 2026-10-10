@@ -6,9 +6,20 @@
  */
 import { useSyncExternalStore } from 'react';
 
+/**
+ * How long a resolved spell's card stays in the middle of the table.
+ * Full: 2.6s, long enough to read a spell you have never seen. Brief: under a
+ * second, a flash of the name for someone who knows the sigils. Off: only
+ * when you can answer it; everything else goes to the ledger.
+ */
+export type SpellCards = 'full' | 'brief' | 'off';
+export const SPELL_CARD_OPTIONS: readonly SpellCards[] = ['full', 'brief', 'off'];
+
 export interface GameplayPrefs {
   /** Ask "are you sure?" before a fold goes to the server. */
   confirmFold: boolean;
+  /** How long a cast stays on screen once it has resolved. */
+  spellCards: SpellCards;
   /** Show pot-odds numbers on the action bar at all times, not just on hover. */
   showPotOdds: boolean;
   /** Automatically muck a losing hand at showdown instead of showing it. */
@@ -19,6 +30,7 @@ const PREFS_KEY = 'hexhold.prefs';
 
 export const DEFAULT_PREFS: GameplayPrefs = {
   confirmFold: true,
+  spellCards: 'full',
   showPotOdds: false,
   autoMuck: false,
 };
@@ -35,6 +47,8 @@ function readPrefs(): GameplayPrefs {
     if (!isPrefsShape(parsed)) return DEFAULT_PREFS;
     return {
       confirmFold: typeof parsed.confirmFold === 'boolean' ? parsed.confirmFold : DEFAULT_PREFS.confirmFold,
+      spellCards: SPELL_CARD_OPTIONS.includes(parsed.spellCards as SpellCards)
+        ? parsed.spellCards as SpellCards : DEFAULT_PREFS.spellCards,
       showPotOdds: typeof parsed.showPotOdds === 'boolean' ? parsed.showPotOdds : DEFAULT_PREFS.showPotOdds,
       autoMuck: typeof parsed.autoMuck === 'boolean' ? parsed.autoMuck : DEFAULT_PREFS.autoMuck,
     };

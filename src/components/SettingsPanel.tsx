@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Button, Range, Toggle } from '@/components/ui/kit';
 import { getAudioSettings, playSfx, setAudioSettings, type AudioSettings } from '@/lib/sound';
-import { usePrefs } from '@/components/shell/prefs';
+import { SPELL_CARD_OPTIONS, usePrefs, type SpellCards } from '@/components/shell/prefs';
 import {
   UI_SCALE_MAX,
   UI_SCALE_MIN,
@@ -377,13 +377,19 @@ function DisplaySettings() {
 // Gameplay
 // ---------------------------------------------------------------------------
 
+const SPELL_CARD_HINT: Record<SpellCards, string> = {
+  full: 'A spell stays in the middle of the table for a few seconds after it resolves, long enough to read.',
+  brief: 'A spell flashes up for under a second, for when you know the sigils by name.',
+  off: 'Only spells you can answer take the middle of the table.',
+};
+
 function GameplayTab() {
   const [prefs, setPrefs] = usePrefs();
 
   return (
     <section style={{ display: 'grid', gap: 'var(--s-4)' }}>
       {/*
-        The only gameplay setting that does something. "Always show pot odds"
+        Every switch here does something. "Always show pot odds"
         and "Auto-muck losing hands" sat here too, stored and read by nothing
         (found 2026-10-09): a switch that does nothing reads as a bug in a
         review. They come back when the table shows pot odds and the
@@ -394,6 +400,28 @@ function GameplayTab() {
         onChange={(v) => setPrefs({ confirmFold: v })}
         label="Confirm before folding a free check (F / LB)"
       />
+
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="field-label">Spell cards</span>
+        <fieldset className="hh-segmented" style={{ border: 0, margin: 0, padding: 0 }}>
+          <legend className="sr-only">Spell cards</legend>
+          {SPELL_CARD_OPTIONS.map((opt) => (
+            <label key={opt} className="hh-segmented-option">
+              <input
+                type="radio"
+                name="spell-cards"
+                className="hh-segmented-input"
+                checked={prefs.spellCards === opt}
+                onChange={() => setPrefs({ spellCards: opt })}
+              />
+              <span className="hh-segmented-label">{opt}</span>
+            </label>
+          ))}
+        </fieldset>
+        <p className="hh-field-hint">
+          {SPELL_CARD_HINT[prefs.spellCards]} Every spell is always in the ledger.
+        </p>
+      </div>
     </section>
   );
 }

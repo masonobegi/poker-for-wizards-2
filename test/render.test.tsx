@@ -477,3 +477,60 @@ test('Reduce flashing stops flashes, colour splits and shake, and leaves other m
     assert.match(src.slice(at, at + 900), /prefersReducedFlashing\(\)/, `${method.split('(')[0]} ignores Reduce flashing`);
   }
 });
+
+test('Spell cards: Full lingers to be read, Brief flashes, Off shows only what you can answer', async () => {
+  // From the playtest (P6): a cast fills the middle of the table for 2.6s
+  // after it resolves, and ante 1 averages 6.8 casts a hand. Full keeps that
+  // for a first run; Brief and Off are for hour three.
+  const StackOverlay = (await import('../src/components/table/StackOverlay')).default;
+  const { LINGER_MS } = await import('../src/components/table/StackOverlay');
+  const { setPrefs, getPrefs, DEFAULT_PREFS } = await import('../src/components/shell/prefs');
+  const { createRoot } = await import('react-dom/client');
+  const { act } = await import('react');
+  // Exits finish at once, so what is measured is the linger, not the fade.
+  const { MotionGlobalConfig } = await import('framer-motion');
+  MotionGlobalConfig.skipAnimations = true;
+
+  assert.equal(DEFAULT_PREFS.spellCards, 'full', 'a first run reads every spell');
+  assert.ok(LINGER_MS.full >= 2000 && LINGER_MS.brief > 0 && LINGER_MS.brief < 1000 && LINGER_MS.off === 0);
+
+  const me = { id: 'me', name: 'You', sigils: [], mana: 5, relics: [] };
+  const bot = { id: 'b', name: 'Quill', sigils: [], mana: 5, relics: [] };
+  const entry = {
+    id: 'e1', casterId: 'b', sigilId: 'burn', targets: {}, countered: false, costPaid: 2,
+    sigilName: 'Burn', casterName: 'Quill', school: 'ruin',
+  };
+  const view = (live: boolean, pending: string[] = []) => ({
+    handNumber: 1, players: [me, bot], board: [], config: { responseSeconds: 10 },
+    stack: live ? { entries: [entry], pending, closesAt: Date.now() + 10_000 } : null,
+    stackEntries: live ? [entry] : [],
+  }) as never;
+
+  const host = dom.window.document.createElement('div');
+  container.appendChild(host);
+  const root = createRoot(host);
+  const render = (v: unknown) => act(async () => { root.render(<StackOverlay view={v as never} me={me as never} onBeginCast={() => {}} />); });
+  const shown = () => !!host.querySelector('.stackview');
+  const wait = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+
+  try {
+    for (const mode of ['full', 'brief', 'off'] as const) {
+      setPrefs({ spellCards: mode });
+      await render(view(true));
+      assert.equal(shown(), mode !== 'off', `${mode}: a bot's cast you cannot answer`);
+      await render(view(true, ['me']));
+      assert.equal(shown(), true, `${mode}: a cast you can answer must always show`);
+      await render(view(false));
+      await wait(LINGER_MS.brief + 250);
+      assert.equal(shown(), mode === 'full', `${mode}: still on screen ${LINGER_MS.brief + 250}ms after it resolved`);
+      await render({ ...(view(false) as object), handNumber: 2 });
+      await wait(450);
+    }
+    assert.equal(JSON.parse(localStorage.getItem('hexhold.prefs') ?? '{}').spellCards, 'off', 'the choice is not saved');
+  } finally {
+    setPrefs({ spellCards: 'full' });
+    MotionGlobalConfig.skipAnimations = false;
+    await act(async () => { root.unmount(); });
+  }
+  assert.equal(getPrefs().spellCards, 'full');
+});
