@@ -18,7 +18,7 @@ import {
 } from '../../shared/omens';
 import {
   isStreet,
-  type BetAction, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
+  type BetAction, type BustedBy, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
@@ -275,6 +275,7 @@ export class Engine {
     t.bb = t.config.baseBlind;
     t.sb = Math.floor(t.bb / 2);
     t.winnerId = null;
+    t.demoComplete = false;
     t.omens = [];
     t.dealerSeat = seated(t)[0]?.seat ?? 0;
     // A new run gets a clean deck: strip anything a previous run inscribed.
@@ -286,6 +287,7 @@ export class Engine {
       p.sigils = [];
       p.relics = [];
       p.eliminated = false;
+      p.bustedBy = undefined;
       p.handsWon = 0;
       p.attuned = 0;
       p.maxMana = maxManaFor(p, t);
@@ -829,7 +831,10 @@ export class Engine {
       if (!p.eliminated && p.chips <= 0) {
         p.eliminated = true;
         p.folded = true;
-        log(t, `${p.name} is out.`, 'warn', { playerId: p.id });
+        p.bustedBy = this.bustedBy(p);
+        log(t, p.bustedBy
+          ? `${p.name} is out, to ${p.bustedBy.name}'s ${p.bustedBy.handName}.`
+          : `${p.name} is out.`, 'warn', { playerId: p.id });
         this.fx.push({ t: 'eliminate', playerId: p.id });
         this.fx.push({ t: 'sfx', name: 'eliminate' });
         for (const q of t.players) {
@@ -850,11 +855,62 @@ export class Engine {
     if (this.everyHumanOut()) { this.endGame(); return; }
 
     const antePassed = t.handNumber % anteLength(t) === 0;
+    // The demo's last ante is over: the run ends here, on the wishlist screen.
+    if (antePassed && t.config.demoAntes && t.ante >= t.config.demoAntes) { this.endDemo(); return; }
     if (antePassed) { this.openShop(); return; }
 
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
     this.wait(520, () => this.beginHand());
+  }
+
+  /**
+   * Who took this player's last chip, and with what, from the payout that
+   * just happened. A run that ends without the player being told why reads
+   * as the game cheating; one that names the hand reads as poker.
+   */
+  private bustedBy(p: Player): BustedBy | undefined {
+    const t = this.table;
+    const pay = t.payout;
+    if (!pay) return undefined;
+    // The pot they were eligible for went to someone else: the biggest winner
+    // other than them is who took the last chip.
+    const taker = pay.entries
+      .filter((e) => e.playerId !== p.id && e.won > 0)
+      .sort((a, b) => b.won - a.won)[0];
+    const who = taker ? byId(t, taker.playerId) : undefined;
+    if (!taker || !who) return undefined;
+    const mine = pay.entries.find((e) => e.playerId === p.id && e.cards.length > 0);
+    return {
+      name: who.name,
+      handName: taker.handName,
+      yourHand: mine?.handName,
+      ante: t.ante,
+      hand: t.handNumber,
+    };
+  }
+
+  /**
+   * The demo's last ante has been played. Nobody won the table: the run is
+   * cut off on purpose, so the chip count is reported but no winner is
+   * declared, and nothing a win unlocks is unlocked.
+   */
+  private endDemo(): void {
+    const t = this.table;
+    t.phase = 'gameover';
+    t.winnerId = null;
+    t.demoComplete = true;
+    t.actingId = null;
+    this.clearWait();
+    const you = t.players.find((p) => !p.isBot && !p.eliminated);
+    log(t, `The demo ends after ante ${t.ante}.`, 'win');
+    this.fx.push({
+      t: 'banner', text: 'YOU SURVIVED',
+      sub: `${t.ante} antes${you ? `, ${you.chips.toLocaleString()} chips` : ''}. The full run goes on`, tone: 'win',
+    });
+    this.fx.push({ t: 'sfx', name: 'victory' });
+    this.fx.push({ t: 'music', mood: 'menu' });
+    this.flush();
   }
 
   /**

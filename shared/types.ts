@@ -101,6 +101,20 @@ export interface Player {
   ready: boolean;
   handsWon: number;
   biggestPot: number;
+  /** What put this player out of the run, for the game-over screen. */
+  bustedBy?: BustedBy;
+}
+
+/** The hand that ended a player's run, in words the game-over screen can say. */
+export interface BustedBy {
+  /** Who took the last chip. */
+  name: string;
+  /** Their hand, as the showdown named it ("Full House, Kings over Nines"), or "Uncontested". */
+  handName: string;
+  /** Your own hand that lost, when it reached a showdown. */
+  yourHand?: string;
+  ante: number;
+  hand: number;
 }
 
 export interface Foreknowledge {
@@ -166,6 +180,8 @@ export interface PlayerView {
   handsWon: number;
   /** Public — every pot is won in the open. Shown in the end-of-run recap. */
   biggestPot: number;
+  /** Public, like the pot that did it: what put this player out of the run. */
+  bustedBy?: BustedBy;
   /**
    * What this player currently holds, named. Only ever set on your own seat —
    * it is derived from your hole cards and your reading of the board, so it is
@@ -336,6 +352,11 @@ export interface RoomConfig {
    * Rite sets it; the server accepts nothing but a daily seed from a client.
    */
   seed?: string;
+  /**
+   * The Next Fest demo: the run ends after this many antes, on the wishlist
+   * screen. Set only by a demo server (shared/demo.ts), never by a client.
+   */
+  demoAntes?: number;
 }
 
 export const DEFAULT_CONFIG: RoomConfig = {
@@ -422,6 +443,8 @@ export interface TableView {
   castBlocks: Record<string, CastBlock>;
   hostId: string;
   winnerId: string | null;
+  /** The run ended because the demo's last ante was played, not by a bust. */
+  demoComplete?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -489,4 +512,6 @@ export interface Table {
   createdAt: number;
   lastActivity: number;
   winnerId: string | null;
+  /** See TableView.demoComplete. */
+  demoComplete?: boolean;
 }

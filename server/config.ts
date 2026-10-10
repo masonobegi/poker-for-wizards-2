@@ -26,8 +26,24 @@ const list = (name: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+/**
+ * Substituted by esbuild in a demo build (`npm run build:demo`), so the
+ * packaged demo cannot be turned into the full game with an environment
+ * variable. Undefined everywhere else.
+ */
+declare const __HEXHOLD_DEMO__: boolean | undefined;
+
 export const config = {
   port: int('PORT', 3001, 1, 65535),
+
+  /**
+   * The Next Fest demo: runs end after DEMO_ANTES antes, three covens, no hex
+   * ladder, Daily Rite or hosting. See shared/demo.ts. Read lazily, so a test
+   * can switch it on.
+   */
+  get demo(): boolean {
+    return (typeof __HEXHOLD_DEMO__ !== 'undefined' && __HEXHOLD_DEMO__ === true) || bool('HEXHOLD_DEMO', false);
+  },
 
   /**
    * Multiplies every scheduled beat on the table — bot deliberation, the deal,

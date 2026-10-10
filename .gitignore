@@ -11,6 +11,9 @@ release/
 .vite/
 coverage/
 dist-server/
+dist-demo/
+dist-server-demo/
+release-demo/
 electron/icon.png
 electron/icon@512.png
 hexhold*.db

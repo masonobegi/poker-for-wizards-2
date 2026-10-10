@@ -14,7 +14,11 @@ import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/l
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
 import { HEXES, MAX_HEX } from '@shared/hexes';
-import { covenOf } from '@shared/covens';
+import { COVENS, covenOf } from '@shared/covens';
+import { SIGILS } from '@shared/sigils';
+import { RELICS } from '@shared/relics';
+import { OMENS } from '@shared/omens';
+import { openWishlist } from '@/lib/demo';
 
 /** However long a banner claims, the panel is never held back further. */
 const MAX_WAIT_MS = 4500;
@@ -82,6 +86,11 @@ export default function GameOver({ view }: { view: TableView }) {
 
   if (!bannerDone) return null;
 
+  // A demo table (the server sets demoAntes) ends on the wishlist screen,
+  // whether the run was cut off after its last ante or ended in a bust.
+  const demo = !!view.config.demoAntes;
+  const busted = me?.bustedBy;
+
   return (
     <motion.div
       className="gameover"
@@ -96,7 +105,21 @@ export default function GameOver({ view }: { view: TableView }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : SPRING_PLAYFUL}
       >
-        <span className="eyebrow">The table is closed</span>
+        <span className="eyebrow">
+          {view.demoComplete ? 'The demo ends here' : 'The table is closed'}
+        </span>
+
+        {view.demoComplete ? (
+          <motion.div
+            className="gameover-winner"
+            initial={{ scale: 0.94, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...SPRING_PLAYFUL, delay: 0.25 }}
+          >
+            <h2>You survived {view.ante} antes</h2>
+            <p>The full game keeps dealing: a new omen every ante, until one player holds every chip.</p>
+          </motion.div>
+        ) : null}
 
         {winner ? (
           <motion.div
@@ -145,6 +168,16 @@ export default function GameOver({ view }: { view: TableView }) {
                 <span>biggest pot <strong>{me.biggestPot.toLocaleString()}</strong></span>
               ) : null}
             </div>
+
+            {/* What ended it, in poker words. A run that ends without the
+                player being told why reads as the game cheating. */}
+            {busted ? (
+              <p className="gameover-bust">
+                Knocked out on hand {busted.hand}, ante {busted.ante}, by {busted.name}&rsquo;s{' '}
+                <strong>{busted.handName === 'Uncontested' ? 'bet' : busted.handName}</strong>
+                {busted.yourHand ? <> against your {busted.yourHand}</> : null}.
+              </p>
+            ) : null}
 
             {view.omens.length ? (
               <>
@@ -205,10 +238,32 @@ export default function GameOver({ view }: { view: TableView }) {
           ))}
         </ul>
 
+        {demo ? (
+          <motion.div
+            className="gameover-fullgame"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <p className="gameover-runlabel">In the full game</p>
+            <ul>
+              <li>The run goes on, ante after ante, under a rulebook that keeps growing.</li>
+              <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
+              <li>{SIGILS.length} sigils, {RELICS.length} relics and {OMENS.length} omens.</li>
+              <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
+            </ul>
+          </motion.div>
+        ) : null}
+
         <div className="gameover-actions">
+          {demo ? (
+            <Button tone="primary" size="lg" display block onClick={openWishlist}>
+              Wishlist on Steam
+            </Button>
+          ) : null}
           {isHost ? (
-            <Button tone="primary" size="lg" display block onClick={startGame}>
-              Deal again
+            <Button tone={demo ? 'default' : 'primary'} size={demo ? 'md' : 'lg'} display={!demo} block onClick={startGame}>
+              {demo ? 'Play the demo again' : 'Deal again'}
             </Button>
           ) : (
             <p className="dim" style={{ textAlign: 'center', fontSize: 'var(--fs-sm)' }}>

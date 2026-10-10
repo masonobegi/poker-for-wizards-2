@@ -20,6 +20,8 @@ import { Mark } from '@/art/marks';
 import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
 import { loadProfile } from '@/components/profile/profile';
 import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
+import { DEMO_ANTES, DEMO_COVENS, demoCoven } from '@shared/demo';
+import { IS_DEMO, openWishlist } from '@/lib/demo';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -113,7 +115,10 @@ export default function Menu() {
   // The run's opening decision, remembered between sessions so a player who
   // has found the one they like does not re-pick it every time.
   const [coven, setCoven] = useState<string>(() => {
-    try { return localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { return DEFAULT_COVEN; }
+    let id = DEFAULT_COVEN;
+    try { id = localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { /* private mode */ }
+    // The demo opens three covens; anything else falls back to the first.
+    return IS_DEMO ? demoCoven(id) : id;
   });
   // Re-read on every pick so the record under the blurb is the real one, not
   // whatever it was when the menu mounted.
@@ -129,7 +134,7 @@ export default function Menu() {
   const [hexPicks, setHexPicks] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem('hexhold.hex') ?? '{}') as Record<string, number>; } catch { return {}; }
   });
-  const hex = Math.min(openHex, Math.max(1, hexPicks[coven] ?? openHex));
+  const hex = IS_DEMO ? 1 : Math.min(openHex, Math.max(1, hexPicks[coven] ?? openHex));
   const pickHex = (level: number): void => {
     const next = { ...hexPicks, [coven]: level };
     setHexPicks(next);
@@ -279,21 +284,27 @@ export default function Menu() {
                   choice a player has to go looking for is a choice most of
                   them never make. */}
               <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
-                {COVENS.map((c) => (
+                {COVENS.map((c) => {
+                  // In the demo the other four are shown, locked: a demo
+                  // should show the shape of what it is holding back.
+                  const locked = IS_DEMO && !DEMO_COVENS.includes(c.id);
+                  return (
                   <button
                     key={c.id}
                     type="button"
                     role="radio"
                     aria-checked={coven === c.id}
-                    className={`menu-coven ${coven === c.id ? 'is-on' : ''}`}
+                    aria-disabled={locked || undefined}
+                    className={`menu-coven ${coven === c.id ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
                     style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
-                    onClick={() => pickCoven(c.id)}
-                    title={c.style}
+                    onClick={() => { if (!locked) pickCoven(c.id); }}
+                    title={locked ? `In the full game. ${c.text}` : c.style}
                   >
                     <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
                     <span className="menu-coven__name">{c.name}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
               <p className="menu-covennote">
                 {covenOf(coven).text}
@@ -307,23 +318,37 @@ export default function Menu() {
                 ) : <em className="menu-covenrecord">never played</em>}
               </p>
 
-              <Picker
-                legend="Hex"
-                value={String(hex)}
-                options={hexOptions}
-                onPick={(v) => pickHex(Number(v))}
-              />
+              {IS_DEMO ? (
+                <p className="menu-demonote">
+                  Demo: a run of {DEMO_ANTES} antes, as {DEMO_COVENS.length} of the {COVENS.length} covens.
+                  The full game adds five hexes per coven, the Daily Rite and tables with friends.
+                </p>
+              ) : (
+                <Picker
+                  legend="Hex"
+                  value={String(hex)}
+                  options={hexOptions}
+                  onPick={(v) => pickHex(Number(v))}
+                />
+              )}
 
               <div className="menu-actions">
                 <Button tone="primary" size="lg" display block
                   loading={practicing} disabled={!connected || practicing}
                   onClick={() => void practice()}>
-                  {connected ? 'Practice vs Bots' : 'Connecting…'}
+                  {connected ? (IS_DEMO ? 'Play the Demo' : 'Practice vs Bots') : 'Connecting…'}
                 </Button>
                 <p className="menu-practicenote">
                   Three bots fill the table and the first hand deals itself.
                 </p>
 
+                {IS_DEMO ? (
+                  <Button size="md" block onClick={openWishlist}>
+                    Wishlist on Steam
+                  </Button>
+                ) : null}
+
+                {IS_DEMO ? null : (<>
                 <Button size="md" block disabled={!connected || practicing}
                   onClick={() => void daily()}>
                   Daily Rite &mdash; {todayCoven.name}
@@ -337,6 +362,7 @@ export default function Menu() {
                     </em>
                   ) : null}
                 </p>
+                </>)}
 
                 {/* The host and join panes have always shown this; the home
                     pane never did, and the home pane is where the button most
@@ -362,6 +388,7 @@ export default function Menu() {
                   />
                 </div>
 
+                {IS_DEMO ? null : (
                 <div className="menu-actions-row">
                   <Button size="md" block disabled={!connected} onClick={() => setPane('host')}>
                     Host a Table
@@ -370,6 +397,7 @@ export default function Menu() {
                     Join with a Code
                   </Button>
                 </div>
+                )}
               </div>
 
               <ProfileCard />
@@ -384,9 +412,11 @@ export default function Menu() {
                 <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>
                   Settings
                 </Button>
-                <Button tone="ghost" size="sm" onClick={() => setServer(true)}>
-                  Online
-                </Button>
+                {IS_DEMO ? null : (
+                  <Button tone="ghost" size="sm" onClick={() => setServer(true)}>
+                    Online
+                  </Button>
+                )}
               </div>
 
               {/* A packaged build runs frameless and often fullscreen, where

@@ -11,6 +11,7 @@ import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard
 import { config } from '../config';
 import { covenOf } from '../../shared/covens';
 import { clampHex, isDailySeed } from '../../shared/hexes';
+import { DEMO_ANTES, demoCoven } from '../../shared/demo';
 import { MAX_TEXT } from '../../shared/scribe';
 
 const MAX_NAME = 16;
@@ -24,7 +25,7 @@ const num = (v: unknown, lo: number, hi: number, fallback: number): number => {
   return Math.max(lo, Math.min(hi, n));
 };
 
-function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
+export function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   if (!raw || typeof raw !== 'object') return {};
   const c = raw as Record<string, unknown>;
   const out: Partial<RoomConfig> = {};
@@ -52,8 +53,21 @@ function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   // A seed fixes the deck order, so a table two people share must not have
   // one that either of them can know in advance.
   if (isDailySeed(c.seed)) out.seed = c.seed;
+  // The demo server decides the demo's shape, whatever the page asked for:
+  // the first hex, no seeded Daily Rite, and a run that ends after DEMO_ANTES.
+  if (config.demo) {
+    out.hex = 1;
+    delete out.seed;
+    out.demoAntes = DEMO_ANTES;
+  }
   return out;
 }
+
+/** The coven a player sits down as: any of them, or only the demo's three in a demo. */
+const covenFor = (raw: unknown): string => {
+  const id = covenOf(clean(raw, 32)).id;
+  return config.demo ? demoCoven(id) : id;
+};
 
 function sanitizeTargets(raw: unknown): SigilTargets {
   if (!raw || typeof raw !== 'object') return {};
@@ -125,7 +139,7 @@ export function attach(io: Server): Rooms {
       // A coven only sets which sigils and relic the run opens with, and an
       // unknown id falls back rather than throwing, so it needs no validation
       // beyond being a string.
-      player.coven = covenOf(clean(payload.coven, 32)).id;
+      player.coven = covenFor(payload.coven);
       const token = join(e.table.code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code: e.table.code, youId: id, token } });
@@ -145,7 +159,7 @@ export function attach(io: Server): Rooms {
       const id = `p_${nanoid(10)}`;
       const player = e.addPlayer(id, name);
       if (!player) return fail(cb, 'That table is full');
-      player.coven = covenOf(clean(payload.coven, 32)).id;
+      player.coven = covenFor(payload.coven);
       const token = join(code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code, youId: id, token } });

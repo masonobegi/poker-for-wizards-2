@@ -366,3 +366,16 @@
   color: var(--text-quiet);
   min-height: 2.9em;
 }
+
+/* The Next Fest demo (src/lib/demo.ts): locked covens stay visible. */
+.menu-coven.is-locked {
+  opacity: 0.42;
+  filter: grayscale(0.7);
+  cursor: not-allowed;
+}
+.menu-demonote {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  text-align: center;
+}
