@@ -191,7 +191,10 @@ for (let r = 0; r < ROUNDS; r++) {
 }
 rmSync(USER_DATA_ROOT, { recursive: true, force: true });
 
-const bad = results.filter((r) => r.pressMs === null || r.exitMs === null || r.exitMs > QUIT_MAX_MS || r.left > 0);
-const worst = Math.max(...results.map((r) => r.exitMs ?? Infinity));
+// Timed from the moment the press landed: Playwright's wait for the button
+// to be clickable (seconds under software rendering) is not the game's quit.
+const afterPress = (r) => (r.exitMs === null || r.pressMs === null ? Infinity : Math.max(0, r.exitMs - r.pressMs));
+const bad = results.filter((r) => afterPress(r) > QUIT_MAX_MS || r.left > 0);
+const worst = Math.max(...results.map(afterPress));
 console.log(`\n${results.length - bad.length} of ${results.length} quits had every game process gone within ${QUIT_MAX_MS}ms of the press; slowest ${worst}ms`);
 process.exit(bad.length ? 1 : 0);
