@@ -233,7 +233,7 @@ const PANELS: Panel[] = [
     id: 'coven',
     kicker: 'Before the first hand',
     title: 'Pick who you sat down as.',
-    body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet always see one of somebody else’s cards. Choose one on the menu — the bots will.',
+    body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet can read a rival’s hand and always see the next card coming. Choose one on the menu — the bots will.',
     Visual: CovenVisual,
   },
 ];

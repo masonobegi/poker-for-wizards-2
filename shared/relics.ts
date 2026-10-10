@@ -25,7 +25,11 @@ export interface RelicDef {
   mana?: { max?: number; regen?: number; start?: number };
   sigils?: { handSize?: number; drawPerHand?: number; costDelta?: number };
   /** Standing information advantages. */
-  vision?: Array<'deck_top' | 'one_hole' | 'quantum_clouds' | 'all_mana'>;
+  /**
+   * one_hole: The Informant's peek at one opponent card at a showdown-bound
+   * river. every_hole: one hole card of every opponent, from the deal.
+   */
+  vision?: Array<'deck_top' | 'one_hole' | 'every_hole' | 'quantum_clouds' | 'all_mana'>;
   /** Paid out at showdown. */
   onWin?: { shards?: number; chipsPerBB?: number; requireCat?: Cat; requireImpossible?: boolean };
   /** Applied while dealing. */
@@ -110,22 +114,23 @@ export const RELICS: RelicDef[] = [
     vision: ['one_hole'],
   },
   {
-    id: 'cheap_tricks', name: 'Cheap Tricks', glyph: '⨭', rarity: 'rare', price: 15,
-    text: 'All sigils cost 1 less mana, minimum 1.',
+    id: 'cheap_tricks', name: 'Cheap Tricks', glyph: '⨭', rarity: 'rare', price: 13,
+    text: 'Sigils cost 2 less mana, minimum 1, but your mana ceiling is 3 lower.',
     impossible: 'Discounting a cost that is not made of anything.',
-    sigils: { costDelta: -1 },
+    sigils: { costDelta: -2 },
+    mana: { max: -3 },
   },
   {
-    id: 'the_collector', name: 'The Collector', glyph: '✦', rarity: 'rare', price: 14,
-    text: 'Draw an extra sigil at the start of each hand.',
+    id: 'the_collector', name: 'The Collector', glyph: '✦', rarity: 'rare', price: 13,
+    text: 'Draw two extra sigils at the start of each hand, but every sigil costs 1 more mana.',
     impossible: 'A supply that regenerates from an empty table.',
-    sigils: { drawPerHand: 1 },
+    sigils: { drawPerHand: 2, costDelta: 1 },
   },
   {
-    id: 'bloodline', name: 'Bloodline', glyph: '✚', rarity: 'rare', price: 16,
-    text: 'One of your hole cards is Blooded each hand — it scores one rank higher.',
-    impossible: 'A card worth more than its printed rank, and only in your hands.',
-    deal: { markOwn: 'blooded' },
+    id: 'bloodline', name: 'Bloodline', glyph: '✚', rarity: 'rare', price: 12,
+    text: 'One of your hole cards is Echo each hand — it scores one rank higher for every pot it has ever won.',
+    impossible: 'A card that remembers its wins, and only in your hands.',
+    deal: { markOwn: 'echo' },
   },
   {
     id: 'mirror_shard', name: 'Mirror Shard', glyph: '⧉', rarity: 'rare', price: 15,
@@ -160,10 +165,10 @@ export const RELICS: RelicDef[] = [
     mods: { lowWins: true },
   },
   {
-    id: 'moneylender', name: 'Moneylender', glyph: '⚜', rarity: 'mythic', price: 22,
-    text: '15% interest on your shards between antes, rounded up.',
+    id: 'moneylender', name: 'Moneylender', glyph: '⚜', rarity: 'mythic', price: 20,
+    text: '25% interest on your shards between antes, rounded up.',
     impossible: 'Compound interest arriving between two hands of cards.',
-    economy: { interestPct: 15 },
+    economy: { interestPct: 25 },
   },
   {
     id: 'kingmaker', name: 'Kingmaker', glyph: '☠', rarity: 'mythic', price: 25,
@@ -216,16 +221,17 @@ export const RELICS: RelicDef[] = [
 
   // ----------------------------------------------------------------- RARE II
   {
-    id: 'twin_suns', name: 'Twin Suns', glyph: '☀', rarity: 'rare', price: 15,
-    text: 'You are dealt three hole cards instead of two.',
+    id: 'twin_suns', name: 'Twin Suns', glyph: '☀', rarity: 'rare', price: 12,
+    text: 'You are dealt three hole cards instead of two, but draw one sigil fewer each hand.',
     impossible: 'A hand size that is not the hand size everybody else has.',
     deal: { extraHole: 1 },
+    sigils: { drawPerHand: -1 },
   },
   {
-    id: 'unsettled', name: 'Unsettled', glyph: '⟁', rarity: 'rare', price: 14,
-    text: 'One of your hole cards arrives undecided each hand, holding two faces until showdown.',
-    impossible: 'Being dealt a card that has not finished being a card.',
-    deal: { quantumHole: 1 },
+    id: 'unsettled', name: 'Unsettled', glyph: '⟁', rarity: 'rare', price: 16,
+    text: 'Both of your hole cards arrive undecided each hand, each holding two faces until showdown.',
+    impossible: 'Being dealt a hand that has not finished being a hand.',
+    deal: { quantumHole: 2 },
   },
   {
     id: 'the_usurer', name: 'The Usurer', glyph: '⌬', rarity: 'rare', price: 14,
@@ -237,7 +243,9 @@ export const RELICS: RelicDef[] = [
     id: 'cold_read', name: 'Cold Read', glyph: '◎', rarity: 'rare', price: 16,
     text: 'You can see one hole card of every player at the table.',
     impossible: 'Seeing through the back of a card, continuously, without anybody being able to stop it.',
-    vision: ['one_hole'],
+    // It said this and did The Informant's river peek instead (found
+    // 2026-10-10, test/relics.test.ts): now it does what it says.
+    vision: ['every_hole'],
   },
   {
     id: 'the_gambler', name: 'The Gambler', glyph: '✧', rarity: 'rare', price: 15,
@@ -246,10 +254,10 @@ export const RELICS: RelicDef[] = [
     onWin: { shards: 4, requireCat: 2 },
   },
   {
-    id: 'low_road', name: 'The Low Road', glyph: '⊼', rarity: 'rare', price: 17,
-    text: 'Jacks and Queens may be read as Kings in your hand.',
-    impossible: 'Three ranks sharing one identity for one player only.',
-    mods: { facesAreKings: true },
+    id: 'low_road', name: 'The Low Road', glyph: '⊼', rarity: 'rare', price: 12,
+    text: 'Earn 2 shards every time you fold before the flop.',
+    impossible: 'Being paid twice for a hand you refused to play.',
+    economy: { perFold: 2 },
   },
 
   // --------------------------------------------------------------- MYTHIC II
@@ -278,10 +286,10 @@ export const RELICS: RelicDef[] = [
   // own name reachable: a measured session produced no impossible hand at
   // all, because every route to one ran through a single uncommon mark.
   {
-    id: 'crooked_ladder', name: 'Crooked Ladder', glyph: '↯', rarity: 'common', price: 9,
-    text: 'Your straights need only four cards in a row.',
-    impossible: 'A sequence that is shorter for you than for the person beside you.',
-    mods: { straightSize: 4 },
+    id: 'crooked_ladder', name: 'Crooked Ladder', glyph: '↯', rarity: 'rare', price: 14,
+    text: 'Your straights need only four cards in a row, and Aces bridge both ends.',
+    impossible: 'A sequence that is shorter for you than for the person beside you, and bends.',
+    mods: { straightSize: 4, wheelWrap: true },
   },
   {
     id: 'full_purse', name: 'Full Purse', glyph: '◕', rarity: 'common', price: 8,
