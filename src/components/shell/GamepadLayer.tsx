@@ -9,6 +9,7 @@
  */
 import { useEffect } from 'react';
 import { PAD_GLYPH, onGamepad, startGamepad, type Pad } from '@/lib/gamepad';
+import { usePadGlyphs } from '@/lib/usePadGlyphs';
 import { playSfx } from '@/lib/sound';
 import { focusQuietly, openSteamKeyboard, startSteamKeyboard } from '@/lib/steamKeyboard';
 import './gamepad.css';
@@ -130,6 +131,7 @@ function sendKey(key: string): void {
 }
 
 export default function GamepadLayer() {
+  const g = usePadGlyphs();
   useEffect(() => {
     const stop = startGamepad();
     const stopKeyboard = startSteamKeyboard();
@@ -209,12 +211,12 @@ export default function GamepadLayer() {
   // Only visible while a pad is in use (see gamepad.css).
   return (
     <div className="pad-legend" aria-hidden>
-      <span><b>{PAD_GLYPH.a}</b>Select</span>
-      <span><b>{PAD_GLYPH.b}</b>Back</span>
-      <span><b>{PAD_GLYPH.lb}</b>Fold</span>
-      <span><b>{PAD_GLYPH.x}</b>Raise</span>
-      <span><b>{PAD_GLYPH.y}</b>All In</span>
-      <span><b>{PAD_GLYPH.start}</b>Menu</span>
+      <span><b>{g.a}</b>Select</span>
+      <span><b>{g.b}</b>Back</span>
+      <span><b>{g.lb}</b>Fold</span>
+      <span><b>{g.x}</b>Raise</span>
+      <span><b>{g.y}</b>All In</span>
+      <span><b>{g.start}</b>Menu</span>
     </div>
   );
 }

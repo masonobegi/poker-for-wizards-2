@@ -14,7 +14,8 @@ import {
   type ParticleDensity,
 } from '@/components/shell/videoPrefs';
 import { getHexholdApi, type DesktopDisplay, type DisplayMode } from '@/components/shell/desktop';
-import { PAD_GLYPH } from '@/lib/gamepad';
+import type { Pad } from '@/lib/gamepad';
+import { usePadGlyphs } from '@/lib/usePadGlyphs';
 import { SoundTest } from '@/audio/SoundTest';
 import './shell/shell.css';
 
@@ -406,15 +407,16 @@ const SHORTCUTS: { key: string; action: string }[] = [
   { key: 'F11', action: 'Fullscreen' },
 ];
 
-const PAD_ROWS: { key: string; action: string }[] = [
-  { key: `${PAD_GLYPH.up}${PAD_GLYPH.down}${PAD_GLYPH.left}${PAD_GLYPH.right} / stick`, action: 'Move between buttons' },
-  { key: PAD_GLYPH.a, action: 'Select (Check / Call when nothing is selected)' },
-  { key: PAD_GLYPH.b, action: 'Back' },
-  { key: PAD_GLYPH.lb, action: 'Fold' },
-  { key: PAD_GLYPH.x, action: 'Raise' },
-  { key: PAD_GLYPH.y, action: 'All-in' },
-  { key: PAD_GLYPH.rb, action: 'Confirm' },
-  { key: PAD_GLYPH.start, action: 'Menu' },
+/** The controller rows, in the labels printed on the pad in hand. */
+const padRows = (g: Record<Pad, string>): { key: string; action: string }[] => [
+  { key: `${g.up}${g.down}${g.left}${g.right} / stick`, action: 'Move between buttons' },
+  { key: g.a, action: 'Select (Check / Call when nothing is selected)' },
+  { key: g.b, action: 'Back' },
+  { key: g.lb, action: 'Fold' },
+  { key: g.x, action: 'Raise' },
+  { key: g.y, action: 'All-in' },
+  { key: g.rb, action: 'Confirm' },
+  { key: g.start, action: 'Menu' },
 ];
 
 function ShortcutList({ rows }: { rows: { key: string; action: string }[] }) {
@@ -431,12 +433,13 @@ function ShortcutList({ rows }: { rows: { key: string; action: string }[] }) {
 }
 
 function ControlsTab() {
+  const glyphs = usePadGlyphs();
   return (
     <section style={{ display: 'grid', gap: 'var(--s-3)' }}>
       <p className="hh-field-hint">Keyboard, at the table.</p>
       <ShortcutList rows={SHORTCUTS} />
-      <p className="hh-field-hint">Controller (Xbox layout, as on a Steam Deck).</p>
-      <ShortcutList rows={PAD_ROWS} />
+      <p className="hh-field-hint">Controller (shown with the buttons of the pad you last used).</p>
+      <ShortcutList rows={padRows(glyphs)} />
     </section>
   );
 }

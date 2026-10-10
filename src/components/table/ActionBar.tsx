@@ -5,6 +5,7 @@ import { Button, Range } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
 import { playSfx } from '@/lib/sound';
 import { getPrefs } from '@/components/shell/prefs';
+import { usePadGlyphs } from '@/lib/usePadGlyphs';
 import { TurnTimer } from '@/components/fx/TurnTimer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { EASE_OUT, ENTER, SPRING_CRISP, T_REDUCED } from '@/styles/motion';
@@ -60,6 +61,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
       .filter((p) => p.value < maxTotal);
   }, [view.currentBet, pot, maxTotal, minRaise]);
 
+  const pad = usePadGlyphs();
   const [armed, setArmed] = useState<Guarded | null>(null);
   const armedRef = useRef<{ what: Guarded; at: number } | null>(null);
   const disarm = () => { armedRef.current = null; setArmed(null); };
@@ -181,23 +183,23 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
             {armed ? (
               <div className="ab-confirm" role="status">
                 {armed === 'fold'
-                  ? <>Checking is free. Press <kbd data-pad="LB">F</kbd> again to fold.</>
-                  : <>Press <kbd data-pad="Y">A</kbd> again to go all in.</>}
+                  ? <>Checking is free. Press <kbd data-pad={pad.lb}>F</kbd> again to fold.</>
+                  : <>Press <kbd data-pad={pad.y}>A</kbd> again to go all in.</>}
               </div>
             ) : null}
 
             <div className="ab-buttons">
               <Button tone="danger" size="lg" onClick={() => send(() => act({ kind: 'fold' }))}>
-                Fold <kbd data-pad="LB">F</kbd>
+                Fold <kbd data-pad={pad.lb}>F</kbd>
               </Button>
 
               {view.canCheck ? (
                 <Button size="lg" onClick={() => send(() => act({ kind: 'check' }))}>
-                  Check <kbd data-pad="A">C</kbd>
+                  Check <kbd data-pad={pad.a}>C</kbd>
                 </Button>
               ) : (
                 <Button size="lg" onClick={() => send(() => act({ kind: 'call' }))}>
-                  Call <span className="mono">{view.toCall.toLocaleString()}</span> <kbd data-pad="A">C</kbd>
+                  Call <span className="mono">{view.toCall.toLocaleString()}</span> <kbd data-pad={pad.a}>C</kbd>
                 </Button>
               )}
 
@@ -211,7 +213,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                   </Button>
                 ) : (
                   <Button tone="primary" size="lg" onClick={() => setRaising(true)}>
-                    {isBet ? 'Bet' : 'Raise'} <kbd data-pad="X">R</kbd>
+                    {isBet ? 'Bet' : 'Raise'} <kbd data-pad={pad.x}>R</kbd>
                   </Button>
                 )
               ) : null}
@@ -220,7 +222,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                 <Button tone="ghost" size="lg" onClick={() => setRaising(false)}>Back</Button>
               ) : canRaise ? (
                 <Button tone="ghost" size="lg" onClick={() => send(() => act({ kind: 'allin' }))}>
-                  All In <kbd data-pad="Y">A</kbd>
+                  All In <kbd data-pad={pad.y}>A</kbd>
                 </Button>
               ) : null}
             </div>
