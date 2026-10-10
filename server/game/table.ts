@@ -561,6 +561,8 @@ export function viewFor(t: Table, viewerId: string): TableView {
       handsWon: p.handsWon,
       biggestPot: p.biggestPot,
       bustedBy: p.bustedBy,
+      phylactery: p.phylactery,
+      revived: p.revived,
       // Yours only. It is derived from your own hole cards and your own
       // reading of the board, so it must never travel to another seat.
       handRead: isYou && !p.isBot ? handReadFor(t, p) : undefined,

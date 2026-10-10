@@ -23,7 +23,7 @@ import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
 import { useGame } from '@/store/net';
-import { usePrefs, type SpellCards } from '@/components/shell/prefs';
+import { LINGER_MS, usePrefs } from '@/components/shell/prefs';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
 import { shake } from '@/lib/visuals';
 import { spellFlight } from '@/components/fx/SpellFlight';
@@ -39,15 +39,6 @@ export interface StackOverlayProps {
 
 type ShownEntry = TableView['stackEntries'][number];
 
-/**
- * How long a resolved spell stays readable after the stack empties, by the
- * player's Settings > Gameplay > Spell cards choice. Full is the playtest's
- * 2.6s (ceff08b): a first-time player has to be able to read an opponent's
- * Graft. Measured from the player's chair, ante 1 averages 6.8 casts a hand,
- * so by hour three that is a lot of reading; Brief and Off are for then.
- * Off still shows any spell you can answer: the response window is a choice.
- */
-export const LINGER_MS: Readonly<Record<SpellCards, number>> = { full: 2600, brief: 800, off: 0 };
 
 const RANKS: Record<number, string> = {
   2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', 7: 'Sevens', 8: 'Eights',

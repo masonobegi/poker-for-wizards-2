@@ -26,8 +26,8 @@ export interface HexDef {
 }
 
 export const HEXES: readonly HexDef[] = [
-  { level: 1, name: 'Hex I', text: 'The table as it has always played.' },
-  { level: 2, name: 'Hex II', text: 'Every opponent sits down already holding a relic.' },
+  { level: 1, name: 'Hex I', text: 'The table as it has always played, and a phylactery for the first two antes.' },
+  { level: 2, name: 'Hex II', text: 'Every opponent sits down already holding a relic, and your phylactery is gone.' },
   { level: 3, name: 'Hex III', text: 'An omen is in force before the first card is dealt.' },
   { level: 4, name: 'Hex IV', text: 'The Market charges you a quarter more.' },
   { level: 5, name: 'Hex V', text: 'The blinds climb every two hands instead of three.' },
@@ -41,6 +41,41 @@ export const clampHex = (n: unknown): number =>
 /** Hex IV: what the Market charges a human, from the price it lists. */
 export const hexPrice = (price: number, hex: number, isBot: boolean): number =>
   hex >= 4 && !isBot ? Math.ceil(price * 1.25) : price;
+
+// ---------------------------------------------------------------------------
+// The phylactery
+// ---------------------------------------------------------------------------
+
+/**
+ * One second chance, early, at Hex I only.
+ *
+ * A solo run ends on the player's first bust. Measured from the player's
+ * chair (`npm run fun:batch`, 140 seeds, 2026-10-10) an aggressive player's
+ * run was over before the first Market in 12% of runs, about ninety seconds
+ * in, before an omen, a relic, the Scribe or an impossible hand: before any
+ * reason the game exists. Some of that is poker (stacking off with a good
+ * hand into a better one) and the bots already open gentler at Hex I.
+ *
+ * What the genre does instead of executing a player in minute one: a poker
+ * tournament has a rebuy period in its first levels; Slay the Spire has the
+ * Lizard Tail, Balatro has Mr. Bones, Inscryption's first act gives you two
+ * candles. A first loss that teaches instead of ending the run.
+ *
+ * So the first bust before PHYLACTERY_BEFORE_ANTE, at a solo Hex I table, is
+ * caught: the player buys back in with PHYLACTERY_STACK of a starting stack,
+ * and the next bust is the real one. The bots keep the chips they won. Hex II
+ * takes the phylactery away (it says so), which is part of what the climb
+ * means; the Daily Rite is played at Hex II, so it never has one.
+ *
+ * Set PHYLACTERY_BEFORE_ANTE to 1 to switch it off.
+ */
+export const PHYLACTERY_BEFORE_ANTE = 3;
+
+/** The buy-back, as a fraction of the starting stack. A rebuy is a full one. */
+export const PHYLACTERY_STACK = 1;
+
+/** Whether a run at this hex starts with a phylactery. */
+export const hasPhylactery = (hex: number): boolean => hex <= 1 && PHYLACTERY_BEFORE_ANTE > 1;
 
 /** Hex V shortens the ante, but never below two hands. */
 export const handsPerAnteAt = (base: number, hex: number): number =>

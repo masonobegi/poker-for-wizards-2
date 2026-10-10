@@ -483,7 +483,7 @@ test('Spell cards: Full lingers to be read, Brief flashes, Off shows only what y
   // after it resolves, and ante 1 averages 6.8 casts a hand. Full keeps that
   // for a first run; Brief and Off are for hour three.
   const StackOverlay = (await import('../src/components/table/StackOverlay')).default;
-  const { LINGER_MS } = await import('../src/components/table/StackOverlay');
+  const { LINGER_MS } = await import('../src/components/shell/prefs');
   const { setPrefs, getPrefs, DEFAULT_PREFS } = await import('../src/components/shell/prefs');
   const { createRoot } = await import('react-dom/client');
   const { act } = await import('react');

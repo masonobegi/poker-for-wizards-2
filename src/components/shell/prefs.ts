@@ -15,6 +15,16 @@ import { useSyncExternalStore } from 'react';
 export type SpellCards = 'full' | 'brief' | 'off';
 export const SPELL_CARD_OPTIONS: readonly SpellCards[] = ['full', 'brief', 'off'];
 
+/**
+ * How long a resolved spell stays readable after the stack empties, by the
+ * player's Settings > Gameplay > Spell cards choice. Full is the playtest's
+ * 2.6s (ceff08b): a first-time player has to be able to read an opponent's
+ * Graft. Measured from the player's chair, ante 1 averages 6.8 casts a hand,
+ * so by hour three that is a lot of reading; Brief and Off are for then.
+ * Off still shows any spell you can answer: the response window is a choice.
+ */
+export const LINGER_MS: Readonly<Record<SpellCards, number>> = { full: 2600, brief: 800, off: 0 };
+
 export interface GameplayPrefs {
   /** Ask "are you sure?" before a fold goes to the server. */
   confirmFold: boolean;

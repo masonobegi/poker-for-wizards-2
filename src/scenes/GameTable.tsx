@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useGame, useMe, useView } from '@/store/net';
 import { defOf, type SigilDef } from '@shared/sigils';
 import type { SigilTargets } from '@shared/types';
+import { PHYLACTERY_BEFORE_ANTE } from '@shared/hexes';
 import { Button, Modal } from '@/components/ui/kit';
 
 import Seat from '@/components/table/Seat';
@@ -219,6 +220,13 @@ export default function GameTable() {
           ) : (
             <span className="tbl-antesub gold">market next</span>
           )}
+          {/* Hex I's buy-back, while it can still be spent (shared/hexes.ts).
+              A player should know the first bust is not the last. */}
+          {me?.phylactery && view.ante < PHYLACTERY_BEFORE_ANTE ? (
+            <span className="tbl-antesub tbl-phylactery" title="Your first bust before ante 3 buys you back in with a full stack. The second one ends the run.">
+              phylactery until ante {PHYLACTERY_BEFORE_ANTE}
+            </span>
+          ) : null}
         </div>
 
         {/* The omen bar lives inside the right-hand cell rather than beside

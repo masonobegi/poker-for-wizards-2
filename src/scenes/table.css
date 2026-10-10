@@ -50,6 +50,9 @@
   color: var(--text-4);
 }
 
+/* Hex I's buy-back (shared/hexes.ts): quiet, but there while it can be spent. */
+.tbl-phylactery { color: var(--violet, #c4a7ff); opacity: 0.85; }
+
 /* --- main --------------------------------------------------------------- */
 
 .tbl-main {

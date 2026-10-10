@@ -204,6 +204,12 @@ export default function GameOver({ view }: { view: TableView }) {
                 {busted.yourHand ? <> against your {busted.yourHand}</> : null}.
               </p>
             ) : null}
+            {me.revived ? (
+              <p className="gameover-bust">
+                Your phylactery broke on hand {me.revived.hand}, to {me.revived.name}&rsquo;s{' '}
+                <strong>{me.revived.handName === 'Uncontested' ? 'bet' : me.revived.handName}</strong>.
+              </p>
+            ) : null}
 
             {view.omens.length ? (
               <>

@@ -103,6 +103,13 @@ export interface Player {
   biggestPot: number;
   /** What put this player out of the run, for the game-over screen. */
   bustedBy?: BustedBy;
+  /**
+   * An unspent phylactery: the first bust before ante 3 at a solo Hex I table
+   * buys this player back in instead of ending the run (shared/hexes.ts).
+   */
+  phylactery?: boolean;
+  /** The bust a phylactery caught, for the table and the game-over screen. */
+  revived?: BustedBy;
 }
 
 /** The hand that ended a player's run, in words the game-over screen can say. */
@@ -182,6 +189,10 @@ export interface PlayerView {
   biggestPot: number;
   /** Public, like the pot that did it: what put this player out of the run. */
   bustedBy?: BustedBy;
+  /** Public: an unspent phylactery (a buy-back before ante 3 at Hex I). */
+  phylactery?: boolean;
+  /** The bust a phylactery caught. */
+  revived?: BustedBy;
   /**
    * What this player currently holds, named. Only ever set on your own seat —
    * it is derived from your hole cards and your reading of the board, so it is

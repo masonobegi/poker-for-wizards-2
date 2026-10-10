@@ -12,7 +12,9 @@ import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { HEXES, dailyCoven, isDailySeed } from '../../shared/hexes';
+import {
+  HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
+} from '../../shared/hexes';
 import {
   IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, keepsPromise, omenNumber, type ActiveOmen,
 } from '../../shared/omens';
@@ -306,6 +308,10 @@ export class Engine {
       p.relics = [];
       p.eliminated = false;
       p.bustedBy = undefined;
+      // Hex I gives a solo player one buy-back before ante 3 (shared/hexes.ts).
+      // A table with two humans does not end on one bust, so it has none.
+      p.phylactery = !p.isBot && this.solo && hasPhylactery(t.config.hex);
+      p.revived = undefined;
       p.handsWon = 0;
       p.attuned = 0;
       p.maxMana = maxManaFor(p, t);
@@ -846,6 +852,7 @@ export class Engine {
     const t = this.table;
 
     for (const p of t.players) {
+      if (!p.eliminated && p.chips <= 0 && this.catchBust(p)) continue;
       if (!p.eliminated && p.chips <= 0) {
         p.eliminated = true;
         p.folded = true;
@@ -880,6 +887,29 @@ export class Engine {
     this.fx.push({ t: 'music', mood: 'table' });
     this.flush();
     this.wait(520, () => this.beginHand());
+  }
+
+  /**
+   * The phylactery: a solo player's first bust before ante 3 at Hex I buys
+   * them back in instead of ending the run (see PHYLACTERY_BEFORE_ANTE for
+   * why). The bots keep what they won; only the player's stack comes back.
+   * Tables with two humans never use it: a bust there does not end the run.
+   */
+  private catchBust(p: Player): boolean {
+    const t = this.table;
+    if (p.isBot || !p.phylactery || !this.solo || t.ante >= PHYLACTERY_BEFORE_ANTE) return false;
+    p.phylactery = false;
+    p.revived = this.bustedBy(p) ?? { name: 'the table', handName: 'Uncontested', ante: t.ante, hand: t.handNumber };
+    const stack = Math.max(t.bb, Math.round((t.config.startingChips * PHYLACTERY_STACK) / 50) * 50);
+    p.chips = stack;
+    log(t, `${p.name}'s phylactery breaks. ${p.revived.name}'s ${p.revived.handName} took the stack; ${p.name} buys back in with ${stack.toLocaleString()}.`,
+      'magic', { playerId: p.id });
+    this.fx.push({
+      t: 'banner', text: 'THE PHYLACTERY BREAKS',
+      sub: `Back in with ${stack.toLocaleString()}. The next bust ends the run`, tone: 'magic',
+    });
+    this.fx.push({ t: 'sfx', name: 'superpose' });
+    return true;
   }
 
   /**

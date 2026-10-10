@@ -17,7 +17,12 @@
  * impossible hands show up, decision density, and dead time.
  *
  * Run: npx tsx test/fun.ts [runs] [first-seed] [--json out.json] [--coven id]
- *      [--skill novice|adept|master] [--hex n] [--demo]
+ *      [--skill novice|adept|master] [--hex n] [--demo] [--demo-antes n]
+ *      [--player adept|cautious] [--no-phylactery] [--wall]
+ *
+ * --demo plays the Next Fest demo's table: its three covens, and the run cut
+ * off after DEMO_ANTES antes (or --demo-antes). --no-phylactery plays the same
+ * code with the player's Hex I buy-back taken away, for a same-seed A/B.
  */
 import { mock } from 'node:test';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -31,6 +36,8 @@ import { RELIC_BY_ID } from '../shared/relics';
 import { SIGIL_BY_ID, defOf } from '../shared/sigils';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type BotSkill, type RoomConfig } from '../shared/types';
+import { DEMO_ANTES, DEMO_COVENS } from '../shared/demo';
+import { LINGER_MS } from '../src/components/shell/prefs';
 import type { FxEvent } from '../shared/protocol';
 
 const args = process.argv.slice(2);
@@ -38,7 +45,7 @@ const flag = (name: string): string | undefined => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const VALUED = new Set(['--json', '--coven', '--skill', '--hex', '--merge', '--player']);
+const VALUED = new Set(['--json', '--coven', '--skill', '--hex', '--merge', '--player', '--demo-antes']);
 const positional = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && VALUED.has(args[i - 1])));
 const RUNS = Number(positional[0] ?? 12);
 const FIRST = Number(positional[1] ?? 0);
@@ -47,6 +54,8 @@ const ONLY_COVEN = flag('--coven');
 const SKILL = (flag('--skill') ?? 'adept') as BotSkill;
 const HEX = Number(flag('--hex') ?? 1);
 const DEMO = args.includes('--demo');
+const DEMO_LEN = Number(flag('--demo-antes') ?? DEMO_ANTES);
+const NO_PHYLACTERY = args.includes('--no-phylactery');
 const WALL = args.includes('--wall');
 /**
  * Who sits in the player's chair. `adept` plays the bots' own decision code at
@@ -115,13 +124,24 @@ export interface RunReport {
    * not absolutes.
    */
   stall?: { ticks: number; maxMs: number; over100: number; over500: number; totalMs: number };
+  /** A bust the phylactery caught (Hex I, before ante 3): the run went on. */
+  revived?: { ante: number; hand: number; by: string; theirs: string; you: string[]; facedAllIn: boolean };
+  /** A demo run that reached its last ante and the wishlist screen. */
+  demoComplete?: boolean;
+  /**
+   * Seconds a spell card covered the middle of the table, at each Spell cards
+   * setting's linger (StackOverlay LINGER_MS): in all, and while it was your
+   * turn to act. A live stack always shows; a resolved one lingers, until the
+   * next hand clears it.
+   */
+  overlay?: Record<string, { total: number; yourTurn: number }>;
   /** How the run ended, when it ended in a bust: the hand, and what you did in it. */
   bust?: { ante: number; hand: number; by: string; theirs: string; yours: string | null; you: string[]; facedAllIn: boolean };
 }
 
 function playRun(seed: string, coven: string): RunReport {
   const fxLog: FxEvent[] = [];
-  const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX };
+  const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX, ...(DEMO ? { demoAntes: DEMO_LEN } : {}) };
   const e = new Engine('FUN1', YOU, cfg, (fx) => { for (const f of fx) fxLog.push(f); }, () => {});
   const t = e.table;
   const rng = new Rng(`fun:${seed}`);
@@ -162,6 +182,14 @@ function playRun(seed: string, coven: string): RunReport {
   me.coven = coven;
   for (let i = 0; i < 3; i++) e.addBot();
   if (!e.start().ok) throw new Error('start failed');
+  if (NO_PHYLACTERY) me.phylactery = false;
+  let revived: RunReport['revived'];
+  // The spell overlay, replayed at each setting's linger.
+  const overlay: Record<string, { total: number; yourTurn: number }> = {};
+  for (const k of Object.keys(LINGER_MS)) overlay[k] = { total: 0, yourTurn: 0 };
+  let resolvedAt = -Infinity;
+  let resolvedHand = -1;
+  let stackWasLive = false;
 
   let lastHand = 0;
   let nextAt = 0;
@@ -217,6 +245,9 @@ function playRun(seed: string, coven: string): RunReport {
       if (amt > biggest.chips) biggest = { chips: amt, ante: t.ante, hand: t.handNumber };
     }
     if (me.folded && !me.eliminated) foldedThisHand = true;
+    if (me.revived && !revived) {
+      revived = { ante: me.revived.ante, hand: me.revived.hand, by: me.revived.name, theirs: me.revived.handName, you: [...myActions], facedAllIn };
+    }
 
     // ---- what the player is doing right now, for the time ledger
     const now = Date.now();
@@ -232,6 +263,20 @@ function playRun(seed: string, coven: string): RunReport {
     else if (t.phase === 'payout' || t.phase === 'showdown') state = 'showdown and payout';
     else state = 'deal, streets, banners';
     add(state, STEP);
+
+    // ---- the spell overlay: what it would cover at each setting
+    const stackLive = !!t.stack && t.stack.entries.length > 0;
+    if (stackWasLive && !stackLive) { resolvedAt = now; resolvedHand = t.handNumber; }
+    stackWasLive = stackLive;
+    for (const [k, ms] of Object.entries(LINGER_MS)) {
+      // Off shows a live stack only when you can answer it.
+      const showsLive = stackLive && (k !== 'off' || pendingMe);
+      const lingers = !stackLive && resolvedHand === t.handNumber && now - resolvedAt < ms;
+      if (showsLive || lingers) {
+        overlay[k].total += STEP / 1000;
+        if (state === 'your turn') overlay[k].yourTurn += STEP / 1000;
+      }
+    }
 
     // ---- the player acts, at a human pace
     if (t.phase === 'shop' && !me.shopDone && !me.eliminated) {
@@ -312,6 +357,9 @@ function playRun(seed: string, coven: string): RunReport {
     castSchools, castIds,
     omens: t.omens.map((o) => o.id),
     stall: { ...stall, maxMs: Math.round(stall.maxMs), totalMs: Math.round(stall.totalMs) },
+    revived,
+    demoComplete: t.demoComplete,
+    overlay,
     bust: !won && me.bustedBy ? {
       ante: me.bustedBy.ante, hand: me.bustedBy.hand, by: me.bustedBy.name, theirs: me.bustedBy.handName,
       yours: me.bustedBy.yourHand ?? null, you: myActions, facedAllIn,
@@ -361,7 +409,7 @@ if (!WALL) previewClock.now = () => (previewTicks += 6);
 const warn = console.warn; const err = console.error;
 console.warn = () => {}; console.error = () => {};
 
-const covens = ONLY_COVEN ? [ONLY_COVEN] : COVENS.map((c) => c.id);
+const covens = ONLY_COVEN ? [ONLY_COVEN] : DEMO ? [...DEMO_COVENS] : COVENS.map((c) => c.id);
 const reports: RunReport[] = [];
 for (let i = FIRST; i < FIRST + RUNS; i++) {
   const coven = covens[i % covens.length];
@@ -372,13 +420,13 @@ console.warn = warn; console.error = err;
 
 if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports, null, 1));
 summarise(reports);
-void DEMO; void alive; void live; void totalPot; void RELIC_BY_ID;
+void alive; void live; void totalPot; void RELIC_BY_ID;
 
 export function summarise(rs: RunReport[]): void {
   const n = rs.length;
   const avg = (f: (r: RunReport) => number) => rs.reduce((a, r) => a + f(r), 0) / Math.max(1, n);
   const pct = (k: number, d = n) => `${d ? Math.round((k / d) * 100) : 0}%`;
-  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} · ${PLAYER} player ════`);
+  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} · ${PLAYER} player${NO_PHYLACTERY ? ' · no phylactery' : ''}${DEMO ? ` · demo, ${DEMO_LEN} antes` : ''} ════`);
   console.log(`  won ${rs.filter((r) => r.won).length}/${n} · avg ${avg((r) => r.hands).toFixed(1)} hands · ${avg((r) => r.minutes).toFixed(1)} min · final ante ${avg((r) => r.finalAnte).toFixed(1)}`);
   const firsts = rs.filter((r) => r.firstMomentS !== null);
   console.log(`  first moment worth telling a friend: median ${median(firsts.map((r) => r.firstMomentS!)).toFixed(0)}s (${tally(firsts.map((r) => r.firstMomentKind!))})`);
@@ -392,7 +440,25 @@ export function summarise(rs: RunReport[]): void {
     const shoved = ante1.filter((r) => r.bust!.you.some((a) => /allin|raise|bet/.test(a))).length;
     console.log(`  ante-1 busts: ${ante1.length} · you bet or raised in the hand ${shoved} · you only called/checked ${ante1.length - shoved} · facing an all-in ${ante1.filter((r) => r.bust!.facedAllIn).length} · lost to ${tally(ante1.map((r) => r.bust!.theirs.split(',')[0]), 4)}`);
   }
-  console.log(`  run over before the first Market ${pct(rs.filter((r) => r.bustAnte === 1).length)} · before ante 3 ${pct(rs.filter((r) => r.bustAnte !== null && r.bustAnte < 3).length)} · survived 3 antes ${pct(rs.filter((r) => r.finalAnte >= 4 || r.won).length)}`);
+  console.log(`  run over before the first Market ${pct(rs.filter((r) => r.bustAnte === 1).length)} · before ante 3 ${pct(rs.filter((r) => r.bustAnte !== null && r.bustAnte < 3).length)} · survived 3 antes ${pct(rs.filter((r) => r.finalAnte >= 4 || r.won || (r.demoComplete && r.finalAnte >= 3)).length)}`);
+  // Every bust, whether it ended the run or the phylactery caught it.
+  const firstBust = (r: RunReport): number | null => r.revived?.ante ?? r.bustAnte;
+  const caught = rs.filter((r) => r.revived);
+  console.log(`  busted (caught or not) before the first Market ${pct(rs.filter((r) => firstBust(r) === 1).length)} · before ante 3 ${pct(rs.filter((r) => (firstBust(r) ?? 99) < 3).length)} · phylactery caught ${caught.length} (at ante 1: ${caught.filter((r) => r.revived!.ante === 1).length}) · of those, reached ante 3 ${caught.filter((r) => r.finalAnte >= 3).length}, saw a Market ${caught.filter((r) => r.finalAnte >= 2).length}, won ${caught.filter((r) => r.won).length}`);
+  if (DEMO) {
+    console.log(`  demo: reached the wishlist screen ${pct(rs.filter((r) => r.demoComplete).length)} · impossible hand inside the demo ${pct(rs.filter((r) => r.impossibleSeen > 0).length)} · yours ${pct(rs.filter((r) => r.impossibleYours > 0).length)} · minutes ${avg((r) => r.minutes).toFixed(1)}`);
+  }
+  const ov = rs.filter((r) => r.overlay);
+  if (ov.length) {
+    const yt = avg((r) => r.time['your turn'] ?? 0);
+    const tt = avg((r) => Object.values(r.time).reduce((a, b) => a + b, 0));
+    const parts = Object.keys(LINGER_MS).map((k) => {
+      const tot = ov.reduce((a, r) => a + r.overlay![k].total, 0) / ov.length;
+      const yours = ov.reduce((a, r) => a + r.overlay![k].yourTurn, 0) / ov.length;
+      return `${k} ${((tot / tt) * 100).toFixed(0)}% of the run, ${((yours / Math.max(1, yt)) * 100).toFixed(0)}% of your turns`;
+    });
+    console.log(`  a spell card covers the table: ${parts.join(' · ')}`);
+  }
   console.log('\n  DIFFICULTY (bust hazard by ante: busted here / reached)');
   const maxA = Math.max(...rs.map((r) => r.finalAnte));
   for (let a = 1; a <= maxA; a++) {

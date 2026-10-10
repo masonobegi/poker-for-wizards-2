@@ -43,6 +43,8 @@ test('a solo player who busts ends the run at once, and the chip leader takes th
   const e = table(['host'], 3);
   const t = e.table;
   const hero = t.players.find((p) => p.id === 'host')!;
+  // Past the phylactery (test/phylactery.test.ts): this is the real bust.
+  hero.phylactery = false;
   const bots = t.players.filter((p) => p.isBot);
   // The hero's chips went to the bots; the second bot is the clear leader.
   const spare = hero.chips + hero.bet;
