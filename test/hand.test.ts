@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { makeCard, type CardEntity, type Rank, type Suit } from '../shared/cards';
-import { Cat, describe as describeHand, evaluate, type RuleMods } from '../shared/hand';
+import { Cat, describe as describeHand, evalComplexity, evaluate, type RuleMods } from '../shared/hand';
 
 const C = (s: string): CardEntity => {
   const rankMap: Record<string, Rank> = {
@@ -201,6 +201,51 @@ test('divergence lets two viewers read the same card differently', () => {
 
   assert.equal(bob.cat, Cat.Pair, 'bob sees a two and only the pair of aces');
   assert.equal(alice.cat, Cat.Trips, 'alice sees a third ace');
+});
+
+// ------------------------------------------------- wilds and prisms, exactly
+
+/** A card from the spec, with marks: `C('5H', 'wild')`. */
+const M = (spec: string, ...marks: Array<'wild' | 'prism'>): CardEntity => {
+  const c = C(spec);
+  c.marks.push(...marks);
+  return c;
+};
+
+test('a wild joins the flush the other four make, whatever its printed suit', () => {
+  const r = evaluate({ cards: [C('2H'), C('7H'), C('9H'), C('JH'), M('3S', 'wild'), C('KC'), C('4D')], viewerId: null });
+  assert.equal(r.cat, Cat.Flush);
+});
+
+test('prisms make a flush house no printed deck can hold', () => {
+  // Three Kings and two Sevens, all one suit, only because three of them are prisms.
+  const r = evaluate({
+    cards: [C('KS'), M('KH', 'prism'), M('KD', 'prism'), C('7S'), M('7C', 'prism'), C('2D'), C('3H')],
+    viewerId: null,
+  });
+  assert.equal(r.cat, Cat.FlushHouse);
+  assert.equal(r.name, 'Flush House, Kings over Sevens');
+});
+
+test('two wilds and three prisms still find the best line', () => {
+  // Until 2026-10-10 a wild was 52 candidate faces and a prism 4; the search
+  // was trimmed past 3000 readings and this read as Four of a Kind, Fives.
+  // The best line is a straight flush: 4 (prism) 5H 6 (wild) 7 (wild) 8 (prism).
+  const sup = M('4S', 'prism');
+  sup.faces = [{ rank: 4, suit: 'S' }, { rank: 13, suit: 'H' }];
+  sup.collapsed = null;
+  const cards = [M('9H', 'wild'), M('8C', 'prism'), sup, C('AS'), M('4S', 'wild'), C('5H'), C('5D')];
+  const r = evaluate({ cards, viewerId: null });
+  assert.equal(r.name, 'Straight Flush, Eight high');
+  // And it is cheap: a wild is 13 readings and a prism one, not 52 and 4.
+  assert.ok(evalComplexity({ cards, viewerId: null }) < 5000, 'wilds and prisms blow up the search again');
+});
+
+test('a wild with merged colours or a four-card flush rule still flushes', () => {
+  const merged = evaluate({ cards: [C('2H'), C('7D'), C('9H'), M('JS', 'wild'), C('KD'), C('4C'), C('3S')], viewerId: null, mods: { mergedColors: true } });
+  assert.equal(merged.cat, Cat.Flush, 'red merged with a wild');
+  const four = evaluate({ cards: [C('2H'), C('7H'), M('9S', 'prism'), C('JH'), C('KD'), C('4C'), C('3S')], viewerId: null, mods: { flushSize: 4 } });
+  assert.equal(four.cat, Cat.Flush, 'a four-card flush with a prism');
 });
 
 // ---------------------------------------------------------------- budget
