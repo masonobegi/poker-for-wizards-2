@@ -150,9 +150,15 @@ function markedRank(card: CardEntity, rank: Rank, mods: RuleMods): Rank {
   return clampRank(r);
 }
 
+/**
+ * A candidate face. `anySuit` marks a face whose suit is not fixed (a wild,
+ * or a prism): it counts toward whichever flush the rest of the five make.
+ */
+type Cand = Face & { anySuit?: true };
+
 interface Slot {
   card: CardEntity;
-  candidates: Face[];
+  candidates: Cand[];
 }
 
 function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods): Slot[] {
@@ -170,15 +176,18 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
 
   const slots: Slot[] = [];
   for (const card of cards) {
-    let cands: Face[];
+    let cands: Cand[];
 
     if (card.marks.includes('wild')) {
       // A wild is genuinely any card, so every rank has to be on the table —
       // restricting it to ranks already in play would stop it filling the gap
-      // in a straight, which is most of what a wild is for. Suits are capped to
-      // those already present, since a lone new suit can never help a flush.
+      // in a straight, which is most of what a wild is for. Its suit is not
+      // enumerated: it joins whichever flush the other four make (score5).
+      // Enumerating it over every suit in play made a wild 52 candidates and
+      // a deck with five of them stalled the bots' Monte Carlo reads.
+      const suit = presentSuits.values().next().value as Suit;
       cands = [];
-      for (const r of RANKS) for (const s of presentSuits) cands.push({ rank: r, suit: s });
+      for (const r of RANKS) cands.push({ rank: r, suit, anySuit: true });
     } else {
       const base = possibleFaces(card, viewerId);
       cands = [];
@@ -187,7 +196,9 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
         if (mods.facesAreKings && (rank === 11 || rank === 12)) rank = 13;
         if (dead.has(rank)) continue;
         if (card.marks.includes('prism')) {
-          for (const s of presentSuits) cands.push({ rank, suit: s });
+          // Any suit, decided by the flush test rather than enumerated: one
+          // candidate, not four (see the wild above).
+          cands.push({ rank, suit: f.suit, anySuit: true });
         } else {
           cands.push({ rank, suit: f.suit });
         }
@@ -198,7 +209,7 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
     const seen = new Set<string>();
     cands = cands.filter((f) => {
       if (dead.has(f.rank)) return false;
-      const k = `${f.rank}${f.suit}`;
+      const k = f.anySuit ? `${f.rank}*` : `${f.rank}${f.suit}`;
       if (seen.has(k)) return false;
       seen.add(k);
       return true;
@@ -237,26 +248,44 @@ interface Five {
   ranks: number[];
 }
 
-function score5(faces: Face[], mods: RuleMods): Five {
+function score5(faces: Cand[], mods: RuleMods): Five {
   const flushSize = mods.flushSize ?? 5;
   const straightSize = mods.straightSize ?? 5;
 
-  const counts = new Map<number, number>();
-  for (const f of faces) counts.set(f.rank, (counts.get(f.rank) ?? 0) + 1);
-
-  const suitCounts = new Map<string, number>();
+  // Rank counts without a Map: this runs hundreds of thousands of times a
+  // second when the bots read a board full of wilds.
+  const rk: number[] = [];
+  const ct: number[] = [];
+  let mask = 0;
   for (const f of faces) {
-    const k = suitClass(f.suit, mods);
-    suitCounts.set(k, (suitCounts.get(k) ?? 0) + 1);
+    mask |= 1 << f.rank;
+    const j = rk.indexOf(f.rank);
+    if (j < 0) { rk.push(f.rank); ct.push(1); } else ct[j]++;
   }
-  const isFlush = [...suitCounts.values()].some((n) => n >= flushSize);
+
+  // A face of no fixed suit (wild, prism) joins the biggest suit among the
+  // rest, which is exactly the best of enumerating it over every suit in play.
+  const suitCounts = new Map<string, number>();
+  let anySuit = 0;
+  let topSuit = 0;
+  for (const f of faces) {
+    if (f.anySuit) { anySuit++; continue; }
+    const k = suitClass(f.suit, mods);
+    const n = (suitCounts.get(k) ?? 0) + 1;
+    suitCounts.set(k, n);
+    if (n > topSuit) topSuit = n;
+  }
+  const isFlush = topSuit + anySuit >= flushSize;
 
   // Groups sorted by count desc, then rank desc.
-  const groups = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+  const groups: Array<[number, number]> = rk.map((r, j) => [r, ct[j]]);
+  groups.sort((a, b) => b[1] - a[1] || b[0] - a[0]);
   const [g0, g1] = groups;
   const kickers = () => faces.map((f) => f.rank).sort((a, b) => b - a);
 
-  const straightHigh = bestStraight([...counts.keys()], straightSize, !!mods.wheelWrap);
+  const straightHigh = straightSize >= 2
+    ? bestStraightBits(mask, straightSize, !!mods.wheelWrap)
+    : bestStraight(rk, straightSize, !!mods.wheelWrap);
 
   // Impossible tier first.
   if (g0?.[1] >= 5) {
@@ -286,6 +315,25 @@ function score5(faces: Face[], mods: RuleMods): Five {
     return { cat: Cat.Pair, ranks: [g0[0], ...ks] };
   }
   return { cat: Cat.HighCard, ranks: kickers() };
+}
+
+/** `bestStraight` on a bitmask of ranks (bit r set for rank r), for size 2 and up. */
+const RING: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+function bestStraightBits(mask: number, size: number, wrap: boolean): number {
+  const m = mask & (1 << 14) ? mask | (1 << 1) : mask; // the wheel: an ace is also a one
+  const run = (1 << size) - 1;
+  for (let high = 14; high >= size; high--) {
+    if (((m >> (high - size + 1)) & run) === run) return high;
+  }
+  if (!wrap) return 0;
+  // Q-K-A-2-3 and friends: rank space as a ring of 13 from 2..14.
+  let best = 0;
+  for (let s = 0; s < RING.length; s++) {
+    let ok = true;
+    for (let i = 0; i < size; i++) if (!(mask & (1 << RING[(s + i) % RING.length]))) { ok = false; break; }
+    if (ok) best = Math.max(best, RING[(s + size - 1) % RING.length]);
+  }
+  return best;
 }
 
 /** Highest card of a run of `size`, or 0. Handles the wheel and, optionally, wraparound. */
@@ -394,7 +442,7 @@ export function evaluate({ cards, viewerId, mods = {} }: EvalInput): HandResult 
 
   let best: HandResult | null = null;
 
-  const pick: Face[] = new Array(5);
+  const pick: Cand[] = new Array(5);
   const picked: Slot[] = new Array(5);
 
   for (const subset of subsets) {
