@@ -1,22 +1,25 @@
-# HEXHOLD: Steam readiness (2026-10-09, finish pass)
+# HEXHOLD: Steam readiness (2026-10-10, fun pass)
 
 Branch `steam-ready-2026-10-09`. **Ship the Steam depots from this branch
 only**: `main` and `feedback-1` lack the save fix, the solo pause, the
 playtest fixes and everything below.
 
-## Code-side readiness: 95% (21 of 22), up from 60% this morning
+## Code-side readiness: 100% (24 of 24), up from 95% (21 of 22)
 
-Measured against a fixed list of the 22 things code and files can do for a
-Steam launch (below), each DONE with proof or not. This morning: 12.5 of 21
-(5 half-done counted as half). After the first finish pass: 17 of 21. Now:
-21 of 22 (item 22, Quit, was added when it was found). The one left, P6,
-waits on a decision only Mason can make. Nothing that needs his account,
-hardware, money or judgement is in the count.
+Measured against a fixed list of the things code and files can do for a
+Steam launch (below), each DONE with proof or not. 2026-10-09 morning: 12.5
+of 21; evening: 21 of 22. 2026-10-10: 24 of 24. P6 is built (Mason gave a
+blanket go-ahead; Full stays the default), and two items were added when
+they were found: the menu could not be scrolled on a Deck (23), and the Next
+Fest demo had never been looked at (24). Nothing that needs Mason's
+account, hardware, money or judgement is in the count. Whether the game is
+fun and sellable is a separate question: `FUN-REVIEW.md` (fun 7/10, was 6;
+sellable at $9.99 as a solo roguelite).
 
 | # | Code-side item | Status | Proof |
 | --- | --- | --- | --- |
-| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt from `ce2e2c4` (the last code change). Packaged harness 21/21, quit harness 9/9 (section 2). |
-| 2 | Linux build (Steam Deck depot), current and launched | DONE (was: never built) | `release/linux-unpacked`, same commit. Headless in WSL: **21 of 21** at 1280x800 and at 1920x1080; quit harness 6/6 (section 2). |
+| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt 2026-10-10 from `d31900c` (code as of `8c3b37a`, the last code change). Packaged harness 21/21, quit harness 9/9, slowest 208ms (section 2). |
+| 2 | Linux build (Steam Deck depot), current and launched | DONE | `release/linux-unpacked`, same commit. Headless in WSL: **21 of 21** at 1280x800; quit harness 6/6 (section 2). |
 | 3 | Steamworks: App ID from Steam, achievements, rich presence, Cloud | DONE | `test/steam.test.ts`; dormant until an App ID exists. |
 | 4 | Achievements: 20 defined, manifests, icons | DONE (was: monogram icons the manifest did not name) | 40 drawn icons in `steam/achievements/`; `achievements.json`/`.vdf` name each pair; test fails if one is missing. |
 | 5 | Settings that all do something | DONE (was: 3 dead switches) | Confirm before folding drives the fold guard; the other two hidden. `render.test.tsx`. |
@@ -32,11 +35,36 @@ hardware, money or judgement is in the count.
 | 15 | P5: Reduce flashing | DONE | Settings, Video; `render.test.tsx`. |
 | 16 | P7: title music at launch | DONE | Harness: AudioContext runs before any input, Windows and Linux. |
 | 17 | P8: Steam on-screen keyboard for text fields | DONE in code (was: none) | `test/keyboard.test.ts`, `test/steam.test.ts`, `test/display.test.ts`. Not yet seen on a Steam client (Mason, section 4). |
-| 18 | P6: spell overlay length (Full / Brief / Off) | NOT DONE | Needs a decision (see Mason later). `StackOverlay.tsx` `LINGER_MS = 2600`. |
+| 18 | P6: spell overlay length (Full / Brief / Off) | DONE (was: waiting on a decision) | Settings > Gameplay > Spell cards: Full 2.6s (default), Brief 0.8s, Off (only spells you can answer). `render.test.tsx` proves each mode. |
 | 19 | UI scale above 125% | DONE (was: capped at 125%) | Up to 200%, applied as the page zoom and capped so the layout never drops under 1024x680 (Deck 117%, 1080p 158%, 1440p and up 200%). `npm run responsive` at 200%: 0 failures at 1280x800 and 1920x1080 (3 and 4 with the old CSS zoom). `test/uiscale.test.ts`; the packaged harness checks the zoom on Windows and Linux. |
 | 20 | Bot decisions independent of server load | DONE (was: `botmagic` failed under CPU load) | Preview budget on an injectable clock; tests run idle and overloaded simulated clocks. It found a real bug: under load bots Nullified 81 of 150 harmless peeks; now under 20% either way. |
 | 21 | PlayStation (and Nintendo) button glyphs | DONE (was: Xbox only) | Family from the `Gamepad.id` vendor (054c Sony, 057e Nintendo; the Deck and Steam Input stay Xbox); the legend, action bar and Controls follow the pad in hand. `test/padglyphs.test.ts` (5). |
 | 22 | Quit ends the game promptly | DONE (was: 4 to 12s, once over 15s) | Electron's native teardown kept the exe (GPU, audio, browser processes) alive after the window closed; `electron/shutdown.cjs` ends the tree on `quit`. `test/quit.mjs` (menu, table, spell stack; by pid; hidden, muted): before 0/9 under 3s, after 9/9 on Windows (slowest 827ms) and 6/6 on Linux. |
+| 23 | Every menu control reachable on a Deck (1280x800) | DONE (was: Settings, Quit, Daily Rite and hosting off the bottom of a screen that did not scroll) | The menu column scrolls. `npm run responsive` now fails a control nothing scrolls to (`checkReachable`): against the old menu build it reports 12 failures at 1280x800 (Daily Rite, both pickers, Host, Join, Codex...); on this build 0 at 1280x800 and 1024x680. `test/demo.mjs` scrolls to Settings. |
+| 24 | Next Fest demo build, seen in a browser | DONE (was: built, never looked at) | `npm run build:demo`, then `node test/demo.mjs` (headless, muted, 1280x800): 3 covens open and 4 locked with a lock and their pitch, Play and Wishlist above the fold, a folding run reaches the wishlist screen, a shoving run gets the bust line; Wishlist opens the store. Packaged 2026-10-10: `npm run package:demo:win` (installer, zip) and `:linux` (the unpacked dir a depot uploads; the AppImage target needs symlinks Windows refuses). |
+
+## 0. What the fun pass changed (2026-10-10)
+
+Commits `7fae4b1..HEAD`. Measured with `npm run fun:batch` (140 whole solo
+runs from the player's chair, same seeds before and after); details and
+the verdicts in `FUN-REVIEW.md`.
+
+- **Balance**: bots open warm at Hex I (antes 1-2), blinds climb 1.4x an
+  ante (was 1.6x), and the first omen of every run is The Gilded (5 wilds)
+  or The Twinned (7 mirrored). Runs over before the first Market 15% to
+  12%; before ante 3 29% to 23%; an impossible hand in 29% of runs to 39%,
+  inside the 3-ante demo 10% to 22%; your stack at ante 7 11 to 19 big
+  blinds. Pinned by `test/balance.test.ts` and `test/omens.test.ts`.
+- **Evaluator**: a wild's or prism's suit is decided by the flush test, not
+  enumerated; bots' rollouts read a hand to 300 readings. About 7x faster
+  on exotic hands, never a worse hand, a better one where the old trimming
+  lost it. Half-second engine ticks over 28 runs: 27 before, 7 after.
+- **P6 Spell cards** (Full / Brief / Off), **menu scroll on a Deck**, the
+  **demo's locks and wishlist** above the fold.
+- **Harnesses**: `npm run fun:batch` (parallel, deterministic,
+  `--player cautious`, `--wall`), `test/demo.mjs`, `checkReachable` in
+  `npm run responsive`; `test/browser.mjs` falls back to an installed
+  Chromium when Playwright's pinned build is missing.
 
 ## 1. What the finish passes fixed (2026-10-09 evening)
 
@@ -104,23 +132,25 @@ kit. Their proofs are in the commit messages.
   (muted, off-screen, unfocusable, offline): **21 of 21**, now including UI
   scale 200% applied as page zoom. `node test/quit.mjs 3` (quit from the
   menu, a table and a spell stack; every game process timed by pid): **9 of
-  9**, slowest 827ms from the press to the last process gone. Earlier this
-  evening one harness run failed the pause check (Escape opened no menu
-  after the harness player busted and the run had ended, P1); it has not
-  recurred in the runs since.
+  9**, slowest 208ms from the press to the last process gone (rebuilt and
+  re-run 2026-10-10 on the final code).
 - **Linux**: `npx electron-builder --linux dir` (the depot uploads
   `release/linux-unpacked`). From Windows:
   `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless Ozone,
   `--no-sandbox`, no display, so nothing appears; xvfb would need root,
-  which this WSL does not give): **21 of 21** at 1280x800 and at 1920x1080
-  (`env HEXHOLD_TEST_SIZE=1920x1080`); with `env HEXHOLD_HARNESS=test/quit.mjs`
-  quit is 6 of 6, slowest 156ms after the press. Checked:
+  which this WSL does not give): **21 of 21** at 1280x800 on 2026-10-10's
+  build (1920x1080 passed on 2026-10-09's: `env HEXHOLD_TEST_SIZE=1920x1080`);
+  with `env HEXHOLD_HARNESS=test/quit.mjs` quit is 6 of 6, every process gone
+  within 582ms of the press. Checked:
   menu, Cinzel offline, version, Settings tabs, no DevTools, a practice run
   at the table, the solo pause, no network, Quit leaves no process, the save
   surviving a new port, a deleted key staying deleted. Not tested: a GPU,
   sound out of a speaker, the Steam runtime container, a real Deck.
   AppImage and tar.gz (non-Steam) are configured but not built this pass.
-- **`npm test`**: **275 of 275** (was 247 this afternoon), on the final code.
+- **`npm test`**: **292 of 292** on the final code (275 on 2026-10-09).
+- **Demo**: `npm run build:demo` and `node test/demo.mjs`: every check
+  passes (item 24). `npm run package:demo:win` and `:linux` into
+  `release-demo/`.
 - **`npm run responsive`** with `HEXHOLD_UI_SCALE=2` (page zoom emulated):
   1280x800 and 1920x1080, 0 failures. At the default scale this afternoon's
   12px-floor run stands (no layout CSS changed since).
@@ -179,11 +209,15 @@ kit. Their proofs are in the commit messages.
    `store-page.md` (press A on Join's code field and on the Scribe; type;
    Enter). Pass: declare Full, add the Controller tag, aim for Verified.
    Also legibility, frame rate, and one listening pass.
-5. **Decide**: P6 spell overlay length (the playtest suggests Full / Brief
-   at about 0.8s / Off as log only), the last code-side item; whether the
-   two hidden Gameplay switches are ever built; the LAN server's `0.0.0.0`
-   (a firewall prompt on first launch).
+5. **Decide**: whether the two hidden Gameplay switches are ever built; the
+   LAN server's `0.0.0.0` (a firewall prompt on first launch); the five
+   design proposals in `FUN-REVIEW.md` (the phylactery first). P6 was built
+   on the blanket go-ahead with Full as the default; say if you want Brief.
 6. **Legal and naming**: trademark search on HEXHOLD, publisher name (the
    copyright line reads Mason Obegi), Australia's R 18+ for simulated
    gambling.
 7. **Merge** this branch when ready; ship depots from it until then.
+8. **The Next Fest demo**: set `FULL_GAME_APP_ID` in `shared/demo.ts` once
+   Steamworks issues the App ID (until then Wishlist opens a store search);
+   decide 3 or 4 antes (`DEMO_ANTES`; FUN-REVIEW proposal 4); play it once
+   (`release-demo/`), and register for the Feb 2027 Next Fest by 10 Jan.

@@ -59,7 +59,10 @@ if (target) {
   mkdirSync('release-demo', { recursive: true });
   writeFileSync('release-demo/demo-builder.json', JSON.stringify(cfg, null, 2));
   const bin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  execFileSync(bin, ['electron-builder', target, '--config', 'release-demo/demo-builder.json', '--publish', 'never'], {
+  // Linux: the unpacked directory, which is what a Steam depot uploads. The
+  // AppImage target needs symlinks, which Windows refuses without admin.
+  const targets = target === '--linux' ? ['--linux', 'dir'] : [target];
+  execFileSync(bin, ['electron-builder', ...targets, '--config', 'release-demo/demo-builder.json', '--publish', 'never'], {
     stdio: 'inherit', shell: process.platform === 'win32',
   });
 }
