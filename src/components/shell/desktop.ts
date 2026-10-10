@@ -12,6 +12,9 @@ export interface HexholdDesktopApi {
   display?(): Promise<DesktopDisplay | null>;
   setDisplay?(req: Partial<{ mode: DisplayMode; width: number; height: number; vsync: boolean }>): Promise<DesktopDisplay | null>;
   reportCrash?(detail: string): Promise<string>;
+  /** The page's zoom factor (UI scale), synchronous. Shells from 2026-10-09 on. */
+  getZoom?(): number;
+  setZoom?(factor: number): number;
 }
 
 export type DisplayMode = 'windowed' | 'maximized' | 'fullscreen';

@@ -9,6 +9,10 @@
 # installed. A Linux Node is fetched the same way if none is on PATH.
 #
 # From Windows:  wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh [seconds]
+# Other window sizes or the quit-time harness, through env (WSL does not
+# inherit Windows variables):
+#   wsl -d Ubuntu-24.04 -- env HEXHOLD_TEST_SIZE=1920x1080 bash scripts/linux-smoke.sh 60
+#   wsl -d Ubuntu-24.04 -- env HEXHOLD_HARNESS=test/quit.mjs bash scripts/linux-smoke.sh 2
 # (run from the repo root; MSYS_NO_PATHCONV=1 if launched from Git Bash).
 set -euo pipefail
 
@@ -56,6 +60,6 @@ fi
 # No display of any kind: WSLg would otherwise put a window on the desktop.
 unset DISPLAY WAYLAND_DISPLAY ELECTRON_RUN_AS_NODE
 cd "$REPO"
-HEXHOLD_EXE="$APP/hexhold" \
+HEXHOLD_EXE="$APP/hexhold" HEXHOLD_TEST_SIZE="${HEXHOLD_TEST_SIZE:-1280x800}" \
 HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless" \
-  "$NODE" test/packaged.mjs "$SECONDS_TO_PLAY"
+  "$NODE" "${HEXHOLD_HARNESS:-test/packaged.mjs}" "$SECONDS_TO_PLAY"

@@ -22,6 +22,13 @@ const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
 // (handsPerAnte defaults to 3), and headless rendering at 4K/ultrawide is
 // meaningfully slower per frame than at 1280x800.
 const BUDGET_MS = 220_000;
+const UI_SCALE = process.env.HEXHOLD_UI_SCALE ?? '';
+/** Mirrors appliedUiScale in src/components/shell/videoPrefs.ts (uiscale.test.ts pins it). */
+function appliedUiScale(chosen, w, h) {
+  const c = Math.min(2, Math.max(0.8, chosen));
+  if (c <= 1) return c;
+  return Math.max(1, Math.min(c, Math.floor(Math.min(w / 1024, h / 680) * 100) / 100));
+}
 
 const RESOLUTIONS = [
   { name: 'steamdeck', width: 1280, height: 800, note: 'Steam Deck — critical' },
@@ -434,9 +441,18 @@ async function runResolution(browser, res) {
     for (const m of msgs) fails.push(`[${where}] ${m}`);
   };
 
+  // HEXHOLD_UI_SCALE=2 runs every check as the desktop build lays the game
+  // out with Settings > Video > UI Scale at that value: the shell applies it
+  // as the page zoom, capped to what the window can hold (appliedUiScale in
+  // src/components/shell/videoPrefs.ts, same formula here), and a zoom of z on
+  // a W x H window is a (W/z) x (H/z) CSS-pixel viewport drawn at z device
+  // pixels per CSS pixel. Every check then runs on that page, so text sizes,
+  // overflow and overlaps are measured at the scale a player sees.
+  const zoom = UI_SCALE ? appliedUiScale(Number(UI_SCALE), res.width, res.height) : 1;
+  if (UI_SCALE) note(`UI scale chosen ${UI_SCALE}, applied ${zoom}: laid out at ${Math.round(res.width / zoom)}x${Math.round(res.height / zoom)} CSS px`);
   const ctx = await browser.newContext({
-    viewport: { width: res.width, height: res.height },
-    deviceScaleFactor: 1,
+    viewport: { width: Math.round(res.width / zoom), height: Math.round(res.height / zoom) },
+    deviceScaleFactor: zoom,
     reducedMotion: 'reduce',
   });
   const page = await ctx.newPage();
@@ -623,6 +639,7 @@ for (const res of RESOLUTIONS) {
   const r = await runResolution(browser, res);
   await browser.close();
   results.push(r);
+  for (const n of r.notes.filter((x) => x.startsWith('UI scale'))) console.log(`  ${n}`);
   console.log(`  screenshots: menu=${r.seen.menu ? 'y' : 'n'} table=${r.seen.table ? 'y' : 'n'} market=${r.seen.market ? 'y' : 'n'} showdown=${r.seen.showdown ? 'y' : 'n'}`);
   if (r.fails.length) {
     console.log(`  ${r.fails.length} FAILURE(S):`);

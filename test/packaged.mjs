@@ -47,6 +47,8 @@ const EXE = process.env.HEXHOLD_EXE
     : 'release/linux-unpacked/hexhold');
 const SHOT_DIR = path.resolve('steam/screenshots/raw');
 const HEADLESS = /--ozone-platform=headless/.test(process.env.HEXHOLD_EXTRA_ARGS ?? '');
+// Window content size for a headless run, e.g. HEXHOLD_TEST_SIZE=1920x1080.
+const HEADLESS_SIZE = (process.env.HEXHOLD_TEST_SIZE ?? '1280x800').split('x').map(Number);
 // A throwaway profile, so a test run never touches a real player's save.
 const USER_DATA = path.join(os.tmpdir(), `hexhold-packaged-${process.pid}`);
 
@@ -131,14 +133,14 @@ async function start(port) {
     // Headless Ozone has a small virtual screen, and the off-screen x:10000
     // the shell uses for tests puts the window outside it, where nothing can
     // be clicked. With no display there is nobody to hide from: put the
-    // window on the virtual screen at a Steam Deck's 1280x800.
-    await app.evaluate(({ BrowserWindow }) => {
+    // window on the virtual screen, at a Steam Deck's 1280x800 by default.
+    // (page.setViewportSize is not used: it would pin the layout and hide
+    // the page zoom that UI scale applies.)
+    await app.evaluate(({ BrowserWindow }, [sw, sh]) => {
       const w = BrowserWindow.getAllWindows()[0];
       w.setPosition(0, 0);
-      w.setContentSize(1280, 800);
-    }).catch(() => {});
-    const [w, h] = await page.evaluate(() => [innerWidth, innerHeight]).catch(() => [0, 0]);
-    if (w !== 1280 || h !== 800) await page.setViewportSize({ width: 1280, height: 800 }).catch(() => {});
+      w.setContentSize(sw, sh);
+    }, HEADLESS_SIZE).catch(() => {});
   }
   const external = [];
   const errors = [];
@@ -408,6 +410,28 @@ if (port1 === port2) fail(`relaunch reused port ${port1}, so it did not test the
 else if (probe2 === probe) pass(`saved state survived a relaunch (port ${port1} -> ${port2})`);
 else fail(`saved state lost on relaunch (port ${port1} -> ${port2}): ${probe2} != ${probe}`);
 if (!introAgain) pass('intro not shown again on the second launch'); else fail('intro shown again on relaunch');
+
+// UI scale above 125% (Settings > Video): the shell applies it as the page
+// zoom, capped so the layout never drops under its 1024x680 minimum.
+{
+  await page.evaluate(() => localStorage.setItem('hexhold.uiScale', '2'));
+  await page.waitForTimeout(2200); // the preload's flush writes the save file
+  await page.reload();
+  await page.locator('button', { hasText: /practice vs bots/i }).first()
+    .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
+  await page.waitForTimeout(600);
+  const z = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getZoomFactor());
+  const [cw, ch] = await page.evaluate(() => [innerWidth, innerHeight]);
+  const win = { w: Math.round(cw * z), h: Math.round(ch * z) };
+  const want = Math.max(1, Math.min(2, Math.floor(Math.min(win.w / 1024, win.h / 680) * 100) / 100));
+  if (Math.abs(z - want) < 0.011 && cw >= 1023 && ch >= 679) {
+    pass(`UI scale 200% applied as page zoom ${z.toFixed(2)} on a ${win.w}x${win.h} window: laid out at ${cw}x${ch}`);
+  } else {
+    fail(`UI scale: zoom ${z} (wanted ${want}) on ${win.w}x${win.h}, layout ${cw}x${ch}`);
+  }
+  await page.evaluate(() => localStorage.setItem('hexhold.uiScale', '1'));
+  await page.waitForTimeout(2200);
+}
 
 // Delete the marker in this session, the way a profile reset deletes keys,
 // and give the preload's 1.5 s flush time to write the save file.

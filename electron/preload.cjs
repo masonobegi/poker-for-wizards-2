@@ -3,7 +3,7 @@
  * the game is a web app that happens to be in a window, and nothing in it
  * needs the filesystem or the network beyond its own socket.
  */
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 /**
  * Saved state that survives the port changing.
@@ -61,6 +61,16 @@ contextBridge.exposeInMainWorld('hexhold', {
   display: () => ipcRenderer.invoke('hexhold:display'),
   setDisplay: (req) => ipcRenderer.invoke('hexhold:setDisplay', req),
   crashLogPath: () => ipcRenderer.invoke('hexhold:crashLog'),
+  /**
+   * Settings > Video > UI Scale, as the page's zoom factor: the page is laid
+   * out at (window / zoom) CSS pixels, so media queries see the real size.
+   * Synchronous, and limited to the range the slider offers.
+   */
+  getZoom: () => webFrame.getZoomFactor(),
+  setZoom: (f) => {
+    if (typeof f === 'number' && Number.isFinite(f) && f >= 0.5 && f <= 2) webFrame.setZoomFactor(f);
+    return webFrame.getZoomFactor();
+  },
   reportCrash: (detail) => ipcRenderer.invoke('hexhold:reportCrash', String(detail).slice(0, 8000)),
 
   /**

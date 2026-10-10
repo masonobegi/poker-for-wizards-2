@@ -11,6 +11,7 @@ import {
   useReducedMotionSetting,
   useSystemReducedMotion,
   useUiScale,
+  useAppliedUiScale,
   type ParticleDensity,
 } from '@/components/shell/videoPrefs';
 import { getHexholdApi, type DesktopDisplay, type DisplayMode } from '@/components/shell/desktop';
@@ -194,6 +195,7 @@ function VideoTab() {
   const systemReduced = useSystemReducedMotion();
   const [density, setDensity] = useParticleDensity();
   const [uiScale, setUiScale] = useUiScale();
+  const appliedScale = useAppliedUiScale();
   const [fullscreen, setFullscreen] = useState(() => !!document.fullscreenElement);
 
   useEffect(() => {
@@ -279,7 +281,10 @@ function VideoTab() {
           <span style={{ letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 600 }}>
             UI Scale
           </span>
-          <span className="mono">{Math.round(uiScale * 100)}%</span>
+          <span className="mono">
+            {Math.round(uiScale * 100)}%
+            {appliedScale < uiScale ? ` · ${Math.round(appliedScale * 100)}% fits this window` : ''}
+          </span>
         </span>
         <Range min={UI_SCALE_MIN} max={UI_SCALE_MAX} step={0.05} value={uiScale} onChange={setUiScale} />
       </label>

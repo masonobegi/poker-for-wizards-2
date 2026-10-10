@@ -17,7 +17,31 @@ const FLASHING_KEY = 'hexhold.reduceFlashing';
 export const DEFAULT_PARTICLE_DENSITY: ParticleDensity = 'full';
 export const DEFAULT_UI_SCALE = 1;
 export const UI_SCALE_MIN = 0.8;
-export const UI_SCALE_MAX = 1.25;
+/**
+ * The most a player can ask for. What is applied is also capped by the
+ * window (see appliedUiScale): `.app` uses CSS zoom, so a scale of z lays the
+ * game out in (window / z) CSS pixels, and below LAYOUT_MIN things clip.
+ */
+export const UI_SCALE_MAX = 2;
+/** Outside the desktop shell, where only CSS zoom is available. */
+export const BROWSER_UI_SCALE_MAX = 1.25;
+/** The smallest layout the game is built and tested for (the Electron minimum window). */
+export const LAYOUT_MIN = { width: 1024, height: 680 } as const;
+
+/**
+ * The scale actually applied for a chosen scale in a window of w x h CSS px.
+ * Shrinking is always honoured. Growing stops where the layout would drop
+ * under LAYOUT_MIN: a Steam Deck (1280x800) fits 117%, 1080p 158%, 1440p
+ * 200%. Before 2026-10-09 the cap was a flat 125%, which on a Deck already
+ * laid the game out at 1024x640, under its minimum height.
+ */
+export function appliedUiScale(chosen: number, w: number, h: number): number {
+  const c = clampScale(chosen);
+  if (c <= 1) return c;
+  if (!(w > 0) || !(h > 0)) return 1;
+  const fit = Math.floor(Math.min(w / LAYOUT_MIN.width, h / LAYOUT_MIN.height) * 100) / 100;
+  return Math.max(1, Math.min(c, fit));
+}
 
 function hasDom(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -82,22 +106,71 @@ function readUiScale(): number {
   return DEFAULT_UI_SCALE;
 }
 
+let appliedScale = DEFAULT_UI_SCALE;
+
+type ZoomBridge = { getZoom?: () => number; setZoom?: (f: number) => number };
+const zoomBridge = (): ZoomBridge | undefined => {
+  try { return (window as unknown as { hexhold?: ZoomBridge }).hexhold; } catch { return undefined; }
+};
+
+/**
+ * How the scale is applied.
+ *
+ * In the desktop build, as the page's zoom factor (Electron's webFrame): the
+ * whole page is laid out at (window / scale) CSS pixels, so every media query
+ * and every measurement sees the size the game really has. CSS `zoom` on
+ * `.app` (the browser fallback) scales the content but not the viewport the
+ * media queries read: at 117% on a Deck the short-screen rules for a 684px
+ * layout never fired, because the viewport still said 800, and the seats
+ * slid over the board (the responsive harness at 200%, 2026-10-09).
+ */
 function applyUiScale(v: number): void {
   if (!hasDom()) return;
-  try { document.documentElement.style.setProperty('--ui-scale', String(v)); } catch { /* ignore */ }
+  const bridge = zoomBridge();
+  if (bridge?.setZoom && bridge.getZoom) {
+    // innerWidth is already divided by the current zoom; undo it to get the
+    // window's size, which is what the cap is measured against.
+    const z = bridge.getZoom() || 1;
+    appliedScale = appliedUiScale(v, window.innerWidth * z, window.innerHeight * z);
+    try { document.documentElement.style.setProperty('--ui-scale', '1'); } catch { /* ignore */ }
+    if (Math.abs(z - appliedScale) > 0.001) bridge.setZoom(appliedScale);
+    return;
+  }
+  // A plain browser (the web build) keeps the old 125% ceiling: CSS zoom
+  // cannot move the viewport its media queries read.
+  appliedScale = appliedUiScale(Math.min(v, BROWSER_UI_SCALE_MAX), window.innerWidth, window.innerHeight);
+  try { document.documentElement.style.setProperty('--ui-scale', String(appliedScale)); } catch { /* ignore */ }
 }
 
 let uiScale = hasDom() ? readUiScale() : DEFAULT_UI_SCALE;
 applyUiScale(uiScale);
 const uiScaleListeners = new Set<() => void>();
 
+// The cap depends on the window, so a resize (or a display-mode change)
+// re-applies the chosen scale.
+if (hasDom()) {
+  try {
+    window.addEventListener('resize', () => {
+      const before = appliedScale;
+      applyUiScale(uiScale);
+      if (appliedScale !== before) for (const l of uiScaleListeners) l();
+    });
+  } catch { /* ignore */ }
+}
+
 export function getUiScale(): number { return uiScale; }
+/** The scale in effect right now, after the window's cap. */
+export function getAppliedUiScale(): number { return appliedScale; }
 
 export function setUiScale(v: number): void {
   uiScale = clampScale(v);
   applyUiScale(uiScale);
   try { localStorage.setItem(UI_SCALE_KEY, String(uiScale)); } catch { /* ignore */ }
   for (const l of uiScaleListeners) l();
+}
+
+export function useAppliedUiScale(): number {
+  return useSyncExternalStore(subscribeUiScale, getAppliedUiScale, () => DEFAULT_UI_SCALE);
 }
 
 function subscribeUiScale(fn: () => void): () => void {
