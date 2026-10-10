@@ -241,6 +241,14 @@ test('two wilds and three prisms still find the best line', () => {
   assert.ok(evalComplexity({ cards, viewerId: null }) < 5000, 'wilds and prisms blow up the search again');
 });
 
+test('a hand of four wilds, trimmed to stay fast, can still make Aces', () => {
+  // Thirteen readings a wild, four wilds: past the 3000 cap, so the search is
+  // trimmed. It used to keep the first half of each wild's ranks, Two up, so
+  // this read as Flush Five, Twos.
+  const cards = [C('AS'), C('AH'), M('9C', 'wild'), M('4D', 'wild'), M('7H', 'wild'), M('JS', 'wild'), C('2D')];
+  assert.equal(evaluate({ cards, viewerId: null }).name, 'Flush Five, Aces');
+});
+
 test('a wild with merged colours or a four-card flush rule still flushes', () => {
   const merged = evaluate({ cards: [C('2H'), C('7D'), C('9H'), M('JS', 'wild'), C('KD'), C('4C'), C('3S')], viewerId: null, mods: { mergedColors: true } });
   assert.equal(merged.cat, Cat.Flush, 'red merged with a wild');

@@ -167,6 +167,15 @@ export function equity(t: Table, p: Player, rng: Rng): number {
 }
 
 /**
+ * The search bound for one hand inside a rollout (showdowns use 3000). Two
+ * wilds read in full (169); three or more are trimmed. With five wilds in the
+ * deck the reads were where the table's long ticks came from: measured with
+ * the shipped preview budget, half-second ticks went from about 1 to 3.4 a
+ * run when The Gilded went from three wilds to five.
+ */
+const ROLLOUT_COMBOS = 300;
+
+/**
  * Rough win probability from rolling out the rest of the board and giving each
  * live opponent two random unseen cards.
  */
@@ -207,7 +216,7 @@ function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): numbe
       if (c) runout.push(c);
     }
 
-    const mine = evaluate({ cards: [...myHole, ...boardCards, ...runout], viewerId: p.id, mods });
+    const mine = evaluate({ cards: [...myHole, ...boardCards, ...runout], viewerId: p.id, mods, maxCombos: ROLLOUT_COMBOS });
 
     let best = -Infinity;
     let bestIsTie = false;
@@ -221,6 +230,7 @@ function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): numbe
         cards: [...oHole, ...boardCards, ...runout],
         viewerId: o.id,
         mods: modsFor(t, o),
+        maxCombos: ROLLOUT_COMBOS,
       });
       if (theirs.score > best) { best = theirs.score; bestIsTie = false; }
       else if (theirs.score === best) bestIsTie = true;

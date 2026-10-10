@@ -221,19 +221,30 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
   return slots;
 }
 
-/** Keep the combination space bounded without silently losing the best line. */
-function trimSlots(slots: Slot[]): Slot[] {
+/**
+ * Keep the combination space bounded, losing as little of the best line as
+ * possible. The widest slot (a wild) is halved first, keeping the ranks the
+ * other cards can also be (what a wild pairs with), then the highest. It used
+ * to keep the first half in rank order, so a trimmed wild could be a Two but
+ * never an Ace.
+ */
+function trimSlots(slots: Slot[], cap = MAX_COMBOS): Slot[] {
   let product = slots.reduce((a, s) => a * s.candidates.length, 1);
-  if (product <= MAX_COMBOS) return slots;
+  if (product <= cap) return slots;
 
   const out = slots.map((s) => ({ ...s, candidates: s.candidates.slice() }));
-  // Shrink the widest slots first; they are the least discriminating.
-  while (product > MAX_COMBOS) {
+  while (product > cap) {
     out.sort((a, b) => b.candidates.length - a.candidates.length);
     const widest = out[0];
     if (widest.candidates.length <= 1) break;
+    const held = new Set<number>();
+    // Only real cards count as what a wild could pair with: another wild
+    // can be any rank, which would make every rank look held.
+    for (const s of out) if (s !== widest && s.candidates.length <= 4) for (const c of s.candidates) held.add(c.rank);
+    const keep = widest.candidates.slice().sort((a, b) =>
+      Number(held.has(b.rank)) - Number(held.has(a.rank)) || b.rank - a.rank);
     product /= widest.candidates.length;
-    widest.candidates = widest.candidates.slice(0, Math.max(1, Math.ceil(widest.candidates.length / 2)));
+    widest.candidates = keep.slice(0, Math.max(1, Math.ceil(keep.length / 2)));
     product *= widest.candidates.length;
   }
   return out;
@@ -398,6 +409,12 @@ export interface EvalInput {
   cards: CardEntity[];
   viewerId: string | null;
   mods?: RuleMods;
+  /**
+   * A lower bound on the search for callers that want an estimate, not the
+   * answer: a bot's Monte Carlo read evaluates thousands of random hands a
+   * decision. Showdowns leave it unset and get the exact hand.
+   */
+  maxCombos?: number;
 }
 
 const EMPTY: HandResult = {
@@ -432,8 +449,8 @@ export function evalComplexity({ cards, viewerId, mods = {} }: EvalInput): numbe
   return total;
 }
 
-export function evaluate({ cards, viewerId, mods = {} }: EvalInput): HandResult {
-  const slots = trimSlots(buildSlots(cards, viewerId, mods));
+export function evaluate({ cards, viewerId, mods = {}, maxCombos }: EvalInput): HandResult {
+  const slots = trimSlots(buildSlots(cards, viewerId, mods), maxCombos);
   if (slots.length < 5) return EMPTY;
 
   const n = slots.length;
