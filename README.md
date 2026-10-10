@@ -20,7 +20,8 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 219 tests: hand eval, sigils, omens, bots, hexes, the spell reader, DOM mounts, sockets
+npm test           # 292 tests: hand eval, sigils, omens, bots, balance, hexes, the spell reader, DOM mounts, sockets
+npm run fun:batch  # 70+ whole solo runs from the player's chair: early busts, impossible hands, run arc (FUN-REVIEW.md)
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
 npm run responsive # lays the game out at all seven shipped resolutions
@@ -84,15 +85,15 @@ The rest is **mana** and **sigils**.
 
 Above a Straight Flush sit three categories a fifty-two card deck cannot produce — **Five of a Kind**, **Flush House** and **Flush Five**. Wild marks, mirrored cards and superposition make them reachable.
 
-Blinds climb every few hands. Between antes the **Market** opens and you spend **shards** — earned from pots, plus a stipend that scales with the ante and leans toward whoever is behind, because the shop is the one phase that exists to let a losing player change their situation.
+Blinds climb every three hands, by 1.4x an ante. At Hex I the bots open warm: for the first two antes they bet, raise and cast less, then play at full heat. Between antes the **Market** opens and you spend **shards** — earned from pots, plus a stipend that scales with the ante and leans toward whoever is behind, because the shop is the one phase that exists to let a losing player change their situation.
 
 ### Omens
 
 At every ante a new **omen** lands on the table. It is permanent, it applies to everyone, and it never comes off.
 
-Suits merge. Aces start bridging both ends of the rank order. Every King is dealt face down before anyone has seen it. Three cards in the shared deck quietly become Wild and nobody is told which. One rank is struck from the game entirely. At ante five, the worst hand starts winning every pot.
+Suits merge. Aces start bridging both ends of the rank order. Every King is dealt face down before anyone has seen it. Five cards in the shared deck quietly become Wild and nobody is told which. One rank is struck from the game entirely. At ante five, the worst hand starts winning every pot.
 
-They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory: if no omen has seeded the deck with wild, prism or mirrored cards by ante three, that ante's omen is one that does.
+They stack. By the end of a run you are playing under a rulebook nobody sat down to — and you can name every decision that got you there. Omens are also what make the impossible hands reachable in practice rather than in theory: the first omen of every run (ante two) is one that seeds the deck with wild or mirrored cards, so the first Market already sits under a deck that can break.
 
 ### Writing your own sigils
 
@@ -127,7 +128,7 @@ The **Daily Rite** is one seeded run a day, the same for everyone: the coven, th
 | **Ruin** | Removing things from existence | *Unmake* — a rank is struck from every hand at the table |
 | **Weave** | Editing the deck itself | *Inscribe* — write a permanent mark on one exact card, forever |
 
-60 sigils, 37 relics, 33 omens, 9 card inscriptions.
+71 sigils, 45 relics, 41 omens, 9 card inscriptions.
 
 ---
 

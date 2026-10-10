@@ -93,11 +93,20 @@ Honest list, worst first.
 
     None of that is listening. Measurement can tell you two sounds are 12 dB apart; it cannot tell you the counterspell sound is annoying by the fortieth time, that the table bed grates after an hour, or that the win sting is corny. Put headphones on before you ship.
 5. **Crash reporting is local only.** The desktop shell writes a plain-text `crash.log` in the user data folder and offers a reload, which means a player whose game died has one file you can ask for. A hosted service would tell you without asking; that is worth adding before a wide release.
-6. **`evaluate` is expensive on a wild board, and the omens deal wilds.** A
-   plain seven-card hand evaluates in 0.11ms; one wild takes 1.7ms, two wilds
-   with two superposed cards take 39ms, and nine cards can reach 122ms. A wild
-   slot carries one candidate face per rank per suit in play and the evaluator
-   walks the product of five of them.
+6. **`evaluate` is expensive on a wild board, and the omens deal wilds.**
+   Much less so since 2026-10-10: a wild's or prism's suit is now decided by
+   the flush test instead of enumerated (a wild is 13 readings, not 52; a
+   prism 1, not 4), and a bot's rollout reads a hand to 300 readings. Same
+   machine, old against new: a plain seven-card hand 0.06ms to 0.04ms; one
+   wild 1.5ms to 0.25ms; two wilds with two superposed cards 29ms to 4.2ms;
+   nine cards 72ms to 12ms. The old search was also trimmed past 3000
+   readings in a way that lost the best hand (a trimmed wild could never be
+   an Ace); on 6000 random exotic hands the new one is never worse and finds
+   a better, true hand in about a quarter. Measured over whole runs with the
+   shipped preview budget (`npm run fun:batch -- 28 0 --jobs 2 --wall`), the
+   engine held the thread over half a second 7 times in 28 runs, against 27
+   before this pass and 96 with five wilds and the old reads; the worst tick
+   was 1.1s. The six-handed table is still the slowest case.
 7. **Content depth.** 71 sigils, 45 relics, 41 omens, 7 covens, 5 hexes per
    coven and a Daily Rite. Hexes and the daily give a reason to start the next
    run; the hex rules themselves were set without a human win rate, so Hex V

@@ -28,7 +28,7 @@ Underneath, it is plain Hold'em: two hole cards, five on the board, best hand wi
 [/list]
 
 [h2]A rulebook nobody wrote[/h2]
-At each new ante, an omen lands and never leaves. Suits merge. Every King is dealt face down. Three cards in the deck quietly turn Wild, and nobody is told which. From ante five, the omen that lands can make the worst hand win every pot. They stack.
+At each new ante, an omen lands and never leaves. Suits merge. Every King is dealt face down. Five cards in the deck quietly turn Wild, and nobody is told which. From ante five, the omen that lands can make the worst hand win every pot. They stack.
 
 [h2]Hands a real deck can't make[/h2]
 Above the Straight Flush sit [b]Five of a Kind[/b], [b]Flush House[/b] and [b]Flush Five[/b]. Wild, mirrored and undecided cards make them reachable.

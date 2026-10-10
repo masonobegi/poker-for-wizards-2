@@ -23,7 +23,8 @@ export const DEMO_ANTES = 3;
 /**
  * Open in the demo. Each one shows a different school doing something a deck
  * cannot: undecided cards, duplicated cards, and a board that burns away.
- * The Twinned is the coven most likely to make an impossible hand.
+ * (The Twinned is pitched as the impossible-hand coven; measured, it is not
+ * yet the likeliest to see one. FUN-REVIEW.md, proposal 3.)
  */
 export const DEMO_COVENS: readonly string[] = ['unmoored', 'twinned', 'ashen'];
 
