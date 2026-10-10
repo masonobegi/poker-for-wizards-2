@@ -14,7 +14,7 @@ import { Rng } from '../../shared/rng';
 import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
 import { HEXES, dailyCoven, isDailySeed } from '../../shared/hexes';
 import {
-  IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, omenNumber, opensImpossible, type ActiveOmen,
+  IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, keepsPromise, omenNumber, type ActiveOmen,
 } from '../../shared/omens';
 import {
   isStreet,
@@ -59,6 +59,24 @@ const SOLO_MARKET_MAX_MS = PAUSE_MAX_MS;
  * thirty-minute cap.
  */
 const BOTS_AFTER_DONE_MS = 4000;
+
+/**
+ * How much the blinds climb per ante step.
+ *
+ * At 1.6 the big blind went 200, 300, 500, 800, 1300, 2100, 3350, 5350, and
+ * the run arc was upside down: measured from the player's chair (`npm run
+ * fun`, 140 runs, 2026-10-10) your stack was 100 big blinds at ante 1 and 9
+ * at ante 7, so the antes where the omens have stacked up and the build is
+ * finished were push-or-fold, with 1.8 casts a hand against 6.8 at the start.
+ * At 1.4 (200, 300, 400, 550, 750, 1100, 1500, 2100) the late antes keep
+ * enough depth to play the spells, and runs still end: Doubling Down and the
+ * Quickening add steps on top, and Hex V makes every ante two hands long.
+ */
+export const BLIND_GROWTH = 1.4;
+
+/** The big blind after `steps` climbs from `base`, in whole 50s. */
+export const bigBlindAt = (base: number, steps: number): number =>
+  Math.round((base * Math.pow(BLIND_GROWTH, steps)) / 50) * 50;
 
 export class Engine {
   readonly table: Table;
@@ -970,7 +988,7 @@ export class Engine {
     t.ante += 1;
     // Doubling Down adds steps to the climb, permanently.
     const steps = (t.ante - 1) + omenNumber(t.omens, (o) => o.blindSteps) * Math.max(0, t.ante - 1);
-    t.bb = Math.round((t.config.baseBlind * Math.pow(1.6, steps)) / 50) * 50;
+    t.bb = bigBlindAt(t.config.baseBlind, steps);
     t.sb = Math.floor(t.bb / 2);
 
     log(t, `Ante ${t.ante}. Blinds are now ${t.sb.toLocaleString()} / ${t.bb.toLocaleString()}.`, 'magic');
@@ -1025,9 +1043,9 @@ export class Engine {
     if (pool.length === 0) return;
     // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
     // given a way to hold a card twice.
-    const opened = t.omens.some((a) => OMEN_BY_ID[a.id] && opensImpossible(OMEN_BY_ID[a.id]));
+    const opened = t.omens.some((a) => OMEN_BY_ID[a.id] && keepsPromise(OMEN_BY_ID[a.id]));
     if (!opened && t.ante >= IMPOSSIBLE_BY_ANTE) {
-      const opening = pool.filter(opensImpossible);
+      const opening = pool.filter(keepsPromise);
       if (opening.length) pool = opening;
     }
 
@@ -1044,12 +1062,19 @@ export class Engine {
     t.omens.push(omen);
 
     // Omens that permanently edit the shared deck do it once, on arrival.
+    // Unmarked cards first; when a long run has marked most of the deck, the
+    // rest come from cards that do not carry this mark yet, so the banner's
+    // count ("Thirteen cards...") is always the number that changed.
     const ins = def.deal?.inscribe;
     if (ins) {
-      const plain = [...t.cards.values()].filter(
-        (c) => c.marks.length === 0 && c.origin !== 'conjured',
-      );
-      for (const c of rng.sample(plain, ins.count)) {
+      const printed = [...t.cards.values()].filter((c) => c.origin !== 'conjured');
+      const plain = printed.filter((c) => c.marks.length === 0);
+      const picked = rng.sample(plain, ins.count);
+      if (picked.length < ins.count) {
+        const marked = printed.filter((c) => c.marks.length > 0 && !c.marks.includes(ins.markId));
+        picked.push(...rng.sample(marked, ins.count - picked.length));
+      }
+      for (const c of picked) {
         if (!c.marks.includes(ins.markId)) c.marks.push(ins.markId);
       }
     }

@@ -23,8 +23,8 @@ import { mock } from 'node:test';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { Engine } from '../server/game/engine';
-import { decideAction, decideCast, decideResponse, decideScribe, decideShop } from '../server/game/bots';
+import { Engine, bigBlindAt } from '../server/game/engine';
+import { decideAction, decideCast, decideResponse, decideScribe, decideShop, previewClock } from '../server/game/bots';
 import { alive, byId, castableSigils, live, totalPot } from '../server/game/table';
 import { COVENS } from '../shared/covens';
 import { RELIC_BY_ID } from '../shared/relics';
@@ -38,7 +38,7 @@ const flag = (name: string): string | undefined => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const VALUED = new Set(['--json', '--coven', '--skill', '--hex', '--merge']);
+const VALUED = new Set(['--json', '--coven', '--skill', '--hex', '--merge', '--player']);
 const positional = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && VALUED.has(args[i - 1])));
 const RUNS = Number(positional[0] ?? 12);
 const FIRST = Number(positional[1] ?? 0);
@@ -47,6 +47,14 @@ const ONLY_COVEN = flag('--coven');
 const SKILL = (flag('--skill') ?? 'adept') as BotSkill;
 const HEX = Number(flag('--hex') ?? 1);
 const DEMO = args.includes('--demo');
+const WALL = args.includes('--wall');
+/**
+ * Who sits in the player's chair. `adept` plays the bots' own decision code at
+ * full heat: aggressive, the hardest case. `cautious` is a newcomer still
+ * learning the table: the same code, but at the bots' opening warmth for the
+ * first two antes (fewer bets, raises and bluffs, smaller sizes).
+ */
+const PLAYER = (flag('--player') ?? 'adept') as 'adept' | 'cautious';
 
 const STEP = 120;
 /** A human's pace. Generous to the game: real players are slower. */
@@ -100,6 +108,15 @@ export interface RunReport {
   castIds: string[];
   omens: string[];
   antes: AnteRow[];
+  /**
+   * Wall time the engine held the thread per 120ms tick (bot decisions, deals,
+   * showdowns). The server is one thread, so a long tick is a frozen table.
+   * Measured on whatever machine runs this, under batch load: compare runs,
+   * not absolutes.
+   */
+  stall?: { ticks: number; maxMs: number; over100: number; over500: number; totalMs: number };
+  /** How the run ended, when it ended in a bust: the hand, and what you did in it. */
+  bust?: { ante: number; hand: number; by: string; theirs: string; yours: string | null; you: string[]; facedAllIn: boolean };
 }
 
 function playRun(seed: string, coven: string): RunReport {
@@ -132,6 +149,16 @@ function playRun(seed: string, coven: string): RunReport {
 
   e.addPlayer(YOU, 'You');
   const me = byId(t, YOU)!;
+  /**
+   * A cautious player takes the bots' opening warmth (bots.ts `warmth`), which
+   * the decision code only applies to a seat marked as a bot. The flag is
+   * set for the length of one synchronous decision; nothing else runs then.
+   */
+  const asPlayer = <T>(decide: () => T): T => {
+    if (PLAYER !== 'cautious') return decide();
+    me.isBot = true;
+    try { return decide(); } finally { me.isBot = false; }
+  };
   me.coven = coven;
   for (let i = 0; i < 3; i++) e.addBot();
   if (!e.start().ok) throw new Error('start failed');
@@ -143,7 +170,10 @@ function playRun(seed: string, coven: string): RunReport {
   let respondedTo = '';
   let marketKey = '';
   let foldedThisHand = false;
+  let myActions: string[] = [];
+  let facedAllIn = false;
   let elapsed = 0;
+  const stall = { ticks: 0, maxMs: 0, over100: 0, over500: 0, totalMs: 0 };
 
   while (t.phase !== 'gameover' && elapsed < RUN_CAP_MS) {
     // ---- bookkeeping on what the engine just said
@@ -175,6 +205,7 @@ function playRun(seed: string, coven: string): RunReport {
     if (t.handNumber !== lastHand) {
       lastHand = t.handNumber;
       foldedThisHand = false;
+      myActions = []; facedAllIn = false;
       const r = row(t.ante);
       if (r.hands === 0) { r.stackBB = me.chips / t.bb; r.bb = t.bb; }
       r.hands++;
@@ -233,7 +264,7 @@ function playRun(seed: string, coven: string): RunReport {
         if (castableSigils(t, me).length > 0) dec.castChances++;
       }
       if (now >= nextAt) {
-        const spell = castsThisTurn < 2 ? decideCast(t, me, rng) : null;
+        const spell = castsThisTurn < 2 ? asPlayer(() => decideCast(t, me, rng)) : null;
         if (spell && e.cast(YOU, spell.uid, spell.targets).ok) {
           castsThisTurn++; dec.casts++;
           const def = SIGIL_BY_ID[me.sigils.find((s) => s.uid === spell.uid)?.defId ?? ''] ?? null;
@@ -241,7 +272,9 @@ function playRun(seed: string, coven: string): RunReport {
           nextAt = now + 1200;
         } else {
           const toCall = t.currentBet - me.bet;
-          const a = decideAction(t, me, rng);
+          if (t.players.some((q) => q.id !== YOU && q.allIn && !q.folded)) facedAllIn = true;
+          const a = asPlayer(() => decideAction(t, me, rng));
+          myActions.push(`${t.phase}:${a.kind}`);
           if (e.act(YOU, a).ok) {
             dec.bets++;
             if (toCall > 0) dec.facingBet++; else dec.checkOnly++;
@@ -251,7 +284,13 @@ function playRun(seed: string, coven: string): RunReport {
       }
     }
 
+    const w0 = performance.now();
     mock.timers.tick(STEP);
+    const took = performance.now() - w0;
+    stall.ticks++; stall.totalMs += took;
+    if (took > stall.maxMs) stall.maxMs = took;
+    if (took > 100) stall.over100++;
+    if (took > 500) stall.over500++;
     elapsed += STEP;
   }
 
@@ -272,6 +311,11 @@ function playRun(seed: string, coven: string): RunReport {
     relics: [...me.relics],
     castSchools, castIds,
     omens: t.omens.map((o) => o.id),
+    stall: { ...stall, maxMs: Math.round(stall.maxMs), totalMs: Math.round(stall.totalMs) },
+    bust: !won && me.bustedBy ? {
+      ante: me.bustedBy.ante, hand: me.bustedBy.hand, by: me.bustedBy.name, theirs: me.bustedBy.handName,
+      yours: me.bustedBy.yourHand ?? null, you: myActions, facedAllIn,
+    } : undefined,
     antes: [...antes.values()].sort((a, b) => a.ante - b.ante).map(({ pots, ...r }) => ({
       ...r,
       potChips: pots.length ? Math.round(pots.reduce((a, b) => a + b, 0) / pots.length) : 0,
@@ -285,7 +329,7 @@ function playRun(seed: string, coven: string): RunReport {
 
 /** The big blind at an ante, as the engine computes it with no omen in play. */
 function bbAt(ante: number): number {
-  return Math.round((200 * Math.pow(1.6, ante - 1)) / 50) * 50;
+  return bigBlindAt(200, ante - 1);
 }
 
 // The player's own casts are counted from the fx stream; this tags schools.
@@ -305,6 +349,15 @@ if (MERGE) {
 }
 
 mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: Date.UTC(2026, 9, 9, 12) });
+// The bots' look-ahead budget (30ms a decision) reads a clock. On the wall
+// clock a loaded machine (ten of these in parallel) skipped previews an idle
+// one would run, so the same seed played differently from batch to batch.
+// Here every read of the clock costs 6ms, so a decision gets five previews,
+// about what an idle machine fits in its budget, and a seed replays exactly.
+// --wall uses the real clock instead, to measure how long the engine holds
+// the thread the way the shipped game would.
+let previewTicks = 0;
+if (!WALL) previewClock.now = () => (previewTicks += 6);
 const warn = console.warn; const err = console.error;
 console.warn = () => {}; console.error = () => {};
 
@@ -325,7 +378,7 @@ export function summarise(rs: RunReport[]): void {
   const n = rs.length;
   const avg = (f: (r: RunReport) => number) => rs.reduce((a, r) => a + f(r), 0) / Math.max(1, n);
   const pct = (k: number, d = n) => `${d ? Math.round((k / d) * 100) : 0}%`;
-  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} ════`);
+  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} · ${PLAYER} player ════`);
   console.log(`  won ${rs.filter((r) => r.won).length}/${n} · avg ${avg((r) => r.hands).toFixed(1)} hands · ${avg((r) => r.minutes).toFixed(1)} min · final ante ${avg((r) => r.finalAnte).toFixed(1)}`);
   const firsts = rs.filter((r) => r.firstMomentS !== null);
   console.log(`  first moment worth telling a friend: median ${median(firsts.map((r) => r.firstMomentS!)).toFixed(0)}s (${tally(firsts.map((r) => r.firstMomentKind!))})`);
@@ -334,6 +387,11 @@ export function summarise(rs: RunReport[]): void {
 
   const early = (a: number) => rs.filter((r) => r.antes.some((x) => x.ante <= a && x.impossible > 0)).length;
   console.log(`  impossible hand by ante 2: ${pct(early(2))} · by ante 3: ${pct(early(3))} · by ante 4: ${pct(early(4))} · per run ${(rs.reduce((a, r) => a + r.impossibleSeen, 0) / n).toFixed(2)}`);
+  const ante1 = rs.filter((r) => r.bust && r.bust.ante === 1);
+  if (ante1.length) {
+    const shoved = ante1.filter((r) => r.bust!.you.some((a) => /allin|raise|bet/.test(a))).length;
+    console.log(`  ante-1 busts: ${ante1.length} · you bet or raised in the hand ${shoved} · you only called/checked ${ante1.length - shoved} · facing an all-in ${ante1.filter((r) => r.bust!.facedAllIn).length} · lost to ${tally(ante1.map((r) => r.bust!.theirs.split(',')[0]), 4)}`);
+  }
   console.log(`  run over before the first Market ${pct(rs.filter((r) => r.bustAnte === 1).length)} · before ante 3 ${pct(rs.filter((r) => r.bustAnte !== null && r.bustAnte < 3).length)} · survived 3 antes ${pct(rs.filter((r) => r.finalAnte >= 4 || r.won).length)}`);
   console.log('\n  DIFFICULTY (bust hazard by ante: busted here / reached)');
   const maxA = Math.max(...rs.map((r) => r.finalAnte));
@@ -348,6 +406,13 @@ export function summarise(rs: RunReport[]): void {
     const casts = ar.length ? ar.reduce((s, x) => s + x.casts / Math.max(1, x.hands), 0) / ar.length : 0;
     const imp = ar.reduce((s, x) => s + x.impossible, 0);
     console.log(`    ante ${String(a).padStart(2)}  reached ${String(reached).padStart(3)}  bust ${pct(bust, reached).padStart(4)}  your stack ${sbb.toFixed(0).padStart(3)}bb  pot ${pot.toFixed(1).padStart(5)}bb (${Math.round(potc).toLocaleString().padStart(6)})  all-ins/hand ${ai.toFixed(2)}  casts/hand ${casts.toFixed(1)}  impossible ${imp}`);
+  }
+
+  const st = rs.filter((r) => r.stall);
+  if (st.length) {
+    const ticks = st.reduce((a, r) => a + r.stall!.ticks, 0);
+    const maxes = st.map((r) => r.stall!.maxMs);
+    console.log(`  server stalls: ticks over 100ms ${(st.reduce((a, r) => a + r.stall!.over100, 0) / ticks * 100).toFixed(2)}% · over 500ms ${st.reduce((a, r) => a + r.stall!.over500, 0)} in ${st.length} runs · worst tick per run median ${median(maxes).toFixed(0)}ms, max ${Math.max(...maxes).toFixed(0)}ms · engine wall time per run ${(st.reduce((a, r) => a + r.stall!.totalMs, 0) / st.length / 1000).toFixed(0)}s`);
   }
 
   console.log('\n  RUN ARC');

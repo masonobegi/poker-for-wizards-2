@@ -304,9 +304,39 @@ function behindCount(t: Table, p: Player): number {
   return order.filter((q) => q.id !== p.id && rel(q) > mine).length;
 }
 
+/**
+ * How hard the bots press at this point of the run, from 0 to 1.
+ *
+ * A solo run ends on the player's first bust, and at full heat the opening
+ * ante was the most violent stretch of the whole run: measured from the
+ * player's chair (`npm run fun`, 140 runs, 2026-10-10) the mean pot at ante 1
+ * was 121 big blinds, 0.8 all-ins a hand, and 14% of runs were over before
+ * the first Market, before a player had seen an omen, a relic or the reason
+ * the game exists. A roguelike's first floor teaches; it does not execute.
+ *
+ * So at Hex I the bots open warm and heat up: their urge to bet, raise and
+ * bluff, how much they put in when they do, and their appetite for casting
+ * all scale by this. Calling and folding are untouched (a bot still calls
+ * what it should), and from ante 3 on, and at every hex above I, they play
+ * exactly as they always have. Hex II and up start at full heat, which is
+ * part of what the climb means.
+ */
+export function warmth(t: Table): number {
+  if (t.config.hex > 1) return 1;
+  return WARMTH_BY_ANTE[t.ante] ?? 1;
+}
+
+/** Hex I only. Antes not listed play at full heat. */
+export const WARMTH_BY_ANTE: Readonly<Record<number, number>> = { 1: 0.55, 2: 0.8 };
+
 export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
   const pr = personalityOf(p, t.config.botSkill);
   const band = skillOf(t);
+  // A human seat driven by this code (the fun harness) plays at full heat:
+  // warmth is how the house deals, not how a player plays.
+  const heat = p.isBot ? warmth(t) : 1;
+  /** A chance to put money in, scaled by heat. */
+  const urge = (chance: number): boolean => rng.chance(chance * heat);
   const mem = recall(t);
   const toCall = Math.max(0, t.currentBet - p.bet);
   const pot = Math.max(t.bb, totalPot(t));
@@ -328,7 +358,8 @@ export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
   if (stackBB < 8 && eq > 0.5 && toCall > 0) return { kind: 'allin' };
 
   const sizing = (frac: number): number => {
-    const raw = Math.round((pot * frac) / t.bb) * t.bb;
+    // A warm bot sizes down too: a third less at the coldest.
+    const raw = Math.round((pot * frac * (0.6 + 0.4 * heat)) / t.bb) * t.bb;
     return Math.max(t.bb, Math.min(p.chips, Math.max(raw, t.currentBet + t.minRaise)));
   };
 
@@ -355,37 +386,37 @@ export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
     const unraised = toCall <= t.bb;
 
     if (unraised) {
-      if (strong && rng.chance(0.5 + pr.aggro * 0.3)) return fire(sizing(0.9));
+      if (strong && urge(0.5 + pr.aggro * 0.3)) return fire(sizing(0.9));
       // A steal from the button with nothing, which is most of poker's
       // aggression and none of its equity.
-      if (late && rng.chance((0.04 + pr.bluff * 0.5) * crowd)) return fire(sizing(0.75));
+      if (late && urge((0.04 + pr.bluff * 0.5) * crowd)) return fire(sizing(0.75));
       if (toCall === 0) return { kind: 'check' };
       if (playable) return { kind: 'call' };
       return { kind: 'fold' };
     }
 
-    if (premium && rng.chance(0.32 + pr.aggro * 0.3)) return fire(sizing(1.05));
+    if (premium && urge(0.32 + pr.aggro * 0.3)) return fire(sizing(1.05));
     if (eq > par * 1.02) return toCall >= p.chips ? { kind: 'allin' } : { kind: 'call' };
-    if (late && p.chips > toCall * 6 && rng.chance(pr.bluff * 0.7)) return fire(sizing(1.0));
+    if (late && p.chips > toCall * 6 && urge(pr.bluff * 0.7)) return fire(sizing(1.0));
     return { kind: 'fold' };
   }
 
   // --- nobody has bet this street -----------------------------------------
   if (toCall === 0) {
-    if (mem.wasAggressor(p.id) && rng.chance((0.36 + pr.aggro * 0.22) * crowd)) {
+    if (mem.wasAggressor(p.id) && urge((0.36 + pr.aggro * 0.22) * crowd)) {
       return fire(sizing(0.5 + pr.aggro * 0.2));
     }
     if (eq > 0.55 + pr.tight * 0.08) return fire(sizing(0.5 + pr.aggro * 0.35));
     // A draw is worth betting: it wins now or it wins later.
-    if (eq > 0.38 && rng.chance((0.12 + pr.aggro * 0.22) * crowd)) return fire(sizing(0.45));
-    if (late && rng.chance((0.02 + pr.bluff * 0.4) * crowd)) return fire(sizing(0.4 + rng.next() * 0.2));
+    if (eq > 0.38 && urge((0.12 + pr.aggro * 0.22) * crowd)) return fire(sizing(0.45));
+    if (late && urge((0.02 + pr.bluff * 0.4) * crowd)) return fire(sizing(0.4 + rng.next() * 0.2));
     return { kind: 'check' };
   }
 
   // --- facing a bet --------------------------------------------------------
   const edge = eq - potOdds;
 
-  if (edge > 0.14 && rng.chance(0.3 + pr.aggro * 0.4)) {
+  if (edge > 0.14 && urge(0.3 + pr.aggro * 0.4)) {
     // `sizing` already floors at `currentBet + minRaise`; capping it at 55% of
     // the stack can push it back UNDER that floor, and a raise smaller than
     // the minimum is not a legal action. Take the cap only when it still
@@ -398,7 +429,7 @@ export function decideAction(t: Table, p: Player, rng: Rng): BetAction {
 
   // Raising with nothing, which is the only way a fold ever gets bought.
   if (eq < 0.3 && toCall < pot * 0.55 && p.chips > toCall * 4
-    && rng.chance(pr.bluff * (late ? 1.0 : 0.5) * crowd)) {
+    && urge(pr.bluff * (late ? 1.0 : 0.5) * crowd)) {
     const amount = sizing(0.75);
     if (amount > t.currentBet && amount < p.chips) return { kind: 'raise', amount };
   }
@@ -718,7 +749,12 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
     const seats = live(t).length;
     if (seats > 4) want *= 4 / seats;
 
-    if (!rng.chance(Math.min(0.9, want * 1.25))) continue;
+    // Warm bots cast less too (see `warmth`), applied after the cap or a
+    // bot with a full pool would not notice: the opening ante had the most
+    // spells of the whole run (6.7 a hand), and half the hands that ended a
+    // run before the first Market lost to a Full House or Four of a Kind,
+    // mostly spell-made. The magic now builds over the run instead.
+    if (!rng.chance(Math.min(0.9, want * 1.25) * (p.isBot ? warmth(t) : 1))) continue;
 
     // Look before casting: never a spell that does nothing or clearly hurts
     // the caster, and the best of a few targetings rather than the first.

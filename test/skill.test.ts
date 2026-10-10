@@ -53,6 +53,9 @@ function profile(skill: BotSkill, trials = 400): Profile {
     hero.hole = deck.slice(0, 2);
     t.board = deck.slice(2, 7);
     t.phase = 'river';
+    // Past the Hex I warm-up (bots.ts `warmth`), so the bands are compared
+    // at full heat, the way they play for most of a run.
+    t.ante = 3;
     t.currentBet = 2000;
     t.minRaise = t.bb;
     hero.bet = 0;

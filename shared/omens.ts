@@ -105,10 +105,10 @@ export const OMENS: OmenDef[] = [
     deal: { sealRank: 13 },
   },
   {
-    id: 'the_gilded', name: 'The Gilded', glyph: '✶', minAnte: 3, weight: 9,
-    text: 'Three cards in the shared deck become permanently Wild. Nobody is told which.',
+    id: 'the_gilded', name: 'The Gilded', glyph: '✶', minAnte: 2, weight: 9,
+    text: 'Five cards in the shared deck become permanently Wild. Nobody is told which.',
     impossible: 'Cards that are simultaneously every card in the deck.',
-    deal: { inscribe: { markId: 'wild', count: 3 } },
+    deal: { inscribe: { markId: 'wild', count: 5 } },
   },
   {
     id: 'entropy_rising', name: 'Entropy Rising', glyph: '⟁', minAnte: 3, weight: 9,
@@ -274,9 +274,9 @@ export const OMENS: OmenDef[] = [
   },
   {
     id: 'the_twinned', name: 'The Twinned', glyph: '⧉',
-    text: 'Four cards in the shared deck are marked Mirrored. Each one copies the community card to its left.',
-    impossible: 'A deck that contains four of its own duplicates.',
-    minAnte: 3, weight: 4, deal: { inscribe: { markId: 'mirrored', count: 4 } },
+    text: 'Seven cards in the shared deck are marked Mirrored. Each one copies the community card to its left.',
+    impossible: 'A deck that contains seven of its own duplicates.',
+    minAnte: 2, weight: 4, deal: { inscribe: { markId: 'mirrored', count: 7 } },
   },
   {
     id: 'the_leaden_hour', name: 'The Leaden Hour', glyph: '▽',
@@ -379,12 +379,33 @@ export const opensImpossible = (o: OmenDef): boolean =>
   !!o.deal?.inscribe && DUPLICATING_MARKS.includes(o.deal.inscribe.markId);
 
 /**
+ * The marks that keep the promise below. A prism only makes a Flush House out
+ * of a Full House that is already there, so a deck of prisms showed an
+ * impossible hand in 2.4% of hands at antes 2-3, against 8.9% for a deck with
+ * wilds in it (`npm run fun`, 2026-10-10). Prism omens still open the
+ * impossible hands when they land; they just do not count as the promise.
+ */
+export const PROMISED_MARKS: readonly MarkId[] = ['wild', 'mirrored'];
+
+/** Whether this omen can keep the impossible-hand promise (IMPOSSIBLE_BY_ANTE). */
+export const keepsPromise = (o: OmenDef): boolean =>
+  !!o.deal?.inscribe && PROMISED_MARKS.includes(o.deal.inscribe.markId);
+
+/**
  * The ante by which a run is promised an omen that opens the impossible hands.
  *
  * Measured over eight full four-handed runs, two produced an impossible hand
  * at all. The game is named after them. Left to the weighted draw, the omens
  * that seed wild, prism and mirrored cards are four of forty-one and often
  * never arrive; this does not add one to every run, it only makes sure one
- * has arrived by the middle of it. Which of them it is stays random.
+ * has arrived. Which of them it is stays random.
+ *
+ * It was ante 3, the middle of a run. Measured from the player's chair
+ * (`npm run fun`, 140 runs, 2026-10-10) that put the first impossible hand at
+ * ante 4 (median), in 27% of runs at all and 12% inside the first three
+ * antes, which is the whole Next Fest demo. It is now the first omen of every
+ * run, so the first Market already sits under a deck that can break: The
+ * Gilded or The Twinned (see `keepsPromise`), which open at ante 2 and seed
+ * enough cards to be seen.
  */
-export const IMPOSSIBLE_BY_ANTE = 3;
+export const IMPOSSIBLE_BY_ANTE = 2;

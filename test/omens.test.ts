@@ -187,10 +187,53 @@ test('a table under six omens still deals and scores a hand', () => {
 });
 
 test('the promised impossible omen can always be drawn by its ante', async () => {
-  const { OMENS, IMPOSSIBLE_BY_ANTE, opensImpossible } = await import('../shared/omens');
-  const ready = OMENS.filter((o) => opensImpossible(o) && o.minAnte <= IMPOSSIBLE_BY_ANTE);
+  const { OMENS, IMPOSSIBLE_BY_ANTE, keepsPromise, opensImpossible } = await import('../shared/omens');
+  const ready = OMENS.filter((o) => keepsPromise(o) && o.minAnte <= IMPOSSIBLE_BY_ANTE);
   // More than one, so the guarantee still leaves the run a choice of which.
-  assert.ok(ready.length >= 2, `only ${ready.length} omen(s) can open the impossible hands by ante ${IMPOSSIBLE_BY_ANTE}`);
+  assert.ok(ready.length >= 2, `only ${ready.length} omen(s) can keep the promise by ante ${IMPOSSIBLE_BY_ANTE}`);
+  for (const o of ready) assert.ok(opensImpossible(o), `${o.name} keeps the promise but opens nothing`);
+});
+
+/**
+ * The balance set of 2026-10-10 (FUN-REVIEW.md): the first omen of every
+ * run is one that can break the deck, so the first Market (and the whole
+ * three-ante demo) sits under it. Measured from the player's chair, a deck
+ * with wilds in it showed an impossible hand in 8.9% of hands at antes 2-3,
+ * prisms 2.4%: the promise is kept by wild or mirrored cards.
+ */
+test('the first omen of every run can break the deck', async () => {
+  const { IMPOSSIBLE_BY_ANTE, keepsPromise } = await import('../shared/omens');
+  assert.equal(IMPOSSIBLE_BY_ANTE, 2, 'the promise moved off the first omen');
+  const firsts = new Map<string, number>();
+  for (let seed = 0; seed < 60; seed++) {
+    const engine = new Engine('PROM', 'host', { seed: `promise-${seed}` }, () => {}, () => {});
+    engine.addPlayer('host', 'Host', true);
+    engine.addBot();
+    const t = engine.table;
+    t.ante = 2;
+    (engine as unknown as { rollOmen: () => void }).rollOmen.call(engine);
+    const first = OMEN_BY_ID[t.omens[0].id];
+    assert.ok(keepsPromise(first), `seed ${seed}: the first omen was ${first.name}`);
+    firsts.set(first.id, (firsts.get(first.id) ?? 0) + 1);
+    engine.dispose();
+  }
+  // Still a choice of which, not the same omen every run.
+  assert.ok(firsts.size >= 2, `every run opened with ${[...firsts.keys()].join(', ')}`);
+});
+
+test('an omen that edits the deck names the number of cards it edits', () => {
+  // Raising a count without its banner ("Three cards..." when five changed)
+  // is a rule the player is told wrong.
+  const words: Record<string, number> = {
+    One: 1, Two: 2, Three: 3, Four: 4, Five: 5, Six: 6, Seven: 7, Eight: 8,
+    Nine: 9, Ten: 10, Eleven: 11, Twelve: 12, Thirteen: 13,
+  };
+  for (const o of OMENS) {
+    const ins = o.deal?.inscribe;
+    if (!ins) continue;
+    const said = words[o.text.split(' ')[0]];
+    assert.equal(said, ins.count, `${o.name} says "${o.text.split(' ')[0]}" and edits ${ins.count}`);
+  }
 });
 
 /**
