@@ -44,6 +44,24 @@ demo 22 Feb 2027, release 8 Apr 2027.
 - The harness's player is the bots' adept code at full heat, which is
   aggressive. Report `--player cautious` alongside it.
 
+## Round 3 (2026-10-10, in progress): `FUN3_BRIEF.md`
+
+Rubric locked in `FUN-REVIEW.md` (mean 6.5, rounds to 7). Built so far, each
+measured on the same 140 seeds:
+- **Phylactery** (`shared/hexes.ts`): runs over before the first Market
+  12% to 1%, before ante 3 23% to 4% (aggressive player); busts themselves
+  unchanged at 12%. Cautious player: 0% / 1%.
+- **Deal again** now starts on a clean 52-card deck (Graft/Mirror/Unprint
+  used to carry over). Inscribe marks are validated on the server.
+- **Coven lean** (`shared/covens.ts COVEN_LEAN`) and **bots inscribe real
+  marks**: impossible hand 48% to 61% of runs, yours 25% to 34%. Open
+  question: early busts (caught or not) rose 12% to 19%; an A/B on seeds
+  140-279 is running to see whether that is real.
+- **Spell cards Auto** (default): your turns covered 26% (Full) to 17% over
+  a player's first seven runs.
+- Measurement worktrees in the session scratchpad (`m0`, `m1`); remove with
+  `git worktree remove` when done.
+
 ## Next steps, in order
 
 1. Mason's calls (in `FUN-REVIEW.md` and `ops/MASON-TODO.md`): the
