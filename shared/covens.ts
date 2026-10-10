@@ -64,7 +64,7 @@ export const COVENS: CovenDef[] = [
     name: 'The Quiet',
     school: 'veil',
     glyph: '☾',
-    text: 'Gloaming and Cold Read, and you always see one of somebody else’s cards.',
+    text: 'Gloaming and Cold Read, and you always see the top card of the deck.',
     style: 'You are not trying to make the best hand. You are trying to know theirs.',
     sigils: ['nullify', 'gloaming', 'cold_read'],
     relic: 'thin_veil',
@@ -129,13 +129,22 @@ export const DEFAULT_COVEN = 'unaligned';
  * against give a character its own pool for the whole run (Slay the Spire's
  * four card pools, Balatro's decks that change every hand of a run).
  *
- * So half of all hands, the first draw is from the coven's school: Bind for
+ * So from ante 2, half of all hands, the first draw is from the coven's school: Bind for
  * the Twinned, Weave for the Loom. The other draws are the shared pool, so
  * every coven still meets cards it did not choose. The Unaligned do not lean:
  * "whatever the deck feels like giving you" is their whole pitch.
  * Set to 0 to switch it off.
  */
 export const COVEN_LEAN = 0.5;
+
+/**
+ * The lean starts at the first Market. The opening hand already holds the
+ * coven's two signature sigils, and the first ante is where a roguelike
+ * teaches rather than executes (bots.ts `warmth`). Measured on three sets of
+ * seeds, leaning from hand one raised the player's busts before the first
+ * Market from 12% to 19% (FUN-REVIEW.md, round 3).
+ */
+export const COVEN_LEAN_FROM_ANTE = 2;
 
 /** The school a coven's draws lean to, or null for one that does not lean. */
 export const leanOf = (c: CovenDef): School | null => (c.id === DEFAULT_COVEN || COVEN_LEAN <= 0 ? null : c.school);

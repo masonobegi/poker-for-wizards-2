@@ -17,13 +17,14 @@ import { Engine } from '../server/game/engine';
 import { createTable } from '../server/game/table';
 import { sanitizeTargets } from '../server/net/io';
 import { INSCRIBE_MARKS, isInscribeMark } from '../shared/cards';
-import { COVENS, COVEN_LEAN, COVEN_BY_ID, leanOf } from '../shared/covens';
+import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, COVEN_BY_ID, leanOf } from '../shared/covens';
 import { Rng } from '../shared/rng';
 import { SIGIL_BY_ID } from '../shared/sigils';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
 
-test('every coven but the Unaligned leans to its own school', () => {
+test('every coven but the Unaligned leans to its own school, from the first Market', () => {
   assert.equal(COVEN_LEAN, 0.5);
+  assert.equal(COVEN_LEAN_FROM_ANTE, 2);
   for (const c of COVENS) {
     if (c.id === 'unaligned') assert.equal(leanOf(c), null);
     else assert.equal(leanOf(c), c.school, c.name);
@@ -41,6 +42,7 @@ function drawShare(coven: string, hands = 300): number {
   e.dispose();
   const school = COVEN_BY_ID[coven].school;
   const internals = e as unknown as { beginHand(): void };
+  e.table.ante = COVEN_LEAN_FROM_ANTE;
   let mine = 0;
   let all = 0;
   for (let h = 0; h < hands; h++) {

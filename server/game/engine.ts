@@ -11,7 +11,7 @@ import { config } from '../config';
 import { type Face, type Rank, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
-import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
+import { RELICS, RELIC_BY_ID, hasVision, relicNumber } from '../../shared/relics';
 import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
@@ -36,7 +36,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, COVEN_LEAN, DEFAULT_COVEN, covenOf, leanOf } from '../../shared/covens';
+import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -418,7 +418,7 @@ export class Engine {
       // The first draw leans to the coven's school (COVEN_LEAN), so a coven
       // is a pool for the whole run and not only its opening hand.
       const lean = leanOf(covenOf(p.coven));
-      const leans = !!lean && this.rng.chance(COVEN_LEAN);
+      const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
           giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
@@ -495,6 +495,17 @@ export class Engine {
         }
       }
       this.fx.push({ t: 'deal', cardIds: p.hole, to: p.id, stagger: 80 });
+    }
+
+    // Cold Read: one hole card of every other player, from the deal. A sealed
+    // card stays unreadable, as it does for every other way of seeing one.
+    for (const p of players) {
+      if (!hasVision(p.relics, 'every_hole')) continue;
+      for (const q of players) {
+        if (q.id === p.id) continue;
+        const id = q.hole.find((h) => card(t, h)?.veil !== 'sealed');
+        if (id && !p.foreknowledge.seenHole.includes(id)) p.foreknowledge.seenHole.push(id);
+      }
     }
   }
 
