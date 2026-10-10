@@ -11,7 +11,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { decideCast, decideResponse } from '../server/game/bots';
+import { decideCast, decideResponse, previewClock } from '../server/game/bots';
 import { createTable } from '../server/game/table';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
@@ -53,10 +53,26 @@ test('a bot never casts Collapse when nothing is undecided', () => {
   }
 });
 
-test('a bot rarely counters a spell that does not touch its hand', () => {
+/**
+ * Run `fn` with the bots' preview budget on a simulated clock.
+ *   - 'idle': time stands still while a bot thinks, so every preview is
+ *     measured, as on a quiet server.
+ *   - 'overloaded': every read of the clock is a second later than the last,
+ *     so the budget is spent before the first equity read, as on a server at
+ *     100% CPU.
+ * The wall clock made this test pass or fail with the machine's load: a busy
+ * box skipped the equity reads and the bot decided differently.
+ */
+function onClock<T>(kind: 'idle' | 'overloaded', fn: () => T): T {
+  const real = previewClock.now;
+  let now = 0;
+  previewClock.now = kind === 'idle' ? () => 0 : () => (now += 1000);
+  try { return fn(); } finally { previewClock.now = real; }
+}
+
+function counteredHarmlessPeeks(): number {
   let answered = 0;
-  const trials = 150;
-  for (let i = 0; i < trials; i++) {
+  for (let i = 0; i < 150; i++) {
     const { t, a, b } = flop(i);
     // Foresight only shows its caster the river. It changes nobody's cards.
     t.phase = 'preflop';
@@ -66,11 +82,27 @@ test('a bot rarely counters a spell that does not touch its hand', () => {
         id: 'x', casterId: a.id, sigilId: 'foresight', targets: {}, countered: false, costPaid: 2,
       }],
       pending: [b.id],
-      closesAt: Date.now() + 5000,
+      closesAt: 0,
     };
     if (decideResponse(t, b, new Rng(`r:${i}`))) answered++;
   }
-  assert.ok(answered / trials < 0.2, `countered a harmless peek ${answered} times in ${trials}`);
+  return answered;
+}
+
+test('a bot rarely counters a spell that does not touch its hand', () => {
+  const answered = onClock('idle', counteredHarmlessPeeks);
+  assert.ok(answered / 150 < 0.2, `countered a harmless peek ${answered} times in 150`);
+  // Same seeds, same simulated clock, same answer: nothing here reads the
+  // wall clock any more.
+  assert.equal(onClock('idle', counteredHarmlessPeeks), answered);
+});
+
+test('a busy server does not make bots counter harmless spells', () => {
+  // With the budget spent, the equity reads are skipped. The bot used to fall
+  // back to rarity alone and Nullify about a third of harmless peeks, so the
+  // same table played differently depending on server load.
+  const answered = onClock('overloaded', counteredHarmlessPeeks);
+  assert.ok(answered / 150 < 0.2, `under load, countered a harmless peek ${answered} times in 150`);
 });
 
 test('every sentence a bot might write reads cleanly, whoever is at the table', async () => {

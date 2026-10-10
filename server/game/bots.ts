@@ -518,6 +518,21 @@ interface Preview {
   delta: number;
   /** False when the equity reads were skipped for time or board cost. */
   measured: boolean;
+  /**
+   * Whether resolving the stack changed anything about this seat: the cards
+   * it scores with (its hole and the board, as it sees them), its chips, bet,
+   * mana or sigils. Cheap and exact, so it is known even when the equity
+   * reads were skipped: a spell that touches nothing of yours cannot hurt you.
+   */
+  touched: boolean;
+}
+
+/** Everything about a seat a spell could change, as a comparable string. */
+function seatPrint(t: Table, p: Player): string {
+  return JSON.stringify([
+    cardsOf(t, [...scoringHole(t, p), ...t.board]), p.hole, p.chips, p.bet, p.mana, p.folded, p.eliminated,
+    p.sigils.map((x) => x.uid),
+  ]);
 }
 
 /**
@@ -543,8 +558,9 @@ function preview(
   if (!seat || seat.folded) return null;
   // Resolving on the copy is cheap and is all a fizzle check needs. The two
   // equity reads are the expensive part, and only they are budgeted.
-  let measured = performance.now() <= previewDeadline && !tooCostly(copy, seat);
+  let measured = previewClock.now() <= previewDeadline && !tooCostly(copy, seat);
   const before = measured ? computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS) : 0;
+  const printBefore = seatPrint(copy, seat);
 
   copy.stack = { entries: structuredClone(entries), pending: [], closesAt: 0 };
   try {
@@ -556,10 +572,11 @@ function preview(
   const fizzled = casterId !== undefined
     && copy.log.some((l) => l.tone === 'warn' && l.playerId === casterId);
   const out = seat.folded || seat.eliminated;
+  const touched = seatPrint(copy, seat) !== printBefore;
   if (measured && !out && tooCostly(copy, seat)) measured = false;
-  if (!measured) return { fizzled, delta: 0, measured };
+  if (!measured) return { fizzled, delta: 0, measured, touched };
   const after = out ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
-  return { fizzled, delta: after - before, measured };
+  return { fizzled, delta: after - before, measured, touched };
 }
 
 /**
@@ -592,8 +609,15 @@ function tooCostly(t: Table, p: Player): boolean {
   const cards = cardsOf(t, [...scoringHole(t, p), ...t.board]);
   return evalComplexity({ cards, viewerId: p.id, mods: modsFor(t, p) }) > PREVIEW_COMPLEXITY;
 }
+/**
+ * The clock the preview budget reads. Wall time in play; a test swaps in a
+ * simulated clock, so a test of what a bot decides cannot depend on how busy
+ * the machine running it is (with the wall clock, a loaded CI box ran out of
+ * budget, skipped the equity reads and made a different decision).
+ */
+export const previewClock = { now: (): number => performance.now() };
 let previewDeadline = 0;
-const startPreviewBudget = (): void => { previewDeadline = performance.now() + PREVIEW_BUDGET_MS; };
+const startPreviewBudget = (): void => { previewDeadline = previewClock.now() + PREVIEW_BUDGET_MS; };
 
 const seedFrom = (rng: Rng): number => Math.floor(rng.next() * 2 ** 32);
 
@@ -739,7 +763,13 @@ export function decideResponse(t: Table, p: Player, rng: Rng): BotCast | null {
   const answered = preview(
     t, p.id, entries.map((e, i) => (i === entries.length - 1 ? { ...e, countered: true } : e)), seed,
   );
-  const harm = asIs?.measured && answered?.measured ? answered.delta - asIs.delta : null;
+  // Equity says how much it hurts; when the reads were skipped (a busy
+  // server, an expensive board) the cheap check still says whether it touches
+  // this seat at all. Without it, a bot on a loaded server fell back to rarity
+  // alone and countered about half of all harmless peeks.
+  const harm = asIs?.measured && answered?.measured
+    ? answered.delta - asIs.delta
+    : asIs && answered && !asIs.touched && !answered.touched ? 0 : null;
 
   const threat = incoming.rarity === 'mythic' ? 1 : incoming.rarity === 'rare' ? 0.8 : 0.55;
   let want = (aimedAtMe ? 1.1 : 0.55) * threat * (0.7 + pr.arcane);
