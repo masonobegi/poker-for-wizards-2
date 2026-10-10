@@ -8,7 +8,7 @@
  */
 import { nanoid } from 'nanoid';
 import { config } from '../config';
-import { type Face, type Rank, RANK_NAME, isQuantum } from '../../shared/cards';
+import { type Face, type Rank, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
@@ -298,8 +298,13 @@ export class Engine {
     t.demoComplete = false;
     t.omens = [];
     t.dealerSeat = seated(t)[0]?.seat ?? 0;
-    // A new run gets a clean deck: strip anything a previous run inscribed.
-    for (const c of t.cards.values()) { c.marks = []; c.memory = 0; }
+    // A new run gets a clean deck. Stripping marks was not enough: Graft,
+    // Mirror and Tessellate rewrite a card's face for the rest of the run, and
+    // Unprint takes a card out for good, so "Deal again" used to start the
+    // next run on the last one's duplicates and missing cards. Same order as
+    // a fresh table's deck, so a seeded run deals the same faces.
+    t.cards = new Map(standardDeck().map((c) => [c.id, c]));
+    t.tempMarks = [];
 
     for (const p of t.players) {
       p.chips = t.config.startingChips;

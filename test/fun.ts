@@ -87,6 +87,8 @@ export interface AnteRow {
   impossible: number;
   /** The big blind at the ante's first hand. */
   bb?: number;
+  /** Seconds of game time when the ante's first hand was dealt. */
+  atS?: number;
 }
 
 export interface RunReport {
@@ -235,7 +237,7 @@ function playRun(seed: string, coven: string): RunReport {
       foldedThisHand = false;
       myActions = []; facedAllIn = false;
       const r = row(t.ante);
-      if (r.hands === 0) { r.stackBB = me.chips / t.bb; r.bb = t.bb; }
+      if (r.hands === 0) { r.stackBB = me.chips / t.bb; r.bb = t.bb; r.atS = (Date.now() - t0) / 1000; }
       r.hands++;
     }
     if (t.phase === 'payout' && t.payout && !(t.payout as { _seen?: boolean })._seen) {

@@ -115,3 +115,27 @@ test('a new run gets a fresh phylactery', () => {
   assert.equal(hero.phylactery, true);
   assert.equal(hero.revived, undefined);
 });
+
+/*
+ * Found while measuring the phylactery: "Deal again" restarts the same table,
+ * and Engine.start only stripped marks. Graft and Mirror rewrite a card's face
+ * for the rest of a run and Unprint deletes one, so the next run was dealt
+ * from the last run's broken deck: two Kings of Spades and no Seven of
+ * Diamonds, for good.
+ */
+test('Deal again starts the next run on a clean 52-card deck', () => {
+  const e = table(['host'], 3);
+  const t = e.table;
+  const [a, b] = [...t.cards.values()];
+  b.faces = a.faces.map((f) => ({ ...f }));
+  b.marks.push('mirrored');
+  const gone = [...t.cards.keys()][10];
+  t.cards.delete(gone);
+  t.phase = 'gameover';
+  assert.ok(e.start().ok);
+  e.dispose();
+  assert.equal(t.cards.size, 52);
+  const faces = new Set([...t.cards.values()].map((c) => `${c.faces[0].rank}${c.faces[0].suit}`));
+  assert.equal(faces.size, 52, 'a duplicate face survived into the new run');
+  assert.ok([...t.cards.values()].every((c) => c.marks.length === 0 && c.faces.length === 1));
+});
