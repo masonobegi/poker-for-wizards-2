@@ -36,7 +36,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, DEFAULT_COVEN, covenOf } from '../../shared/covens';
+import { COVENS, COVEN_LEAN, DEFAULT_COVEN, covenOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -415,8 +415,14 @@ export class Engine {
       const extra = relicNumber(p.relics, (r) => r.sigils?.drawPerHand)
         + omenNumber(t.omens, (o) => o.sigilDraw);
       const draws = 2 + extra;
+      // The first draw leans to the coven's school (COVEN_LEAN), so a coven
+      // is a pool for the whole run and not only its opening hand.
+      const lean = leanOf(covenOf(p.coven));
+      const leans = !!lean && this.rng.chance(COVEN_LEAN);
       for (let i = 0; i < draws; i++) {
-        if (p.sigils.length < sigilHandSize(p)) giveSigil(t, p, randomSigil(this.rng));
+        if (p.sigils.length < sigilHandSize(p)) {
+          giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
+        }
       }
     }
 

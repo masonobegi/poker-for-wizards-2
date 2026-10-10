@@ -14,7 +14,7 @@
 import { nanoid } from 'nanoid';
 import {
   type CardEntity, type Face, type MarkId, type Rank, type Suit,
-  RANK_LABEL, RANK_NAME, SUITS, collapse, faceLabel, isQuantum, makeCard, nextCardId,
+  RANK_LABEL, RANK_NAME, SUITS, collapse, faceLabel, isInscribeMark, isQuantum, makeCard, nextCardId,
 } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -158,9 +158,10 @@ export function bindInscribedPairs(t: Table): void {
 
 const DRAFT_POOL = Object.values(SIGIL_BY_ID);
 
-export function randomSigil(rng: Rng, weights = true): SigilInstance {
+export function randomSigil(rng: Rng, weights = true, school?: SigilDef['school']): SigilInstance {
   const bag: SigilDef[] = [];
   for (const d of DRAFT_POOL) {
+    if (school && d.school !== school) continue;
     const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
     for (let i = 0; i < n; i++) bag.push(d);
   }
@@ -657,7 +658,9 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     // --------------------------------------------------------------- WEAVE
     case 'inscribe': {
       if (!firstCard) break;
-      const mark: MarkId = tg.markId ?? 'blooded';
+      // Held to the picker's list here too: the engine is also driven by bots
+      // and tests, not only by sanitizeTargets.
+      const mark: MarkId = isInscribeMark(tg.markId) ? tg.markId : 'blooded';
       if (!firstCard.marks.includes(mark)) firstCard.marks.push(mark);
       ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: mark });
       ctx.fx.push({ t: 'sfx', name: 'inscribe' });

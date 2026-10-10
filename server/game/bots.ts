@@ -10,7 +10,7 @@
  * They also cast sigils, including counterspells, because a table where only
  * humans use magic teaches the wrong lesson.
  */
-import { type CardEntity, type Rank, SUITS, isQuantum } from '../../shared/cards';
+import { type CardEntity, type MarkId, type Rank, SUITS, isQuantum } from '../../shared/cards';
 import { evalComplexity, evaluate } from '../../shared/hand';
 import { Rng } from '../../shared/rng';
 import { SIGIL_BY_ID, defOf, entryDef, type SigilDef, type SigilInstance } from '../../shared/sigils';
@@ -519,7 +519,13 @@ function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets 
       const id = def.id === 'inscribe' || def.id === 'superpose'
         ? (p.hole.length ? rng.pick(p.hole) : rng.pick(pool))
         : rng.pick(pool);
-      return { cardIds: [id], markId: 'blooded' };
+      // Inscribe is the one sigil that asks for a mark. Bots used to write
+      // Blooded every time (+1 rank), which a player watching reads as a bot
+      // that does not know its own spell, and which kept the Loom ("you are
+      // writing on the deck") from ever writing the marks that break it. Each
+      // try names a mark a player would; the preview keeps the best.
+      if (def.id === 'inscribe') return { cardIds: [id], markId: rng.pick(INSCRIBE_CHOICES) };
+      return { cardIds: [id] };
     }
     case 'two_cards': {
       const pool = [...boardIds, ...p.hole];
@@ -531,6 +537,9 @@ function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets 
       return {};
   }
 }
+
+/** What a bot considers writing with Inscribe; wild twice as often. */
+const INSCRIBE_CHOICES: readonly MarkId[] = ['wild', 'wild', 'prism', 'blooded'];
 
 export interface BotCast { uid: string; targets: SigilTargets }
 

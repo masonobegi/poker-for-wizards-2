@@ -76,6 +76,17 @@ export const MARKS: Record<MarkId, MarkDef> = {
   echo:     { id: 'echo',     name: 'Echo',     glyph: '◉', color: '#a3e635', blurb: 'Scores +1 rank for every pot it has won.' },
 };
 
+/**
+ * The marks Inscribe can write, in the order the picker shows them. The server
+ * holds a cast to this list: a mark id is a lookup key on every client at the
+ * table (`MARKS[id]`), so an unknown one sent by a modified client used to be
+ * written onto a shared card and break the table for everyone who drew it.
+ */
+export const INSCRIBE_MARKS: readonly MarkId[] = ['blooded', 'prism', 'echo', 'wild', 'leaden', 'cursed'];
+
+export const isInscribeMark = (m: unknown): m is MarkId =>
+  typeof m === 'string' && (INSCRIBE_MARKS as readonly string[]).includes(m);
+
 // ---------------------------------------------------------------------------
 // Card entity
 // ---------------------------------------------------------------------------

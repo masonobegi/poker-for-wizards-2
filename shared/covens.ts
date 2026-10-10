@@ -13,6 +13,10 @@
  * pushed toward — without adding a single new engine hook, because the passive
  * half is expressed as a relic the engine already knows how to read.
  *
+ * Since 2026-10-10 a coven also leans: half its hands, the first sigil drawn
+ * comes from its school (COVEN_LEAN, below). That reads only the `school`
+ * field every coven already had, so it adds no hook either.
+ *
  * That constraint is deliberate. A coven cannot smuggle in behaviour; if you
  * want one to do something new, the relic has to learn it first, in
  * `shared/relics.ts`, where every other passive in the game is declared.
@@ -112,6 +116,29 @@ export const COVEN_BY_ID: Record<string, CovenDef> = Object.fromEntries(
 );
 
 export const DEFAULT_COVEN = 'unaligned';
+
+/**
+ * How often a hand's first sigil draw comes from the coven's own school.
+ *
+ * A coven's two signature sigils are dealt once and are gone when cast, so by
+ * the third hand every coven was drawing from the same pool and the only
+ * difference left was one relic. Measured from the player's chair (`npm run
+ * fun:batch`, 140 runs, 2026-10-10) the Twinned cast Mirror 1.1 and Graft 1.0
+ * times in a whole run; a genre veteran's simulated review put it as "covens
+ * feel like starting hands, not decks". The roguelites this is measured
+ * against give a character its own pool for the whole run (Slay the Spire's
+ * four card pools, Balatro's decks that change every hand of a run).
+ *
+ * So half of all hands, the first draw is from the coven's school: Bind for
+ * the Twinned, Weave for the Loom. The other draws are the shared pool, so
+ * every coven still meets cards it did not choose. The Unaligned do not lean:
+ * "whatever the deck feels like giving you" is their whole pitch.
+ * Set to 0 to switch it off.
+ */
+export const COVEN_LEAN = 0.5;
+
+/** The school a coven's draws lean to, or null for one that does not lean. */
+export const leanOf = (c: CovenDef): School | null => (c.id === DEFAULT_COVEN || COVEN_LEAN <= 0 ? null : c.school);
 
 /** The coven a run should use, falling back rather than throwing on bad input. */
 export function covenOf(id: string | undefined): CovenDef {

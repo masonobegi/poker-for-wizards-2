@@ -9,6 +9,7 @@ import type { BetAction, RoomConfig, SigilTargets } from '../../shared/types';
 import { Rooms, type Seatholder } from './rooms';
 import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
 import { config } from '../config';
+import { isInscribeMark } from '../../shared/cards';
 import { covenOf } from '../../shared/covens';
 import { clampHex, isDailySeed } from '../../shared/hexes';
 import { DEMO_ANTES, demoCoven } from '../../shared/demo';
@@ -69,7 +70,7 @@ const covenFor = (raw: unknown): string => {
   return config.demo ? demoCoven(id) : id;
 };
 
-function sanitizeTargets(raw: unknown): SigilTargets {
+export function sanitizeTargets(raw: unknown): SigilTargets {
   if (!raw || typeof raw !== 'object') return {};
   const r = raw as Record<string, unknown>;
   const out: SigilTargets = {};
@@ -81,7 +82,7 @@ function sanitizeTargets(raw: unknown): SigilTargets {
   if (typeof r.suit === 'string' && ['S', 'H', 'D', 'C'].includes(r.suit)) {
     out.suit = r.suit as SigilTargets['suit'];
   }
-  if (typeof r.markId === 'string') out.markId = r.markId as SigilTargets['markId'];
+  if (isInscribeMark(r.markId)) out.markId = r.markId;
   return out;
 }
 

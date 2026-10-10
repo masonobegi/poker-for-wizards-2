@@ -4,7 +4,7 @@
  */
 import { useLayoutEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { MARKS, RANK_LABEL, RANK_NAME, SUITS, SUIT_GLYPH, SUIT_NAME, isRed, type MarkId, type Rank } from '@shared/cards';
+import { INSCRIBE_MARKS, MARKS, RANK_LABEL, RANK_NAME, SUITS, SUIT_GLYPH, SUIT_NAME, isRed, type Rank } from '@shared/cards';
 import { SCHOOLS, type SigilDef } from '@shared/sigils';
 import type { SigilTargets } from '@shared/types';
 import { Button } from '@/components/ui/kit';
@@ -13,7 +13,6 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
 
 const RANKS: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-const RITE_MARKS: MarkId[] = ['blooded', 'prism', 'echo', 'wild', 'leaden', 'cursed'];
 
 export interface TargetPromptProps {
   def: SigilDef;
@@ -125,7 +124,7 @@ export default function TargetPrompt({ def, onCancel, onConfirm }: TargetPromptP
           <>
             <p className="prompt-ask">Choose the mark</p>
             <div className="prompt-marks">
-              {RITE_MARKS.map((m) => (
+              {INSCRIBE_MARKS.map((m) => (
                 <button
                   key={m}
                   className="prompt-mark"
