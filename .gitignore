@@ -42,3 +42,4 @@ steam/screenshots/raw/
 
 # Python bytecode from steam/make_*.py
 __pycache__/
+demo-shots/

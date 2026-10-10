@@ -28,6 +28,7 @@
     "metrics": "tsx test/metrics.ts",
     "runs": "tsx test/runs.ts",
     "fun": "tsx test/fun.ts",
+    "fun:batch": "node scripts/fun-batch.mjs",
     "play": "node test/playthrough.mjs",
     "record": "node test/record.mjs",
     "play:pad": "node test/gamepad.mjs",
