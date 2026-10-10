@@ -1,201 +1,161 @@
-# HEXHOLD: Steam readiness (2026-10-09)
+# HEXHOLD: Steam readiness (2026-10-09, finish pass)
 
-Branch `steam-ready-2026-10-09`, built on `feedback-1` at `ceff08b`. **Ship
-the Steam depot from this branch only**: `main` and `feedback-1` lack the save
-fix, the solo pause and everything in the afternoon pass below.
+Branch `steam-ready-2026-10-09`. **Ship the Steam depots from this branch
+only**: `main` and `feedback-1` lack the save fix, the solo pause, the
+playtest fixes and everything below.
 
-Verdict: **about 90% of what code and files can do.** What is left is mostly
-Mason's Steamworks account, real hardware, human ears, and three design calls
-listed at the end.
+## Code-side readiness: 81% (17 of 21), up from 60% this morning
 
-Status key: **DONE** (verified, and how), **PARTIAL**, **BLOCKED**.
+Measured against a fixed list of the 21 things code and files can do for a
+Steam launch (below), each DONE with proof or not. Before this pass: 10 done
+and 5 half-done (counted as half) = 12.5 of 21. After: 17 of 21. Nothing
+that needs Mason's account, hardware, money or judgement is in the count.
 
-## 0. Afternoon pass (2026-10-09): review findings and playtest fixes
+| # | Code-side item | Status | Proof |
+| --- | --- | --- | --- |
+| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt from `e78db5d`. Packaged harness: see section 2. |
+| 2 | Linux build (Steam Deck depot), current and launched | DONE (was: never built) | `release/linux-unpacked`, cross-built on Windows. Headless run in WSL: **20 of 20** (section 2). |
+| 3 | Steamworks: App ID from Steam, achievements, rich presence, Cloud | DONE | `test/steam.test.ts`; dormant until an App ID exists. |
+| 4 | Achievements: 20 defined, manifests, icons | DONE (was: monogram icons the manifest did not name) | 40 drawn icons in `steam/achievements/`; `achievements.json`/`.vdf` name each pair; test fails if one is missing. |
+| 5 | Settings that all do something | DONE (was: 3 dead switches) | Confirm before folding drives the fold guard; the other two hidden. `render.test.tsx`. |
+| 6 | Pause, quit, saves | DONE | `test/pause.test.ts`, `test/solo.test.ts`, packaged harness. |
+| 7 | Shipping hygiene: no menu, no DevTools, crash log | DONE (was: DevTools stayed open on Linux) | `webPreferences.devTools` off in release; harness check passes on Windows and Linux. |
+| 8 | Store art at Valve's sizes, capsule rule | DONE (was: tagline on 4 capsules) | Name and art only; UI text cropped or inked out. Every file looked at. |
+| 9 | Store copy, with an honest controller declaration | DONE | `steam/store-page.md`; Partial until the Deck check (section 4). |
+| 10 | Licences ship | DONE | `THIRD_PARTY.md`, `client/fonts/OFL.txt`, licences in `app.asar`. |
+| 11 | P1: a bust ends a solo run at once | DONE | `test/solo.test.ts`; harness run reaches game over. |
+| 12 | P2: two-press fold (free check) and all-in, held keys ignored | DONE | `render.test.tsx` (two tests). |
+| 13 | P3: no Market clock solo, and no hang after Done | DONE (was: repaired, unconfirmed) | `test/market.test.ts` (section 1). |
+| 14 | P4: 12px text floor | DONE | `npm run responsive` enforces it; no 10/10.5/11px rule left in `src`. |
+| 15 | P5: Reduce flashing | DONE | Settings, Video; `render.test.tsx`. |
+| 16 | P7: title music at launch | DONE | Harness: AudioContext runs before any input, Windows and Linux. |
+| 17 | P8: Steam on-screen keyboard for text fields | DONE in code (was: none) | `test/keyboard.test.ts`, `test/steam.test.ts`, `test/display.test.ts`. Not yet seen on a Steam client (Mason, section 4). |
+| 18 | P6: spell overlay length (Full / Brief / Off) | NOT DONE | Needs a decision (see Mason later). `StackOverlay.tsx` `LINGER_MS = 2600`. |
+| 19 | UI scale above 125% | NOT DONE | `.app` uses CSS zoom: 150% on a 1280x800 Deck lays out at 853x533, under the 1024x680 minimum. Needs a cap that depends on the window size. |
+| 20 | `botmagic.test.ts` "rarely counters" is load-sensitive | NOT DONE | Bot previews have a wall-clock budget; under 100% CPU the test can fail. Give it a time-independent budget. `server/game/bots.ts` untouched. |
+| 21 | PlayStation button glyphs | NOT DONE | Steam Input presents a PS pad as Xbox, so prompts are correct through Steam; native glyphs are a post-launch nicety. |
 
-An independent review of this branch found 8 defects; all 8 are fixed. The
-playtest fix list named 8 "before Steam launch" fixes; 6 are done, 2 wait on
-Mason (section 10).
+Still code-side and not done, beyond 18-21: one packaged-harness run of
+three had Quit take over 15s to close the window (section 2). Not
+reproduced; worth a look at the quit path (`before-quit`, the preload's
+synchronous save on `beforeunload`) before upload.
 
-| # | Finding | Status and proof |
-| --- | --- | --- |
-| R1 (high) | A Steam-launched copy never turned Steam on: `steam.cjs` ignored `SteamAppId`/`SteamGameId`, and the depot excludes `steam_appid.txt` | DONE. Reads Steam's variables first, rejects a non-Steam shortcut's 64-bit ID. `test/steam.test.ts` 5/5 (2 fail on the old resolver). `SHIPPING.md` step 2 rewritten, and (second review) its release checklist no longer says "written into the build": the App ID goes only into `steam/steampipe/*.vdf`. |
-| R2, R3 | A launch that reused an old port brought deleted save keys back; every launch left a dead copy of the save | DONE. The shell clears page storage before loading, and the preload clears before seeding. Packaged harness launch 3 (old port back after a key was deleted elsewhere) passes; with both clears removed it fails: "a deleted key came back from port 54336's old storage". |
-| R4 | "Borderless window" was a maximized window | DONE. Renamed "Maximized window" (Fullscreen is the borderless mode). |
-| R5 | Window sizes said pixels, applied DIPs (1920x1080 made 2400x1350 at 125%; empty row at 1080p/150%) | DONE. `electron/display.cjs`; presets are real pixels, only offered when they fit; minimum window shrinks to the screen; an empty row explains itself. `test/display.test.ts` 6/6. |
-| R6 | The OFL font licence did not ship | DONE. `resources/client/fonts/OFL.txt` (verified in the built folder); About and `THIRD_PARTY.md` say where each licence is. |
-| R7 | No menu on a Mac build broke Cmd+C/V/X/A and Cmd+Q | DONE (untested on a Mac). macOS gets app, Edit and Window roles only; unit-tested that no reload or DevTools role is in it. |
-| R8 | Relaunch check passed even on the same port | DONE. The harness picks its ports; equal ports fail. |
-| P1 | Busting at a solo table meant watching bots finish, no skip | DONE. When every human is out, the run ends that hand; the chip leader takes the table. `test/solo.test.ts` (fails on the old engine). |
-| P2 | LB/F folded a free check; Y/A shoved, one press each | DONE. Second press within 1.5s, with a prompt in pad glyphs. jsdom test in `render.test.tsx` (fails on the old ActionBar). Second review: **holding** F or A armed on the first keydown and confirmed on the OS key repeat (about 0.5s), so one long press still folded or shoved, as did a pad button Steam Input maps to a key. Every shortcut now ignores `e.repeat`; new jsdom test sends a keydown plus five repeats and asserts nothing was sent (fails before the fix). |
-| P3 | 45s Market clock at solo tables | DONE. No clock solo; Done closes it; 30-minute abandon cap. Two-human tables keep 45s. `test/solo.test.ts`. Second review found a **regression**: a bot with a full sigil hand and shards for a sigil chose that sigil every turn, the buy failed ("Your hand is full"), the engine ignored the failure, and the bot was never done, so a solo Market sat open up to 30 minutes after Done. The old test hid it by setting every bot's `shopDone` by hand. Fixed at the root: `decideShop` skips sigils with no room (and owned relics); a refused buy ends that bot's shopping; once every human is Done the bots stop browsing and the Market closes within 4s. Four new tests in `test/solo.test.ts` (all four fail on the old code), none touching bot `shopDone`. Probe of natural solo games to the first Market, Done pressed at once: old code 3 of 9 Markets still open after 600 ticks with 29 minutes left; fixed code 0 of 46, longest 1.4s after Done, bots still buying 2 to 8 items. |
-| P4 | 10px text on a Deck | DONE. Every 10, 10.5 and 11px rule, the xs token and the sigil cards' fluid floors are 12px. `npm run responsive` now enforces 12px (card-face glyphs keep 10px): see section 4. UI scale max left at 1.25 (see section 10). |
-| P5 | No way to stop flashes without losing all motion | DONE. Settings, Video, **Reduce flashing** (flashes, colour splits, shake); on when the OS asks for reduced motion. Test in `render.test.tsx`. Store-page line drafted. |
-| P6 | Spell overlay length setting | NOT DONE. The 2.6s hold (`StackOverlay.tsx` `LINGER_MS`) is confirmed to have no setting. Left for a decision on Brief's length and on what Off shows. |
-| P7 | Silent title screen | DONE. The shell allows audio without a gesture and the desktop app starts the menu music at once. Packaged harness: AudioContext runs before any input. |
-| P8 | No Steam on-screen keyboard for text fields | NOT DONE: needs the Steam client to test, and a choice between wiring `ShowFloatingGamepadTextInput` and hiding Join on a pad. **The store copy depends on it** (second review): `steam/store-page.md` claimed Full controller support, a Controller tag and "likely Verified", which Valve's rules do not allow while a pad cannot type. The page now says declare **Partial**, aim for Deck **Playable**, no Controller tag, and lists what to restore when P8 lands. |
+## 1. What this pass fixed (finish pass, 2026-10-09 evening)
 
-Found while working, not fixed: Settings, Gameplay has three toggles
-(**Confirm before folding** (on by default), Always show pot odds, Auto-muck)
-that are stored but read by nothing. They do nothing in play. Either wire them
-or remove them before launch.
+Commits `0d699ea..HEAD` on this branch.
 
-## 1. Desktop build that runs offline: DONE
+- **The Market hang is confirmed fixed.** The verifier reported that P3 (no
+  Market clock solo) could hold a Market open up to 30 minutes after Done;
+  `5782781` repaired it with staged-fixture tests. `test/market.test.ts` now
+  plays whole seeded solo games under a simulated clock (the real 120ms tick,
+  bots on their own schedules), presses Done the moment the Market opens, and
+  requires it closed within 6s. Against the engine and bots from before the
+  repair it fails: seeds 1, 2, 7, 13 and 14 of 0-15 held the Market the full
+  1800s. On the repair all 16 closed in 0.8 to 1.4s. The suite keeps seeds
+  0-7 (three of the hangs), about 8s.
+- **Steam on-screen keyboard (P8).** With a pad in use: A on a text field, a
+  panel opening with its field focused, or a finger tapping a field asks
+  Steam for `ShowFloatingGamepadTextInput`, placed clear of the field
+  (CSS px to screen pixels through `display.fieldToScreen`). The d-pad
+  passing over a field does not open it; a mouse never does. Covers Join's
+  code, Host's name, the chat line and the Scribe (multi-line). A on a field
+  used to fire the table's check/call shortcut behind it; it no longer does.
+- **Linux build, built and launched.** `scripts/linux-smoke.sh` (WSL, no
+  root, no display) runs the packaged harness against
+  `release/linux-unpacked`. Its first run caught a real defect: DevTools were
+  still open 800ms after `openDevTools()` on Linux, because the release guard
+  only closed them after the fact. `webPreferences.devTools` is now off in a
+  packaged build.
+- **Achievement icons**: the drawn set from `_steam-assets/hexhold` replaces
+  the monogram set; the manifests name each icon; a test checks every file is
+  a 256x256 PNG and nothing stale is left beside them.
+- **Capsules**: no tagline (IMPOSSIBLE POKER is store copy, not art) and no
+  UI text from the capture on any capsule.
+- **Settings, Gameplay**: Confirm before folding now governs the free-check
+  fold guard; Always show pot odds and Auto-muck, read by nothing, are hidden.
 
-- `npm run package:win` makes the installer, a zip and `release/win-unpacked/`.
-  This pass rebuilt `win-unpacked` (`electron-builder --win --dir`) for the
-  harness; rebuild the installer before uploading.
-- `test/packaged.mjs` launches the **packaged exe** through Playwright's
-  Electron driver, with a dead proxy so nothing can leave the machine. It now
-  runs the game **muted, off-screen and unfocusable** (`HEXHOLD_TEST_OFFSCREEN`),
-  and picks its own ports. Final run: see section 9.
-- Linux (Steam Deck): target configured, never built or launched. PARTIAL.
+Earlier passes today (`8f41f54..6ef3aa1`): the Steam App ID bug, save
+storage across ports, real-pixel window sizes, OFL licence, Mac menu, solo
+pause, bust ends the run, two-press guards and held-key repeat, the solo
+Market and its repair, 12px floor, Reduce flashing, title music, the store
+kit. Their proofs are in the commit messages.
 
-## 2. Steamworks, degrading gracefully: DONE (dormant until an App ID exists)
+## 2. Builds and runs
+
+- **Windows**: `npm run package:win` (installer `HEXHOLD Setup 0.9.0.exe`,
+  `HEXHOLD-0.9.0-win.zip`, `win-unpacked/`). `node test/packaged.mjs 60`
+  (muted, off-screen, unfocusable, offline): **20 of 20** on the final run.
+  Three runs of the final build: run 1 failed "app did not close on Quit"
+  (no process was left afterwards), run 2 failed the pause check (Escape
+  opened no menu: the harness player had likely busted and the run had
+  ended, P1), run 3 passed everything. Both look like harness races, but
+  the Quit one is listed under "still code-side" until it is explained.
+- **Linux**: `npx electron-builder --linux dir` (the depot uploads
+  `release/linux-unpacked`). From Windows:
+  `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless Ozone,
+  `--no-sandbox`, no display, so nothing appears): **20 of 20** at 1280x800:
+  menu, Cinzel offline, version, Settings tabs, no DevTools, a practice run
+  at the table, the solo pause, no network, Quit leaves no process, the save
+  surviving a new port, a deleted key staying deleted. Not tested: a GPU,
+  sound out of a speaker, the Steam runtime container, a real Deck.
+  AppImage and tar.gz (non-Steam) are configured but not built this pass.
+- **`npm test`**: **263 of 263** (was 247), on the final code.
+- **`npx tsc --noEmit`**: clean.
+
+## 3. Steamworks (dormant until an App ID exists)
 
 - `electron/steam.cjs` (steamworks.js, optional) reads the App ID from
-  `SteamAppId`/`SteamGameId` (set by Steam on launch), then `STEAM_APP_ID`
-  (local test of a packaged build), then `steam_appid.txt` (dev only). No ID,
-  no module or no Steam client: it no-ops.
-- The native module ships unpacked (`app.asar.unpacked/.../steam_api64.dll`).
-- `steam/dev/steam_appid.txt` = 480 (Spacewar), dev runs only, never packaged.
+  `SteamAppId`/`SteamGameId` (Steam sets them), then `STEAM_APP_ID` (local
+  test), then `steam_appid.txt` (dev only, 480). No ID, no module or no
+  Steam: every call is a no-op.
 - Achievements: 20 (6 hidden) in `shared/achievements.ts`; `npm run
-  steam:manifest` writes `steam/achievements.json`/`.vdf`. Rich presence wired.
-- Steam Cloud: the game writes `hexhold-save.json` through the Cloud API
-  (`src/lib/cloud.ts`). `steam/steampipe/README.md` also describes Auto-Cloud
-  for `hexhold-storage.json`. Use one, not both.
+  steam:manifest` writes `steam/achievements.json` and `.vdf`, icons named.
+- Steam Cloud: the game writes `hexhold-save.json` through the API
+  (`src/lib/cloud.ts`). Use the API file or Auto-Cloud, not both.
+- On-screen keyboard: `showKeyboard` / `steam:keyboard` (section 1).
 
-## 3. Settings menu: DONE
+## 4. Controller and Steam Deck
 
-- **Video**: display mode (Fullscreen, Maximized window, Windowed), window
-  sizes in real pixels that the display can honour, VSync (next launch),
-  reduce motion, **reduce flashing**, particle density, UI scale. All buttons,
-  so the gamepad reaches them.
-- **Audio**, **Controls** and **About** (version, credits, where the licences are).
-- Persisted per user in `%APPDATA%\HEXHOLD\`: `hexhold-storage.json` (the
-  whole save, the only source of page storage), `settings.json`,
-  `window-state.json`, `tables.db`, `crash.log`. A save that cannot be read
-  is copied to `hexhold-storage.json.unreadable-<time>` before it is replaced.
+- Every menu reachable by pad (`npm run play:pad`, 9/9 at 1280x800, earlier
+  pass); the table plays on the pad; prompts switch to Xbox glyphs.
+- Text entry by pad: wired (P8), unit-tested against a stand-in for Steam.
+  **The store says Partial** until Mason sees it work once on a real Steam
+  client; `steam/store-page.md` "Controller support" has the exact check and
+  the three lines to flip to Full.
+- Linux build launches and plays headless (section 2). Legibility at arm's
+  length and frame rate need a Deck.
 
-## 4. Controller and Steam Deck: PARTIAL
+## 5. Store kit (`steam/`)
 
-- `npm run responsive` (all 7 resolutions, headless and muted) with the new
-  12px floor: see section 9 for the final result. Before the change, the Deck
-  run failed the same check on 41 pieces of text at 10 to 11.5px.
-- `npm run play:pad` (9/9 at 1280x800) was verified before this branch and
-  not re-run.
-- Prompts are Xbox glyphs. No PlayStation glyphs. No Steam on-screen keyboard
-  yet (P8), so a pad cannot type a table code, a name or a written sigil.
-  Until it is done the store declares **Partial** controller support and the
-  Deck target is **Playable**, not Verified (`steam/store-page.md`).
-- Held keys: every table shortcut ignores key repeat, so holding F or A (or a
-  pad button Steam Input maps to one) cannot confirm its own guard.
-- BLOCKED for Mason: real Deck hardware (legibility, frame rate).
+- Every Valve asset slot at its exact size (`python steam/make_art.py`); the
+  header, small, main, vertical and library capsules carry the name and art
+  only. Upload the six gameplay screenshots, not `01-menu`/`11-menu-overlay`.
+- Achievement icons: `steam/achievements/<api>.png` and `<api>_locked.png`
+  (256x256; 64x64 copies in `64/`; `contact-sheet.png` is not an upload).
+- `steam/store-page.md`: final copy, tags, photosensitivity line, content
+  survey drafts, controller section. `steam/steampipe/`: app and depot VDFs.
 
-## 5. Pause, Quit, saves: DONE
+## Mason later
 
-- Solo tables (practice, the Daily Rite) pause from the menu, have no Market
-  clock, and end the moment the player is out. Tables with two humans do none
-  of these. `test/pause.test.ts`, `test/solo.test.ts`.
-- Once every human at a table has pressed Done in the Market, bots stop
-  browsing and the Market closes within 4 seconds (any table; a shared
-  Market's own 45s clock is never lengthened). A bot whose purchase is
-  refused is done, and a bot never picks a sigil it has no room for.
-- Quit: the packaged harness's Quit click now closes the app, and no HEXHOLD
-  process is left (it timed out under the morning's harness).
-
-## 6. Shipping hygiene: DONE
-
-- Release builds: no menu on Windows/Linux (no live Reload or DevTools
-  accelerators); macOS keeps app/Edit/Window roles only. DevTools cannot open
-  (verified by shortcut and by API).
-- The dev-only Sounds tab is absent from the packaged build (verified).
-- Renderer errors reach `crash.log`, capped at 20 a session.
-- Flag for Mason: the built-in server listens on `0.0.0.0` for LAN play, so
-  Windows may show a firewall prompt on first launch. A product decision.
-
-## 7. Store kit in `steam/`: DONE
-
-- Checked against Valve's asset list (ops `steam-onboarding.md` 2.2). Every
-  slot is filled at its exact size; the two the morning kit missed are now
-  there: **`shortcut_icon_256x256.png`** and **`library_header_920x430.png`**.
-  Also new: `community_icon_184x184.jpg` (the form wants .jpg),
-  `page_background_1438x810.png` (optional), `event_cover_800x450.png`.
-  All from `steam/make_art.py`; each new one was opened and looked at.
-- **Achievement icons**: 40 JPGs (achieved and locked, 256x256) in
-  `steam/art/achievements/`, from `steam/make_achievement_icons.py`: the
-  emblem with a monogram each. `achievements_sheet.png` shows all of them.
-- `steam/store-page.md`: the **final copy** (short description 264 chars,
-  tagline, About This Game BBCode, 7 bullets, 16 tags, A/B variants) from
-  `market/hexhold-store-copy.md`, plus a photosensitivity line. System
-  requirements, languages, controller support, content survey and price kept.
-  Controller support is now **Partial** (P8, section 10).
-- Screenshots: 8 at 1920x1080. **Upload the 6 gameplay ones**; `01-menu` and
-  `11-menu-overlay` are menus, which Valve's review rejects.
-- `steam/steampipe/`: app and depot VDFs (placeholders) and a README.
-
-## 8. Licences and naming: DONE
-
-- `THIRD_PARTY.md` ships beside the exe; the OFL text ships in
-  `resources/client/fonts/OFL.txt`; npm licences are inside `app.asar`.
-  Nothing blocks a commercial release.
-- Flags: no trademark search on "HEXHOLD"; simulated gambling means R 18+ in
-  Australia.
-
-## 9. Played and tested
-
-- **Packaged build** (`node test/packaged.mjs 60`, rebuilt after every change
-  here, run muted and off-screen): **20 of 20**. New checks: audio may start
-  before any input; saved state survives a new port (60155 to 60156); a key
-  deleted on one port stays deleted when an older port comes back. The
-  practice run reached the game-over screen inside the 60 seconds: the
-  harness player busted and the run ended at once (P1).
-- **`npm run responsive`** (headless, muted, 12px floor): all 7 resolutions
-  pass. 1080p, 1440p, 4K and ultrawide in the full run; Deck, laptop and the
-  1024x680 minimum window re-run after the short-screen spacing fix.
-- **`npm test`**: 242 tests. 241/241 passed at 14:10 with the engine changes.
-  The final run was 241/242: the one failure is `botmagic.test.ts` "a bot
-  rarely counters a spell that does not touch its hand", the load-sensitive
-  test this file already flagged (bot previews have a wall-clock budget). The
-  machine was at 100% CPU from other jobs; that test and `server/game/bots.ts`
-  are untouched on this branch. Give it a time-independent budget.
-- `npx tsc --noEmit`: clean.
-
-## 10. Only Mason can do
-
-1. **Steamworks partner account**, the $100 fee, the tax and bank interviews,
-   and the 30-day wait.
-2. **The App ID** goes only into `steam/steampipe/*.vdf` (APP_ID,
-   DEPOT_ID_WINDOWS, DEPOT_ID_LINUX). Nothing in the build changes: Steam
-   passes the ID at launch.
-3. **Store page**: paste from `steam/store-page.md`, not from the ops copy
-   draft (that one still says "Full controller support"); upload
-   `steam/art/*` (not `achievements_sheet.png`) and the six gameplay
-   screenshots. Declare **Partial Controller Support** and leave the
-   Controller tag off until P8 is done.
-4. **Achievements**: enter the 20 from `steam/achievements.json` and upload
-   the 40 icons in `steam/art/achievements/` (or commission bespoke ones under
-   the same names).
-5. **Steam Cloud**: set a quota; pick the API file or Auto-Cloud, not both.
-6. **Upload builds**: `npm run package:win`, then `steamcmd +run_app_build
-   steam/steampipe/app_build.vdf`. Linux launch option `--no-sandbox`.
-7. **Pricing** (draft $9.99), **content survey** (simulated gambling; read
-   Valve's wording), **trailer**, **legal** (trademark search; publisher name;
-   the copyright line reads "Mason Obegi").
-8. **Design calls**:
-   - P6: spell overlay length (Full / Brief / Off). What Brief's length is,
-     and whether Off still shows a line in the log.
-   - P8: Steam on-screen keyboard for Join, Host and the Scribe, or hide Join
-     on a pad for launch. Testing it needs the Steam client. **The store page
-     depends on this**: Full Controller Support and Deck Verified both need
-     text entry by controller, so the copy now claims Partial and Playable.
-     When P8 is wired, `steam/store-page.md` "Controller support" lists the
-     three things to restore (the declaration, the copy line, the tag).
-     Join was not hidden on a pad: that would remove it for a Deck player
-     who opens the keyboard with STEAM + X, and that is this decision.
-   - UI scale above 125%: `.app` uses CSS zoom, so 150% on a 1280x800 Deck
-     would lay the game out at 853x533, under its 1024x680 minimum. Raising
-     the cap safely needs a cap that depends on the window size.
-   - The three Gameplay toggles that do nothing (section 0).
-9. **Things that need a person or a screen**: a listening pass, a full run on
-   a Steam Deck, a session against real humans, and one look at the Maximized
-   window and window-size buttons on a scaled display.
+1. **Steamworks**: partner account, $100 fee, tax and bank interviews, the
+   30-day wait. Then the App ID and both depot IDs go only into
+   `steam/steampipe/*.vdf`; nothing in the build changes.
+2. **Store page**: paste `steam/store-page.md` (not the ops draft, which still
+   says Full controller support); upload `steam/art/*`, the six gameplay
+   screenshots and the 40 icons in `steam/achievements/`. Price, content
+   survey (simulated gambling), trailer.
+3. **Upload**: `npm run package:win` and `npx electron-builder --linux dir`,
+   then `steamcmd +run_app_build steam/steampipe/app_build.vdf`. Linux
+   launch option `--no-sandbox`.
+4. **On a Deck (or Big Picture with a pad)**: the keyboard check in
+   `store-page.md` (press A on Join's code field and on the Scribe; type;
+   Enter). Pass: declare Full, add the Controller tag, aim for Verified.
+   Also legibility, frame rate, and one listening pass.
+5. **Decide**: P6 spell overlay length (the playtest suggests Full / Brief
+   at about 0.8s / Off as log only); UI scale above 125% (worth a
+   window-size cap?); whether the two hidden Gameplay switches are ever
+   built; the LAN server's `0.0.0.0` (a firewall prompt on first launch).
+6. **Legal and naming**: trademark search on HEXHOLD, publisher name (the
+   copyright line reads Mason Obegi), Australia's R 18+ for simulated
+   gambling.
+7. **Merge** this branch when ready; ship depots from it until then.
