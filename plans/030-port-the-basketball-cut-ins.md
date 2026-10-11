@@ -82,7 +82,8 @@ Shared vocabulary in `src/components/fx/arcade.ts`: `EASE_SNAP` (easeOutBack, th
   | payout (real hand) | 16.7 / 17.7 | 16.7 / 16.8 |
   | game over, 4x CPU throttle | 16.7 / 16.8-33.3 | 16.7 / 33.4-66.7 |
 
-- `npm run fun:batch` (70 runs, same seeds), before and after: see the numbers at the bottom. The server and its pacing are untouched, so these are expected to be identical, and they are the proof that turn timing did not move.
+- `npm run fun:batch -- 70 0` (same seeds) on main `5840d41` and on this branch: the whole report from the run arc through "where the player's time goes" is byte-identical — your turn 159s, Market 101s, showdown and payout 80s, deal/streets/banners 29s, 8.0 min a run, 16.9 hands, final ante 6.0. Only the wall-clock "server stalls" line moved (0.91% → 1.20% of ticks over 100ms): that is how long this machine took to run unchanged server code while the frame captures ran beside it (`git diff main -- server shared` is empty). Banners never held a turn and the client cannot slow the server; skipping a banner now hands Market time back.
+- A browser playthrough (`node test/playthrough.mjs 120`) on the branch build: betting, stack, showdown, Market and omens all reached, no errors, heap flat at 16MB.
 
 ## Feel-check left for a human
 
