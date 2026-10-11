@@ -93,6 +93,9 @@ http.listen(config.port, config.host, () => {
   console.log(`\n  HEXHOLD server on http://${config.host}:${config.port}`);
   console.log(config.describe());
   console.log('');
+  // The desktop shell forks this process and creates its window only once it
+  // hears this (electron/serverready.cjs). No IPC channel when deployed.
+  process.send?.({ type: 'hexhold:listening', port: config.port });
 });
 
 // A game server must not die because one socket handler threw.
@@ -117,3 +120,7 @@ const shutdown = (signal: string) => {
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+// Forked by the desktop shell: when the shell is gone (a crash, a kill), so
+// is every reason to keep running. Without this a killed game's server lived
+// on indefinitely, holding its port and the save file open.
+if (process.connected) process.on('disconnect', () => shutdown('the game closed'));

@@ -14,6 +14,7 @@ const fs = require('node:fs');
 const steam = require('./steam.cjs');
 const display = require('./display.cjs');
 const { endProcessTree } = require('./shutdown.cjs');
+const { waitForServer } = require('./serverready.cjs');
 
 const isDev = !app.isPackaged;
 
@@ -181,56 +182,41 @@ function freePort() {
 }
 
 function startServer(port) {
-  return new Promise((resolve, reject) => {
-    const root = path.join(__dirname, '..');
-    const entry = isDev
-      ? path.join(root, 'server', 'index.ts')
-      : path.join(process.resourcesPath, 'server', 'index.mjs');
-    const clientDir = isDev
-      ? path.join(root, 'dist')
-      : path.join(process.resourcesPath, 'client');
+  const root = path.join(__dirname, '..');
+  const entry = isDev
+    ? path.join(root, 'server', 'index.ts')
+    : path.join(process.resourcesPath, 'server', 'index.mjs');
+  const clientDir = isDev
+    ? path.join(root, 'dist')
+    : path.join(process.resourcesPath, 'client');
 
-    server = fork(entry, [], {
-      execArgv: isDev ? ['--import', 'tsx'] : [],
-      cwd: isDev ? root : process.resourcesPath,
-      env: {
-        ...process.env,
-        PORT: String(port),
-        CLIENT_DIR: clientDir,
-        NODE_ENV: isDev ? 'development' : 'production',
-        // Never write into the install folder: under Steam that is
-        // steamapps/common, which a "verify files" can wipe.
-        PERSIST_FILE: process.env.PERSIST_FILE
-          ?? path.join(app.getPath('userData'), 'tables.db'),
-      },
-      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    });
-
-    let settled = false;
-    const done = (err) => {
-      if (settled) return;
-      settled = true;
-      err ? reject(err) : resolve();
-    };
-
-    server.stdout?.on('data', (b) => {
-      const line = b.toString();
-      process.stdout.write(`[server] ${line}`);
-      if (line.includes('listening')) done();
-    });
-    server.stderr?.on('data', (b) => {
-      process.stderr.write(`[server] ${b}`);
-      recordCrash('game server stderr', String(b).slice(0, 2000));
-    });
-    server.on('error', done);
-    server.on('exit', (code) => {
-      server = null;
-      if (!settled) done(new Error(`game server exited with code ${code}`));
-    });
-
-    // Do not hang forever if the banner never arrives.
-    setTimeout(() => done(), 6000);
+  server = fork(entry, [], {
+    execArgv: isDev ? ['--import', 'tsx'] : [],
+    cwd: isDev ? root : process.resourcesPath,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      CLIENT_DIR: clientDir,
+      NODE_ENV: isDev ? 'development' : 'production',
+      // Never write into the install folder: under Steam that is
+      // steamapps/common, which a "verify files" can wipe.
+      PERSIST_FILE: process.env.PERSIST_FILE
+        ?? path.join(app.getPath('userData'), 'tables.db'),
+    },
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
+
+  server.stdout?.on('data', (b) => process.stdout.write(`[server] ${b}`));
+  server.stderr?.on('data', (b) => {
+    process.stderr.write(`[server] ${b}`);
+    recordCrash('game server stderr', String(b).slice(0, 2000));
+  });
+  const child = server;
+  child.on('exit', () => { if (server === child) server = null; });
+
+  // Until the server says it is listening (an IPC message, see
+  // serverready.cjs), the window has nothing to load.
+  return waitForServer(child);
 }
 
 function stopServer() {
