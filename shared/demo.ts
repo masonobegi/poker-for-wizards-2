@@ -17,16 +17,29 @@
  * turned into the full game by editing the page.
  */
 
-/** Antes a demo run lasts: three Markets' worth, so two omens and the third ante. */
+/**
+ * Antes a demo run lasts: two Markets and two omens, and the third ante.
+ *
+ * Decided 2026-10-10 (FUN-REVIEW.md, round 3), on 141 demo runs from the
+ * player's chair: at 3 antes 73% of runs reach the wishlist screen and 41% see
+ * an impossible hand (22% before round 3), in 4.9 minutes; a fourth ante adds
+ * 7 points of impossible hands and costs 20 points of runs that reach the
+ * wishlist screen. Either is far under the 14-minute median demo session
+ * (Zukowski's 2022 Next Fest surveys), so a second run fits.
+ */
 export const DEMO_ANTES = 3;
 
 /**
  * Open in the demo. Each one shows a different school doing something a deck
- * cannot: undecided cards, duplicated cards, and a board that burns away.
- * (The Twinned is pitched as the impossible-hand coven; measured, it is not
- * yet the likeliest to see one. FUN-REVIEW.md, proposal 3.)
+ * cannot: a board that burns away, duplicated cards, and undecided cards.
+ *
+ * The first is the default a player gets without choosing. It was the
+ * Unmoored, which in three batches of 47 demo runs each reached the wishlist
+ * screen least often (64-77%) and busted in the first ante most; the Ashen
+ * reached it most often (83-89%) and saw an impossible hand as often as any
+ * (FUN-REVIEW.md, round 3).
  */
-export const DEMO_COVENS: readonly string[] = ['unmoored', 'twinned', 'ashen'];
+export const DEMO_COVENS: readonly string[] = ['ashen', 'twinned', 'unmoored'];
 
 /**
  * The full game's Steam App ID, for the wishlist button. 0 until the Steam app

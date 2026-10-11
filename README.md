@@ -85,7 +85,7 @@ The rest is **mana** and **sigils**.
 
 Above a Straight Flush sit three categories a fifty-two card deck cannot produce — **Five of a Kind**, **Flush House** and **Flush Five**. Wild marks, mirrored cards and superposition make them reachable.
 
-Blinds climb every three hands, by 1.4x an ante. At Hex I the bots open warm: for the first two antes they bet, raise and cast less, then play at full heat. Between antes the **Market** opens and you spend **shards** — earned from pots, plus a stipend that scales with the ante and leans toward whoever is behind, because the shop is the one phase that exists to let a losing player change their situation.
+Blinds climb every three hands, by 1.4x an ante. At Hex I the bots open warm: for the first two antes they bet, raise and cast less, then play at full heat. A solo run ends on your first bust, with one exception: at Hex I your first bust before ante 3 breaks your **phylactery** and buys you back in with a full stack, once (a tournament's rebuy period, or Slay the Spire's Lizard Tail). Hex II takes it away. Between antes the **Market** opens and you spend **shards** — earned from pots, plus a stipend that scales with the ante and leans toward whoever is behind, because the shop is the one phase that exists to let a losing player change their situation.
 
 ### Omens
 
@@ -112,6 +112,8 @@ There is no language model. `shared/scribe.ts` reads the sentence with ordered r
 The price comes from the effects, never the wording: a sigil's own name costs exactly that sigil, every extra effect is +1 mana, aiming at everyone doubles that effect, and nothing costs more than 10. The reading updates as you type, says every guess out loud, and refuses what no sigil can do ("win the pot") with a sentence rather than a nearby wrong answer. Seven ready-made spells sit on the page as buttons for anyone who would rather tap than type.
 
 ### Hexes and the Daily Rite
+
+A **coven** is the school you sat down as: two signature sigils, a relic you keep, and a lean. From the first Market, half your hands draw their first sigil from your coven's school, so the Twinned keep finding Bind and the Loom keep finding Weave all run. The Unaligned do not lean.
 
 Each coven has a ladder of five **hexes**. Hex I is the game as described above. Each level adds one rule and keeps every rule below it: opponents open with a relic, an omen is in force before the first card, the Market charges you a quarter more, the blinds climb every two hands. Winning a run at the highest hex open to a coven opens the next one.
 
