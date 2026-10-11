@@ -505,10 +505,12 @@ export const CREEDS: RelicDef[] = [
   // without it, and a first-ante bust in 23% against 14%, because a flat
   // draw is mostly rares and mythics and few of the cheap commons (Wild Rite,
   // Mirror, Nullify) a hand is built from. It was cut. The Unaligned's kit is
-  // a counterspell, so their creed is that they always hold one.
+  // a counterspell, so their creed is that they always hold one. Its first
+  // version took a draw's place in a full hand; the Nullify now comes on top
+  // (FUN-REVIEW.md, round 4, has the measurements).
   {
     id: 'creed_last_word', name: 'The Last Word', glyph: '⊘', rarity: 'mythic', price: 0, coven: 'unaligned',
-    text: 'Begin a hand without a counterspell and a Nullify comes to you first.',
+    text: 'Begin a hand without a counterspell and a Nullify comes to you, even into a full hand.',
     impossible: 'A spare answer that turns up in your hand every time you run out of them.',
     rule: 'last_word',
   },

@@ -429,16 +429,18 @@ export class Engine {
       // is a pool for the whole run and not only its opening hand.
       const lean = leanOf(covenOf(p.coven));
       const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
-      // The Unaligned's creed: a hand never starts without an answer.
-      if (hasRule(p.relics, 'last_word') && !p.eliminated
-        && !p.sigils.some((s) => defOf(s)?.timing.includes('response'))
-        && giveSigil(t, p, { uid: nanoid(8), defId: 'nullify' })) {
-        log(t, `${p.name}'s Last Word: a Nullify comes to hand.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'last_word') });
-      }
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
           giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
         }
+      }
+      // The Unaligned's creed: a hand never starts without an answer. The
+      // Nullify comes after the draws and past the hand's limit: the first
+      // version took a draw's place in a full hand (FUN-REVIEW.md, round 4).
+      if (hasRule(p.relics, 'last_word') && !p.eliminated
+        && !p.sigils.some((s) => defOf(s)?.timing.includes('response'))) {
+        p.sigils.push({ uid: nanoid(8), defId: 'nullify' });
+        log(t, `${p.name}'s Last Word: a Nullify comes to hand.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'last_word') });
       }
     }
 
