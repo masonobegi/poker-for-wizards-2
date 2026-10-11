@@ -8,9 +8,15 @@
  * keeps changing (a stack, a bet); this is for a total that is announced once.
  *
  * Under reduced motion the total is shown from the first frame and the pop is
- * a brief glow. It renders one plain inline-block span whose min-width is
- * reserved for the final value's characters from the first frame, so with the
- * caller's tabular `mono` digits a growing number does not shove its row.
+ * a brief glow.
+ *
+ * Two layers, so counting costs nothing outside itself. The final value sits
+ * in the flow, transparent: it sets the width and the baseline and is what a
+ * screen reader reads. The counting digits are an absolutely placed overlay
+ * with `contain: strict`, which Chromium treats as a relayout boundary. The
+ * first version wrote the digits into the flow, and each frame of the count
+ * re-laid-out whatever held it: on the game-over panel under a 4x CPU
+ * throttle that was 300ms of layout per run summary (test/anim-frames.mjs).
  */
 import { memo, useEffect, useRef } from 'react';
 import { countUpValue, motionPrefs, punch } from './arcade';
@@ -26,6 +32,7 @@ export interface CountUpProps {
 }
 
 const fmt = (n: number): string => n.toLocaleString();
+const TWOS_MS = 1000 / 30;
 
 /** Writes into React's own text node rather than replacing it, so a later
  *  render still owns the node it thinks it owns. */
@@ -51,10 +58,15 @@ function CountUpBase({ value, delay = 0, duration = 900, format = fmt, className
     setText(el, format(0));
     let raf = 0;
     let start = 0;
+    let shown = -1;
     const tick = (now: number): void => {
       if (!start) start = now;
+      // Digits change "on twos", 30 times a second, the way the basketball
+      // game animates its props: nobody reads a digit that lasts 16ms, and it
+      // halves the text writes on a frame budget a Deck has to share.
+      const step = Math.floor((now - start) / TWOS_MS);
       const v = countUpValue(0, value, now - start, duration);
-      setText(el, format(v));
+      if (step !== shown || v === value) { shown = step; setText(el, format(v)); }
       if (v === value) { punch(el, 'land', prefs); return; }
       raf = requestAnimationFrame(tick);
     };
@@ -66,12 +78,9 @@ function CountUpBase({ value, delay = 0, duration = 900, format = fmt, className
   }, [value, delay, duration, reduced]);
 
   return (
-    <span
-      ref={ref}
-      className={`hx-countup${className ? ` ${className}` : ''}`}
-      style={{ minWidth: `${format(value).length}ch` }}
-    >
-      {format(value)}
+    <span className={`hx-countup${className ? ` ${className}` : ''}`}>
+      <span className="hx-countup__hold">{format(value)}</span>
+      <span ref={ref} className="hx-countup__live" aria-hidden>{format(value)}</span>
     </span>
   );
 }

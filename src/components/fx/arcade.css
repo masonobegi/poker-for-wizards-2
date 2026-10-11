@@ -47,9 +47,21 @@
 .shopcard-stamp { top: 40%; font-size: 20px; }
 
 /* --- count-up --------------------------------------------------------------
-   Inline-block so the land pop (a transform) applies; the min-width the
-   component sets reserves the final value's width. */
-.hx-countup { display: inline-block; }
+   The final value holds the space (and the baseline) in the flow, invisibly;
+   the counting digits ride on top in a box that cannot lay out anything but
+   itself. Tabular digits so no intermediate value is wider than the total. */
+.hx-countup {
+  position: relative;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+.hx-countup__hold { color: transparent; text-shadow: none; }
+.hx-countup__live {
+  position: absolute;
+  inset: 0;
+  contain: strict;
+  white-space: nowrap;
+}
 
 /* --- number pops -----------------------------------------------------------
    "+N" over a seat that just took a pot (PopLayer.tsx). Portalled to <body>,

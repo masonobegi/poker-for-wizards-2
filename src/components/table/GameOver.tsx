@@ -188,14 +188,16 @@ export default function GameOver({ view }: { view: TableView }) {
               </p>
             ) : null}
 
-            {/* The run, totted up: each figure counts up in turn and lands
-                with a pop, the basketball roguelike's reward screen. The
-                buttons below are live the whole time; nothing waits on it. */}
+            {/* The run, totted up: each figure counts up in turn, one after
+                the other, and lands with a pop, the basketball roguelike's
+                reward screen. In turn rather than together, which also keeps
+                it to one count a frame. The buttons below are live the whole
+                time; nothing waits on it. */}
             <div className="gameover-runstats">
-              <span><strong><CountUp value={view.ante} delay={520} duration={500} /></strong> antes</span>
-              <span><strong><CountUp value={me.handsWon} delay={680} duration={600} /></strong> hands won</span>
+              <span><strong><CountUp value={view.ante} delay={520} duration={380} /></strong> antes</span>
+              <span><strong><CountUp value={me.handsWon} delay={960} duration={480} /></strong> hands won</span>
               {me.biggestPot > 0 ? (
-                <span>biggest pot <strong><CountUp value={me.biggestPot} delay={840} duration={900} /></strong></span>
+                <span>biggest pot <strong><CountUp value={me.biggestPot} delay={1500} duration={800} /></strong></span>
               ) : null}
             </div>
 

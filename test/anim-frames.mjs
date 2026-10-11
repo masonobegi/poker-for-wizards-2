@@ -43,6 +43,8 @@ const OUT = resolve(process.argv[2] ?? 'recordings/anim-frames');
 const RM = !!process.env.RM;
 const CPU = Number(process.env.CPU ?? 1);
 const ELECTRON = !!process.env.ELECTRON;
+/** ONLY=bust,gameover films just those (the staging still runs in order). */
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 mkdirSync(OUT, { recursive: true });
 
 const PRESEED = () => {
@@ -112,6 +114,7 @@ const report = [];
 
 /** Record every frame for `ms` after `stage()` runs, plus the page's frame pacing. */
 async function film(name, stage, ms = 1500) {
+  if (ONLY && !ONLY.has(name)) { await stage(); await page.waitForTimeout(ms); return; }
   const dir = join(OUT, name);
   mkdirSync(dir, { recursive: true });
   const frames = [];
@@ -138,10 +141,16 @@ async function film(name, stage, ms = 1500) {
     requestAnimationFrame(loop);
   });
   await page.waitForTimeout(150);
+  // Main-thread work while the moment plays: layout and style passes, script.
+  await cdp.send('Performance.enable').catch(() => {});
+  const metrics = async () => Object.fromEntries(((await cdp.send('Performance.getMetrics').catch(() => ({ metrics: [] }))).metrics)
+    .map((m) => [m.name, m.value]));
+  const m0 = await metrics();
   const t0 = Date.now(); // the screencast stamps frames in wall-clock seconds
   await page.evaluate(() => { window.__t0 = performance.now(); });
   await stage();
   await page.waitForTimeout(ms);
+  const m1 = await metrics();
   await cdp.send('Page.stopScreencast');
   cdp.off('Page.screencastFrame', onFrame);
   const [pace, stalls] = await page.evaluate(() => {
@@ -163,9 +172,13 @@ async function film(name, stage, ms = 1500) {
     moment: name, frames: frames.length, rafFrames: pace.length,
     p50: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), max: +Math.max(0, ...pace).toFixed(1), over25ms: long,
     stalls,
+    layouts: (m1.LayoutCount ?? 0) - (m0.LayoutCount ?? 0),
+    layoutMs: Math.round(((m1.LayoutDuration ?? 0) - (m0.LayoutDuration ?? 0)) * 1000),
+    styleMs: Math.round(((m1.RecalcStyleDuration ?? 0) - (m0.RecalcStyleDuration ?? 0)) * 1000),
+    scriptMs: Math.round(((m1.ScriptDuration ?? 0) - (m0.ScriptDuration ?? 0)) * 1000),
   };
   report.push(row);
-  console.log(`  ${name.padEnd(14)} ${String(row.frames).padStart(4)} frames · rAF p50 ${row.p50}ms p95 ${row.p95}ms max ${row.max}ms · >25ms ${long}${stalls.length ? ` · long frames at ${stalls.join(', ')}ms` : ''}`);
+  console.log(`  ${name.padEnd(14)} ${String(row.frames).padStart(4)} frames · rAF p50 ${row.p50}ms p95 ${row.p95}ms max ${row.max}ms · >25ms ${long} · layout ${row.layouts}x/${row.layoutMs}ms style ${row.styleMs}ms script ${row.scriptMs}ms${stalls.length ? ` · long frames at ${stalls.join(', ')}ms` : ''}`);
 }
 
 const view = () => page.evaluate(() => window.__hexholdView);
@@ -182,7 +195,7 @@ const patch = (fn, arg) => page.evaluate(([src, a]) => {
 console.log(`▶ filming into ${OUT}${RM ? ' (reduced motion)' : ''}${CPU > 1 ? ` (CPU x${CPU})` : ''}`);
 
 // ---- 1. a real hand: call it down, film the payout as it begins -----------
-{
+if (!process.env.SKIP_PAYOUT) {
   const deadline = Date.now() + 150000;
   let filmed = false;
   let last = (await view())?.phase;

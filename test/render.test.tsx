@@ -588,14 +588,18 @@ test('a cut-in banner shows, ignores the click that raised it, and skips on the 
   }
 });
 
-test('a count-up lands exactly on its total and reserves its width', async () => {
+test('a count-up lands exactly on its total, and the total holds the space', async () => {
   const { act } = await import('react');
   const { CountUp } = await import('../src/components/fx/CountUp');
   const { root } = await mount(<CountUp value={4200} duration={300} />);
+  const hold = root.querySelector('.hx-countup__hold');
+  const live = root.querySelector('.hx-countup__live');
+  // The flow (and a screen reader) has the final value from the first frame;
+  // only the overlay counts.
+  assert.match(hold?.textContent ?? '', /^(4,200|4200)$/, 'the total does not hold the space');
+  assert.equal(live?.getAttribute('aria-hidden'), 'true', 'a screen reader would hear every digit of the count');
   await act(async () => { await new Promise((r) => setTimeout(r, 700)); });
-  assert.match(root.textContent ?? '', /^(4,200|4200)$/, root.innerHTML);
-  const span = root.querySelector('.hx-countup') as HTMLElement;
-  assert.ok(span.style.minWidth.endsWith('ch'), 'no width reserved: a growing number would shove its row');
+  assert.match(live?.textContent ?? '', /^(4,200|4200)$/, root.innerHTML);
 });
 
 test('a stamp names its verdict without speaking it twice', async () => {
