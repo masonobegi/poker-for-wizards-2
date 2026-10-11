@@ -39,6 +39,10 @@ const QUIT_MAX_MS = 3000;
 const PLAY = /practice vs bots|play the demo/i;
 const EXE = process.env.HEXHOLD_EXE
   ?? path.resolve(process.platform === 'win32' ? 'release/win-unpacked/HEXHOLD.exe' : 'release/linux-unpacked/hexhold');
+// The process name to count on Windows: the build's own exe. The demo is
+// "HEXHOLD Demo.exe", and counting "HEXHOLD.exe" against it found nothing
+// every time, so a demo that left a process behind still passed.
+const IMAGE = path.basename(EXE);
 const EXTRA = (process.env.HEXHOLD_EXTRA_ARGS ?? '').split(' ').filter(Boolean);
 const HEADLESS = EXTRA.includes('--ozone-platform=headless');
 const USER_DATA_ROOT = path.join(os.tmpdir(), `hexhold-quit-${process.pid}`);
@@ -49,8 +53,8 @@ if (!existsSync(EXE)) { console.error(`No packaged build at ${EXE}`); process.ex
 function processes() {
   try {
     if (process.platform === 'win32') {
-      const out = execSync('tasklist /FI "IMAGENAME eq HEXHOLD.exe" /FO CSV /NH', { encoding: 'utf8' });
-      return out.split('\n').filter((l) => l.includes('HEXHOLD.exe')).length;
+      const out = execSync(`tasklist /FI "IMAGENAME eq ${IMAGE}" /FO CSV /NH`, { encoding: 'utf8' });
+      return out.split('\n').filter((l) => l.includes(`"${IMAGE}"`)).length;
     }
     return Number(execSync(`pgrep -fc -- ${JSON.stringify(EXE)}`, { encoding: 'utf8' }).trim()) || 0;
   } catch { return 0; }
