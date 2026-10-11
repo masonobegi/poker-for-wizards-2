@@ -531,6 +531,23 @@ test('Spell cards: Auto reads a new spell in full and a known one briefly; Full,
     }
     assert.equal(JSON.parse(localStorage.getItem('hexhold.prefs') ?? '{}').spellCards, 'off', 'the choice is not saved');
 
+    // The server sends a fresh view on every bet. A resolved card has to
+    // leave on its own clock all the same: it used to restart nothing and
+    // clear its timer on the next view, so it sat over the board, and over
+    // the showdown, until the next hand or a click (seen filming the trailer).
+    setPrefs({ spellCards: 'full' });
+    await render(view(true));
+    await render(view(false));
+    await wait(100);
+    await render(view(false));
+    await render(view(false));
+    assert.equal(shown(), true, 'a resolved card is read before it goes');
+    await wait(LINGER_MS.full + 250);
+    assert.equal(shown(), false, `still on screen ${LINGER_MS.full + 250}ms after it resolved, with the table still talking`);
+    await render({ ...(view(false) as object), handNumber: 2 });
+    await wait(50);
+    setPrefs({ spellCards: 'off' });
+
     // Auto: a Burn never seen before stays to be read, three times; the
     // fourth flashes by like Brief.
     resetSeen();

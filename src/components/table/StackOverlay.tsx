@@ -79,25 +79,33 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
 
   // Keep the last stack on screen for a moment after it resolves.
   const [lingering, setLingering] = useState<ShownEntry[] | null>(null);
+  const lingerMs = useRef(0);
   const lastEntries = useRef<ShownEntry[]>([]);
   useEffect(() => {
     if (stack && view.stackEntries.length) {
       lastEntries.current = view.stackEntries;
       setLingering(null);
-      return undefined;
+      return;
     }
-    if (!lastEntries.current.length) return undefined;
+    if (!lastEntries.current.length) return;
     const last = lastEntries.current;
     lastEntries.current = [];
     // The card shown is the top of the stack; Auto judges by that sigil.
     const top = last[last.length - 1];
     const ms = lingerFor(mode.current, timesSeen(top.sigilId), !!top.scribed);
-    if (ms <= 0) { setLingering(null); return undefined; }
+    if (ms <= 0) { setLingering(null); return; }
     markSeen(top.sigilId);
+    lingerMs.current = ms;
     setLingering(last);
-    const id = window.setTimeout(() => setLingering(null), ms);
-    return () => window.clearTimeout(id);
   }, [stack, view.stackEntries]);
+  // The linger's clock belongs to the card, not to the view. Every bet sends
+  // a fresh view, and a timer cleared by the effect above re-running left the
+  // card over the board (and the showdown) until the next hand.
+  useEffect(() => {
+    if (!lingering) return undefined;
+    const id = window.setTimeout(() => setLingering(null), lingerMs.current);
+    return () => window.clearTimeout(id);
+  }, [lingering]);
   // A new hand clears anything left over from the last one.
   useEffect(() => { setLingering(null); }, [view.handNumber]);
 
