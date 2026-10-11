@@ -1,5 +1,9 @@
 # HEXHOLD: fun and sellable review (2026-10-10)
 
+> **Round 3 (end of this file) is the current state:** fun 7/10 on a locked
+> rubric (7.1, was 6.5), the phylactery, demo length and spell-card calls
+> made, and what would earn the 8.
+
 Branch `steam-ready-2026-10-09`. Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN_BRIEF.md`.
 Grounded in the market research (`market/poker-for-wizards-2.md`), the three
 simulated playtests (`playtest/hexhold.md`), the store copy, and measured
@@ -278,3 +282,222 @@ last pass put it. Criterion 7 is content work, and 8 needs an artist, so
 those two hold at 6 whatever happens here. That caps the honest mean at
 (10 + 10 + 7 + 10 + 10 + 10 + 6 + 6) / 8 = 8.6 in theory and makes 7.5 a
 real climb: it needs about eight points across criteria 1, 2, 4, 5 and 6.
+
+## What the best poker roguelites do in their first 15 minutes
+
+From the market file and the sources named:
+- **Balatro** makes its opening blinds "regular rounds that you can play to
+  earn cash and get access to the shop"
+  ([Dot Esports](https://dotesports.com/indies/news/balatro-antes-blinds-explained));
+  the danger arrives with the Boss Blinds. Losing in minute one is close to
+  impossible.
+- **Slay the Spire** offers Neow's Lament (enemies in your first three fights
+  have 1 HP) to a player whose last run died before the Act 1 boss
+  ([TrueAchievements](https://www.trueachievements.com/game/Slay-The-Spire/walkthrough/5),
+  [Steam discussion](https://steamcommunity.com/app/646570/discussions/0/3428949623347842943)),
+  and the Lizard Tail relic, a second life.
+- **Poker tournaments** have a rebuy period in their first levels. Balatro
+  has Mr. Bones; Inscryption's first act gives two candles.
+- **Poker Quest**'s negative reviews name randomness first (market file).
+
+The pattern: the first floor teaches, the run cannot end before the player
+has seen why it exists, and the danger ramps. HEXHOLD had the ramp (warm
+bots at Hex I) but not the floor.
+
+## Decisions made 2026-10-10
+
+Each is one constant or one setting, so each can be reversed in one line.
+
+1. **The phylactery: yes.** At a solo Hex I table, the player's first bust
+   before ante 3 buys them back in with a full starting stack, once. Hex II
+   takes it away and says so on the menu; the Daily Rite (Hex II) never has
+   one. Why a player of the genre wants it: a poker player knows the rebuy
+   period and a roguelite player knows Lizard Tail and Neow's Lament, a
+   first loss that teaches instead of ending the run. Reason from data: 12%
+   of aggressive runs and 9% of cautious ones were over in about ninety
+   seconds, before any of the four things the game sells. The header shows
+   "phylactery until ante 3" while it can be spent, the break has its own
+   banner, and the end screen names the bust it caught.
+   Switch: `PHYLACTERY_BEFORE_ANTE` in `shared/hexes.ts` (1 turns it off).
+2. **Demo length: 3 antes.** On 282 demo runs (two seed sets), 3 antes:
+   72% reach the wishlist screen and 31% see an impossible
+   hand, in 5.0 minutes; a fourth ante adds 10 points of
+   impossible hands and costs 16 points of runs that reach the
+   wishlist screen. Either length is far under the 14-minute median demo
+   session in Zukowski's Next Fest surveys
+   ([howtomarketagame](https://howtomarketagame.com/2022/10/26/what-is-a-good-median-play-time-for-a-demo-benchmark/)),
+   so a second run fits, and ending on "You survived 3 antes" with the
+   full-game pitch beats ending on a bust. Switch: `DEMO_ANTES` in
+   `shared/demo.ts`.
+3. **Spell-overlay length: Auto, a new default.** Full for a sigil you have
+   not yet seen resolve three times, Brief after; a written sigil is always
+   read in full. Full covered the middle of the table for 26% of the
+   player's own turns (Brief 8%); Auto covers 17% over a player's first
+   seven runs and falls toward Brief after that. Why a player wants it: the
+   playtest's first-run reader needed 2.6 s to learn what Graft does, and
+   the simulated Deck player switched to Brief after an hour; nobody should
+   have to find a setting to stop re-reading Nullify. Full, Brief and Off
+   stay. Switches: `DEFAULT_PREFS.spellCards` and `AUTO_LEARNED_AFTER` in
+   `src/components/shell/prefs.ts`.
+4. **Covens lean to their school, from the first Market.** Half of all
+   hands from ante 2, a coven's first sigil draw comes from its school; the
+   Unaligned do not lean. Why a player wants it: a roguelite character is a
+   pool for the whole run (Slay the Spire's four card pools), and the
+   veteran's review said "covens feel like starting hands, not decks".
+   Leaning from hand one raised early busts on three seed sets, so it starts
+   at ante 2. Switches: `COVEN_LEAN`, `COVEN_LEAN_FROM_ANTE` in
+   `shared/covens.ts`.
+5. **Bots inscribe the marks a player would** (Wild, Prism or Blooded,
+   previewed), except that a warm bot (Hex I, antes 1-2) writes no Wild.
+   Why: a bot that writes Blooded every time reads as a bot that does not
+   know its spell, and it kept the Loom from ever breaking the deck.
+   Switches: `INSCRIBE_CHOICES`, `WARM_INSCRIBE` in `server/game/bots.ts`.
+6. **The demo's default coven is the Ashen** (was the Unmoored). In three
+   batches of 47 demo runs per coven the Unmoored reached the wishlist
+   screen least often and lost its stack in the first ante most; the Ashen
+   reached it most. Switch: the order of `DEMO_COVENS`.
+
+Not decided here: the HEXHOLD name's trademark clearance (unverified, as
+before), anything that spends money, and Steam networking.
+
+## What changed, measured
+
+Same 140 seeds (0-139), adept bots, Hex I, `npm run fun:batch`. "Before" is
+e011a88 (the published review; `--no-phylactery` on the new code reproduces
+it exactly). "After" is 606bcf5. Below about 5 points, a difference between
+two batches is noise: a second seed set (140-279) moved some figures by up
+to 8 points.
+
+| Aggressive player | before | after |
+|---|---|---|
+| run over before the first Market | 12% | **1%** |
+| run over before ante 3 | 23% | **6%** |
+| survived 3 antes | 71% | 79% |
+| busted before the first Market, caught or not | 12% | 14% |
+| an impossible hand in the run | 39% | **58%** |
+| ... by ante 3 | 22% | 31% |
+| ... one of your own | 21% | **34%** |
+| impossible hands per run | 0.96 | 1.42 |
+| runs won (Hex I) | 30 of 140 | 47 of 140 |
+| your stack at ante 7 | 19 bb | 24 bb |
+| biggest pot in the last 3 hands | 56% | 49% |
+| real choices a minute | 9.3 | 9.1 |
+| a spell card covering your own turn | 26% (Full) | 17% (Auto, first 7 runs) |
+| a run, minutes | 6.4 | 7.5 |
+
+Cautious player (same seeds): run over before the first Market 9% to
+0%, before ante 3 18% to 1%; impossible hand in the run about one in two
+(the published figure) to 59%. Its busts before the first Market, caught
+or not, rose from 9% to 12%: the deck breaks sooner for everyone.
+
+**Covens now draw differently.** Share of your own casts from your coven's
+school: before 21-32% for every coven (the Unaligned 27%, so no coven
+leaned); after, 31-45% for the six that lean against 26% for the
+Unaligned. The Twinned 21% to 37% Bind, the Ashen 25% to 39% Ruin. The
+Unmoored still loses its stack in the first ante more than any other coven
+(5 of 20 full-game runs, 37% of demo runs); the phylactery now catches it,
+so the run ends there in 1 of 20 (was 6). The Loom, "writing on the deck", made its own
+impossible hand in 10% of runs and now 50%. Not fixed: the Twinned is still
+not the impossible-hand coven (25% of runs with one of its own, the Loom
+50%), and with 20 runs a coven, wins per coven (3 to 11) are mostly noise.
+
+**Also found and fixed.**
+- *Deal again* reused the last run's deck: Graft, Mirror and Tessellate
+  rewrite a card's face for the rest of a run, and an Unprinted card stays
+  gone, so the next run started with duplicates and missing cards.
+- Eight relics were another relic under a new name, some at twice the price
+  (Bloodline, rare, 16 shards, was Gilt Edge, common, 8): the store page's
+  "45 relics" were 37 effects. Each now does its own thing, mostly as a
+  trade-off (Cheap Tricks: sigils 2 cheaper, ceiling 3 lower). A test holds
+  every relic to a distinct effect.
+- The Cold Read relic said it showed a card of every player and did The
+  Informant's river peek; it now does what it says. The Quiet's coven card
+  and the intro promised a card the Quiet's relic never showed; the words
+  now match the relic.
+- The server wrote any string a client sent as Inscribe's mark onto a
+  shared card, which every client at the table then looked up. It is held
+  to the picker's six marks.
+
+## Re-scored with the same rubric
+
+| # | Criterion | Before | After | Why |
+|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 6 | 8 | Runs over before the first Market 12% to 1%, before ante 3 23% to 6%. Not 9: a player still loses the stack in the first ninety seconds in 14% of runs; the phylactery cushions it, it does not prevent it. |
+| 2 | The namesake shows up | 7 | 8 | 39% to 58% of runs, and one of your own in 34% (was 21%). |
+| 3 | The run arc builds | 7 | 7 | Deeper late (24 bb at ante 7), but the biggest pot lands in the last three hands less often (49%, was 56%) now runs are longer. |
+| 4 | Covens play differently and deliver their pitch | 5 | 6 | They draw measurably differently and the Loom now breaks the deck, but a lean is not a deck, the Twinned still does not deliver "a hand the deck could not have held", and the Unmoored still loses its stack first. |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | Spell cards cover a third less of your turns and two lying texts are true now, but the dead time itself did not move (9.1 choices a minute). |
+| 6 | The special things show in the first 10 minutes | 8 | 9 | 99% of runs reach the first Market and its Scribe and deck-breaking omen; an impossible hand in 31% of 3-ante demos (was 22%). |
+| 7 | Builds have depth; relics are more than numbers | 6 | 6 | Eight fake relics became real ones, three as trade-offs; most relics are still a number. |
+| 8 | Presentation: art and feel | 6 | 6 | Untouched: it needs an artist. |
+| | **Mean** | **6.5 (7)** | **7.1 (7)** | |
+
+## Was the 8 earned?
+
+**No. HEXHOLD is a 7 (7.1 on the locked rubric), a better 7 than this
+morning's.** The two things that made people bounce in the first two minutes
+are answered in code: a run almost never ends before the game has shown
+itself, and the hands it is named after now turn up in most runs, often in
+the player's own hand. Scoring criteria 1, 4 and 5 one point higher each
+would make it 7.5 and round to 8; I do not think the evidence supports that,
+so it stays at 7.
+
+What would earn the rest, in order:
+1. **Art (criterion 8).** A commissioned capsule and an illustrated card
+   back, table and coven art in the trailer's style: worth 2 points on this
+   rubric, and it is what the market file says reviewers compare first.
+2. **Relics that change rules, not numbers (criterion 7).** A content pass
+   in the shape of Balatro's jokers: half the 45 should change what a hand
+   is or how a street plays. Code, but a design job of its own.
+3. **Covens as games (criterion 4).** Each coven needs one rule of its own
+   for the whole run (the Twinned's copies counting as Wild, say), the way
+   Balatro's decks change every hand. A design pivot, so it should follow a
+   playtest.
+4. **A real human playtest**, on the demo build, before Next Fest. Every
+   number here is from simulated players, and two of the calls (the
+   phylactery's tension, Auto's three readings) are about how something
+   feels.
+
+## Three simulated Steam reviews (after round 3)
+
+**The impatient refunder** · 1.4 hrs · Recommended
+
+> Lost my whole stack on the second hand to a Full House I never saw
+> coming. Instead of a game-over screen I got "THE PHYLACTERY BREAKS. Back
+> in with 20,000." Fine, I'll take it. Played tighter, got to the shop,
+> typed "hex the chip leader" and it became a spell. Two hands after the
+> first omen ("Five cards in the shared deck become permanently Wild") I hit
+> a Flush House myself and the screen went nuts. Second run I busted at
+> ante 4 and the end screen told me exactly how. The spell pop-ups were
+> long at first and then got short on their own. Keeping it.
+
+**The genre veteran** · 12 hrs · Recommended
+
+> It is Hold'em with a real stack, and the covens now feel like they mean
+> something past the first hand: as the Loom I kept drawing Weave and by
+> ante 4 I had written three Wilds into the shared deck, one of which beat
+> me. The phylactery is a training wheel; it is gone at Hex II, which is
+> where the game starts. Complaints: the Twinned still does not do what its
+> card says better than anyone else, relics are mostly +1s (at least there
+> are no longer two Third Hands at different prices), and the presentation
+> is clean CSS next to Balatro's CRT. $9.99, yes. $14.99, not yet.
+
+**The Deck player** · 7 hrs · Recommended
+
+> Plays well on the Deck. The default spell cards are long the first few
+> times you meet a sigil and then flash, so I never went into Settings.
+> Text is readable, the A, B, X, Y prompts match, Y asks before going all
+> in. The phylactery note under the blinds is a nice touch so you know the
+> first bust is not the last. Typing in the Scribe on a pad is still the
+> clumsy bit. No Steam invites yet, so solo it is.
+
+## Verdict, round 3
+
+**Fun: 7/10** (was 7; 7.1 on the locked rubric, was 6.5). Earned the honest
+way: no padding systems, every change a fix to the core loop with a
+measurement before and after. Not an 8, for the reasons above.
+
+**Sellable at $9.99: yes, as a solo poker roguelite**, on the same two
+conditions as before: the store page must not sell online play until Steam
+invites exist, and the capsule art must be commissioned. The store page's
+"45 relics" is now true.

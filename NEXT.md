@@ -44,37 +44,37 @@ demo 22 Feb 2027, release 8 Apr 2027.
 - The harness's player is the bots' adept code at full heat, which is
   aggressive. Report `--player cautious` alongside it.
 
-## Round 3 (2026-10-10, in progress): `FUN3_BRIEF.md`
+## Round 3 (2026-10-10): done
 
-Rubric locked in `FUN-REVIEW.md` (mean 6.5, rounds to 7). Built so far, each
-measured on the same 140 seeds:
-- **Phylactery** (`shared/hexes.ts`): runs over before the first Market
-  12% to 1%, before ante 3 23% to 4% (aggressive player); busts themselves
-  unchanged at 12%. Cautious player: 0% / 1%.
-- **Deal again** now starts on a clean 52-card deck (Graft/Mirror/Unprint
-  used to carry over). Inscribe marks are validated on the server.
-- **Coven lean** (`shared/covens.ts COVEN_LEAN`) and **bots inscribe real
-  marks**: impossible hand 48% to 61% of runs, yours 25% to 34%. Open
-  question: early busts (caught or not) rose 12% to 19%; an A/B on seeds
-  140-279 is running to see whether that is real.
-- **Spell cards Auto** (default): your turns covered 26% (Full) to 17% over
-  a player's first seven runs.
-- Measurement worktrees in the session scratchpad (`m0`, `m1`); remove with
-  `git worktree remove` when done.
+`FUN3_BRIEF.md`. Rubric locked in `FUN-REVIEW.md` before any change: 6.5
+(7) before, **7.1 (7) after**. The 8 was not earned; FUN-REVIEW says what
+would earn it (art, a relic pass, covens as games, a human playtest).
+
+Decided (each one constant): the phylactery (Hex I, solo, before ante 3),
+the demo at 3 antes with the Ashen open by default, Spell cards Auto as the
+default, covens leaning to their school from ante 2, bots inscribing real
+marks (no Wild while warm). Fixed: Deal again reused the last run's deck;
+eight duplicate relics; Cold Read and the Quiet's text; Inscribe's mark is
+validated. 307 tests. `release-demo/` (Windows) rebuilt on this code; the
+Linux demo dir and the full game's `release/` predate round 3.
+
+Measured on seeds 0-139 (aggressive): runs over before the first Market
+12% to 1%, before ante 3 23% to 6%; an impossible hand in 39% to 58% of
+runs, one of your own 21% to 34%. Raw data and scripts were in the session
+scratchpad (not kept).
+
+Open, with data: the Unmoored loses its stack in the first ante more than
+any coven (37% of demo runs, caught by the phylactery); the Twinned is not
+the impossible-hand coven (the Loom is).
 
 ## Next steps, in order
 
-1. Mason's calls (in `FUN-REVIEW.md` and `ops/MASON-TODO.md`): the
-   phylactery (one second chance before ante 3 at Hex I), demo length 3 or
-   4 antes, `FULL_GAME_APP_ID` once Steamworks issues it, play the demo once.
-2. If Mason says yes to the phylactery: build it at Hex I only, measure
-   with `fun:batch` (the target is under 5% of runs over before the first
-   Market), and add it to the Hex II rule text as something the climb
-   removes.
-3. The Twinned as the promise's first omen shows an impossible hand in 3%
-   of hands at antes 2-3 against 7% for The Gilded. Either drop it from
-   `PROMISED_MARKS` (every run then opens on The Gilded; the test wants a
-   choice of two, so it needs a second wild omen) or make mirrored cards
-   stronger. A design call (FUN-REVIEW proposal 3).
+1. Mason: play the demo once (`release-demo/win-unpacked/HEXHOLD Demo.exe`),
+   `FULL_GAME_APP_ID` once Steamworks issues it, and a closed playtest with
+   real players before Next Fest.
+2. Rebuild the Linux demo dir and the full game's packages before upload
+   (`npm run package:demo:linux`, `npm run package:win`, Linux in WSL).
+3. The design passes that would earn the 8 (FUN-REVIEW round 3): relics that
+   change rules, one whole-run rule per coven (the Twinned first), art.
 4. Steam lobbies (online through Steam invites) before the store page says
    PvP or Multiplayer.

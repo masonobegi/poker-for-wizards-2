@@ -20,10 +20,10 @@
 /**
  * Antes a demo run lasts: two Markets and two omens, and the third ante.
  *
- * Decided 2026-10-10 (FUN-REVIEW.md, round 3), on 141 demo runs from the
- * player's chair: at 3 antes 73% of runs reach the wishlist screen and 41% see
- * an impossible hand (22% before round 3), in 4.9 minutes; a fourth ante adds
- * 7 points of impossible hands and costs 20 points of runs that reach the
+ * Decided 2026-10-10 (FUN-REVIEW.md, round 3), on 282 demo runs from the
+ * player's chair: at 3 antes 72% of runs reach the wishlist screen and 31% see
+ * an impossible hand (22% before round 3), in 5.0 minutes; a fourth ante adds
+ * 10 points of impossible hands and costs 16 points of runs that reach the
  * wishlist screen. Either is far under the 14-minute median demo session
  * (Zukowski's 2022 Next Fest surveys), so a second run fits.
  */

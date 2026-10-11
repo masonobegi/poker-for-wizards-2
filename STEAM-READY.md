@@ -35,13 +35,32 @@ sellable at $9.99 as a solo roguelite).
 | 15 | P5: Reduce flashing | DONE | Settings, Video; `render.test.tsx`. |
 | 16 | P7: title music at launch | DONE | Harness: AudioContext runs before any input, Windows and Linux. |
 | 17 | P8: Steam on-screen keyboard for text fields | DONE in code (was: none) | `test/keyboard.test.ts`, `test/steam.test.ts`, `test/display.test.ts`. Not yet seen on a Steam client (Mason, section 4). |
-| 18 | P6: spell overlay length (Full / Brief / Off) | DONE (was: waiting on a decision) | Settings > Gameplay > Spell cards: Full 2.6s (default), Brief 0.8s, Off (only spells you can answer). `render.test.tsx` proves each mode. |
+| 18 | P6: spell overlay length (Auto / Full / Brief / Off) | DONE (default decided 2026-10-10: Auto) | Settings > Gameplay > Spell cards: Auto (default: Full until a sigil has resolved in front of you 3 times, then Brief), Full 2.6s, Brief 0.8s, Off (only spells you can answer). `render.test.tsx` proves each mode. |
 | 19 | UI scale above 125% | DONE (was: capped at 125%) | Up to 200%, applied as the page zoom and capped so the layout never drops under 1024x680 (Deck 117%, 1080p 158%, 1440p and up 200%). `npm run responsive` at 200%: 0 failures at 1280x800 and 1920x1080 (3 and 4 with the old CSS zoom). `test/uiscale.test.ts`; the packaged harness checks the zoom on Windows and Linux. |
 | 20 | Bot decisions independent of server load | DONE (was: `botmagic` failed under CPU load) | Preview budget on an injectable clock; tests run idle and overloaded simulated clocks. It found a real bug: under load bots Nullified 81 of 150 harmless peeks; now under 20% either way. |
 | 21 | PlayStation (and Nintendo) button glyphs | DONE (was: Xbox only) | Family from the `Gamepad.id` vendor (054c Sony, 057e Nintendo; the Deck and Steam Input stay Xbox); the legend, action bar and Controls follow the pad in hand. `test/padglyphs.test.ts` (5). |
 | 22 | Quit ends the game promptly | DONE (was: 4 to 12s, once over 15s) | Electron's native teardown kept the exe (GPU, audio, browser processes) alive after the window closed; `electron/shutdown.cjs` ends the tree on `quit`. `test/quit.mjs` (menu, table, spell stack; by pid; hidden, muted): before 0/9 under 3s, after 9/9 on Windows (slowest 827ms) and 6/6 on Linux. |
 | 23 | Every menu control reachable on a Deck (1280x800) | DONE (was: Settings, Quit, Daily Rite and hosting off the bottom of a screen that did not scroll) | The menu column scrolls. `npm run responsive` now fails a control nothing scrolls to (`checkReachable`): against the old menu build it reports 12 failures at 1280x800 (Daily Rite, both pickers, Host, Join, Codex...); on this build 0 at 1280x800 and 1024x680. `test/demo.mjs` scrolls to Settings. |
 | 24 | Next Fest demo build, seen in a browser | DONE (was: built, never looked at) | `npm run build:demo`, then `node test/demo.mjs` (headless, muted, 1280x800): 3 covens open and 4 locked with a lock and their pitch, Play and Wishlist above the fold, a folding run reaches the wishlist screen, a shoving run gets the bust line; Wishlist opens the store. Packaged 2026-10-10: `npm run package:demo:win` (installer, zip) and `:linux` (the unpacked dir a depot uploads; the AppImage target needs symlinks Windows refuses). |
+
+## 0a. Fun round 3 (2026-10-10, later): the calls made
+
+Details, measurements and the locked rubric in `FUN-REVIEW.md` (round 3).
+Fun stays 7 (7.1 on the rubric, was 6.5); the 8 needs art and a relic or
+coven design pass.
+
+- **Phylactery** (Hex I, solo, one buy-back before ante 3): runs over before
+  the first Market 12% to 1%. `test/phylactery.test.ts`.
+- **Demo**: 3 antes (decided), the Ashen open by default.
+- **Spell cards**: Auto is the default.
+- **Covens lean to their school** from ante 2; **bots inscribe real marks**
+  (no Wild while warm). Impossible hand in 39% of runs to 58%.
+- **Fixed**: Deal again reused the last run's deck; eight duplicate relics;
+  the Cold Read relic and the Quiet's coven text; Inscribe's mark is
+  validated on the server. 307 tests.
+- **Packages**: `release-demo/` was rebuilt on this code (Windows). The full
+  game's `release/` builds predate round 3: the upload step below rebuilds
+  them.
 
 ## 0. What the fun pass changed (2026-10-10)
 
@@ -211,13 +230,14 @@ kit. Their proofs are in the commit messages.
    Also legibility, frame rate, and one listening pass.
 5. **Decide**: whether the two hidden Gameplay switches are ever built; the
    LAN server's `0.0.0.0` (a firewall prompt on first launch); the five
-   design proposals in `FUN-REVIEW.md` (the phylactery first). P6 was built
-   on the blanket go-ahead with Full as the default; say if you want Brief.
+   design proposals in `FUN-REVIEW.md`. The phylactery, the demo length and
+   the spell-card default were decided on 2026-10-10 (FUN-REVIEW round 3);
+   each is one constant if you want it the other way.
 6. **Legal and naming**: trademark search on HEXHOLD, publisher name (the
    copyright line reads Mason Obegi), Australia's R 18+ for simulated
    gambling.
 7. **Merge** this branch when ready; ship depots from it until then.
 8. **The Next Fest demo**: set `FULL_GAME_APP_ID` in `shared/demo.ts` once
    Steamworks issues the App ID (until then Wishlist opens a store search);
-   decide 3 or 4 antes (`DEMO_ANTES`; FUN-REVIEW proposal 4); play it once
+   3 antes, decided (`DEMO_ANTES`; FUN-REVIEW round 3); play it once
    (`release-demo/`), and register for the Feb 2027 Next Fest by 10 Jan.
