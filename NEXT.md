@@ -15,7 +15,9 @@ demo 22 Feb 2027, release 8 Apr 2027.
   (`npm run play:packaged`): every check passed on the rerun, then the
   harness could not delete its temp profile (a Windows file lock, removed
   by hand); the first run, under a 10-process batch load, timed out on
-  Quit. `node test/quit.mjs` 9/9. **Linux (WSL) build and its
+  Quit. `node test/quit.mjs` 9/9. Demo in a headless browser
+  (`node test/demo.mjs`): all checks pass (its bust check now reads both
+  lines a phylactery run shows; it crashed on the second one before). **Linux (WSL) build and its
   smoke test: pending, WSL is down.** `npm test` all passing, tsc clean.
 
 ## Done on 2026-10-10 (all committed and pushed)

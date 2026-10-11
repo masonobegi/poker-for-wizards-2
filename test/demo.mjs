@@ -219,7 +219,9 @@ const busted = await playRun(page, 'shove', '20-bust');
 if (busted !== null) {
   if (/demo ends here/i.test(busted)) notes.push('the shove run survived all three antes (no bust line to check)');
   else if (!(await visible(page, '.gameover-bust'))) fail('a bust says nothing about who did it');
-  else notes.push(`bust line: ${(await page.locator('.gameover-bust').innerText()).replace(/\s+/g, ' ')}`);
+  // A run the phylactery caught shows two lines (the bust that ended it and
+  // the one the phylactery broke on), so read them all, not one.
+  else notes.push(`bust line: ${(await page.locator('.gameover-bust').allInnerTexts()).join(' | ').replace(/\s+/g, ' ')}`);
   await wishlistAboveFold(page, 'bust');
 }
 
