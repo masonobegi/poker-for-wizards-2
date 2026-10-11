@@ -534,7 +534,7 @@ export const CREEDS: RelicDef[] = [
   },
   {
     id: 'creed_kin', name: 'Kin', glyph: '∞', rarity: 'mythic', price: 0, coven: 'twinned',
-    text: 'When two of the cards you play from share a face (a Mirror, a Graft, a Twin), the second is Wild for you.',
+    text: 'When two community cards share a face (a Mirror, a mirrored card), the copy is Wild for you.',
     impossible: 'A copy that knows it is a copy, and stops pretending.',
     mods: { copiesWild: true },
   },

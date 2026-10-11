@@ -73,8 +73,13 @@ export interface RuleMods {
   wildRanks?: Rank[];
   /** The Prism Lens: a Prism card is fully Wild. */
   prismIsWild?: boolean;
-  /** The Twinned's creed: of two cards with the same face, the second is Wild. */
+  /** The Twinned's creed: of two board cards with the same face, the second is Wild. */
   copiesWild?: boolean;
+  /**
+   * The reader's own hole cards (set by the server). Kin counts a copy only
+   * when both cards are on the board; without this, any two cards qualify.
+   */
+  kinHole?: string[];
 }
 
 export interface HandResult {
@@ -161,7 +166,14 @@ function markedRank(card: CardEntity, rank: Rank, mods: RuleMods, marks: readonl
 /**
  * The cards a rule makes Wild for this reader, on top of their Wild marks:
  * the Lodestone's rank, a Prism under the Prism Lens, and, under the
- * Twinned's creed, every card after the first with the same printed face.
+ * Twinned's creed, a board card that copies another board card's face.
+ *
+ * Kin first counted any two cards with one face, hole cards included. Measured
+ * on 70 Twinned runs each way (FUN-REVIEW.md, round 4) that took them from 20
+ * runs won to 43; counting only a copy they hold, to 38 with almost no more
+ * impossible hands. A Wild in the hole is the best card in poker whatever it
+ * copies. A copy on the board (a Mirror, the Twinned omen's mirrored cards)
+ * is a pair the whole table sees, which only the Twinned can bend.
  */
 function wildByRule(cards: CardEntity[], viewerId: string | null, mods: RuleMods): Set<string> {
   const out = new Set<string>();
@@ -173,7 +185,7 @@ function wildByRule(cards: CardEntity[], viewerId: string | null, mods: RuleMods
     const f = faces[0];
     if (mods.wildRanks?.includes(f.rank)) out.add(c.id);
     if (mods.prismIsWild && marksFor(c, viewerId).includes('prism')) out.add(c.id);
-    if (mods.copiesWild) {
+    if (mods.copiesWild && !mods.kinHole?.includes(c.id)) {
       const k = faceKey(f);
       if (seen.has(k)) out.add(c.id);
       seen.add(k);
