@@ -523,8 +523,15 @@ function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets 
       // Blooded every time (+1 rank), which a player watching reads as a bot
       // that does not know its own spell, and which kept the Loom ("you are
       // writing on the deck") from ever writing the marks that break it. Each
-      // try names a mark a player would; the preview keeps the best.
-      if (def.id === 'inscribe') return { cardIds: [id], markId: rng.pick(INSCRIBE_CHOICES) };
+      // try names a mark a player would; the preview keeps the best. A warm
+      // bot (Hex I, antes 1-2) does not write Wild: a Wild on its own hole
+      // card at 100 big blinds deep stacked the player in the first ninety
+      // seconds (busts before the first Market 12% to 17%, measured; 14% with
+      // this). The deck still breaks from the first omen on.
+      if (def.id === 'inscribe') {
+        const marks = p.isBot && warmth(t) < 1 ? WARM_INSCRIBE : INSCRIBE_CHOICES;
+        return { cardIds: [id], markId: rng.pick(marks) };
+      }
       return { cardIds: [id] };
     }
     case 'two_cards': {
@@ -540,6 +547,8 @@ function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets 
 
 /** What a bot considers writing with Inscribe; wild twice as often. */
 const INSCRIBE_CHOICES: readonly MarkId[] = ['wild', 'wild', 'prism', 'blooded'];
+/** While a bot is warm (see `warmth`) it writes no Wild. */
+const WARM_INSCRIBE: readonly MarkId[] = ['prism', 'blooded'];
 
 export interface BotCast { uid: string; targets: SigilTargets }
 

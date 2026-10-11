@@ -81,7 +81,7 @@ function seat(t: Table, id: string, sigils: string[]): Player {
   return p;
 }
 
-test('a bot that inscribes writes the marks a player would, not Blooded every time', () => {
+function inscriptions(ante: number): Map<string, number> {
   const marks = new Map<string, number>();
   const was = previewClock.now;
   previewClock.now = () => 0; // every preview runs: time stands still
@@ -97,16 +97,28 @@ test('a bot that inscribes writes the marks a player would, not Blooded every ti
       t.deck = deck.slice(7);
       t.phase = 'flop';
       t.pot = 1000;
+      t.ante = ante;
       const cast = decideCast(t, a, new Rng(`ic:${i}`));
       if (cast?.targets.markId) marks.set(cast.targets.markId, (marks.get(cast.targets.markId) ?? 0) + 1);
     }
   } finally {
     previewClock.now = was;
   }
+  return marks;
+}
+
+test('a bot that inscribes writes the marks a player would, not Blooded every time', () => {
+  const marks = inscriptions(3);
   const total = [...marks.values()].reduce((x, y) => x + y, 0);
   assert.ok(total > 10, `only ${total} inscriptions in 80 tries`);
   assert.ok((marks.get('wild') ?? 0) > total / 3, `wild ${marks.get('wild') ?? 0} of ${total}`);
   for (const m of marks.keys()) assert.ok(isInscribeMark(m), m);
+});
+
+test('a warm bot (Hex I, antes 1-2) writes no Wild', () => {
+  const marks = inscriptions(1);
+  assert.ok([...marks.values()].reduce((x, y) => x + y, 0) > 10);
+  assert.equal(marks.get('wild') ?? 0, 0);
 });
 
 test('the server only accepts a mark the Inscribe picker offers', () => {
