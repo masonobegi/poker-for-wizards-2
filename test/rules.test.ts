@@ -367,25 +367,20 @@ test('the Usurper: knocking a player out takes their relics, never their creed',
 
 // ------------------------------------------------------------- creeds
 
-test('Providence: the Unaligned draw mythics as often as commons', () => {
-  const draws = (coven: string): number => {
-    const { t, hero, ix } = table(coven, 1);
-    t.ante = 1;
-    let mythic = 0;
-    let all = 0;
-    for (let h = 0; h < 250; h++) {
-      hero.sigils = [];
-      t.phase = 'payout';
-      ix.beginHand();
-      for (const s of hero.sigils) { all++; if (RELIC_BY_ID && SIGILS.find((d) => d.id === s.defId)?.rarity === 'mythic') mythic++; }
-    }
-    return mythic / all;
-  };
-  const flat = SIGILS.filter((s) => s.rarity === 'mythic').length / SIGILS.length;
-  const unaligned = draws('unaligned');
-  const twinned = draws('twinned');
-  assert.ok(Math.abs(unaligned - flat) < 0.04, `the Unaligned drew ${unaligned.toFixed(3)} mythic, flat is ${flat.toFixed(3)}`);
-  assert.ok(twinned < flat / 2, `a weighted coven drew ${twinned.toFixed(3)} mythic`);
+test('The Last Word: the Unaligned never begin a hand without a counterspell', () => {
+  const { t, hero, ix } = table('unaligned', 1);
+  for (let h = 0; h < 30; h++) {
+    hero.sigils = hero.sigils.filter((s) => s.defId !== 'nullify' && s.defId !== 'redirect' && s.defId !== 'reflect' && s.defId !== 'toll').slice(0, 2);
+    t.phase = 'payout';
+    ix.beginHand();
+    assert.ok(hero.sigils.some((s) => ['nullify', 'redirect', 'reflect', 'toll'].includes(s.defId)), `hand ${h} began without an answer`);
+  }
+  // A coven without the creed gets no free Nullify.
+  const other = table('twinned', 1);
+  other.hero.sigils = [];
+  other.t.phase = 'payout';
+  other.ix.beginHand();
+  assert.ok(!other.t.log.some((l) => l.rule === 'creed_last_word'));
 });
 
 test('Many Futures: a card that goes undecided in the Unmoored\'s hand holds three faces', () => {

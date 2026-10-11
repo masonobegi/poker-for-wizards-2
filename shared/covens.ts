@@ -51,7 +51,7 @@ export interface CovenDef {
 export const COVENS: CovenDef[] = [
   {
     id: 'unaligned',
-    creed: 'creed_providence',
+    creed: 'creed_last_word',
     name: 'The Unaligned',
     school: 'veil',
     glyph: '◇',

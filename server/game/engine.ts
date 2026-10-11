@@ -38,7 +38,7 @@ import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
 import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
-import { SIGIL_BY_ID } from '../../shared/sigils';
+import { SIGIL_BY_ID, defOf } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
 export type Push = () => void;
@@ -345,7 +345,7 @@ export class Engine {
       // relic that touches hand size currently adds to it, which is the only
       // reason that is not already a hang.
       for (let i = 0; i < 2 && p.sigils.length < 2; i++) {
-        if (!giveSigil(t, p, randomSigil(opening, !hasRule(p.relics, 'providence')))) break;
+        if (!giveSigil(t, p, randomSigil(opening))) break;
       }
       // Hex II: the opponents arrive already equipped.
       if (p.isBot && t.config.hex >= 2) {
@@ -429,11 +429,15 @@ export class Engine {
       // is a pool for the whole run and not only its opening hand.
       const lean = leanOf(covenOf(p.coven));
       const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
-      // The Unaligned's creed: their draws ignore rarity.
-      const weighted = !hasRule(p.relics, 'providence');
+      // The Unaligned's creed: a hand never starts without an answer.
+      if (hasRule(p.relics, 'last_word') && !p.eliminated
+        && !p.sigils.some((s) => defOf(s)?.timing.includes('response'))
+        && giveSigil(t, p, { uid: nanoid(8), defId: 'nullify' })) {
+        log(t, `${p.name}'s Last Word: a Nullify comes to hand.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'last_word') });
+      }
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
-          giveSigil(t, p, randomSigil(this.rng, weighted, i === 0 && leans ? lean! : undefined));
+          giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
         }
       }
     }

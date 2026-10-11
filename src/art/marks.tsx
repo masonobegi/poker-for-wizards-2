@@ -1026,10 +1026,11 @@ const RELIC: Record<string, ReactNode> = {
   ),
 
   // ---- creeds: one per coven, drawn as a seal around the coven's idea ------
-  creed_providence: (
+  creed_last_word: (
     <>
       <circle cx={12} cy={12} r={8} strokeDasharray="2.4 2.2" />
-      <path d="M12 7.4 16.6 12 12 16.6 7.4 12Z" />
+      <circle cx={12} cy={12} r={3.6} />
+      <path d="M9.4 14.6 14.6 9.4" />
     </>
   ),
   creed_many_futures: (

@@ -25,7 +25,7 @@ export type RelicRarity = 'common' | 'rare' | 'mythic';
  *   lodestone     engine.ts   dealHoleCards; table.ts modsFor
  *   twice_told    magic.ts    castSigil, resolveStack
  *   usurper       engine.ts   endHand, an elimination
- *   providence    engine.ts   beginHand and start, the sigil draws
+ *   last_word     engine.ts   beginHand, before the draws
  *   many_futures  magic.ts    superposeCard
  *   tells         engine.ts   applyAction, a bet or raise
  *   foreknown     engine.ts   dealStreet, the flop
@@ -35,7 +35,7 @@ export type RelicRarity = 'common' | 'rare' | 'mythic';
 export type RuleId =
   | 'keepsake' | 'second_river' | 'sanctum' | 'magpie' | 'blood_price' | 'vow'
   | 'lodestone' | 'twice_told' | 'usurper'
-  | 'providence' | 'many_futures' | 'tells' | 'foreknown' | 'salt' | 'signature';
+  | 'last_word' | 'many_futures' | 'tells' | 'foreknown' | 'salt' | 'signature';
 
 export interface RelicDef {
   id: string;
@@ -499,11 +499,18 @@ export const RELICS: RelicDef[] = [...KEPT, ...(RULE_RELICS ? RULES : RETIRED)];
 // The coven that owns each is in shared/covens.ts (COVEN_CREEDS switches all
 // seven off).
 export const CREEDS: RelicDef[] = [
+  // The Unaligned's first creed was Providence (draws ignore rarity, "whatever
+  // the deck feels like giving you"). Measured on 70 Unaligned runs each way
+  // it cost them: an impossible hand of their own in 17% of runs against 31%
+  // without it, and a first-ante bust in 23% against 14%, because a flat
+  // draw is mostly rares and mythics and few of the cheap commons (Wild Rite,
+  // Mirror, Nullify) a hand is built from. It was cut. The Unaligned's kit is
+  // a counterspell, so their creed is that they always hold one.
   {
-    id: 'creed_providence', name: 'Providence', glyph: '◇', rarity: 'mythic', price: 0, coven: 'unaligned',
-    text: 'Your sigil draws ignore rarity: a mythic comes as often as a common.',
-    impossible: 'A deck with no opinion about what it gives you.',
-    rule: 'providence',
+    id: 'creed_last_word', name: 'The Last Word', glyph: '⊘', rarity: 'mythic', price: 0, coven: 'unaligned',
+    text: 'Begin a hand without a counterspell and a Nullify comes to you first.',
+    impossible: 'A spare answer that turns up in your hand every time you run out of them.',
+    rule: 'last_word',
   },
   {
     id: 'creed_many_futures', name: 'Many Futures', glyph: '⟁', rarity: 'mythic', price: 0, coven: 'unmoored',
