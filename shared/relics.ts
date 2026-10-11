@@ -276,7 +276,7 @@ const KEPT: RelicDef[] = [
   },
   {
     id: 'heirloom', name: 'Heirloom', glyph: '⌘', rarity: 'common', price: 9,
-    text: 'Every card scores one rank higher for each pot it has already won you.',
+    text: 'Every card scores one rank higher for each pot it has already won, whoever won it.',
     impossible: 'Card stock that remembers.',
     mods: { memoryBonus: true },
   },

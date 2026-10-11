@@ -98,7 +98,7 @@ export const COVENS: CovenDef[] = [
     name: 'The Twinned',
     school: 'bind',
     glyph: '∞',
-    text: 'Mirror and Graft, and every card scores higher for each pot it has already won you.',
+    text: 'Mirror and Graft, and every card scores higher for each pot it has already won.',
     style: 'Two of a thing, then three, then a hand the deck could not have held.',
     sigils: ['nullify', 'mirror', 'graft'],
     relic: 'heirloom',
