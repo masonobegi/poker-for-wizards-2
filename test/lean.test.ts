@@ -20,6 +20,7 @@ import { INSCRIBE_MARKS, isInscribeMark } from '../shared/cards';
 import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, COVEN_BY_ID, leanOf } from '../shared/covens';
 import { Rng } from '../shared/rng';
 import { SIGIL_BY_ID } from '../shared/sigils';
+import { RELIC_BY_ID } from '../shared/relics';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
 
 test('every coven but the Unaligned leans to its own school, from the first Market', () => {
@@ -40,6 +41,10 @@ function drawShare(coven: string, hands = 300): number {
   hero.coven = coven;
   e.start();
   e.dispose();
+  // The draws, not the creed: the Unaligned's Last Word hands them a Nullify
+  // (a Veil sigil) whenever a hand starts without an answer, and this test
+  // empties the hand every time.
+  hero.relics = hero.relics.filter((id) => !RELIC_BY_ID[id]?.coven);
   const school = COVEN_BY_ID[coven].school;
   const internals = e as unknown as { beginHand(): void };
   e.table.ante = COVEN_LEAN_FROM_ANTE;

@@ -409,7 +409,7 @@ export class Engine {
       p.shopDone = false;
       // A bot's creed wakes when the table stops opening warm (Hex I).
       const creed = creedOf(covenOf(p.coven));
-      if (creed && !p.eliminated && !p.relics.includes(creed) && creedAwake(p.isBot, t.config.hex, t.ante)) {
+      if (creed && p.isBot && !p.eliminated && !p.relics.includes(creed) && creedAwake(p.isBot, t.config.hex, t.ante)) {
         p.relics.unshift(creed);
         log(t, `${p.name}'s creed wakes: ${RELIC_BY_ID[creed]?.name}. ${RELIC_BY_ID[creed]?.text}`, 'magic', { playerId: p.id });
       }
