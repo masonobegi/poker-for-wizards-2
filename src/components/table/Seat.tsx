@@ -14,6 +14,7 @@ import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { spellFlight } from '@/components/fx/SpellFlight';
 import { ENTER, SPRING_CRISP } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { Stamp } from '@/components/fx/Stamp';
 import { DEFAULT_COVEN, covenOf, creedOf } from '@shared/covens';
 import { SCHOOLS } from '@shared/sigils';
 
@@ -53,6 +54,7 @@ function SeatBase({
   };
 
   return (
+    <>
     <div
       className={[
         'seat',
@@ -128,7 +130,7 @@ function SeatBase({
             if (!r) return null;
             return (
               <Tooltip key={id} body={<><strong>{r.name}</strong><br />{r.text}</>}>
-                <span className="seat-relic"><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
+                <span className="seat-relic" data-relic-owner={p.id} data-relic-id={r.id}><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
               </Tooltip>
             );
           })}
@@ -203,6 +205,16 @@ function SeatBase({
         ) : null}
       </AnimatePresence>
     </div>
+
+    {/* The bust, said once and loudly (the basketball roguelike's BODIED!!).
+        A sibling of the seat, not a child: an out seat is drawn at 24% and in
+        greyscale, and the word announcing it should not be.
+        `initial={false}`: a seat that was already out when this mounted — a
+        reload, a late join — wears the stamp without slamming it. */}
+    <AnimatePresence initial={false}>
+      {p.eliminated ? <Stamp key="busted" text="BUSTED" tone="bad" from={2.6} rotate={-9} className="seat-stamp" /> : null}
+    </AnimatePresence>
+    </>
   );
 }
 

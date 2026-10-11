@@ -6,24 +6,41 @@
  * by ante four a player genuinely cannot reason about their hand without
  * knowing that suits have merged and a rank has been struck out.
  */
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OMEN_BY_ID, type ActiveOmen } from '@shared/omens';
 import { RANK_NAME } from '@shared/cards';
 import './omens.css';
-import { ENTER, SPRING_SOFT } from '@/styles/motion';
+import { EASE_OUT, EASE_SNAP, ENTER, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { useBannerIdle } from '@/components/BannerLayer';
+import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { flashPeak, motionPrefs } from '@/components/fx/arcade';
 
 function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
   const [open, setOpen] = useState<string | null>(null);
+  const reduced = useReducedMotionPref();
+
+  // A new omen is announced first and lands second. Its banner names it in
+  // the middle of the screen; only once that banner has gone does the chip
+  // slam into the bar, which is where the eye goes next. Landing together,
+  // the chip arrived under a full-screen announcement and was never seen
+  // arriving. Omens already here when the bar mounted have landed.
+  const bannerIdle = useBannerIdle();
+  const landed = useRef<Set<string> | null>(null);
+  if (landed.current === null) landed.current = new Set(omens.map((o) => o.id));
+  const landedIds = landed.current;
+  if (bannerIdle) for (const o of omens) landedIds.add(o.id);
+
   if (omens.length === 0) return null;
+  const peak = flashPeak(motionPrefs());
 
   return (
     <div className="omens" aria-label="Rules in force at this table">
       <span className="omens-label">Omens</span>
       <ul className="omens-list">
         <AnimatePresence initial={false}>
-          {omens.map((o, index) => {
+          {omens.map((o) => {
             const def = OMEN_BY_ID[o.id];
             if (!def) return null;
             const showing = open === o.id;
@@ -31,10 +48,26 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
               <motion.li
                 key={o.id}
                 layout
-                initial={{ opacity: 0, scale: 0.94, y: -6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                // The arcade slam (see fx/arcade.ts): in at 1.8x, down through
+                // an overshoot, two frames of white on contact. The scale
+                // shorthand rather than a transform string here, because
+                // `layout` composes its own projection into this element's
+                // transform and a whole-string transform would fight it.
+                initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 1.8, filter: `brightness(${peak})` }}
+                animate={!landedIds.has(o.id)
+                  ? { opacity: 0 }
+                  : reduced
+                    ? { opacity: 1 }
+                    : { opacity: 1, scale: 1, filter: [`brightness(${peak})`, `brightness(${peak})`, 'brightness(1)'] }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ ...SPRING_SOFT, delay: Math.min(index * 0.06, 0.3) }}
+                transition={reduced
+                  ? { duration: T_REDUCED, ease: EASE_OUT }
+                  : {
+                    scale: { duration: 0.22, ease: EASE_SNAP },
+                    opacity: { duration: 0.06 },
+                    filter: { duration: 0.26, times: [0, 0.4, 1], ease: 'linear' },
+                    layout: { duration: 0.26, ease: EASE_OUT },
+                  }}
               >
                 <button
                   className={`omen ${showing ? 'is-open' : ''}`}

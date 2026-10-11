@@ -19,6 +19,7 @@ import { SIGILS } from '@shared/sigils';
 import { RELICS } from '@shared/relics';
 import { OMENS } from '@shared/omens';
 import { openWishlist } from '@/lib/demo';
+import { CountUp } from '@/components/fx/CountUp';
 
 /** However long a banner claims, the panel is never held back further. */
 const MAX_WAIT_MS = 4500;
@@ -187,11 +188,14 @@ export default function GameOver({ view }: { view: TableView }) {
               </p>
             ) : null}
 
+            {/* The run, totted up: each figure counts up in turn and lands
+                with a pop, the basketball roguelike's reward screen. The
+                buttons below are live the whole time; nothing waits on it. */}
             <div className="gameover-runstats">
-              <span><strong>{view.ante}</strong> antes</span>
-              <span><strong>{me.handsWon}</strong> hands won</span>
+              <span><strong><CountUp value={view.ante} delay={520} duration={500} /></strong> antes</span>
+              <span><strong><CountUp value={me.handsWon} delay={680} duration={600} /></strong> hands won</span>
               {me.biggestPot > 0 ? (
-                <span>biggest pot <strong>{me.biggestPot.toLocaleString()}</strong></span>
+                <span>biggest pot <strong><CountUp value={me.biggestPot} delay={840} duration={900} /></strong></span>
               ) : null}
             </div>
 

@@ -162,6 +162,8 @@ function watchView(view: TableView): void {
 
 export function installAchievementWatcher(getView: () => TableView | null): () => void {
   const offFx = onFx((e) => {
+    // Client-derived events (a relic firing) are presentation, not a fact.
+    if (e.t === 'relic') return;
     try { watchEffects(e, getView()?.youId ?? null); } catch { /* never block the game */ }
   });
 

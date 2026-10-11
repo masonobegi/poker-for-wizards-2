@@ -5,7 +5,7 @@
  * bottom of the screen, and an achievement is worth a beat of its own without
  * covering the cards during a hand.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ACHIEVEMENT_BY_ID, type AchievementId } from '@shared/achievements';
 import { onAchievement } from '@/lib/achievements';
@@ -13,6 +13,7 @@ import { playSfx } from '@/lib/sound';
 import './achievements.css';
 import { EASE_OUT, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { useBannerIdle } from '@/components/BannerLayer';
 
 interface Shown { key: number; id: AchievementId }
 let seq = 0;
@@ -20,24 +21,31 @@ let seq = 0;
 export default function AchievementToast() {
   const reduced = useReducedMotionPref();
   const [queue, setQueue] = useState<Shown[]>([]);
+  // Held while a full-screen announcement plays, and its clock does not run
+  // until it is on screen (the basketball roguelike's toasts wait out a
+  // cut-in the same way). The achievement an impossible hand unlocks used to
+  // drop on top of that hand's own banner, and both lost.
+  const idle = useBannerIdle();
 
   useEffect(() => onAchievement((id) => {
     setQueue((q) => [...q, { key: ++seq, id }]);
-    playSfx('win_normal', { vol: 0.7 });
   }), []);
 
+  const head = queue[0]?.key;
+  const chimed = useRef(0);
   useEffect(() => {
-    if (queue.length === 0) return;
+    if (head === undefined || !idle) return;
+    if (chimed.current !== head) { chimed.current = head; playSfx('win_normal', { vol: 0.7 }); }
     const t = window.setTimeout(() => setQueue((q) => q.slice(1)), 4200);
     return () => window.clearTimeout(t);
-  }, [queue]);
+  }, [head, idle]);
 
-  const current = queue[0];
+  const current = idle ? queue[0] : undefined;
   const def = current ? ACHIEVEMENT_BY_ID[current.id] : null;
 
   return (
     <AnimatePresence>
-      {def ? (
+      {current && def ? (
         <motion.div
           key={current.key}
           className="ach"

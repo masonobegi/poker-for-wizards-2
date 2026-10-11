@@ -30,6 +30,7 @@ import { spellFlight } from '@/components/fx/SpellFlight';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { EASE_OUT, ENTER, ENTER_PANEL, SPRING_CRISP, T_BASE, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { Stamp } from '@/components/fx/Stamp';
 
 export interface StackOverlayProps {
   view: TableView;
@@ -178,6 +179,15 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                         : 'Resolved'}
                   </p>
                 </div>
+                {/* The basketball roguelike's REJECTED!!: the counter is the
+                    most dramatic thing a spell can have happen to it, and a
+                    strikethrough was all it got. Keyed by the entry, so the
+                    next countered spell slams again. */}
+                <AnimatePresence>
+                  {top.countered
+                    ? <Stamp key={`countered-${top.id}`} text="COUNTERED" tone="ice" from={2.8} rotate={-7} className="stack-stamp" />
+                    : null}
+                </AnimatePresence>
               </section>
             ) : null}
 

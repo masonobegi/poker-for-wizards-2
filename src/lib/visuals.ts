@@ -53,8 +53,24 @@ export function elementForCard(id: string): Element | null {
   return document.querySelector(`[data-card-id="${CSS.escape(id)}"]`);
 }
 
+/**
+ * An opponent's seat, or your own place on the rail. The rail is tagged
+ * `data-fx-seat` rather than `data-seat-id` because the harnesses count
+ * `[data-seat-id]` as opponents; for effects, the two are the same thing.
+ * Without it every effect aimed at you (coins coming home, a bust, a "+N")
+ * had nowhere to go and fell back to the pot or to nothing.
+ */
 export function elementForSeat(playerId: string): Element | null {
-  return document.querySelector(`[data-seat-id="${CSS.escape(playerId)}"]`);
+  const id = CSS.escape(playerId);
+  return document.querySelector(`[data-seat-id="${id}"]`)
+    ?? document.querySelector(`[data-fx-seat="${id}"]`);
+}
+
+/** A relic's mark at a seat or on your rail, for the trigger punch. */
+export function elementForRelic(playerId: string, relicId: string): Element | null {
+  return document.querySelector(
+    `[data-relic-owner="${CSS.escape(playerId)}"][data-relic-id="${CSS.escape(relicId)}"]`,
+  );
 }
 
 export const fxRoot = (el: HTMLElement | null): void => {

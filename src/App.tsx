@@ -10,6 +10,7 @@ import Lobby from '@/scenes/Lobby';
 import GameTable from '@/scenes/GameTable';
 import Toasts from '@/components/Toasts';
 import BannerLayer from '@/components/BannerLayer';
+import PopLayer from '@/components/fx/PopLayer';
 import ConnectionBadge from '@/components/ConnectionBadge';
 import SystemMenu from '@/components/shell/SystemMenu';
 import GamepadLayer from '@/components/shell/GamepadLayer';
@@ -172,6 +173,7 @@ export default function App() {
       </AnimatePresence>
 
       <BannerLayer />
+      <PopLayer />
       <Toasts />
       <ConnectionBadge />
       <SystemMenu />

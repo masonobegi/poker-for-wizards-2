@@ -101,7 +101,7 @@ function RailBase({
 
   return (
     <div className="rail" ref={railRef}>
-      <div className="rail-me">
+      <div className="rail-me" data-fx-seat={me.id}>
         <Avatar seed={me.avatar} size={46} dim={me.folded} />
         <div className="rail-meinfo">
           <span className="rail-name">
@@ -129,7 +129,7 @@ function RailBase({
               if (!r) return null;
               return (
                 <Tooltip key={id} body={<><strong>{r.name}</strong><br />{r.text}</>}>
-                  <span className="rail-relic"><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
+                  <span className="rail-relic" data-relic-owner={me.id} data-relic-id={r.id}><Mark kind="relic" id={r.id} fallback={r.glyph} /></span>
                 </Tooltip>
               );
             })}

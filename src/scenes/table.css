@@ -571,6 +571,9 @@
   max-width: 150px;
 }
 .seat-relic {
+  /* Inline-block so the trigger punch (a transform, fx/arcade.ts) applies:
+     a transform does nothing to a plain inline box. */
+  display: inline-block;
   font-size: 13px;
   color: var(--gold);
   opacity: 0.85;
@@ -1029,6 +1032,7 @@
   flex-wrap: wrap;
 }
 .rail-relic {
+  display: inline-block;
   font-size: 15px;
   color: var(--gold);
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 55%, transparent));
@@ -2350,6 +2354,8 @@
 
 .stack-feature {
   --school: var(--entropy);
+  /* Holds the COUNTERED stamp (src/components/fx/arcade.css). */
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;

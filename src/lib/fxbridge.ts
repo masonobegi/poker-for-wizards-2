@@ -9,8 +9,9 @@ import { onFx } from '@/store/net';
 import { playSfx, setMusic, duckMusic } from '@/lib/sound';
 import {
   SCHOOL_COLOR, burst, burstAt, centerOf, chromatic, confetti,
-  elementForCard, elementForSeat, flash, shake, slowmo, timeRipple, vignette,
+  elementForCard, elementForRelic, elementForSeat, flash, shake, slowmo, timeRipple, vignette,
 } from '@/lib/visuals';
+import { punch } from '@/components/fx/arcade';
 
 const screenCentre = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
@@ -57,6 +58,16 @@ function whenCard(id: string, fn: (el: Element) => void, tries = 12): void {
   if (el) { fn(el); return; }
   if (tries <= 0) return;
   requestAnimationFrame(() => whenCard(id, fn, tries - 1));
+}
+
+/**
+ * The impact frame on a card a spell just struck (the basketball cut-ins'
+ * contact beat): it squashes flat and whites out for two frames. On the
+ * card's lift layer, which no framer animation owns, layered on top of
+ * whatever the card is already doing.
+ */
+function strike(el: Element): void {
+  punch(el.querySelector('.hx-card__lift') ?? el, 'impact');
 }
 
 export function installFxBridge(): () => void {
@@ -139,7 +150,7 @@ export function installFxBridge(): () => void {
         break;
 
       case 'collapse':
-        whenCard(e.cardId, (el) => burstAt('collapse', el));
+        whenCard(e.cardId, (el) => { burstAt('collapse', el); strike(el); });
         break;
 
       case 'superpose':
@@ -148,20 +159,21 @@ export function installFxBridge(): () => void {
         break;
 
       case 'diverge':
-        whenCard(e.cardId, (el) => burstAt('cast', el, { school: 'veil' }));
+        // The split is the contact: the card takes the hit as it becomes two.
+        whenCard(e.cardId, (el) => { burstAt('cast', el, { school: 'veil' }); strike(el); });
         chromatic(340);
         break;
 
       case 'entangle':
-        e.cardIds.forEach((id) => whenCard(id, (el) => burstAt('cast', el, { school: 'bind' })));
+        e.cardIds.forEach((id) => whenCard(id, (el) => { burstAt('cast', el, { school: 'bind' }); strike(el); }));
         break;
 
       case 'inscribe':
-        whenCard(e.cardId, (el) => burstAt('cast', el, { school: 'weave' }));
+        whenCard(e.cardId, (el) => { burstAt('cast', el, { school: 'weave' }); strike(el); });
         break;
 
       case 'burn':
-        whenCard(e.cardId, (el) => burstAt('burn', el));
+        whenCard(e.cardId, (el) => { burstAt('burn', el); strike(el); });
         shake(shakePx(0.32), 200);
         break;
 
@@ -207,6 +219,14 @@ export function installFxBridge(): () => void {
         burstAt('eliminate', elementForSeat(e.playerId));
         shake(shakePx(0.4), 320);
         vignette('#f4576f', 1400);
+        break;
+
+      case 'relic':
+        // A relic's rule just fired (derived from the ledger, see
+        // relicTriggers.ts): its mark punches, the basketball roguelike's
+        // charm-slot flash. Next frame, so a view that arrived with the
+        // trigger has rendered the mark it lights.
+        requestAnimationFrame(() => punch(elementForRelic(e.playerId, e.relicId), 'relic'));
         break;
 
       case 'banner':

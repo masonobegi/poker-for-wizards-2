@@ -11,6 +11,7 @@ import { burstAt } from '@/lib/visuals';
 import type { School } from '@/vfx/particles';
 import { EASE_OUT, ENTER, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
+import { CountUp } from '@/components/fx/CountUp';
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
@@ -196,7 +197,10 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ ...SPRING_PLAYFUL, delay: 0.3 + Math.min(i * 0.06, 0.3) }}
         >
-          +{e.won.toLocaleString()}
+          {/* Counts up behind its own entrance and lands with a pop (the
+              basketball roguelike's reward count-up), short because a
+              showdown comes round every hand. */}
+          +<CountUp value={e.won} delay={Math.round((0.3 + Math.min(i * 0.06, 0.3)) * 1000) + 120} duration={550} />
           {shards ? <em className="showdown-shards">◆{shards}</em> : null}
         </motion.span>
       ) : (

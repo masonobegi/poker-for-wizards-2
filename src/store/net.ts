@@ -11,6 +11,7 @@ import { create } from 'zustand';
 import type { ChatMessage, FxEvent } from '@shared/protocol';
 import type { BetAction, RoomConfig, SigilTargets, TableView } from '@shared/types';
 import { readServerUrl, writeServerUrl } from '@/lib/server';
+import { createRelicWatcher, type RelicFx } from '@/lib/relicTriggers';
 
 const SEAT_KEY = 'hexhold.seat';
 const NAME_KEY = 'hexhold.name';
@@ -41,7 +42,14 @@ export const writeName = (n: string) => {
 // Effect bus
 // ---------------------------------------------------------------------------
 
-type FxHandler = (e: FxEvent) => void;
+/**
+ * What the bus carries: the server's events, plus the few the client derives
+ * itself and the server never sends (see `relicTriggers.ts` — the one
+ * exception to "never diff snapshots", because the ledger already names the
+ * relic that caused each line and so there is nothing to infer).
+ */
+export type ClientFx = FxEvent | RelicFx;
+type FxHandler = (e: ClientFx) => void;
 const handlers = new Set<FxHandler>();
 
 export function onFx(fn: FxHandler): () => void {
@@ -49,8 +57,21 @@ export function onFx(fn: FxHandler): () => void {
   return () => { handlers.delete(fn); };
 }
 
-function dispatchFx(events: FxEvent[]): void {
+function dispatchFx(events: ClientFx[]): void {
   for (const e of events) for (const h of handlers) h(e);
+}
+
+const relicWatcher = createRelicWatcher();
+
+/*
+ * The bus, on `window`, for the frame-capture harness (test/anim-frames.mjs)
+ * to stage a moment it cannot wait for — an impossible hand, a bust. Effects
+ * are presentation only: nothing on the bus changes the table, a chip or a
+ * card, so this can show a player nothing the server did not also let them do.
+ */
+if (typeof window !== 'undefined') {
+  try { (window as unknown as { __hexholdFx: (e: ClientFx[]) => void }).__hexholdFx = dispatchFx; }
+  catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +181,8 @@ export const useGame = create<GameStore>((set, get) => ({
       const screen: Screen = view.phase === 'lobby' ? 'lobby' : 'game';
       set({ view, screen, joining: false });
       publishView(view);
+      const fired = relicWatcher(view);
+      if (fired.length) dispatchFx(fired);
     });
 
     socket.on('fx', (events: FxEvent[]) => dispatchFx(events));

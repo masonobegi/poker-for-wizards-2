@@ -16,6 +16,8 @@ import { useGame } from '@/store/net';
 import SchoolDevice, { type DeviceId } from '@/components/table/SchoolDevice';
 import { useFinePointer } from '@/components/fx/useFinePointer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
+import { RollingNumber } from '@/components/fx/RollingNumber';
+import { Stamp } from '@/components/fx/Stamp';
 import './shop.css';
 import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 import { Mark, type MarkKind } from '@/art/marks';
@@ -64,7 +66,9 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
             <p className="shop-sub">Ante {view.ante} &mdash; blinds are now {view.sb.toLocaleString()} / {view.bb.toLocaleString()}</p>
           </div>
           <div className="shop-purse">
-            <span className="shop-shards mono">◆ {me.shards}</span>
+            {/* Rolls down as you spend, so a purchase reads as shards leaving
+                the purse rather than a digit being swapped. */}
+            <span className="shop-shards mono">◆ <RollingNumber value={me.shards} spring={{ stiffness: 300, damping: 26, mass: 0.8 }} /></span>
             {/* A solo Market has no clock (closesAt 0): it waits for Done. */}
             {shop.closesAt ? <span className="shop-clock mono">{left}s</span> : null}
           </div>
@@ -141,6 +145,9 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
   );
 }
 
+/** How long BOUGHT holds the card at full brightness before it dims to sold. */
+const SOLD_DIM_MS = 520;
+
 /** Forwards a ref because `AnimatePresence mode="popLayout"` clones with one. */
 const ShopCard = forwardRef<HTMLElement, {
   item: ShopItem;
@@ -155,10 +162,22 @@ const ShopCard = forwardRef<HTMLElement, {
   const info = describe(item);
   const locked = sold || !affordable || owned;
 
+  // The buy lands before the card greys out: BOUGHT slams onto the card at
+  // full brightness, and only then does it dim to sold. Dimming on the same
+  // frame put the stamp at 35% opacity, in greyscale, on the one beat that is
+  // the player's payoff. A card that was already sold when the Market opened
+  // starts dim.
+  const [dim, setDim] = useState(sold);
+  useEffect(() => {
+    if (!sold) { setDim(false); return; }
+    const t = window.setTimeout(() => setDim(true), reduced ? 0 : SOLD_DIM_MS);
+    return () => window.clearTimeout(t);
+  }, [sold, reduced]);
+
   return (
     <motion.article
       ref={ref}
-      className={`shopcard ${sold ? 'is-sold' : ''} ${locked && !sold ? 'is-locked' : ''}`}
+      className={`shopcard ${dim ? 'is-sold' : ''} ${locked && !sold ? 'is-locked' : ''}`}
       style={{ ['--accent' as string]: info.accent }}
       initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24, rotateZ: -2 }}
       animate={{ opacity: 1, y: 0, rotateZ: 0 }}
@@ -180,6 +199,10 @@ const ShopCard = forwardRef<HTMLElement, {
       {info.impossible ? (
         <p className="shopcard-impossible"><Mark kind="ui" id="impossible" /> {info.impossible}</p>
       ) : null}
+
+      <AnimatePresence initial={false}>
+        {sold ? <Stamp key="bought" text="BOUGHT" tone="gold" from={2.2} rotate={-8} className="shopcard-stamp" /> : null}
+      </AnimatePresence>
 
       <footer className="shopcard-foot">
         {sold ? (
