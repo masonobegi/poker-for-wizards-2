@@ -1,8 +1,9 @@
 # HEXHOLD: fun and sellable review (2026-10-10)
 
-> **Round 3 (end of this file) is the current state:** fun 7/10 on a locked
-> rubric (7.1, was 6.5), the phylactery, demo length and spell-card calls
-> made, and what would earn the 8.
+> **Round 4 (end of this file) is the current state:** fun 8/10 on the
+> locked rubric, at its threshold (7.5, was 7.1): twelve number relics
+> became rules, every coven has a creed, four defects fixed, and what a
+> human playtest has to confirm. Round 3 is above it.
 
 Branch `steam-ready-2026-10-09`. Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN_BRIEF.md`.
 Grounded in the market research (`market/poker-for-wizards-2.md`), the three
@@ -501,3 +502,331 @@ measurement before and after. Not an 8, for the reasons above.
 conditions as before: the store page must not sell online play until Steam
 invites exist, and the capsule art must be commissioned. The store page's
 "45 relics" is now true.
+
+---
+
+# Round 4 (2026-10-10): relics that change rules, a creed per coven
+
+Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN3_BRIEF.md`, the same
+honesty rule. The job: the two gaps round 3 named that code can reach,
+criterion 7 ("relics are more than numbers", 6) and criterion 4 ("covens
+play differently and deliver their pitch", 6). Everything else is held to
+the same rubric so a gain here cannot hide a loss there.
+
+## The rubric, unchanged
+
+The eight criteria above, word for word, scored out of 10; the total is the
+mean rounded half up, and an 8 needs 7.5. Nothing is redefined. The "before"
+column is round 3's "after" column (7.1). Before touching the game, the
+harness gained four measurements (commit 3a3d6be, measurement only): what
+the Market offered and what was bought, how often each owned relic's rule
+changed something, the hands made and won by coven, and how far apart two
+covens' runs sit. Run on that commit, seeds 0-139 reproduce every round 3
+figure exactly (47 runs won, 1% / 6% / 79%, 58% / 34%, 1.42 a run, 9.1
+choices a minute, 49%).
+
+Which evidence is which: every number is measured by the harness
+(simulated players driven by the bots' decision code at a human pace). The
+genre lessons are from the sources linked. "Why a player wants it" is a
+judgement, written before each thing was built.
+
+## What makes a relic memorable in this genre
+
+- **One idea, an effect and at most one condition.** Balatro's developer
+  wrote down his joker rules: a joker has a theme, an effect and an optional
+  condition, and a powerful effect should be conditional
+  ([LocalThunk, r/balatro, May 2024](https://lr.sudovanilla.org/r/balatro/comments/1czo9g0/guidelines_for_joker_design)).
+- **The ones players talk about change what a hand is.** Four Fingers and
+  Shortcut together made a Steam player ask whether "2467 is a straight" was
+  a bug ([Steam discussion](https://steamcommunity.com/app/2379780/discussions/0/4348864563386474737)).
+  The cards are deliberately plain so the jokers carry the complexity and
+  become the run's build ([Game Wisdom](https://game-wisdom.com/analysis/balatro)).
+- **A power with a rule attached.** Slay the Spire's boss relics trade a
+  resource for a rule you must play around (Runic Dome, Velvet Choker);
+  Necronomicon doubles a card; Runic Pyramid keeps what you would discard.
+  MTG's stack vocabulary, which HEXHOLD already speaks, has hexproof,
+  "can't be countered", Phyrexian mana and stealing a spell you answered.
+- The market file: reviewers praise Balatro's "broken synergies" and its
+  rule-breaking hands are the pitch; Poker Quest is punished for grind.
+
+The lens for this pass: one idea per relic; an effect and at most one cost
+or condition; and it has to change a decision inside a hand (what to chase,
+when to fold, what to cast first, whom to target), not only a total.
+
+## The relic pass: twelve numbers out, twelve rules in
+
+Of 45 relics, 19 were a number on a passive. Twelve of the flattest are
+replaced, common for common, rare for rare, mythic for mythic, so the shelf
+stays 45 (the store page's count) and the Market's rarity mix is unchanged.
+`RULE_RELICS = false` in `shared/relics.ts` puts the twelve numbers back.
+
+| Out (number) | In (rule) | What it does | Why a player of the genre wants it |
+|---|---|---|---|
+| Split Focus (+1 draw) | **Stepping Stones**, common | Your straights may skip one rank | Balatro's Shortcut, the hand-definition joker veterans build around; it changes which draws are worth a call |
+| Open Palm (+2 mana a hand, never paid) | **The Keepsake**, common | Fold before the flop and your higher hole card is dealt back next hand | Runic Pyramid: folding stops being only a loss and becomes a plan |
+| Thrift (-1 cost) | **The Second River**, common | Once a hand, a river that leaves you High Card is dealt again, in front of everyone | A reroll on a miss, paid for with a tell |
+| Deep Well (+3 max mana) | **The Sanctum**, common | No opponent's sigil can target you or your cards; none of yours can target an opponent | Hexproof, with a boss relic's price |
+| Full Purse (+3 mana, never paid) | **The Prism Lens**, common | Every Prism is fully Wild for you | A synergy piece: Prism comes from rites, omens, Gild, Gilded Thumb and the Engraver |
+| The Gambler (shards on two pair) | **The Magpie**, rare | Counter a sigil and it comes to your hand | Commandeer: stealing the spell you answered is the stack's best feeling |
+| High Roller (+2 bb a win) | **The Engraver**, rare | A showdown win engraves a card of the winning hand Prism, for good, in the shared deck | Midas Mask and Hiker: a relic that rewrites the deck as you play |
+| The Low Road (shards a fold) | **The Blood Price**, rare | Short of mana on your turn, pay the rest in chips, a big blind a mana | Phyrexian mana: chips are your life, now also your mana |
+| The Usurer (15% interest) | **Vow of Silence**, rare | Your sigils cannot be countered; you can never cast a response | "Can't be countered", with the price that you never answer either |
+| The Hoard (+4 mana, +1 regen, +1 hand) | **The Lodestone**, mythic | Each hand a rank is drawn for you; every card of it is Wild for you | Ancient Joker and The Idol: a target that moves every hand |
+| The Understudy (+1 draw, +1 hand) | **Twice-Told**, mythic | The first sigil you cast each hand resolves twice | Necronomicon: the order you cast in becomes the decision |
+| Kingmaker (shards on a knockout) | **The Usurper**, mythic | Knock a player out and their relics are yours | The same fantasy, paid in what players covet: the other build |
+
+Every rule says what it did in the log, under its own name, so the game
+says why a hand went the way it did.
+
+## The creeds: one rule per coven, for the whole run
+
+A creed is a relic the coven owns from the first hand, never sold and never
+taken (`CREEDS` in `shared/relics.ts`; `COVEN_CREEDS = false` in
+`shared/covens.ts` turns all seven off). The menu, the seat tooltip and the
+Codex name it.
+
+| Coven (pitch) | Creed | Rule | Why a player of the genre wants it |
+|---|---|---|---|
+| The Unaligned ("a counterspell and whatever the deck gives you") | **The Last Word** | Begin a hand without a counterspell and a Nullify comes to you, even into a full hand | A control player's promise: you are never without an answer |
+| The Unmoored ("you will know your own hand last") | **Many Futures** | A card that goes undecided in your hand holds three faces, not two | A coven's own mechanic should scale, the way a Balatro deck amplifies one strategy |
+| The Quiet ("trying to know theirs") | **Tells** | Each opponent's first bet or raise in a hand shows you one of their hole cards | Poker's oldest read, made literal |
+| The Long Now ("you have read the river") | **Foreknown** | When the flop is dealt you see the river | The pitch, as a rule: the river is already written |
+| The Twinned ("then a hand the deck could not have held") | **Kin** | When two community cards share a face (a Mirror, a mirrored card), the copy is Wild for you | Copies become a road to the impossible hands, and the table can see it coming |
+| The Ashen ("make sure nobody enjoys it") | **Salt** | A card you burn takes its rank from every hand for the rest of the hand | Spite with a use: burn the card that made their hand |
+| The Loom ("you are writing on the deck") | **Signature** | A Wild, Prism, Blooded or Echo you write works only for you | The Market's shared-deck risk, removed for the coven that writes |
+
+Two creeds needed more than one try, each measured on 70 runs of that coven
+(seeds 0-69, same seeds each way; `plans/fun-round4-data/`):
+
+- **The Unaligned.** The first creed was *Providence* (draws ignore rarity,
+  "whatever the deck feels like giving you"). It cost them: an impossible
+  hand of their own in 17% of runs against 31% without it, and a first-ante
+  bust in 23% against 14% (a flat draw is mostly rares and mythics, and few
+  of the cheap commons a hand is built from). Cut. *The Last Word* in its
+  first form took a draw's place in a full hand; it now comes on top. No
+  creed: 13 runs won, 31% own impossible, 14% first-ante bust. The Last
+  Word: 17, 30%, 14%. It is a small rule and it never costs them anything.
+- **The Twinned.** Kin with *any* copy Wild won 43 of 70 runs (no creed: 20)
+  and an impossible hand of their own in 59%: a Wild in most hands is the
+  best card in poker, and one coven winning three runs in five is a broken
+  coven. A copy *you hold* Wild: 38 won, 43%, strength without the pitch.
+  A copy *on the board* Wild (shipped, `KIN_BOARD_ONLY`): 22 won, 41%, and
+  impossible hands a run up from 1.43 to 1.66. It changes about one
+  showdown a run. Most of what now delivers the Twinned's pitch is the
+  Heirloom fix below, not Kin.
+
+## Found and fixed while measuring
+
+- **Heirloom and The Long Game did nothing.** Their memory bonus never
+  reached the hand evaluator (`modsFor` dropped it), so the Twinned's own
+  relic, sold as "every card scores higher for each pot it has already
+  won", changed no hand in 49 runs that owned it. It now changes about four
+  showdowns a run. A test reads every relic's hand rule through the
+  evaluator. Its card also said "won you"; it counts every pot, and says so.
+- **Open Palm and Full Purse were never paid.** Their starting mana was a
+  field nothing read. Both are among the twelve retired; the field works now
+  in case `RULE_RELICS` is switched back.
+- **Showdown lied about undecided cards.** Superpose says an undecided card
+  "settles on whichever face helps its holder most", and every read before
+  showdown (the hand meter, the bots' equity) counted it that way; showdown
+  settled it on its highest rank instead. A Seven-or-King on a board of two
+  Sevens became the King. It now settles on the face that makes its
+  holder's hand best.
+- **Bots rolled out blind.** A bot that had cast Cold Read, or been shown
+  the river, read its odds as if it had seen nothing, so the information
+  half of the game did nothing for any bot or for the harness's player. It
+  now reads the cards it has legitimately been shown (never in a preview,
+  which would read the cards the spell has not yet revealed).
+  `READ_WHAT_IS_SEEN` in `server/game/bots.ts`.
+- Log and table notes said "Sixs"; they say "Sixes".
+
+## Decisions made 2026-10-10 (round 4)
+
+Each is one constant.
+
+1. **The rule shelf replaces twelve number relics.** Why: the rubric scored
+   relics 6 because most were a number; the genre remembers relics that
+   change a rule. `RULE_RELICS` in `shared/relics.ts`.
+2. **Every coven has a creed, every seat plays it.** A table of four covens
+   is four rulebooks, each named on its seat. `COVEN_CREEDS` in
+   `shared/covens.ts`.
+3. **At Hex I a bot's creed wakes at ante 3**, when the bots stop opening
+   warm. With every creed on from hand one, the player's busts before the
+   first Market (caught or not) rose from 14% to 21% (140 seeds); with the
+   wake (and the showdown fix, same change) 16%, and 14% on the final code
+   (280 seeds). The player's own creed is on from hand one; at Hex II every
+   creed is. `BOT_CREEDS_FROM_ANTE`.
+4. **The Unaligned's creed is The Last Word; Providence is cut** (data above).
+   The creed is the `creed` field of the coven in `shared/covens.ts`.
+5. **Kin bends board copies only** (data above). `KIN_BOARD_ONLY`.
+6. **Bots read what they have been shown.** `READ_WHAT_IS_SEEN` in
+   `server/game/bots.ts`.
+
+Not decided here, as before: the name's trademark clearance, anything that
+spends money, Steam networking. Round 3 said a coven pass "should follow a
+playtest"; the caller asked for it now, so it is built and switchable, and
+the playtest is still the thing that decides it.
+
+## What changed, measured
+
+Seeds 0-279 (280 runs, 40 per coven), adept bots, Hex I, aggressive player.
+Before: 3a3d6be (round 3's game, the new harness). After: b7702e7 (this
+round's game code). Raw summaries: `plans/fun-round4-data/`. Below about 4
+points a difference is noise at 280 runs; per coven (40 runs) it is about
+10 points.
+
+| Aggressive player | before | after |
+|---|---|---|
+| run over before the first Market | 1% | 1% |
+| run over before ante 3 | 5% | 3% |
+| survived 3 antes | 82% | 83% |
+| busted before the first Market, caught or not | 13% | 14% |
+| an impossible hand in the run | 55% | 61% |
+| ... one of your own | 32% | 32% |
+| ... by ante 3 | 30% | 33% |
+| impossible hands a run | 1.43 | 1.43 |
+| runs won | 95 of 280 | 93 of 280 |
+| your stack at ante 7 | 24 bb | 22 bb |
+| biggest pot in the last 3 hands | 53% | 50% |
+| real choices a minute | 9.1 | 9.2 |
+| first Market | 97 s | 96 s |
+
+Cautious player (seeds 0-139; before is round 3's published figure, the same
+game code): run over before the first Market 0% and 0%, before ante 3 1% and
+4%, busts before the first Market caught or not 12% and 12%, an impossible
+hand 59% and 67%. Demo (3 antes, seeds 0-139): the wishlist screen 73%
+(round 3: 72%), an impossible hand inside the demo 29% (31%), 4.3 minutes.
+
+**Relics.**
+
+| | before | after |
+|---|---|---|
+| the shelf: change a rule / information / a number | 20 / 6 / 19 | 32 / 6 / 7 |
+| bought relics a run that change a rule | 1.39 of 2.97 | 2.54 of 2.94 |
+| runs where a bought relic's rule visibly changed something | 29% | 54% |
+| distinct relics bought, of 45 | 38 | 39 |
+| spread of purchases (of 5.49 bits possible) | 4.96 | 4.96 |
+| overlap between two runs' relics | 0.10 | 0.10 |
+
+"Visibly changed something" is a logged rule (the Keepsake dealing a card
+back, the Engraver writing one) or a showdown that reads differently without
+the relic; a relic that changes the deal every hand (Gilt Edge, Twin Suns)
+is not counted, so the figure is a floor. The new relics in measured play,
+fires a run where owned: the Keepsake 7.8, the Engraver 1.8, the Blood Price
+1.7, Vow of Silence 1.7, the Prism Lens 1.0, Stepping Stones 0.5, the Magpie
+0.2, the Second River 0.2 (the Sanctum blocks rather than fires). The three
+mythics were bought in 4 of 280 runs: at 22-26 shards the harness's greedy
+buyer can rarely afford them, which is true of every mythic on the shelf.
+The Magpie and the Second River are the weakest and the first to tune after
+a human playtest. The buyer takes whatever relic it can afford, so the pick
+rate (81%) is affordability, not appeal, and the build-variety figures
+(distinct relics, spread, overlap) did not move: the Market still offers one
+relic a visit.
+
+**Covens** (40 runs each).
+
+| Coven | won before / after | own impossible before / after | first bust at ante 1 before / after | rules that fired a run before / after (creed) |
+|---|---|---|---|---|
+| Unaligned | 15 / 12 | 35% / 28% | 10% / 18% | 0.9 / 5.3 (2.3) |
+| Unmoored | 13 / 18 | 40% / 28% | 28% / 33% | 0.7 / 16.8 (15.0) |
+| Quiet | 11 / 11 | 30% / 35% | 10% / 8% | 0.3 / 13.2 (9.9) |
+| Long Now | 12 / 7 | 23% / 33% | 8% / 10% | 0.7 / 10.9 (6.9) |
+| Twinned | 15 / 16 | 30% / **48%** | 13% / 8% | 0.7 / 9.5 (0.8) |
+| Ashen | 9 / 13 | 30% / 28% | 13% / 5% | 1.0 / 3.6 (1.4) |
+| Loom | 20 / 16 | 38% / 28% | 8% / 20% | 0.8 / 6.8 (2.0) |
+
+- Every coven now plays under a rule of its own that does something in a
+  run: from about once (Kin, Salt) to fifteen times (Many Futures). Before,
+  the only rule was a lean, and the relics and sigils fired under one a run.
+- The Twinned is the impossible-hand coven: 48% of runs with one of their
+  own, the most of any coven (before, 30%, tied third).
+- The Unmoored still loses its stack in the first ante more than any coven
+  (33%, caught by the phylactery). Part of that is the harness: its player's
+  reads on an undecided card use 16 rollouts; at 48 (70 runs) the figure
+  was 19% against 24%. The rest is open.
+- The covens are not further apart in what they make at showdown: the mean
+  distance between two covens' hand categories went from 0.13 to 0.09, and
+  between the schools they cast stayed at 0.26 and 0.25. The difference a
+  creed makes is inside the hand (a river seen, a tell read, a card salted),
+  and the harness's hand categories cannot see it.
+
+## Re-scored with the same rubric
+
+| # | Criterion | Before | After | Why |
+|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 8 | 8 | Unchanged within noise: over before the first Market 1% and 1%, before ante 3 5% and 3%; busts caught or not 13% and 14%. The cautious player's before-ante-3 figure went from 1% to 4% (2 runs to 6 of 140). |
+| 2 | The namesake shows up | 8 | 8 | Seen in 61% of runs (55%), but one of your own in 32% both times. |
+| 3 | The run arc builds | 7 | 7 | Biggest pot in the last three hands 50% (53%), 22 bb at ante 7 (24). |
+| 4 | Covens play differently and deliver their pitch | 6 | 7 | Round 3 named three faults. Two are answered: a lean was the only thing a coven did, and now each plays a rule that fires 1 to 15 times a run; the Twinned did not deliver its pitch, and now leads every coven in impossible hands (48%, was 30%). The third is not: the Unmoored still loses its stack first. And the covens' showdowns look no more different than before. |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | Choices a minute 9.2 (9.1); every new rule says what it did in the log; the hand meter no longer shows a hand you do not have. The dead time itself did not move. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | First Market 96 s; an impossible hand by ante 3 in 33% (30%); the demo's figures held. |
+| 7 | Builds have depth; relics are more than numbers | 6 | 8 | The fault round 3 scored was "most relics are still a number", and the bar it set for more was half of 45 changing a rule. Now 32 of 45 do, 86% of what a run buys is a rule (was 47%), and a bought relic's rule visibly fires in 54% of runs (29%); two relics that did nothing (Heirloom, The Long Game) work. Not 9: build variety did not move, the Market still offers one relic a visit, and three new relics barely show (the mythics, bought in 4 of 280 runs). |
+| 8 | Presentation: art and feel | 6 | 6 | Untouched: it needs an artist. |
+| | **Mean** | **7.1 (7)** | **7.5 (8)** | |
+
+## Was the 8 earned?
+
+**On the locked rubric, yes, at the threshold and no further: 7.5, which
+the rule written in round 3 (mean rounded half up, an 8 needs 7.5) makes an
+8.** It rests on two criteria moving and nothing falling. It is worth saying
+plainly how thin that is: if criterion 7 is read as a 7 (because build
+variety did not move) or criterion 4 as a 6 (because the covens' showdowns
+are no more different and the Unmoored still busts first), the mean is 7.4
+and HEXHOLD is a 7. I scored each on what round 3 said was wrong with it;
+the evidence for each is above, and every number is from simulated players.
+
+What would make it a solid 8, and what would take it back:
+1. **A human playtest** on this build. Whether the Keepsake feels like a
+   plan or a chore, whether Tells and Foreknown read as power or as noise,
+   and whether a table of four creeds is readable are judgements about
+   feel that no harness can make. If players do not notice the creeds,
+   criterion 4 is a 6 and this is a 7.
+2. **Two relic offers a visit** (a design proposal, not built): the build
+   choice the genre is played for is between relics, and the Market offers
+   one. It is the most direct way to move build variety.
+3. **The Unmoored's first ante**: test with people before tuning.
+4. **Art (criterion 8)**, as before: worth up to 2 points on its own.
+
+## Three simulated Steam reviews (after round 4)
+
+**The impatient refunder** · 1.2 hrs · Recommended
+
+> Picked the Quiet because the card said I would know their hand instead
+> of making mine. The first time each bot raised, the log said I had read
+> its tell and one of its cards turned face up for me. I folded a lot less
+> stupidly. The phylactery caught my first bust, which I did not deserve,
+> and I typed "hex the chip leader" into the shop. Keeping it.
+
+**The genre veteran** · 14 hrs · Recommended
+
+> Round three's complaint was "relics are mostly +1s" and it is fixed.
+> Stepping Stones is Shortcut, the Keepsake is Runic Pyramid for folding,
+> the Blood Price lets me cast my 5-mana mythic on the flop for two big
+> blinds, and Vow of Silence makes the counterspell war somebody else's
+> problem. Covens finally have rules: as the Long Now I see the river when
+> the flop lands, as the Quiet an opponent's first raise shows me one of their cards. The Market
+> still shows one relic a visit, so I am drafting from whatever turns up,
+> and I never once saw Twice-Told for sale. $9.99 yes; $14.99 after art.
+
+**The Deck player** · 8 hrs · Recommended
+
+> Same good Deck port. The creed is on the menu under each coven and on
+> every seat's tooltip, so I know the bot across the table is Ashen and can
+> salt the King I am holding. The log says what every relic did, which is
+> how I learned the Second River had fired for me. Typing in the Scribe on
+> a pad is still the clumsy bit.
+
+## Verdict, round 4
+
+**Fun: 8/10 on the locked rubric (7.5, was 7.1), by the smallest margin the
+rubric allows.** No padding: twelve number relics became twelve rules
+(every one measured), each coven got one rule for its whole run, two
+creeds that measured badly were cut or reshaped, and four defects found
+on the way were fixed (two relics that did nothing, a showdown that settled
+undecided cards against their holder, bots that never used what they had
+seen). A human playtest decides whether it stays an 8.
+
+**Sellable at $9.99: yes**, on the same two conditions as before (no online
+play on the store page until Steam invites exist; commissioned capsule art).
+The store page's "45 relics" stays true. Windows full game and demo rebuilt
+on this code; the Linux build and its smoke test are pending (WSL is down).

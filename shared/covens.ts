@@ -151,6 +151,15 @@ export const creedOf = (c: CovenDef): string | null => (COVEN_CREEDS ? c.creed :
  */
 export const BOT_CREEDS_FROM_ANTE = 3;
 
+/**
+ * Kin (the Twinned's creed) bends a copy on the board, not one in the hole.
+ * Measured on 70 Twinned runs each way (FUN-REVIEW.md, round 4): with any
+ * copy Wild they won 43 (20 without the creed), with a held copy 38; with
+ * the board's copies only, 22, and more impossible hands a run (1.66 against
+ * 1.43). False makes every copy Wild again.
+ */
+export const KIN_BOARD_ONLY = true;
+
 /** Whether a seat plays its creed yet. */
 export const creedAwake = (isBot: boolean, hex: number, ante: number): boolean =>
   !isBot || hex > 1 || ante >= BOT_CREEDS_FROM_ANTE;

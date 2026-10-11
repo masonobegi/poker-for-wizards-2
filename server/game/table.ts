@@ -22,7 +22,7 @@ import {
 } from '../../shared/types';
 import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
-import { DEFAULT_COVEN } from '../../shared/covens';
+import { DEFAULT_COVEN, KIN_BOARD_ONLY } from '../../shared/covens';
 import { handsPerAnteAt } from '../../shared/hexes';
 
 export const AVATARS = 12;
@@ -247,7 +247,7 @@ export function modsFor(t: Table, p: Player): RuleMods {
   if (relic.memoryBonus) m.memoryBonus = true;
   if (relic.straightGap) m.straightGap = true;
   if (relic.prismIsWild) m.prismIsWild = true;
-  if (relic.copiesWild) { m.copiesWild = true; m.kinHole = scoringHole(t, p); }
+  if (relic.copiesWild) { m.copiesWild = true; if (KIN_BOARD_ONLY) m.kinHole = scoringHole(t, p); }
   // The Lodestone: this hand's rank is Wild for its owner.
   if (p.lodestone) m.wildRanks = [...new Set([...(m.wildRanks ?? []), p.lodestone])];
 

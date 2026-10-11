@@ -1,4 +1,4 @@
-# NEXT: HEXHOLD after the fun pass (2026-10-10)
+# NEXT: HEXHOLD after fun round 4 (2026-10-10)
 
 Brief: `masonobegi_webpage/ops/session-2026-10-09/CONTINUE_BRIEF.md` (with
 `FUN_BRIEF.md` and `FIX_BRIEF.md` beside it). Branch `steam-ready-2026-10-09`,
@@ -7,14 +7,16 @@ demo 22 Feb 2027, release 8 Apr 2027.
 
 ## State
 
-- **Code-side 100% (24 of 24)**: `STEAM-READY.md`. **Fun 7/10 (was 6),
-  sellable at $9.99 as a solo roguelite**: `FUN-REVIEW.md` (measurements,
-  the five refund reasons, three simulated reviews, the verdict, five
-  design proposals for Mason).
-- Windows and Linux rebuilt on the final code and passing (packaged 21/21
-  and quit 9/9 on Windows; 21/21 and 6/6 headless in WSL). Demo built,
-  packaged (`release-demo/`) and seen in a headless browser
-  (`node test/demo.mjs`: all checks pass). `npm test` 292/292, tsc clean.
+- **Code-side 100% (24 of 24)**: `STEAM-READY.md`. **Fun 8/10 on the locked
+  rubric, at its threshold (7.5; round 3 was 7.1)**, sellable at $9.99 as a
+  solo roguelite: `FUN-REVIEW.md`, round 4 (end of the file).
+- Round 4 is merged to `main`. Windows full game (`release/`) and demo
+  (`release-demo/`) rebuilt on round 4's code. Packaged smoke
+  (`npm run play:packaged`): every check passed on the rerun, then the
+  harness could not delete its temp profile (a Windows file lock, removed
+  by hand); the first run, under a 10-process batch load, timed out on
+  Quit. `node test/quit.mjs` 9/9. **Linux (WSL) build and its
+  smoke test: pending, WSL is down.** `npm test` all passing, tsc clean.
 
 ## Done on 2026-10-10 (all committed and pushed)
 
@@ -67,14 +69,43 @@ Open, with data: the Unmoored loses its stack in the first ante more than
 any coven (37% of demo runs, caught by the phylactery); the Twinned is not
 the impossible-hand coven (the Loom is).
 
+## Round 4 (2026-10-10): done
+
+`FUN3_BRIEF.md`, same rubric. Twelve number relics became rules (Stepping
+Stones, the Keepsake, the Second River, the Sanctum, the Prism Lens, the
+Magpie, the Engraver, the Blood Price, Vow of Silence, the Lodestone,
+Twice-Told, the Usurper); every coven has a creed (The Last Word, Many
+Futures, Tells, Foreknown, Kin, Salt, Signature). Fixed: Heirloom and The
+Long Game never reached the evaluator; Open Palm and Full Purse were never
+paid; showdown settled undecided hole cards on the highest rank instead of
+the holder's best face; bots ignored what they had been shown.
+
+Switches: `RULE_RELICS` (relics.ts); `COVEN_CREEDS`, `BOT_CREEDS_FROM_ANTE`,
+`KIN_BOARD_ONLY` (covens.ts); `READ_WHAT_IS_SEEN` (bots.ts).
+
+Measured on seeds 0-279 (before 3a3d6be, after b7702e7): every aggregate
+figure flat or better; a bought relic's rule visibly fires in 54% of runs
+(29%); the Twinned lead every coven in impossible hands (48%, was 30%).
+Batch summaries are kept in `plans/fun-round4-data/` (each file names its
+commit and command). Harness additions: relic offers and buys, rules fired
+by relic, hands made by coven, covens-apart distance.
+
+Open, with data: the Unmoored still loses its stack in the first ante most
+(33%; partly the harness's 16-rollout reads on undecided cards); the Magpie
+and the Second River barely fire; the three new mythics are rarely
+affordable; covens' showdowns are no more distinct (the creeds act inside
+the hand).
+
 ## Next steps, in order
 
 1. Mason: play the demo once (`release-demo/win-unpacked/HEXHOLD Demo.exe`),
    `FULL_GAME_APP_ID` once Steamworks issues it, and a closed playtest with
    real players before Next Fest.
-2. Rebuild the Linux demo dir and the full game's packages before upload
-   (`npm run package:demo:linux`, `npm run package:win`, Linux in WSL).
-3. The design passes that would earn the 8 (FUN-REVIEW round 3): relics that
-   change rules, one whole-run rule per coven (the Twinned first), art.
+2. When WSL is back: `npm run package:linux` and `npm run package:demo:linux`,
+   then the headless Linux smoke (`scripts/linux-smoke.sh`). Windows is
+   rebuilt on round 4.
+3. A human playtest decides whether the 8 holds (FUN-REVIEW round 4: the
+   creeds' feel, the Keepsake, a table of four creeds). Then: two relic
+   offers a Market visit (proposal), the Unmoored's first ante, art.
 4. Steam lobbies (online through Steam invites) before the store page says
    PvP or Multiplayer.
