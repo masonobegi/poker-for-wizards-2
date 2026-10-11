@@ -7,7 +7,8 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Badge } from '@/components/ui/kit';
 import { SCHOOLS, SIGILS, RARITY_COLOR, type School } from '@shared/sigils';
-import { RELICS, RELIC_RARITY_COLOR } from '@shared/relics';
+import { CREEDS, RELICS, RELIC_RARITY_COLOR } from '@shared/relics';
+import { covenOf } from '@shared/covens';
 import { OMENS } from '@shared/omens';
 import { MARKS } from '@shared/cards';
 import { ACHIEVEMENTS } from '@shared/achievements';
@@ -120,6 +121,23 @@ export default function Codex({ onClose }: { onClose: () => void }) {
                   <span className="codex-meta">
                     <Badge tone="gold">{r.price} shards</Badge>
                     <span style={{ color: RELIC_RARITY_COLOR[r.rarity] }}>{r.rarity}</span>
+                  </span>
+                </div>
+                <p className="codex-text">{r.text}</p>
+                <p className="codex-impossible"><Mark kind="ui" id="impossible" /> {r.impossible}</p>
+              </div>
+            </li>
+          ))}
+          {/* Creeds: one per coven, never sold. Listed here because a creed
+              sits in the relic row at the table and reads like a relic. */}
+          {CREEDS.map((r) => (
+            <li key={r.id} className="codex-entry" style={{ ['--accent' as string]: RELIC_RARITY_COLOR[r.rarity] }}>
+              <div className="codex-glyph"><Mark kind="relic" id={r.id} fallback={r.glyph} /></div>
+              <div className="codex-body">
+                <div className="codex-row">
+                  <strong>{r.name}</strong>
+                  <span className="codex-meta">
+                    <span style={{ color: RELIC_RARITY_COLOR[r.rarity] }}>creed of {covenOf(r.coven).name}</span>
                   </span>
                 </div>
                 <p className="codex-text">{r.text}</p>

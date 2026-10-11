@@ -8,7 +8,7 @@
  */
 import { nanoid } from 'nanoid';
 import { config } from '../config';
-import { type Face, type Rank, RANKS, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
+import { type CardEntity, type Face, type Rank, RANKS, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
 import { Cat, evaluate } from '../../shared/hand';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -37,7 +37,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedOf, leanOf } from '../../shared/covens';
+import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -332,7 +332,7 @@ export class Engine {
       const coven = covenOf(p.coven);
       // The creed first: it is the coven's rule, and the relic is its kit.
       const creed = creedOf(coven);
-      if (creed) p.relics.push(creed);
+      if (creed && creedAwake(p.isBot, t.config.hex, t.ante)) p.relics.push(creed);
       if (coven.relic) p.relics.push(coven.relic);
       for (const defId of coven.sigils) {
         if (SIGIL_BY_ID[defId]) giveSigil(t, p, { uid: nanoid(8), defId });
@@ -407,6 +407,12 @@ export class Engine {
       p.hole = [];
       p.lastAction = undefined;
       p.shopDone = false;
+      // A bot's creed wakes when the table stops opening warm (Hex I).
+      const creed = creedOf(covenOf(p.coven));
+      if (creed && !p.eliminated && !p.relics.includes(creed) && creedAwake(p.isBot, t.config.hex, t.ante)) {
+        p.relics.unshift(creed);
+        log(t, `${p.name}'s creed wakes: ${RELIC_BY_ID[creed]?.name}. ${RELIC_BY_ID[creed]?.text}`, 'magic', { playerId: p.id });
+      }
       refreshMaxMana(p, t);
       // Two at the top of the hand, not three. At three, a measured session
       // ended every hand with four unspent mana per player out of a ceiling
@@ -849,12 +855,14 @@ export class Engine {
     this.clearWait();
 
     // Anything still undecided has to decide now. That is what a showdown is.
+    // A hole card settles on the face that helps its holder most, as
+    // Superpose's card says, read against the board it is settling into.
     const ctx = this.ctx();
     for (const p of live(t)) {
       for (const id of p.hole) {
         const c = card(t, id);
         if (c && isQuantum(c)) {
-          const best = this.bestFaceFor(c.faces);
+          const best = this.kindestFace(p, c);
           const f = c.faces[best];
           c.collapsed = best;
           this.fx.push({ t: 'collapse', cardId: id, face: f });
@@ -946,6 +954,39 @@ export class Engine {
   private bestFaceFor(faces: Face[]): number {
     let best = 0;
     for (let i = 1; i < faces.length; i++) if (faces[i].rank > faces[best].rank) best = i;
+    return best;
+  }
+
+  /**
+   * The face of an undecided hole card that makes its holder's hand best
+   * (lowest, under a worst-hand-wins rule).
+   *
+   * Showdown used to settle every undecided hole card on its highest rank,
+   * whatever the hand needed: a card that was the Seven of Spades or the King
+   * of Hearts, on a board of two Sevens, became the King, while every read of
+   * the hand before showdown (the player's own hand meter, the bots' equity,
+   * the evaluator's "the search is the collapse") counted it as the Seven. A
+   * player holding an undecided card was shown a hand they did not have and
+   * bet on it. Measured from the player's chair (2026-10-10, round 4) the
+   * Unmoored, whose every hand holds one, lost its stack in the first ante
+   * more often than any other coven. Ties keep the higher rank, so a card
+   * that makes no difference settles where it always did.
+   */
+  private kindestFace(p: Player, c: CardEntity): number {
+    const t = this.table;
+    const mods = modsFor(t, p);
+    const was = c.collapsed;
+    let best = this.bestFaceFor(c.faces);
+    let bestScore: number | null = null;
+    for (let i = 0; i < c.faces.length; i++) {
+      c.collapsed = i;
+      const score = evaluate({ cards: handCards(t, p), viewerId: p.id, mods }).score;
+      const better = bestScore === null
+        || (mods.lowWins ? score < bestScore : score > bestScore)
+        || (score === bestScore && c.faces[i].rank > c.faces[best].rank);
+      if (better) { best = i; bestScore = score; }
+    }
+    c.collapsed = was;
     return best;
   }
 

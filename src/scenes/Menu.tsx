@@ -17,7 +17,8 @@ import { appVersion } from '@/components/shell/version';
 import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
-import { COVENS, DEFAULT_COVEN, covenOf } from '@shared/covens';
+import { COVENS, DEFAULT_COVEN, covenOf, creedOf } from '@shared/covens';
+import { RELIC_BY_ID } from '@shared/relics';
 import { loadProfile } from '@/components/profile/profile';
 import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
 import { DEMO_ANTES, DEMO_COVENS, demoCoven } from '@shared/demo';
@@ -326,8 +327,9 @@ export default function Menu() {
                   <>
                     <strong className="menu-covenpeek">{covenOf(peek).name}, in the full game.</strong>{' '}
                     {covenOf(peek).text}
+                    <CreedLine coven={peek} />
                   </>
-                ) : covenOf(coven).text}
+                ) : <>{covenOf(coven).text}<CreedLine coven={coven} /></>}
                 {peek ? null : covenRecord ? (
                   <em className="menu-covenrecord">
                     {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
@@ -631,5 +633,20 @@ function MenuBackdrop() {
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * The coven's creed, under its one-line pitch: the rule the whole run is
+ * played under, which is the reason to pick one coven over another.
+ */
+function CreedLine({ coven }: { coven: string }): JSX.Element | null {
+  const id = creedOf(covenOf(coven));
+  const creed = id ? RELIC_BY_ID[id] : undefined;
+  if (!creed) return null;
+  return (
+    <span className="menu-covencreed">
+      {' '}<strong>{creed.name}:</strong> {creed.text}
+    </span>
   );
 }

@@ -20,6 +20,10 @@
  * That constraint is deliberate. A coven cannot smuggle in behaviour; if you
  * want one to do something new, the relic has to learn it first, in
  * `shared/relics.ts`, where every other passive in the game is declared.
+ *
+ * Since round 4 (2026-10-10) each coven also has a creed: one rule for the
+ * whole run, declared as a relic in `shared/relics.ts` (CREEDS) under the
+ * same constraint, owned from the first hand and never sold.
  */
 import type { School } from './sigils';
 
@@ -136,6 +140,20 @@ export const COVEN_CREEDS = true;
 
 /** The creed a coven plays under, or null with creeds off. */
 export const creedOf = (c: CovenDef): string | null => (COVEN_CREEDS ? c.creed : null);
+
+/**
+ * At Hex I a bot's creed wakes at this ante, when the bots stop opening warm
+ * (server/game/bots.ts WARMTH_BY_ANTE). The first floor teaches: measured
+ * from the player's chair with every seat's creed on from hand one, the
+ * player's busts before the first Market rose from 14% to 21% of runs
+ * (FUN-REVIEW.md, round 4). The player's own creed is on from hand one, and
+ * at Hex II and above every creed is. Set to 1 to wake them all at once.
+ */
+export const BOT_CREEDS_FROM_ANTE = 3;
+
+/** Whether a seat plays its creed yet. */
+export const creedAwake = (isBot: boolean, hex: number, ante: number): boolean =>
+  !isBot || hex > 1 || ante >= BOT_CREEDS_FROM_ANTE;
 
 export const COVEN_BY_ID: Record<string, CovenDef> = Object.fromEntries(
   COVENS.map((c) => [c.id, c]),

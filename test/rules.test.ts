@@ -17,7 +17,7 @@ import { runShowdown } from '../server/game/showdown';
 import { buy } from '../server/game/shop';
 import { castBlock, modsFor } from '../server/game/table';
 import { type CardEntity, type Rank, type Suit, makeCard } from '../shared/cards';
-import { COVENS, COVEN_BY_ID, COVEN_CREEDS, creedOf } from '../shared/covens';
+import { BOT_CREEDS_FROM_ANTE, COVENS, COVEN_BY_ID, COVEN_CREEDS, creedOf } from '../shared/covens';
 import { Cat, evaluate, type RuleMods } from '../shared/hand';
 import { CREEDS, RELICS, RELIC_BY_ID, RULE_RELICS } from '../shared/relics';
 import { Rng } from '../shared/rng';
@@ -86,12 +86,39 @@ test('no creed is for sale, and every coven has its own', () => {
   assert.equal(CREEDS.length, COVENS.length);
 });
 
-test('every seat starts the run holding its coven\'s creed, bots included', () => {
+test('the player holds their creed from the first hand; at Hex I a bot\'s wakes at ante 3', () => {
+  assert.equal(BOT_CREEDS_FROM_ANTE, 3);
   for (const coven of COVENS) {
-    const { t, hero } = table(coven.id);
+    const { t, hero, others, ix } = table(coven.id);
     assert.equal(hero.relics[0], creedOf(coven), coven.name);
-    for (const p of t.players) assert.equal(p.relics[0], creedOf(COVEN_BY_ID[p.coven]), p.name);
+    for (const p of others) assert.ok(!p.relics.includes(creedOf(COVEN_BY_ID[p.coven])!), `${p.name} woke early`);
+    t.ante = BOT_CREEDS_FROM_ANTE;
+    t.phase = 'payout';
+    ix.beginHand();
+    for (const p of others) assert.equal(p.relics[0], creedOf(COVEN_BY_ID[p.coven]), p.name);
   }
+});
+
+test('at Hex II every seat holds its creed from the first hand', () => {
+  const e = new Engine('RULE', 'host', { ...DEFAULT_CONFIG, hex: 2, seed: 'rules:hex2' }, () => {}, () => {});
+  e.addPlayer('host', 'Hero');
+  for (let i = 0; i < 3; i++) e.addBot();
+  e.start();
+  e.dispose();
+  for (const p of e.table.players) assert.equal(p.relics[0], creedOf(COVEN_BY_ID[p.coven]), p.name);
+});
+
+test('an undecided hole card settles on the face that helps its holder, as Superpose says', () => {
+  const { t, hero, others, ix } = table();
+  for (const q of others) q.folded = true;
+  const pivot = c(13, 'H');
+  pivot.faces = [{ rank: 13, suit: 'H' }, { rank: 7, suit: 'S' }];
+  pivot.collapsed = null;
+  hero.hole = [place(t, pivot), place(t, c(2, 'C'))];
+  t.board = [place(t, c(7, 'D')), place(t, c(7, 'C')), place(t, c(9, 'S')), place(t, c(4, 'H')), place(t, c(11, 'D'))];
+  for (const p of t.players) p.committed = p.id === hero.id ? 200 : 0;
+  (ix as unknown as { toShowdown(): void }).toShowdown();
+  assert.equal(pivot.faces[pivot.collapsed!].rank, 7, 'the Seven makes trips; the King made a pair');
 });
 
 // ------------------------------------------------------- hands read differently

@@ -408,3 +408,14 @@
   .menu .menu-sigil svg { width: 52px; height: 52px; }
   .menu .menu-brand { gap: 2px; }
 }
+
+/* The coven's creed (round 4): the rule the run is played under. */
+.menu-covencreed {
+  display: block;
+  margin-top: 0.25em;
+  color: var(--text-quiet);
+}
+.menu-covencreed strong {
+  color: var(--text);
+  font-weight: 600;
+}

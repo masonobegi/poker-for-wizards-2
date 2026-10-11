@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { Engine } from '../server/game/engine';
 import { anteLength } from '../server/game/table';
 import { rollShop } from '../server/game/shop';
-import { creedOf, COVEN_BY_ID } from '../shared/covens';
+import { creedAwake, creedOf, COVEN_BY_ID } from '../shared/covens';
 import { DEFAULT_CONFIG, type RoomConfig } from '../shared/types';
 import { Rng } from '../shared/rng';
 import { dailyCoven, dailySeed, hexPrice, isDailySeed } from '../shared/hexes';
@@ -23,20 +23,21 @@ function table(config: Partial<RoomConfig>, bots = 3): Engine {
 }
 
 /** What a coven owns from the first hand: its creed (when creeds are on) and its relic. */
-const covenRelics = (coven: string): number =>
-  (COVEN_BY_ID[coven]?.relic ? 1 : 0) + (COVEN_BY_ID[coven] && creedOf(COVEN_BY_ID[coven]) ? 1 : 0);
+const covenRelics = (coven: string, isBot = false, hex = 1): number =>
+  (COVEN_BY_ID[coven]?.relic ? 1 : 0)
+  + (COVEN_BY_ID[coven] && creedOf(COVEN_BY_ID[coven]) && creedAwake(isBot, hex, 1) ? 1 : 0);
 
 test('Hex I changes nothing', () => {
   const t = table({ hex: 1 }).table;
   assert.equal(t.omens.length, 0);
-  for (const p of t.players) assert.equal(p.relics.length, covenRelics(p.coven));
+  for (const p of t.players) assert.equal(p.relics.length, covenRelics(p.coven, p.isBot, 1));
   assert.equal(anteLength(t), t.config.handsPerAnte);
 });
 
 test('Hex II gives every bot a relic and the player none', () => {
   const t = table({ hex: 2 }).table;
   for (const p of t.players) {
-    assert.equal(p.relics.length, covenRelics(p.coven) + (p.isBot ? 1 : 0), p.name);
+    assert.equal(p.relics.length, covenRelics(p.coven, p.isBot, 2) + (p.isBot ? 1 : 0), p.name);
   }
 });
 
