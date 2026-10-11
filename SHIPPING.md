@@ -23,7 +23,8 @@ Each of these is checked by something you can run, not by assertion.
 | Server bundles and runs standalone | `npm run build:server` → one 1.8MB `.mjs`, no `node_modules` |
 | Desktop installer builds with an icon | `npm run package:win` → `release/HEXHOLD Setup 0.9.0.exe` |
 | Achievements fire during real play | `npm test` — the watcher is driven directly against a synthetic payout. `npm run play` also reports what unlocked, but only when the bots happen to lose you a pot, so it is a sample, not a proof |
-| Motion holds its invariants | `npm test` — reduced motion never deletes a cue or makes one louder; nothing framer animates relies on a CSS transform; no `transition: all`; every `whileHover` is gated |
+| Motion holds its invariants | `npm test` — reduced motion never deletes a cue or makes one louder; nothing framer animates relies on a CSS transform; no `transition: all`; every `whileHover` is gated; the arcade layer (slams, punches, count-ups) keeps its cue under reduced motion and caps its white under reduce flashing (`test/arcade.test.ts`) |
+| The short animations look and pace right | `node test/anim-frames.mjs` (`ELECTRON=1` for the off-screen desktop shell with the GPU) — every frame of each moment filmed and timed; see `plans/030-port-the-basketball-cut-ins.md` |
 | Chip conservation, no deadlocks, across long bot games | `npm run sim` |
 | Balance | `npm run metrics` — pacing, cast rate, showdown rate, action spread. Bots raise 15%, bet 14%, call 26%, check 14%, fold 23%; showdowns land around 47% and magic fires in ~88% of hands |
 | Sounds are distinguishable from each other | `npm run audio` — every pair compared on length, brightness, loudness and attack, and the winning sounds are held brighter than the elimination sting |

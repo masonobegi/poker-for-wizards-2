@@ -1,7 +1,7 @@
 /**
  * Films the arcade moments frame by frame, off-screen, and times the frames.
  *
- * The animations ported from the basketball roguelike (plans/ANIM-PORT.md)
+ * The animations ported from the basketball roguelike (plans/030-port-the-basketball-cut-ins.md)
  * are short — a slam lands in 180ms, an impact frame is gone in 130 — so a
  * screenshot every few hundred ms says nothing about them. This records every
  * frame the compositor produces (CDP screencast) for each moment, writes them

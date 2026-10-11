@@ -20,6 +20,14 @@ demo 22 Feb 2027, release 8 Apr 2027.
   lines a phylactery run shows; it crashed on the second one before). **Linux (WSL) build and its
   smoke test: pending, WSL is down.** `npm test` all passing, tsc clean.
 
+## Done on 2026-10-11: the basketball cut-ins, ported
+
+`plans/030-port-the-basketball-cut-ins.md`: banners play as arcade cut-ins
+and skip on any input; relics punch when their rule fires (read from the
+ledger's `rule` tags); BUSTED / COUNTERED / BOUGHT stamps; spell impact
+frames; "+N" pot pops; count-ups on the showdown and the run summary.
+Client only; `npm run fun:batch` unchanged. Left: a feel-check on a Deck.
+
 ## Done on 2026-10-10 (all committed and pushed)
 
 1. Balance set shipped as real code and pinned by tests: `bots.ts`

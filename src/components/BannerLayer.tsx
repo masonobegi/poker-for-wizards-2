@@ -4,7 +4,7 @@
  * what deserves the whole screen.
  *
  * Since 2026-10-11 these play as the basketball roguelike's arcade cut-ins
- * rather than as a fade (catalogue: plans/ANIM-PORT.md):
+ * rather than as a fade (catalogue: plans/030-port-the-basketball-cut-ins.md):
  *
  *  - the band OPENS from a sliver and overshoots (scaleY, easeOutBack) — or,
  *    for an impossible hand or an omen, slides in tilted along its own axis;
