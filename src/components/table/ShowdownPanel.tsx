@@ -13,6 +13,9 @@ import { EASE_OUT, ENTER, SPRING_PLAYFUL, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
 import { CountUp } from '@/components/fx/CountUp';
 
+/** The sign belongs to the number: as a separate flex item it sat a gap away. */
+const plus = (n: number): string => `+${n.toLocaleString()}`;
+
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
 export default function ShowdownPanel({ view }: { view: TableView }) {
@@ -200,7 +203,7 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
           {/* Counts up behind its own entrance and lands with a pop (the
               basketball roguelike's reward count-up), short because a
               showdown comes round every hand. */}
-          +<CountUp value={e.won} delay={Math.round((0.3 + Math.min(i * 0.06, 0.3)) * 1000) + 120} duration={550} />
+          <CountUp value={e.won} format={plus} delay={Math.round((0.3 + Math.min(i * 0.06, 0.3)) * 1000) + 120} duration={550} />
           {shards ? <em className="showdown-shards">◆{shards}</em> : null}
         </motion.span>
       ) : (

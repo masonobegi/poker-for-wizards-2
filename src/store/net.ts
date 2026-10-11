@@ -317,6 +317,19 @@ export const useGame = create<GameStore>((set, get) => ({
   clearError() { set({ error: null }); },
 }));
 
+/*
+ * The store, for the frame-capture harness only, and only when the page was
+ * opened with `?harness`: test/anim-frames.mjs stages a bust, a counter or a
+ * purchase by writing the view the server would have sent, then films it.
+ * The desktop build never loads a URL with a query string, and in a browser
+ * this hands a player nothing devtools does not already: it is their own
+ * copy of a view the server authored, and the server never reads it back.
+ */
+if (typeof window !== 'undefined' && /[?&]harness(?:=|&|$)/.test(window.location?.search ?? '')) {
+  try { (window as unknown as { __hexholdStore: typeof useGame }).__hexholdStore = useGame; }
+  catch { /* ignore */ }
+}
+
 // ---------------------------------------------------------------------------
 // Convenience selectors
 // ---------------------------------------------------------------------------

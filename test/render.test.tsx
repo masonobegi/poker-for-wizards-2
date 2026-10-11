@@ -571,6 +571,8 @@ test('a cut-in banner shows, ignores the click that raised it, and skips on the 
   });
   try {
     await act(async () => { fire([{ t: 'banner', text: 'FLUSH FIVE', sub: 'A hand that cannot exist', tone: 'impossible' }]); });
+    // It mounts two frames late, after whatever else the fx batch painted.
+    await wait(80);
     assert.match(root.textContent ?? '', /FLUSH FIVE/, 'the banner never showed');
     assert.ok(bannerBusyMs() > 3000, 'the banner does not hold the screen');
     await key();

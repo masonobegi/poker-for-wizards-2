@@ -161,7 +161,19 @@ export default function BannerLayer() {
       lastWin = null;
       // +EXIT_MS covers the exit below.
       markBusyUntil(Date.now() + HOLD_MS[tone] + EXIT_MS);
-      setBanner({ key: ++seq, text: e.text, sub: e.sub, tone, strip });
+      // Mounted two frames late, on purpose. An impossible hand fires its
+      // whole screen at once — the biggest particle preset, confetti, the
+      // chromatic split over the app root — and the frame that paints all
+      // that ran 200-600ms in the off-screen captures (test/anim-frames.mjs),
+      // on main as well as here. A slam that starts inside that frame has
+      // finished by the time the next one is drawn: the band and the title
+      // simply appeared. Two rAFs put the mount after the heavy frame has
+      // painted, so the 180ms slam is actually seen; normally it costs 33ms.
+      const banner: Banner = { key: ++seq, text: e.text, sub: e.sub, tone, strip };
+      const raf = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (fn: FrameRequestCallback) => window.setTimeout(() => fn(Date.now()), 16);
+      raf(() => raf(() => setBanner(banner)));
     });
   }, []);
 
@@ -298,7 +310,9 @@ function BannerView({ banner, reduced }: { banner: Banner; reduced: boolean }) {
             className="hx-banner__sub"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            // Its own exit timing: inheriting the entrance's 0.22s delay left
+            // the line hanging in mid-air after the band had wiped away.
+            exit={{ opacity: 0, transition: { duration: 0.12, ease: EASE_OUT } }}
             transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.12, ease: EASE_OUT, delay: 0.22 }}
           >
             {reduced ? banner.sub : <DecodeText text={banner.sub} lead={260} step={22} />}
