@@ -37,11 +37,17 @@ export interface CovenDef {
   sigils: string[];
   /** A relic owned from the first hand. Optional: the Unaligned have none. */
   relic?: string;
+  /**
+   * The coven's creed: one rule for the whole run, a relic the coven owns
+   * from the first hand and nobody can buy or take (shared/relics.ts CREEDS).
+   */
+  creed: string;
 }
 
 export const COVENS: CovenDef[] = [
   {
     id: 'unaligned',
+    creed: 'creed_providence',
     name: 'The Unaligned',
     school: 'veil',
     glyph: '◇',
@@ -51,6 +57,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'unmoored',
+    creed: 'creed_many_futures',
     name: 'The Unmoored',
     school: 'entropy',
     glyph: '⟁',
@@ -61,6 +68,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'quiet',
+    creed: 'creed_tells',
     name: 'The Quiet',
     school: 'veil',
     glyph: '☾',
@@ -71,6 +79,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'long_now',
+    creed: 'creed_foreknown',
     name: 'The Long Now',
     school: 'chronos',
     glyph: '⧖',
@@ -81,6 +90,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'twinned',
+    creed: 'creed_kin',
     name: 'The Twinned',
     school: 'bind',
     glyph: '∞',
@@ -91,6 +101,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'ashen',
+    creed: 'creed_salt',
     name: 'The Ashen',
     school: 'ruin',
     glyph: '🜂',
@@ -101,6 +112,7 @@ export const COVENS: CovenDef[] = [
   },
   {
     id: 'loom',
+    creed: 'creed_signature',
     name: 'The Loom',
     school: 'weave',
     glyph: '⊞',
@@ -110,6 +122,20 @@ export const COVENS: CovenDef[] = [
     relic: 'deep_pockets',
   },
 ];
+
+/**
+ * Creeds on (true) or off. Round 4 of the fun pass (FUN-REVIEW.md,
+ * 2026-10-10): the rubric scored covens 6 of 10 because "a lean is not a
+ * deck", and named what would earn more: one rule per coven for the whole
+ * run, the way each of Balatro's decks and Slay the Spire's characters
+ * changes a rule. Every seat plays its coven's creed, bots included, so a
+ * table of four covens is four rulebooks. Off puts the covens back to two
+ * sigils, a relic and a lean.
+ */
+export const COVEN_CREEDS = true;
+
+/** The creed a coven plays under, or null with creeds off. */
+export const creedOf = (c: CovenDef): string | null => (COVEN_CREEDS ? c.creed : null);
 
 export const COVEN_BY_ID: Record<string, CovenDef> = Object.fromEntries(
   COVENS.map((c) => [c.id, c]),

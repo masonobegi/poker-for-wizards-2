@@ -14,7 +14,7 @@ import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
 import { SCRIBED_ID, SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
-import { giveSigil } from './magic';
+import { giveSigil, sign } from './magic';
 import { log, refreshMaxMana, sigilHandSize } from './table';
 
 /*
@@ -141,7 +141,10 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
     case 'rite': {
       const card = t.cards.get(item.cardId);
       if (!card) return { ok: false, error: 'That card has left the deck' };
-      if (!card.marks.includes(item.markId)) card.marks.push(item.markId);
+      if (!card.marks.includes(item.markId)) {
+        card.marks.push(item.markId);
+        sign(t, p, card, item.markId);
+      }
       break;
     }
     case 'mana': {

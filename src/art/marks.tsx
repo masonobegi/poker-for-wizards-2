@@ -919,6 +919,163 @@ const RELIC: Record<string, ReactNode> = {
     </>
   ),
 
+  // ---- the rule shelf (round 4) --------------------------------------------
+  // Twelve relics that change a rule. Still objects, still one hand.
+  stepping_stones: (
+    <>
+      {/* Five stones across a stream, one missing. */}
+      <circle cx={4.6} cy={15.6} r={1.9} />
+      <circle cx={8.8} cy={13} r={1.9} />
+      <circle cx={17.2} cy={10.4} r={1.9} />
+      <circle cx={20.2} cy={6.6} r={1.6} />
+      <circle cx={13} cy={11.7} r={1.4} strokeDasharray="1.4 1.4" />
+      <path d="M3 20h18" strokeDasharray="2.4 2.2" />
+    </>
+  ),
+  keepsake: (
+    <>
+      {/* A locket on a short chain. */}
+      <path d="M12 3.6v4.6" strokeDasharray="1.6 1.4" />
+      <path d="M12 8.6c3.6 0 6.2 2.6 6.2 5.8S15.6 20.2 12 20.2s-6.2-2.6-6.2-5.8S8.4 8.6 12 8.6Z" />
+      <path d="M9.6 14.4h4.8" />
+      <Dot x={12} y={14.4} r={1.2} />
+    </>
+  ),
+  second_river: (
+    <>
+      {/* Two rivers, the second running back over the first. */}
+      <path d="M3.6 8.6c2.8-2.2 5.6 2.2 8.4 0s5.6 2.2 8.4 0" />
+      <path d="M3.6 15.4c2.8-2.2 5.6 2.2 8.4 0s5.6 2.2 8.4 0" strokeDasharray="2.4 2" />
+      <path d="M19 12.4 20.4 15.4l-3.2.4" />
+    </>
+  ),
+  sanctum: (
+    <>
+      {/* A shrine: a roof and a door nothing passes through. */}
+      <path d="M3.8 10.2 12 4l8.2 6.2" />
+      <path d="M6 10.2v9.6h12v-9.6" />
+      <path d="M10 19.8v-5.2a2 2 0 0 1 4 0v5.2" />
+    </>
+  ),
+  prism_lens: (
+    <>
+      {/* A lens with a prism's facets behind the glass. */}
+      <circle cx={11} cy={11} r={6.4} />
+      <path d="M11 6.6 14.6 13H7.4Z" />
+      <path d="M15.6 15.6 20 20" />
+    </>
+  ),
+  magpie: (
+    <>
+      {/* A bird's head with something in its beak. */}
+      <path d="M5 15.4c0-4.8 3-8.4 7.4-8.4 2.4 0 4.2 1 5.4 2.6l3.2 1-3 1.4c-.4 3.6-3.4 6.6-7.6 6.6" />
+      <Dot x={13.4} y={10.6} r={1.1} />
+      <path d="M5 15.4 3.6 19.6l4.4-1.8" />
+      <circle cx={19.4} cy={15.6} r={1.6} />
+    </>
+  ),
+  the_engraver: (
+    <>
+      {/* A burin cutting a line into a card. */}
+      <path d="M5.4 4.6h9.2a1.4 1.4 0 0 1 1.4 1.4v12a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 18V6a1.4 1.4 0 0 1 1.4-1.4Z" />
+      <path d="M7 15.4 11 9.4" />
+      <path d="M11 9.4 19.8 3.8l.6 1-7.8 6.6Z" />
+    </>
+  ),
+  blood_price: (
+    <>
+      {/* A drop of blood over a chip. */}
+      <path d="M12 3.6c2.4 3 3.6 5 3.6 6.6a3.6 3.6 0 0 1-7.2 0c0-1.6 1.2-3.6 3.6-6.6Z" />
+      <ellipse cx={12} cy={17.6} rx={6.4} ry={2.6} />
+      <path d="M8.2 17.6h7.6" strokeDasharray="1.6 1.6" />
+    </>
+  ),
+  vow_of_silence: (
+    <>
+      {/* A mouth stitched shut. */}
+      <path d="M4.4 12c2.4-2.6 5-3.8 7.6-3.8s5.2 1.2 7.6 3.8c-2.4 2.6-5 3.8-7.6 3.8S6.8 14.6 4.4 12Z" />
+      <path d="M8 10v4M12 9v6M16 10v4" />
+    </>
+  ),
+  lodestone: (
+    <>
+      {/* A stone with a needle swinging over it. */}
+      <path d="M5.4 15.6 8.4 9.6h7.2l3 6-3 4H8.4Z" />
+      <path d="M12 3.6v6" />
+      <path d="M8.6 5.4 12 3.6l3.4 1.8" strokeDasharray="1.6 1.4" />
+      <Dot x={12} y={14.6} r={1.4} />
+    </>
+  ),
+  twice_told: (
+    <>
+      {/* One scroll, its line written twice. */}
+      <path d="M6.6 4.4h10.8v15.2H6.6Z" />
+      <path d="M9 9h6M9 12.2h6" />
+      <path d="M9 15.4h6" strokeDasharray="1.8 1.6" />
+      <path d="M4.4 6.6v10.8" strokeDasharray="2 1.8" />
+      <path d="M19.6 6.6v10.8" strokeDasharray="2 1.8" />
+    </>
+  ),
+  the_usurper: (
+    <>
+      {/* A crown, lifted off. */}
+      <path d="M4.8 16.4 6 8.6l3.4 3L12 6l2.6 5.6 3.4-3 1.2 7.8Z" />
+      <path d="M4.8 19.6h14.4" strokeDasharray="2.2 2" />
+      <path d="M12 2.8v1.8" />
+    </>
+  ),
+
+  // ---- creeds: one per coven, drawn as a seal around the coven's idea ------
+  creed_providence: (
+    <>
+      <circle cx={12} cy={12} r={8} strokeDasharray="2.4 2.2" />
+      <path d="M12 7.4 16.6 12 12 16.6 7.4 12Z" />
+    </>
+  ),
+  creed_many_futures: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M12 12V5.6M12 12l5.4 3.2M12 12l-5.4 3.2" strokeDasharray="2 1.6" />
+      <Dot x={12} y={12} r={1.4} />
+    </>
+  ),
+  creed_tells: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M7 12c1.6-2 3.2-3 5-3s3.4 1 5 3c-1.6 2-3.2 3-5 3s-3.4-1-5-3Z" />
+      <Dot x={12} y={12} r={1.2} />
+    </>
+  ),
+  creed_foreknown: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M8.4 14.6c1.2-1 2.4 1 3.6 0s2.4 1 3.6 0" />
+      <path d="M12 6.4v4.2l2.4 1.4" />
+    </>
+  ),
+  creed_kin: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M8.2 8.4h3.4v7.2H8.2Z" />
+      <path d="M12.4 8.4h3.4v7.2h-3.4Z" strokeDasharray="1.6 1.4" />
+    </>
+  ),
+  creed_salt: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M9 9l6 6M15 9l-6 6" />
+      <Dot x={12} y={6.6} r={1} />
+      <Dot x={12} y={17.4} r={1} />
+    </>
+  ),
+  creed_signature: (
+    <>
+      <circle cx={12} cy={12} r={8} />
+      <path d="M7.4 14.4c1.4-3.4 2.6-3.4 3.2-1.4s1.6 2 2.6-.2 2.2-1.6 3.4.2" />
+      <path d="M7.4 16.6h9.2" strokeDasharray="1.6 1.4" />
+    </>
+  ),
+
   // ---- a second shelf ------------------------------------------------------
   // Relics stay objects: a thing you could pick up and put in a pocket.
   split_focus: (

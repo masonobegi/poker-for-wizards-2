@@ -19,7 +19,8 @@ import { rosterFor } from './shop';
 import type {
   BetAction, BotSkill, Player, SigilTargets, StackEntry, Table, TableSpeed,
 } from '../../shared/types';
-import { canCast, cardsOf, live, manaCost, modsFor, scoringHole, sigilHandSize, totalPot } from './table';
+import { bloodOwed, canCast, cardsOf, live, manaCost, modsFor, scoringHole, sigilHandSize, totalPot } from './table';
+import { hasRule, hasVision } from '../../shared/relics';
 import { resolveStack } from './magic';
 import { config } from '../config';
 
@@ -152,7 +153,45 @@ function equityKey(t: Table, p: Player): string {
     t.handNumber, t.phase, t.board.length,
     p.id, p.hole.join(''), live(t).length,
     t.board.join(''),
+    // What this seat knows changes the answer (see `known`).
+    p.foreknowledge?.seenHole.length ?? 0, p.foreknowledge?.deckPeek.join('') ?? '', t.deck?.[0] ?? '',
   ].join('|');
+}
+
+/**
+ * What a seat legitimately knows, for its equity read: opponents' hole cards
+ * it has been shown (Cold Read, False Face, the Informant, the Quiet's
+ * tells), and the cards still to come that it has seen in the draw pile
+ * (Foresight, Second Sight, Thin Veil, the Long Now's creed).
+ *
+ * Until 2026-10-10 every rollout dealt each opponent two random cards and a
+ * random runout whatever the seat had read, so a bot that cast Cold Read
+ * played exactly as if it had not, and an information relic did nothing for
+ * the harness's player. Only what this seat was shown is used; previews pass
+ * `know` false, because a preview resolves the spell on a copy of the table
+ * and would otherwise read the very cards the spell has not yet shown it.
+ */
+function known(t: Table, p: Player): { holes: Map<string, CardEntity[]>; runout: Array<CardEntity | null> } {
+  const holes = new Map<string, CardEntity[]>();
+  const fk = p.foreknowledge;
+  if (!fk) return { holes, runout: [] };
+  for (const q of live(t)) {
+    if (q.id === p.id) continue;
+    const seen = q.hole
+      .filter((id) => fk.seenHole.includes(id))
+      .map((id) => t.cards.get(id))
+      .filter((c): c is CardEntity => !!c && c.veil !== 'sealed');
+    if (seen.length) holes.set(q.id, seen.slice(0, 2));
+  }
+  const need = Math.max(0, 5 - t.board.length);
+  const top = hasVision(p.relics, 'deck_top');
+  const runout: Array<CardEntity | null> = [];
+  for (let i = 0; i < need; i++) {
+    const id = t.deck?.[i];
+    const seen = !!id && (fk.deckPeek.includes(id) || (top && i === 0));
+    runout.push(seen ? t.cards.get(id) ?? null : null);
+  }
+  return { holes, runout };
 }
 
 export function equity(t: Table, p: Player, rng: Rng): number {
@@ -179,7 +218,7 @@ const ROLLOUT_COMBOS = 300;
  * Rough win probability from rolling out the rest of the board and giving each
  * live opponent two random unseen cards.
  */
-function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): number {
+function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number, know = true): number {
   const opponents = live(t).filter((q) => q.id !== p.id);
   if (opponents.length === 0) return 1;
 
@@ -187,12 +226,17 @@ function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): numbe
   const myHole = cardsOf(t, scoringHole(t, p));
   if (myHole.length === 0) return 0;
 
-  const pool = unseen(t, p);
+  const knows = know ? known(t, p) : { holes: new Map<string, CardEntity[]>(), runout: [] };
+  const pinned = new Set<string>(knows.runout.filter((c): c is CardEntity => !!c).map((c) => c.id));
+  const pool = pinned.size ? unseen(t, p).filter((id) => !pinned.has(id)) : unseen(t, p);
   const need = Math.max(0, 5 - t.board.length);
   const boardCards = cardsOf(t, t.board);
 
-  // Superposed or wild cards blow up the search space; fall back to a cheap read.
-  const exotic = [...myHole, ...boardCards].some((c) => isQuantum(c) || c.marks.length > 0);
+  // Superposed or wild cards blow up the search space; fall back to a cheap
+  // read. A rule that makes cards Wild (the Lodestone, Kin, the Prism Lens)
+  // costs the same as a printed Wild.
+  const exotic = [...myHole, ...boardCards].some((c) => isQuantum(c) || c.marks.length > 0)
+    || !!mods.wildRanks?.length || !!mods.copiesWild || !!mods.prismIsWild;
   const crowd = Math.max(1, opponents.length);
   const base = t.board.length === 0 ? PREFLOP_SIMS : POSTFLOP_SIMS;
   // Each opponent costs a full evaluation per rollout, so scale the sample down
@@ -211,7 +255,10 @@ function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): numbe
     const bag = rng.shuffle(pool);
     let k = 0;
     const runout: CardEntity[] = [];
-    for (let i = 0; i < need && k < bag.length; i++) {
+    for (let i = 0; i < need; i++) {
+      const seen = knows.runout[i];
+      if (seen) { runout.push(seen); continue; }
+      if (k >= bag.length) break;
       const c = t.cards.get(bag[k++]);
       if (c) runout.push(c);
     }
@@ -221,8 +268,8 @@ function computeEquity(t: Table, p: Player, rng: Rng, fixedSims?: number): numbe
     let best = -Infinity;
     let bestIsTie = false;
     for (const o of opponents) {
-      const oHole: CardEntity[] = [];
-      for (let i = 0; i < 2 && k < bag.length; i++) {
+      const oHole: CardEntity[] = [...(knows.holes.get(o.id) ?? [])];
+      while (oHole.length < 2 && k < bag.length) {
         const c = t.cards.get(bag[k++]);
         if (c) oHole.push(c);
       }
@@ -487,7 +534,9 @@ function pickRank(t: Table, p: Player, rng: Rng, favourMine: boolean): Rank {
 }
 
 function targetsFor(t: Table, p: Player, def: SigilDef, rng: Rng): SigilTargets | null {
-  const opponents = live(t).filter((q) => q.id !== p.id && !q.warded);
+  // Nobody in a Sanctum can be named, and its owner names nobody.
+  const opponents = hasRule(p.relics, 'sanctum') ? []
+    : live(t).filter((q) => q.id !== p.id && !q.warded && !hasRule(q.relics, 'sanctum'));
   const boardIds = t.board;
 
   switch (def.target) {
@@ -618,7 +667,7 @@ function preview(
   // Resolving on the copy is cheap and is all a fizzle check needs. The two
   // equity reads are the expensive part, and only they are budgeted.
   let measured = previewClock.now() <= previewDeadline && !tooCostly(copy, seat);
-  const before = measured ? computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS) : 0;
+  const before = measured ? computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS, false) : 0;
   const printBefore = seatPrint(copy, seat);
 
   copy.stack = { entries: structuredClone(entries), pending: [], closesAt: 0 };
@@ -634,7 +683,7 @@ function preview(
   const touched = seatPrint(copy, seat) !== printBefore;
   if (measured && !out && tooCostly(copy, seat)) measured = false;
   if (!measured) return { fizzled, delta: 0, measured, touched };
-  const after = out ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS);
+  const after = out ? 0 : computeEquity(copy, seat, new Rng(seed), PREVIEW_SIMS, false);
   return { fizzled, delta: after - before, measured, touched };
 }
 
@@ -744,7 +793,13 @@ export function decideCast(t: Table, p: Player, rng: Rng): BotCast | null {
   const eq = t.board.length > 0 ? equity(t, p, rng) : 0.5;
 
   for (const { s, def } of rng.shuffle(options)) {
-    if (p.mana - manaCost(p, def) < reserve) continue;
+    const cost = manaCost(p, def, t);
+    if (cost > p.mana) {
+      // The Blood Price: a bot bleeds for a sigil only when it is cheap
+      // against its stack, a few big blinds out of a deep one.
+      const owed = bloodOwed(t, p, cost);
+      if (owed === null || owed > p.chips * 0.08) continue;
+    } else if (p.mana - cost < reserve) continue;
 
     let want = (def.botBias ?? 0.5) * pr.arcane;
     // Lean on magic when the cards are not cooperating, and to press an edge.

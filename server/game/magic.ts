@@ -14,7 +14,7 @@
 import { nanoid } from 'nanoid';
 import {
   type CardEntity, type Face, type MarkId, type Rank, type Suit,
-  RANK_LABEL, RANK_NAME, SUITS, collapse, faceLabel, isInscribeMark, isQuantum, makeCard, nextCardId,
+  MARKS, RANK_LABEL, RANK_NAME, SUITS, collapse, faceLabel, isInscribeMark, isQuantum, makeCard, nextCardId,
 } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -22,11 +22,12 @@ import {
   SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
 } from '../../shared/sigils';
 import { resolveClause } from './scribed';
+import { hasRule } from '../../shared/relics';
 import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, byId, canCast, card, describeCard, live, log, manaCost, sigilHandSize,
+  alive, bloodOwed, byId, canCast, card, describeCard, live, log, manaCost, ruleRelic, sigilHandSize,
 } from './table';
 
 export interface MagicCtx {
@@ -112,6 +113,17 @@ export function superposeCard(ctx: MagicCtx, c: CardEntity, extra?: Face): void 
     c.faces = [current, add];
   } else {
     c.faces = [...c.faces, add];
+  }
+  // The Unmoored's creed: a card that goes undecided in their hand holds a
+  // third face. Only when the card arrives at two, so a card superposed
+  // twice in one hand does not keep growing.
+  const holder = ctx.t.players.find((p) => p.hole.includes(c.id));
+  if (holder && c.faces.length === 2 && hasRule(holder.relics, 'many_futures')) {
+    const third = unseenFace(ctx);
+    if (!c.faces.some((f) => f.rank === third.rank && f.suit === third.suit)) {
+      c.faces.push(third);
+      log(ctx.t, `${holder.name}'s card holds three futures.`, 'magic', { playerId: holder.id, rule: ruleRelic(holder, 'many_futures') });
+    }
   }
   c.collapsed = null;
   ctx.fx.push({ t: 'superpose', cardId: c.id });
@@ -208,8 +220,22 @@ export function castSigil(
   if (targetError) return { ok: false, error: targetError };
 
   const cost = manaCost(p, def, t);
-  p.mana -= cost;
+  // The Blood Price: what the pool cannot pay, the stack does, a big blind a
+  // mana (castBlock already checked there is enough to leave a chip behind).
+  const blood = p.mana < cost ? bloodOwed(t, p, cost) : 0;
+  if (blood === null) return { ok: false, error: 'Not enough mana' };
+  if (blood > 0) {
+    log(t, `${p.name} pays ${cost - p.mana} mana in blood: ${blood.toLocaleString()} chips.`, 'warn', { playerId: p.id, rule: ruleRelic(p, 'blood_price') });
+    p.chips -= blood;
+    p.mana = 0;
+    ctx.fx.push({ t: 'flash', color: SCHOOLS.ruin.accent, power: 0.35 });
+  } else {
+    p.mana -= cost;
+  }
   p.sigils = p.sigils.filter((s) => s.uid !== uid);
+  // Twice-Told: the first sigil of the hand resolves twice.
+  const twice = (p.castsThisHand ?? 0) === 0 && hasRule(p.relics, 'twice_told');
+  p.castsThisHand = (p.castsThisHand ?? 0) + 1;
 
   const entry: StackEntry = {
     id: nanoid(8),
@@ -219,6 +245,7 @@ export function castSigil(
     countered: false,
     costPaid: cost,
     ...(inst.scribed ? { scribed: inst.scribed } : {}),
+    ...(twice ? { twice: true } : {}),
   };
 
   if (!t.stack) t.stack = { entries: [], pending: [], closesAt: 0 };
@@ -231,7 +258,12 @@ export function castSigil(
   ctx.fx.push({ t: 'sfx', name: `cast_${def.school}` });
   log(t, `${p.name} casts ${def.name}.`, 'magic', { school: def.school, playerId: p.id });
 
-  const pending = def.unstoppable ? [] : respondersFor(t, p.id);
+  // Vow of Silence: nobody may answer its owner's sigils.
+  const vowed = hasRule(p.relics, 'vow');
+  if (vowed && !def.unstoppable && respondersFor(t, p.id).length > 0) {
+    log(t, `${p.name}'s ${def.name} cannot be answered.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'vow') });
+  }
+  const pending = def.unstoppable || vowed ? [] : respondersFor(t, p.id);
   t.stack.pending = pending;
   t.stack.closesAt = pending.length ? Date.now() + t.config.responseSeconds * 1000 : 0;
 
@@ -243,8 +275,13 @@ function validateTargets(t: Table, p: Player, def: SigilDef, tg: SigilTargets): 
     if (t.board.includes(id)) return true;
     return t.players.some((q) => q.hole.includes(id));
   };
+  // Gloaming wards a hand for one hand; the Sanctum wards it for the run.
+  const sanctumOf = (q: Player): boolean => hasRule(q.relics, 'sanctum');
   const wardedHolder = (id: string): boolean =>
-    t.players.some((q) => q.warded && q.id !== p.id && q.hole.includes(id));
+    t.players.some((q) => (q.warded || sanctumOf(q)) && q.id !== p.id && q.hole.includes(id));
+  // And the Sanctum's owner may not reach into anyone else's hand.
+  const opponentsCard = (id: string): boolean =>
+    sanctumOf(p) && t.players.some((q) => q.id !== p.id && q.hole.includes(id));
 
   switch (def.target) {
     case 'none':
@@ -255,6 +292,8 @@ function validateTargets(t: Table, p: Player, def: SigilDef, tg: SigilTargets): 
       if (!q || q.id === p.id) return 'Choose an opponent';
       if (q.folded || q.eliminated) return 'That player is out of the hand';
       if (q.warded) return 'Their cards are warded this hand';
+      if (sanctumOf(q)) return 'They are in their Sanctum';
+      if (sanctumOf(p)) return 'Your Sanctum forbids naming an opponent';
       return null;
     }
     case 'rank':
@@ -275,6 +314,7 @@ function validateTargets(t: Table, p: Player, def: SigilDef, tg: SigilTargets): 
       const id = tg.cardIds?.[0];
       if (!id || !visible(id)) return 'Choose a card in play';
       if (wardedHolder(id)) return 'That card is warded';
+      if (opponentsCard(id)) return 'Your Sanctum forbids reaching into another hand';
       return null;
     }
     case 'two_cards': {
@@ -283,6 +323,7 @@ function validateTargets(t: Table, p: Player, def: SigilDef, tg: SigilTargets): 
       if (ids[0] === ids[1]) return 'Choose two different cards';
       if (!ids.every(visible)) return 'Both cards must be in play';
       if (ids.some(wardedHolder)) return 'One of those cards is warded';
+      if (ids.some(opponentsCard)) return 'Your Sanctum forbids reaching into another hand';
       return null;
     }
     default:
@@ -318,6 +359,13 @@ export function resolveStack(ctx: MagicCtx): void {
       continue;
     }
     applyEffect(ctx, e, entries, i);
+    if (e.twice) {
+      const caster = byId(t, e.casterId);
+      log(t, `Twice-Told: ${def?.name ?? 'the sigil'} resolves again.`, 'impossible', {
+        playerId: e.casterId, rule: caster ? ruleRelic(caster, 'twice_told') : 'twice_told',
+      });
+      applyEffect(ctx, e, entries, i);
+    }
   }
 
   // Bound cards catch up with whatever just happened to their partners.
@@ -605,6 +653,17 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       ctx.fx.push({ t: 'burn', cardId: firstCard.id });
       ctx.fx.push({ t: 'sfx', name: 'card_burn' });
       note(`${caster.name} burns ${describeCard(t, firstCard.id)} out of the board.`, 'impossible');
+      // The Ashen's creed: the rank goes with the card, as Unmake would take it.
+      if (hasRule(caster.relics, 'salt')) {
+        const face = firstCard.collapsed !== null ? firstCard.faces[firstCard.collapsed] : null;
+        if (face && !(t.mods.deadRanks ?? []).includes(face.rank)) {
+          t.mods.deadRanks = [...(t.mods.deadRanks ?? []), face.rank];
+          t.modNotes.push(`${RANK_NAME[face.rank]}s are salted`);
+          log(t, `Salt: ${RANK_NAME[face.rank]}s are struck from every hand.`, 'impossible', {
+            school: def.school, playerId: caster.id, rule: ruleRelic(caster, 'salt'),
+          });
+        }
+      }
       break;
     }
     case 'unmake': {
@@ -661,7 +720,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       // Held to the picker's list here too: the engine is also driven by bots
       // and tests, not only by sanitizeTargets.
       const mark: MarkId = isInscribeMark(tg.markId) ? tg.markId : 'blooded';
-      if (!firstCard.marks.includes(mark)) firstCard.marks.push(mark);
+      if (!firstCard.marks.includes(mark)) {
+        firstCard.marks.push(mark);
+        sign(t, caster, firstCard, mark);
+      }
       ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: mark });
       ctx.fx.push({ t: 'sfx', name: 'inscribe' });
       note(`${caster.name} inscribes this card permanently. It will carry the mark into every hand after.`, 'impossible');
@@ -997,6 +1059,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       ctx.fx.push({ t: 'counter', sigilId: target.sigilId, casterId: caster.id });
       ctx.fx.push({ t: 'sfx', name: 'spell_counter' });
       note(`${caster.name} nullifies ${entryDef(target)?.name}.`, 'impossible');
+      magpie(t, caster, target);
       break;
     }
     case 'redirect': {
@@ -1043,6 +1106,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
         target.countered = true;
         ctx.fx.push({ t: 'counter', sigilId: target.sigilId, casterId: caster.id });
         note(`${owner?.name ?? 'The caster'} cannot pay the toll. ${entryDef(target)?.name} fizzles.`, 'impossible');
+        magpie(t, caster, target);
       } else {
         owner.mana -= due;
         note(`${owner.name} pays ${due} more mana to keep ${entryDef(target)?.name} alive.`);
@@ -1259,7 +1323,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       const next = t.deck[0];
       const c = next ? card(t, next) : undefined;
       if (!canAlter(c)) { note('The deck had nothing to write on.', 'warn'); break; }
-      if (!c.marks.includes('wild')) c.marks.push('wild');
+      if (!c.marks.includes('wild')) { c.marks.push('wild'); sign(t, caster, c, 'wild'); }
       ctx.fx.push({ t: 'inscribe', cardId: c.id, markId: 'wild' });
       ctx.fx.push({ t: 'sfx', name: 'inscribe' });
       note(`${caster.name} writes on a card before anyone has drawn it.`, 'impossible');
@@ -1269,6 +1333,43 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     default:
       note(`${def.name} resolves.`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Relic and creed rules that hang off an effect
+// ---------------------------------------------------------------------------
+
+/** The Magpie: a counter brings the countered sigil to the counterer's hand. */
+const stolen = new WeakSet<StackEntry>();
+function magpie(t: Table, counterer: Player, countered: StackEntry): void {
+  if (!hasRule(counterer.relics, 'magpie') || countered.casterId === counterer.id) return;
+  // Once per countered sigil: a Twice-Told Nullify counters it twice, and
+  // keeps it once.
+  if (stolen.has(countered)) return;
+  stolen.add(countered);
+  // A sigil written in words keeps its words; a printed one is a fresh copy.
+  const inst: SigilInstance = countered.scribed
+    ? { uid: nanoid(8), defId: countered.sigilId, scribed: countered.scribed }
+    : { uid: nanoid(8), defId: countered.sigilId };
+  const name = entryDef(countered)?.name ?? 'the sigil';
+  if (!giveSigil(t, counterer, inst)) {
+    log(t, `${counterer.name}'s Magpie has no room for ${name}.`, 'warn', { playerId: counterer.id });
+    return;
+  }
+  log(t, `${counterer.name}'s Magpie keeps ${name}.`, 'magic', { playerId: counterer.id, rule: ruleRelic(counterer, 'magpie') });
+}
+
+/**
+ * The Loom's creed: a mark its owner writes works only for them. Harmful
+ * marks (Leaden, Cursed) are not signed: they still hurt whoever draws them.
+ */
+const SIGNABLE: readonly MarkId[] = ['wild', 'prism', 'blooded', 'echo'];
+export function sign(t: Table, writer: Player, c: CardEntity, mark: MarkId): void {
+  if (!SIGNABLE.includes(mark) || !hasRule(writer.relics, 'signature')) return;
+  c.markBy = { ...(c.markBy ?? {}), [mark]: writer.id };
+  log(t, `${writer.name} signs the ${MARKS[mark].name}: it works for them alone.`, 'magic', {
+    playerId: writer.id, rule: ruleRelic(writer, 'signature'),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1313,6 +1414,9 @@ export function clearHandMagic(t: Table): void {
     p.betVeiled = false;
     p.blinded = false;
     p.foreknowledge = { deckPeek: [], seenHole: [], divergedFrom: {}, lies: {}, seenSigils: [] };
+    p.castsThisHand = 0;
+    p.lodestone = undefined;
+    p.tells = undefined;
   }
 }
 

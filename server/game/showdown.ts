@@ -7,7 +7,7 @@
  * scored on their own terms and then compared — which is the only way a table
  * running six different rulebooks at once can still settle a bet.
  */
-import { cardsOf, byId, live, alive, log, modsFor, scoringHole } from './table';
+import { cardsOf, byId, describeCard, live, alive, log, modsFor, scoringHole } from './table';
 import { viewCard } from '../../shared/cards';
 import { type HandResult, Cat, evaluate } from '../../shared/hand';
 import { RELIC_BY_ID, hasVision } from '../../shared/relics';
@@ -138,6 +138,22 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
       if (w.requireCat !== undefined && sc?.used.cat !== w.requireCat) continue;
       if (w.shards) s += w.shards;
       if (w.chipsPerBB) p.chips += w.chipsPerBB * t.bb;
+      // The Engraver: a contested win writes its mark, for good, onto one
+      // unmarked card of the winning five (the highest, so it is the card
+      // that mattered). The deck is shared.
+      if (w.engrave && sc && !uncontested) {
+        const target = sc.used.usedIds
+          .map((cid) => t.cards.get(cid))
+          .filter((c): c is NonNullable<typeof c> => !!c && c.marks.length === 0 && !c.amber && c.origin !== 'conjured' && c.faces.length === 1)
+          .sort((a, b) => b.faces[0].rank - a.faces[0].rank)[0];
+        if (target) {
+          target.marks.push(w.engrave);
+          fx.push({ t: 'inscribe', cardId: target.id, markId: w.engrave });
+          log(t, `${p.name}'s ${def.name} engraves ${describeCard(t, target.id)} ${w.engrave === 'prism' ? 'Prism' : w.engrave}, for good.`, 'impossible', {
+            playerId: p.id, rule: rid,
+          });
+        }
+      }
     }
 
     if (sc?.used.impossible) s += 4;

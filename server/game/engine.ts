@@ -8,10 +8,11 @@
  */
 import { nanoid } from 'nanoid';
 import { config } from '../config';
-import { type Face, type Rank, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
+import { type Face, type Rank, RANKS, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
+import { Cat, evaluate } from '../../shared/hand';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
-import { RELICS, RELIC_BY_ID, hasVision, relicNumber } from '../../shared/relics';
+import { RELICS, RELIC_BY_ID, hasRule, hasVision, isCreed, relicNumber } from '../../shared/relics';
 import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
@@ -24,10 +25,10 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  contenders, freeSeat, live, log, maxManaFor, nextSeat, refreshMaxMana, seated, sigilHandSize,
+  contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
 } from './table';
 import {
-  bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
+  applySeal, bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
   randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
   type MagicCtx,
 } from './magic';
@@ -36,7 +37,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, leanOf } from '../../shared/covens';
+import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -329,6 +330,9 @@ export class Engine {
       // or it is not the same run as everyone else's.
       if (!p.isBot && isDailySeed(t.config.seed)) p.coven = dailyCoven(t.config.seed.slice('daily:'.length));
       const coven = covenOf(p.coven);
+      // The creed first: it is the coven's rule, and the relic is its kit.
+      const creed = creedOf(coven);
+      if (creed) p.relics.push(creed);
       if (coven.relic) p.relics.push(coven.relic);
       for (const defId of coven.sigils) {
         if (SIGIL_BY_ID[defId]) giveSigil(t, p, { uid: nanoid(8), defId });
@@ -341,7 +345,7 @@ export class Engine {
       // relic that touches hand size currently adds to it, which is the only
       // reason that is not already a hang.
       for (let i = 0; i < 2 && p.sigils.length < 2; i++) {
-        if (!giveSigil(t, p, randomSigil(opening))) break;
+        if (!giveSigil(t, p, randomSigil(opening, !hasRule(p.relics, 'providence')))) break;
       }
       // Hex II: the opponents arrive already equipped.
       if (p.isBot && t.config.hex >= 2) {
@@ -408,7 +412,7 @@ export class Engine {
       // ended every hand with four unspent mana per player out of a ceiling
       // of eight — which means casting was never a choice, only a chore you
       // could skip. Scarcity is what makes a sigil a decision.
-      p.mana = Math.min(p.maxMana, p.mana + 2);
+      p.mana = Math.min(p.maxMana, p.mana + 2 + relicNumber(p.relics, (r) => r.mana?.start));
 
       // Two a hand, not one: the spell layer is the reason to play, and one
       // draw meant most sigils never came up in a whole run.
@@ -419,9 +423,11 @@ export class Engine {
       // is a pool for the whole run and not only its opening hand.
       const lean = leanOf(covenOf(p.coven));
       const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
+      // The Unaligned's creed: their draws ignore rarity.
+      const weighted = !hasRule(p.relics, 'providence');
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
-          giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
+          giveSigil(t, p, randomSigil(this.rng, weighted, i === 0 && leans ? lean! : undefined));
         }
       }
     }
@@ -464,6 +470,22 @@ export class Engine {
       }
     }
 
+    // The Keepsake: a hole card folded before the flop last hand is dealt
+    // back first. It is taken out of the draw pile so nobody else can draw it.
+    for (const p of players) {
+      const kept = p.keepsake;
+      p.keepsake = undefined;
+      if (!kept || !hasRule(p.relics, 'keepsake') || !t.cards.has(kept)) continue;
+      const at = t.deck.indexOf(kept);
+      if (at < 0) continue;
+      t.deck.splice(at, 1);
+      p.hole.push(kept);
+      const kc = card(t, kept);
+      if (kc) kc.origin = 'deck';
+      applySeal(t, kept);
+      log(t, `${p.name}'s Keepsake: ${describeCard(t, kept)} comes back to them.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'keepsake') });
+    }
+
     const omenHole = omenNumber(t.omens, (o) => o.deal?.extraHole);
     const perPlayer = players.map(
       (p) => 2 + omenHole + relicNumber(p.relics, (r) => r.deal?.extraHole),
@@ -472,7 +494,7 @@ export class Engine {
 
     for (let round = 0; round < maxCards; round++) {
       players.forEach((p, i) => {
-        if (round >= perPlayer[i]) return;
+        if (round >= perPlayer[i] || p.hole.length >= perPlayer[i]) return;
         const id = drawId(ctx);
         if (!id) return;
         p.hole.push(id);
@@ -495,6 +517,18 @@ export class Engine {
         }
       }
       this.fx.push({ t: 'deal', cardIds: p.hole, to: p.id, stagger: 80 });
+    }
+
+    // The Lodestone: a rank for this hand, drawn in front of the table, Wild
+    // for its owner (table.ts modsFor).
+    for (const p of players) {
+      if (!hasRule(p.relics, 'lodestone')) continue;
+      const rank = this.stream(`lodestone:${t.handNumber}:${p.seat}`).pick(RANKS);
+      p.lodestone = rank;
+      t.modNotes.push(`${RANK_NAME[rank]}s are Wild for ${p.name}`);
+      log(t, `${p.name}'s Lodestone draws ${RANK_NAME[rank]}s: every ${RANK_NAME[rank]} is Wild for them this hand.`, 'impossible', {
+        playerId: p.id, rule: ruleRelic(p, 'lodestone'),
+      });
     }
 
     // Cold Read: one hole card of every other player, from the deal. A sealed
@@ -660,6 +694,51 @@ export class Engine {
     log(t, `${phase[0].toUpperCase()}${phase.slice(1)}: ${dealt.map((id) => describeCard(t, id)).join(' ')}`, 'plain');
 
     if (phase === 'river') grantInformantVision(t, this.rng);
+    if (phase === 'flop') this.foreknown();
+    if (phase === 'river') this.secondRiver();
+  }
+
+  /**
+   * The Long Now's creed: with the flop down, the river is the second card
+   * of the draw pile (the turn is the first). Its owner sees it the way
+   * Foresight shows it, and a Rewind or a Burn can still change what comes.
+   */
+  private foreknown(): void {
+    const t = this.table;
+    const river = t.deck[1];
+    if (!river) return;
+    for (const p of live(t)) {
+      if (!hasRule(p.relics, 'foreknown') || p.foreknowledge.deckPeek.includes(river)) continue;
+      p.foreknowledge.deckPeek = [...p.foreknowledge.deckPeek, river];
+      log(t, `${p.name} has already seen the river.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'foreknown') });
+    }
+  }
+
+  /**
+   * The Second River: once a hand, the first owner in seat order whose seven
+   * cards read as High Card has the river dealt again, in front of the table.
+   * Under a worst-hand-wins rule a High Card is not a miss, so it stands.
+   */
+  private secondRiver(): void {
+    const t = this.table;
+    const id = t.board[t.board.length - 1];
+    if (!id || card(t, id)?.amber) return;
+    for (const p of live(t)) {
+      if (!hasRule(p.relics, 'second_river')) continue;
+      const mods = modsFor(t, p);
+      if (mods.lowWins) continue;
+      if (evaluate({ cards: handCards(t, p), viewerId: p.id, mods }).cat !== Cat.HighCard) continue;
+      const fresh = drawId(this.ctx());
+      if (!fresh) return;
+      t.board[t.board.length - 1] = fresh;
+      t.discard.push(id);
+      this.fx.push({ t: 'rewind', cardId: fresh });
+      this.fx.push({ t: 'sfx', name: 'rewind' });
+      log(t, `${p.name}'s Second River: ${describeCard(t, id)} is unmade and the river runs again (${describeCard(t, fresh)}).`, 'impossible', {
+        playerId: p.id, rule: ruleRelic(p, 'second_river'),
+      });
+      return;
+    }
   }
 
   /**
@@ -891,6 +970,7 @@ export class Engine {
             log(t, `${q.name} inherits from ${p.name}.`, 'magic', { playerId: q.id });
           }
         }
+        this.usurp(p);
       }
     }
 
@@ -932,6 +1012,27 @@ export class Engine {
     });
     this.fx.push({ t: 'sfx', name: 'superpose' });
     return true;
+  }
+
+  /**
+   * The Usurper: whoever took a player's last chip, holding it, takes every
+   * relic they held (a creed stays with its coven).
+   */
+  private usurp(out: Player): void {
+    const t = this.table;
+    const taker = t.payout?.entries
+      .filter((e) => e.playerId !== out.id && e.won > 0)
+      .sort((a, b) => b.won - a.won)[0];
+    const q = taker ? byId(t, taker.playerId) : undefined;
+    if (!q || q.eliminated || !hasRule(q.relics, 'usurper')) return;
+    const taken = out.relics.filter((id) => !isCreed(id) && !q.relics.includes(id));
+    if (!taken.length) return;
+    q.relics.push(...taken);
+    out.relics = out.relics.filter((id) => !taken.includes(id));
+    refreshMaxMana(q, t);
+    log(t, `${q.name} usurps ${out.name}: ${taken.map((id) => RELIC_BY_ID[id]?.name ?? id).join(', ')}.`, 'impossible', {
+      playerId: q.id, rule: ruleRelic(q, 'usurper'),
+    });
   }
 
   /**
@@ -1250,6 +1351,17 @@ export class Engine {
         if (t.phase === 'preflop') {
           const bonus = relicNumber(p.relics, (r) => r.economy?.perFold);
           if (bonus > 0) p.shards += bonus;
+          // The Keepsake: the higher of the folded hole cards waits for the next deal.
+          if (hasRule(p.relics, 'keepsake')) {
+            const best = p.hole
+              .map((id) => card(t, id))
+              .filter((c): c is NonNullable<typeof c> => !!c && c.origin !== 'conjured' && c.faces.length === 1)
+              .sort((a, b) => b.faces[0].rank - a.faces[0].rank)[0];
+            if (best) {
+              p.keepsake = best.id;
+              log(t, `${p.name} keeps a card for next hand.`, 'magic', { playerId: p.id, rule: ruleRelic(p, 'keepsake') });
+            }
+          }
         }
         break;
       }
@@ -1285,6 +1397,7 @@ export class Engine {
         const verb = p.allIn ? 'is all in for' : kind === 'bet' ? 'bets' : 'raises to';
         const hidden = p.betVeiled;
         log(t, `${p.name} ${verb} ${hidden ? '???' : p.bet.toLocaleString()}.`, hidden ? 'magic' : 'bet', { playerId: p.id });
+        this.tells(p);
         this.fx.push({ t: 'chips', playerId: p.id, amount: paid, allIn: p.allIn });
         this.fx.push({ t: 'sfx', name: p.allIn ? 'chip_allin' : 'chip_stack' });
         if (p.allIn) this.fx.push({ t: 'music', mood: 'tension' });
@@ -1296,6 +1409,24 @@ export class Engine {
 
     this.afterAction();
     return { ok: true };
+  }
+
+  /**
+   * The Quiet's creed: the first bet or raise each opponent makes in a hand
+   * shows a Quiet player one of that opponent's hole cards (never a sealed
+   * one, and never through a Sanctum or a Gloaming).
+   */
+  private tells(bettor: Player): void {
+    const t = this.table;
+    for (const q of live(t)) {
+      if (q.id === bettor.id || !hasRule(q.relics, 'tells')) continue;
+      if (q.tells?.includes(bettor.id) || bettor.warded || hasRule(bettor.relics, 'sanctum')) continue;
+      q.tells = [...(q.tells ?? []), bettor.id];
+      const unseen = bettor.hole.filter((id) => card(t, id)?.veil !== 'sealed' && !q.foreknowledge.seenHole.includes(id));
+      if (!unseen.length) continue;
+      q.foreknowledge.seenHole.push(this.stream(`tell:${t.handNumber}:${q.seat}:${bettor.seat}`).pick(unseen));
+      log(t, `${q.name} reads ${bettor.name}'s tell.`, 'magic', { playerId: q.id, rule: ruleRelic(q, 'tells') });
+    }
   }
 
   private roundComplete(): boolean {

@@ -44,7 +44,7 @@ before(async () => {
   ({ renderToStaticMarkup: render } = (await import('react-dom/server')) as never);
 
   const { SIGILS } = await import('@shared/sigils');
-  const { RELICS } = await import('@shared/relics');
+  const { RELICS, CREEDS } = await import('@shared/relics');
   const { OMENS } = await import('@shared/omens');
   const { MARKS } = await import('@shared/cards');
   const { COVENS } = await import('@shared/covens');
@@ -52,6 +52,8 @@ before(async () => {
   expected = [
     ...SIGILS.map((s) => ({ kind: 'sigil' as const, id: s.id })),
     ...RELICS.map((r) => ({ kind: 'relic' as const, id: r.id })),
+    // A creed sits in a player's relic row, so it is drawn like one.
+    ...CREEDS.map((r) => ({ kind: 'relic' as const, id: r.id })),
     ...OMENS.map((o) => ({ kind: 'omen' as const, id: o.id })),
     ...Object.values(MARKS).map((m) => ({ kind: 'card' as const, id: m.id })),
     { kind: 'ui' as const, id: 'mana' },

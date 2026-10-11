@@ -12,6 +12,31 @@ import { Cat } from './hand';
 
 export type RelicRarity = 'common' | 'rare' | 'mythic';
 
+/**
+ * Rules the engine runs for a relic or a coven's creed, at a named point in
+ * the hand. Each one is read in exactly one place, named beside it:
+ *
+ *   keepsake      engine.ts   fold before the flop; the deal gives the card back
+ *   second_river  engine.ts   dealStreet, the river
+ *   sanctum       table.ts    castBlock; magic.ts validateTargets
+ *   magpie        magic.ts    a counter (Nullify, a Toll that fizzles)
+ *   blood_price   table.ts    castBlock; magic.ts castSigil
+ *   vow           table.ts    castBlock; magic.ts castSigil
+ *   lodestone     engine.ts   dealHoleCards; table.ts modsFor
+ *   twice_told    magic.ts    castSigil, resolveStack
+ *   usurper       engine.ts   endHand, an elimination
+ *   providence    engine.ts   beginHand and start, the sigil draws
+ *   many_futures  magic.ts    superposeCard
+ *   tells         engine.ts   applyAction, a bet or raise
+ *   foreknown     engine.ts   dealStreet, the flop
+ *   salt          magic.ts    burn
+ *   signature     magic.ts    inscribe, first_draft; shop.ts a rite
+ */
+export type RuleId =
+  | 'keepsake' | 'second_river' | 'sanctum' | 'magpie' | 'blood_price' | 'vow'
+  | 'lodestone' | 'twice_told' | 'usurper'
+  | 'providence' | 'many_futures' | 'tells' | 'foreknown' | 'salt' | 'signature';
+
 export interface RelicDef {
   id: string;
   name: string;
@@ -30,14 +55,21 @@ export interface RelicDef {
    * river. every_hole: one hole card of every opponent, from the deal.
    */
   vision?: Array<'deck_top' | 'one_hole' | 'every_hole' | 'quantum_clouds' | 'all_mana'>;
-  /** Paid out at showdown. */
-  onWin?: { shards?: number; chipsPerBB?: number; requireCat?: Cat; requireImpossible?: boolean };
+  /**
+   * Paid out at showdown. `engrave` writes that mark, for good, onto one
+   * unmarked card of the winning hand (The Engraver).
+   */
+  onWin?: { shards?: number; chipsPerBB?: number; requireCat?: Cat; requireImpossible?: boolean; engrave?: MarkId };
   /** Applied while dealing. */
   deal?: { quantumHole?: number; extraHole?: number; markOwn?: MarkId; sealRank?: 'high' | 'low' };
   economy?: { interestPct?: number; perFold?: number; onEliminate?: number };
+  /** A rule the engine runs at one named point (see RuleId). */
+  rule?: RuleId;
+  /** Set on a coven's creed: never sold, never inherited, owned from the first hand. */
+  coven?: string;
 }
 
-export const RELICS: RelicDef[] = [
+const KEPT: RelicDef[] = [
   // ------------------------------------------------------------------ COMMON
   {
     id: 'broken_compass', name: 'Broken Compass', glyph: '✥', rarity: 'common', price: 8,
@@ -56,12 +88,6 @@ export const RELICS: RelicDef[] = [
     text: 'Hearts and Diamonds count as one suit. Spades and Clubs count as one suit.',
     impossible: 'Two suits occupying the same identity without reprinting the deck.',
     mods: { mergedColors: true },
-  },
-  {
-    id: 'deep_well', name: 'Deep Well', glyph: '◇', rarity: 'common', price: 7,
-    text: '+3 maximum mana.',
-    impossible: 'Mana. There is no mana at a card table.',
-    mana: { max: 3 },
   },
   {
     id: 'leyline', name: 'Leyline', glyph: '≋', rarity: 'common', price: 8,
@@ -171,12 +197,6 @@ export const RELICS: RelicDef[] = [
     economy: { interestPct: 25 },
   },
   {
-    id: 'kingmaker', name: 'Kingmaker', glyph: '☠', rarity: 'mythic', price: 25,
-    text: 'When a player is eliminated, take 10 shards and half of what they were holding.',
-    impossible: 'Inheriting something that was never on the table.',
-    economy: { onEliminate: 10 },
-  },
-  {
     id: 'apotheosis', name: 'Apotheosis', glyph: '✺', rarity: 'mythic', price: 30,
     text: 'Your hand is scored one category higher. Always.',
     impossible: 'Being handed a better hand than the one you were dealt.',
@@ -188,24 +208,6 @@ export const RELICS: RelicDef[] = [
   // reads, because a relic that needs new engine code is a sigil wearing the
   // wrong hat — and because the thinnest part of this game was never its
   // machinery, it was how many different runs the machinery could produce.
-  {
-    id: 'split_focus', name: 'Split Focus', glyph: '⑂', rarity: 'common', price: 8,
-    text: 'Draw one extra sigil at the start of every hand.',
-    impossible: 'Being dealt more of a thing the deck does not contain.',
-    sigils: { drawPerHand: 1 },
-  },
-  {
-    id: 'thrift', name: 'Thrift', glyph: '⊖', rarity: 'common', price: 10,
-    text: 'Every sigil you cast costs one less mana, to a minimum of one.',
-    impossible: 'A discount on a currency that does not exist.',
-    sigils: { costDelta: -1 },
-  },
-  {
-    id: 'open_palm', name: 'Open Palm', glyph: '☖', rarity: 'common', price: 7,
-    text: 'Start every hand with 2 mana already in hand.',
-    impossible: 'Beginning a hand mid-thought.',
-    mana: { start: 2 },
-  },
   {
     id: 'ladder', name: "The Ladder", glyph: '☰', rarity: 'common', price: 9,
     text: 'Your straights need only four cards in sequence.',
@@ -234,30 +236,12 @@ export const RELICS: RelicDef[] = [
     deal: { quantumHole: 2 },
   },
   {
-    id: 'the_usurer', name: 'The Usurer', glyph: '⌬', rarity: 'rare', price: 14,
-    text: '15% interest on unspent shards between antes.',
-    impossible: 'Nothing, which is why it is the only honest thing in the Market.',
-    economy: { interestPct: 15 },
-  },
-  {
     id: 'cold_read', name: 'Cold Read', glyph: '◎', rarity: 'rare', price: 16,
     text: 'You can see one hole card of every player at the table.',
     impossible: 'Seeing through the back of a card, continuously, without anybody being able to stop it.',
     // It said this and did The Informant's river peek instead (found
     // 2026-10-10, test/relics.test.ts): now it does what it says.
     vision: ['every_hole'],
-  },
-  {
-    id: 'the_gambler', name: 'The Gambler', glyph: '✧', rarity: 'rare', price: 15,
-    text: 'Win a pot with two pair or better and take 4 shards.',
-    impossible: 'Being paid a second time, by nobody, for the same hand.',
-    onWin: { shards: 4, requireCat: 2 },
-  },
-  {
-    id: 'low_road', name: 'The Low Road', glyph: '⊼', rarity: 'rare', price: 12,
-    text: 'Earn 2 shards every time you fold before the flop.',
-    impossible: 'Being paid twice for a hand you refused to play.',
-    economy: { perFold: 2 },
   },
 
   // --------------------------------------------------------------- MYTHIC II
@@ -266,13 +250,6 @@ export const RELICS: RelicDef[] = [
     text: 'You see the top of the deck, the mana of every player, and the shape of every undecided card.',
     impossible: 'Knowing everything that is about to happen and still having to bet on it.',
     vision: ['deck_top', 'all_mana', 'quantum_clouds'],
-  },
-  {
-    id: 'the_hoard', name: 'The Hoard', glyph: '⬢', rarity: 'mythic', price: 26,
-    text: '+4 maximum mana, +1 regen, and one more sigil in hand.',
-    impossible: 'Carrying more of an imaginary substance than the table can hold.',
-    mana: { max: 4, regen: 1 },
-    sigils: { handSize: 1 },
   },
   {
     id: 'the_long_game', name: 'The Long Game', glyph: '♾', rarity: 'mythic', price: 29,
@@ -290,12 +267,6 @@ export const RELICS: RelicDef[] = [
     text: 'Your straights need only four cards in a row, and Aces bridge both ends.',
     impossible: 'A sequence that is shorter for you than for the person beside you, and bends.',
     mods: { straightSize: 4, wheelWrap: true },
-  },
-  {
-    id: 'full_purse', name: 'Full Purse', glyph: '◕', rarity: 'common', price: 8,
-    text: 'You begin every hand with three mana already in the pool.',
-    impossible: 'Starting a hand owed something by the previous one.',
-    mana: { start: 3 },
   },
   {
     id: 'pauper_stone', name: 'Pauper’s Stone', glyph: '◧', rarity: 'common', price: 7,
@@ -316,10 +287,188 @@ export const RELICS: RelicDef[] = [
     deal: { markOwn: 'prism' },
   },
   {
+    id: 'wild_inheritance', name: 'Wild Inheritance', glyph: '✹', rarity: 'mythic', price: 20,
+    text: 'One of your hole cards is Wild every hand. Any rank, any suit, whatever the hand needs.',
+    impossible: 'A card that is every card, dealt to the same person every time.',
+    deal: { markOwn: 'wild' },
+  },
+];
+
+// ------------------------------------------------------------ THE RULE SHELF
+// Round 4 of the fun pass (FUN-REVIEW.md, 2026-10-10). The review's veteran
+// said "relics are mostly +1s", and the rubric scored it: of 45 relics, 19
+// were a number on a passive (more mana, more draws, a cheaper sigil, shards
+// for folding), and two of those (Open Palm, Full Purse) were never read by
+// the engine at all. What the genre remembers are the relics that change
+// what a hand is or how a street plays: Balatro's Shortcut, Four Fingers and
+// Ancient Joker, Slay the Spire's Necronomicon and Runic Pyramid, MTG's
+// hexproof, Phyrexian mana and "can't be countered".
+//
+// These twelve take the places of the twelve flattest numbers, one rarity
+// for one rarity, so the shelf stays 45 and its mix of commons, rares and
+// mythics is unchanged. Each line above a relic is why a player of the genre
+// wants it. RULE_RELICS = false puts the twelve numbers back.
+const RULES: RelicDef[] = [
+  // Balatro's Shortcut: the hand-definition joker veterans build around. It
+  // changes which draws are worth a call.
+  {
+    id: 'stepping_stones', name: 'Stepping Stones', glyph: '⋯', rarity: 'common', price: 8,
+    text: 'Your straights may skip one rank: Five, Six, Eight, Nine, Ten is a straight.',
+    impossible: 'A sequence with a hole in it that still counts as unbroken.',
+    mods: { straightGap: true },
+  },
+  // Slay the Spire's Runic Pyramid (keep what you would discard): folding
+  // before the flop stops being only a loss and becomes a plan.
+  {
+    id: 'keepsake', name: 'The Keepsake', glyph: '⚘', rarity: 'common', price: 7,
+    text: 'Fold before the flop and you keep your higher hole card: it is dealt back to you next hand.',
+    impossible: 'A card leaving the deck between hands and finding its way back to the same pair of hands.',
+    rule: 'keepsake',
+  },
+  // A reroll on a miss, paid for with a tell: the whole table watches the
+  // river run again and knows you had nothing. Power with an information cost.
+  {
+    id: 'second_river', name: 'The Second River', glyph: '⥮', rarity: 'common', price: 8,
+    text: 'Once a hand, if the river leaves you with nothing better than High Card, it is dealt again, in front of everyone.',
+    impossible: 'A river that runs twice because one player did not like it.',
+    rule: 'second_river',
+  },
+  // MTG's hexproof, with the cost Slay the Spire's boss relics teach: you
+  // cannot be touched, and you cannot touch anyone.
+  {
+    id: 'sanctum', name: 'The Sanctum', glyph: '⛫', rarity: 'common', price: 9,
+    text: 'No opponent’s sigil can target you or your hole cards. None of yours can target an opponent.',
+    impossible: 'A pair of hands the rest of the table’s magic cannot find.',
+    rule: 'sanctum',
+  },
+  // Balatro's synergy jokers: one piece that turns a common thing (a Prism
+  // from a rite, an omen, Gild or The Engraver) into the best thing.
+  {
+    id: 'prism_lens', name: 'The Prism Lens', glyph: '⟡', rarity: 'common', price: 9,
+    text: 'Every Prism card is fully Wild for you: any rank, any suit.',
+    impossible: 'Seeing four suits in a card and deciding it could be anything at all.',
+    mods: { prismIsWild: true },
+  },
+  // MTG's Commandeer and Spelljack: on a stack, stealing the spell you just
+  // answered is the best feeling the format has. Holding Nullify becomes a bet.
+  {
+    id: 'magpie', name: 'The Magpie', glyph: '⚲', rarity: 'rare', price: 14,
+    text: 'When you counter a sigil, it comes to your hand instead of vanishing.',
+    impossible: 'Catching a spell in mid-air and keeping it.',
+    rule: 'magpie',
+  },
+  // Balatro's Midas Mask and Hiker: jokers that rewrite the deck as you play.
+  // The deck is shared, so the Market's tension comes with it.
+  {
+    id: 'the_engraver', name: 'The Engraver', glyph: '⌖', rarity: 'rare', price: 14,
+    text: 'Win a showdown and one unmarked card of your winning hand is engraved Prism, for good. The deck is shared.',
+    impossible: 'Leaving your mark on a card nobody owns.',
+    onWin: { engrave: 'prism' },
+  },
+  // MTG's Phyrexian mana and the Ironclad's life-for-power: in poker your
+  // chips are your life, and now they are also your mana.
+  {
+    id: 'blood_price', name: 'The Blood Price', glyph: '⚕', rarity: 'rare', price: 12,
+    text: 'Short of mana for a sigil? Pay the rest in chips: one big blind for each missing mana, into the pot.',
+    impossible: 'Spending money on something that is not for sale.',
+    rule: 'blood_price',
+  },
+  // MTG's "can't be countered", with a boss relic's price: nobody answers
+  // your spells, and you never answer theirs.
+  {
+    id: 'vow_of_silence', name: 'Vow of Silence', glyph: '⊝', rarity: 'rare', price: 13,
+    text: 'Your sigils cannot be countered. You can never cast a response.',
+    impossible: 'A spell nobody can answer, from someone who never answers anything.',
+    rule: 'vow',
+  },
+  // Balatro's Ancient Joker and The Idol: a target that moves every hand
+  // makes every hand a new puzzle, and wild cards are the genre's best toy.
+  {
+    id: 'lodestone', name: 'The Lodestone', glyph: '⊛', rarity: 'mythic', price: 24,
+    text: 'Each hand a rank is drawn for you, in front of the table. Every card of that rank is Wild for you, that hand.',
+    impossible: 'Thirteen ranks taking turns being every card.',
+    rule: 'lodestone',
+  },
+  // Slay the Spire's Necronomicon and Balatro's retriggers: doubling your
+  // best spell makes the order you cast in the decision.
+  {
+    id: 'twice_told', name: 'Twice-Told', glyph: '⁂', rarity: 'mythic', price: 26,
+    text: 'The first sigil you cast each hand resolves twice.',
+    impossible: 'Saying a thing once and having it happen twice.',
+    rule: 'twice_told',
+  },
+  // Kingmaker paid shards for a knockout. This pays in what the genre's
+  // players actually covet: the other player's build.
+  {
+    id: 'the_usurper', name: 'The Usurper', glyph: '♚', rarity: 'mythic', price: 22,
+    text: 'Knock a player out of the run and every relic they held is yours.',
+    impossible: 'Inheriting another player’s impossibilities.',
+    rule: 'usurper',
+  },
+];
+
+/** The twelve numbers RULES replaced, kept so the change is one constant. */
+const RETIRED: RelicDef[] = [
+  {
+    id: 'deep_well', name: 'Deep Well', glyph: '◇', rarity: 'common', price: 7,
+    text: '+3 maximum mana.',
+    impossible: 'Mana. There is no mana at a card table.',
+    mana: { max: 3 },
+  },
+  {
+    id: 'split_focus', name: 'Split Focus', glyph: '⑂', rarity: 'common', price: 8,
+    text: 'Draw one extra sigil at the start of every hand.',
+    impossible: 'Being dealt more of a thing the deck does not contain.',
+    sigils: { drawPerHand: 1 },
+  },
+  {
+    id: 'thrift', name: 'Thrift', glyph: '⊖', rarity: 'common', price: 10,
+    text: 'Every sigil you cast costs one less mana, to a minimum of one.',
+    impossible: 'A discount on a currency that does not exist.',
+    sigils: { costDelta: -1 },
+  },
+  {
+    id: 'open_palm', name: 'Open Palm', glyph: '☖', rarity: 'common', price: 7,
+    text: 'Start every hand with 2 mana already in hand.',
+    impossible: 'Beginning a hand mid-thought.',
+    mana: { start: 2 },
+  },
+  {
+    id: 'full_purse', name: 'Full Purse', glyph: '◕', rarity: 'common', price: 8,
+    text: 'You begin every hand with three mana already in the pool.',
+    impossible: 'Starting a hand owed something by the previous one.',
+    mana: { start: 3 },
+  },
+  {
+    id: 'the_usurer', name: 'The Usurer', glyph: '⌬', rarity: 'rare', price: 14,
+    text: '15% interest on unspent shards between antes.',
+    impossible: 'Nothing, which is why it is the only honest thing in the Market.',
+    economy: { interestPct: 15 },
+  },
+  {
+    id: 'low_road', name: 'The Low Road', glyph: '⊼', rarity: 'rare', price: 12,
+    text: 'Earn 2 shards every time you fold before the flop.',
+    impossible: 'Being paid twice for a hand you refused to play.',
+    economy: { perFold: 2 },
+  },
+  {
+    id: 'the_gambler', name: 'The Gambler', glyph: '✧', rarity: 'rare', price: 15,
+    text: 'Win a pot with two pair or better and take 4 shards.',
+    impossible: 'Being paid a second time, by nobody, for the same hand.',
+    onWin: { shards: 4, requireCat: 2 },
+  },
+  {
     id: 'high_roller', name: 'High Roller', glyph: '△', rarity: 'rare', price: 12,
     text: 'Every pot you win pays you an extra two big blinds from nowhere.',
     impossible: 'A pot larger than what was put into it.',
     onWin: { chipsPerBB: 2 },
+  },
+  {
+    id: 'the_hoard', name: 'The Hoard', glyph: '⬢', rarity: 'mythic', price: 26,
+    text: '+4 maximum mana, +1 regen, and one more sigil in hand.',
+    impossible: 'Carrying more of an imaginary substance than the table can hold.',
+    mana: { max: 4, regen: 1 },
+    sigils: { handSize: 1 },
   },
   {
     id: 'the_understudy', name: 'The Understudy', glyph: '☷', rarity: 'mythic', price: 18,
@@ -328,16 +477,82 @@ export const RELICS: RelicDef[] = [
     sigils: { drawPerHand: 1, handSize: 1 },
   },
   {
-    id: 'wild_inheritance', name: 'Wild Inheritance', glyph: '✹', rarity: 'mythic', price: 20,
-    text: 'One of your hole cards is Wild every hand. Any rank, any suit, whatever the hand needs.',
-    impossible: 'A card that is every card, dealt to the same person every time.',
-    deal: { markOwn: 'wild' },
+    id: 'kingmaker', name: 'Kingmaker', glyph: '☠', rarity: 'mythic', price: 25,
+    text: 'When a player is eliminated, take 10 shards and half of what they were holding.',
+    impossible: 'Inheriting something that was never on the table.',
+    economy: { onEliminate: 10 },
+  },
+];
+
+/** The rule shelf (true) or the twelve numbers it replaced (false). */
+export const RULE_RELICS = true;
+
+/** The Market's shelf: 45 relics, the store page's count. */
+export const RELICS: RelicDef[] = [...KEPT, ...(RULE_RELICS ? RULES : RETIRED)];
+
+// ------------------------------------------------------------------ CREEDS
+// One whole-run rule per coven (round 4, FUN-REVIEW.md). A coven used to be
+// two opening sigils, a relic and a lean, and the rubric's verdict was that a
+// lean is not a deck: Balatro's decks and Slay the Spire's characters each
+// change a rule for the whole run. A creed is a relic the coven owns from the
+// first hand; the Market never sells one and the Usurper cannot take one.
+// The coven that owns each is in shared/covens.ts (COVEN_CREEDS switches all
+// seven off).
+export const CREEDS: RelicDef[] = [
+  {
+    id: 'creed_providence', name: 'Providence', glyph: '◇', rarity: 'mythic', price: 0, coven: 'unaligned',
+    text: 'Your sigil draws ignore rarity: a mythic comes as often as a common.',
+    impossible: 'A deck with no opinion about what it gives you.',
+    rule: 'providence',
+  },
+  {
+    id: 'creed_many_futures', name: 'Many Futures', glyph: '⟁', rarity: 'mythic', price: 0, coven: 'unmoored',
+    text: 'A card in your hand that goes undecided holds three faces, not two.',
+    impossible: 'Three futures folded into one piece of card.',
+    rule: 'many_futures',
+  },
+  {
+    id: 'creed_tells', name: 'Tells', glyph: '☾', rarity: 'mythic', price: 0, coven: 'quiet',
+    text: 'The first time each opponent bets or raises in a hand, you see one of their hole cards.',
+    impossible: 'Reading a card through the back of a bet.',
+    rule: 'tells',
+  },
+  {
+    id: 'creed_foreknown', name: 'Foreknown', glyph: '⧖', rarity: 'mythic', price: 0, coven: 'long_now',
+    text: 'When the flop is dealt, you see the river.',
+    impossible: 'A card you have seen before it exists.',
+    rule: 'foreknown',
+  },
+  {
+    id: 'creed_kin', name: 'Kin', glyph: '∞', rarity: 'mythic', price: 0, coven: 'twinned',
+    text: 'When two of the cards you play from share a face (a Mirror, a Graft, a Twin), the second is Wild for you.',
+    impossible: 'A copy that knows it is a copy, and stops pretending.',
+    mods: { copiesWild: true },
+  },
+  {
+    id: 'creed_salt', name: 'Salt', glyph: '🜂', rarity: 'mythic', price: 0, coven: 'ashen',
+    text: 'A community card you burn takes its rank with it: that rank is struck from every hand for the rest of the hand.',
+    impossible: 'Burning a card and the idea of it.',
+    rule: 'salt',
+  },
+  {
+    id: 'creed_signature', name: 'Signature', glyph: '⊞', rarity: 'mythic', price: 0, coven: 'loom',
+    text: 'A Wild, Prism, Blooded or Echo you write works only for you. In anyone else’s hand the card is plain.',
+    impossible: 'Ink that only shows for the hand that wrote it.',
+    rule: 'signature',
   },
 ];
 
 export const RELIC_BY_ID: Record<string, RelicDef> = Object.fromEntries(
-  RELICS.map((r) => [r.id, r]),
+  [...RELICS, ...RETIRED, ...CREEDS].map((r) => [r.id, r]),
 );
+
+/** Whether any of these relics (or a creed among them) runs this rule. */
+export const hasRule = (relicIds: string[], rule: RuleId): boolean =>
+  relicIds.some((id) => RELIC_BY_ID[id]?.rule === rule);
+
+/** Whether a relic id is a coven's creed. */
+export const isCreed = (id: string): boolean => !!RELIC_BY_ID[id]?.coven;
 
 export const RELIC_RARITY_COLOR: Record<RelicRarity, string> = {
   common: '#93a3b8',
@@ -358,6 +573,10 @@ export function mergeRelicMods(relicIds: string[]): RuleMods {
     if (m.flushSize !== undefined) out.flushSize = Math.min(out.flushSize ?? 5, m.flushSize);
     if (m.straightSize !== undefined) out.straightSize = Math.min(out.straightSize ?? 5, m.straightSize);
     if (m.categoryShift) out.categoryShift = (out.categoryShift ?? 0) + m.categoryShift;
+    if (m.memoryBonus) out.memoryBonus = true;
+    if (m.straightGap) out.straightGap = true;
+    if (m.prismIsWild) out.prismIsWild = true;
+    if (m.copiesWild) out.copiesWild = true;
   }
   return out;
 }

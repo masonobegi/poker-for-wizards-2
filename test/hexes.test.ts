@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { Engine } from '../server/game/engine';
 import { anteLength } from '../server/game/table';
 import { rollShop } from '../server/game/shop';
-import { COVEN_BY_ID } from '../shared/covens';
+import { creedOf, COVEN_BY_ID } from '../shared/covens';
 import { DEFAULT_CONFIG, type RoomConfig } from '../shared/types';
 import { Rng } from '../shared/rng';
 import { dailyCoven, dailySeed, hexPrice, isDailySeed } from '../shared/hexes';
@@ -22,7 +22,9 @@ function table(config: Partial<RoomConfig>, bots = 3): Engine {
   return e;
 }
 
-const covenRelics = (coven: string): number => (COVEN_BY_ID[coven]?.relic ? 1 : 0);
+/** What a coven owns from the first hand: its creed (when creeds are on) and its relic. */
+const covenRelics = (coven: string): number =>
+  (COVEN_BY_ID[coven]?.relic ? 1 : 0) + (COVEN_BY_ID[coven] && creedOf(COVEN_BY_ID[coven]) ? 1 : 0);
 
 test('Hex I changes nothing', () => {
   const t = table({ hex: 1 }).table;

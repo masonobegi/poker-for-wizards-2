@@ -114,6 +114,11 @@ export interface CardEntity {
   amber?: boolean;
   /** Pots this card has been part of a winning hand for. */
   memory: number;
+  /**
+   * A mark that works only for the player who wrote it, by mark id (the
+   * Loom's creed). In anyone else's hand the mark is not there.
+   */
+  markBy?: Partial<Record<MarkId, string>>;
   /** Set while the card is mid-flight so the client can animate its arrival. */
   origin?: 'deck' | 'weave' | 'conjured' | 'stolen';
 }
@@ -141,6 +146,17 @@ export function standardDeck(): CardEntity[] {
 }
 
 export const isQuantum = (c: CardEntity): boolean => c.faces.length > 1 && c.collapsed === null;
+
+/**
+ * The marks that work for one player. A mark the Loom wrote works only for
+ * the player who wrote it (`markBy`); for everyone else it is not there, in
+ * the hand they score or on the card they see.
+ */
+export function marksFor(card: CardEntity, viewerId: string | null): MarkId[] {
+  if (!card.markBy) return card.marks;
+  const by = card.markBy;
+  return card.marks.filter((m) => !by[m] || by[m] === viewerId);
+}
 
 /**
  * The identity a given observer sees. Divergence is checked first: a card can
@@ -216,7 +232,7 @@ export function viewCard(card: CardEntity, opts: ViewOptions): CardView {
     id: card.id,
     state: 'facedown',
     face: null,
-    marks: card.marks,
+    marks: marksFor(card, viewerId),
     memory: card.memory,
     entangled: card.entangledWith ? true : undefined,
     origin: card.origin,

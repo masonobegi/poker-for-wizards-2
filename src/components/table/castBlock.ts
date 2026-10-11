@@ -9,6 +9,7 @@
  * sentence for the tooltip.
  */
 import type { CastBlock, Phase } from '@shared/types';
+import { RELIC_BY_ID } from '@shared/relics';
 import type { Timing } from '@shared/sigils';
 
 export interface BlockLabel {
@@ -81,6 +82,12 @@ export function blockLabel(block: CastBlock, timing: Timing[], phase: Phase): Bl
       return { short: 'Out of the hand', long: 'You are out of this hand.', kind: 'rule' };
     case 'off':
       return { short: 'Magic is off', long: 'Magic is disabled at this table.', kind: 'rule' };
+    case 'relic': {
+      // Vow of Silence (no responses) and the Sanctum (no sigil that names an
+      // opponent): a rule the player bought, so the label names it.
+      const r = RELIC_BY_ID[block.relic];
+      return { short: 'Forbidden', long: `${r?.name ?? 'A relic'} forbids it: ${r?.text ?? ''}`.trim(), kind: 'rule' };
+    }
     case 'timing': {
       const w = windowLabel(timing);
       // An "any street" sigil blocked on timing is only waiting for play to

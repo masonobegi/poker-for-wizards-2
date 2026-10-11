@@ -12,20 +12,20 @@ import { test } from 'node:test';
 
 import { Engine } from '../server/game/engine';
 import { viewFor } from '../server/game/table';
-import { RELICS } from '../shared/relics';
+import { CREEDS, RELICS } from '../shared/relics';
 import { DEFAULT_CONFIG } from '../shared/types';
 
 /** What a relic does: every field but its name, art, price and words. */
 function effect(r: (typeof RELICS)[number]): string {
   return JSON.stringify({
     mods: r.mods, mana: r.mana, sigils: r.sigils, vision: r.vision,
-    onWin: r.onWin, deal: r.deal, economy: r.economy,
+    onWin: r.onWin, deal: r.deal, economy: r.economy, rule: r.rule,
   });
 }
 
-test('no two relics do the same thing', () => {
+test('no two relics do the same thing (a creed included)', () => {
   const seen = new Map<string, string>();
-  for (const r of RELICS) {
+  for (const r of [...RELICS, ...CREEDS]) {
     const key = effect(r);
     const twin = seen.get(key);
     assert.ok(!twin, `${r.name} does exactly what ${twin} does`);
@@ -57,4 +57,11 @@ test('Cold Read shows one hole card of every other player from the deal', () => 
 test('the store page count is the real count', () => {
   assert.equal(RELICS.length, 45);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, 45);
+});
+
+test('most of the shelf changes a rule; a few relics are only a number', () => {
+  // Round 4 (FUN-REVIEW.md): 19 of 45 were a number on a passive, and two of
+  // them (Open Palm, Full Purse) were never read. Twelve became rules.
+  const number = RELICS.filter((r) => !r.mods && !r.deal && !r.rule && !r.vision && !r.onWin?.engrave);
+  assert.ok(number.length <= 7, `${number.length} relics are only a number: ${number.map((r) => r.name).join(', ')}`);
 });

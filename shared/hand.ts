@@ -11,8 +11,8 @@
  * what forces the deck to decide.
  */
 import {
-  type CardEntity, type Face, type Rank, type Suit, RANKS, SUITS,
-  RANK_LABEL, RANK_NAME, possibleFaces,
+  type CardEntity, type Face, type MarkId, type Rank, type Suit, RANKS, SUITS,
+  RANK_LABEL, RANK_NAME, faceKey, marksFor, possibleFaces,
 } from './cards';
 
 export enum Cat {
@@ -67,6 +67,14 @@ export interface RuleMods {
   categoryShift?: number;
   /** Long Memory: every card scores +1 rank per pot it has already won. */
   memoryBonus?: boolean;
+  /** Stepping Stones: a straight may skip one rank (5-6-8-9-10). */
+  straightGap?: boolean;
+  /** The Lodestone: every card printed with one of these ranks is Wild. */
+  wildRanks?: Rank[];
+  /** The Prism Lens: a Prism card is fully Wild. */
+  prismIsWild?: boolean;
+  /** The Twinned's creed: of two cards with the same face, the second is Wild. */
+  copiesWild?: boolean;
 }
 
 export interface HandResult {
@@ -142,12 +150,36 @@ const suitClass = (s: Suit, mods: RuleMods): string =>
   mods.mergedColors ? (s === 'H' || s === 'D' ? 'R' : 'B') : s;
 
 /** Apply per-card inscriptions that shift a rank. */
-function markedRank(card: CardEntity, rank: Rank, mods: RuleMods): Rank {
+function markedRank(card: CardEntity, rank: Rank, mods: RuleMods, marks: readonly MarkId[] = card.marks): Rank {
   let r: number = rank;
-  if (card.marks.includes('blooded')) r += 1;
-  if (card.marks.includes('leaden')) r -= 1;
-  if (card.marks.includes('echo') || mods.memoryBonus) r += card.memory;
+  if (marks.includes('blooded')) r += 1;
+  if (marks.includes('leaden')) r -= 1;
+  if (marks.includes('echo') || mods.memoryBonus) r += card.memory;
   return clampRank(r);
+}
+
+/**
+ * The cards a rule makes Wild for this reader, on top of their Wild marks:
+ * the Lodestone's rank, a Prism under the Prism Lens, and, under the
+ * Twinned's creed, every card after the first with the same printed face.
+ */
+function wildByRule(cards: CardEntity[], viewerId: string | null, mods: RuleMods): Set<string> {
+  const out = new Set<string>();
+  if (!mods.wildRanks?.length && !mods.prismIsWild && !mods.copiesWild) return out;
+  const seen = new Set<string>();
+  for (const c of cards) {
+    const faces = possibleFaces(c, viewerId);
+    if (faces.length !== 1) continue;
+    const f = faces[0];
+    if (mods.wildRanks?.includes(f.rank)) out.add(c.id);
+    if (mods.prismIsWild && marksFor(c, viewerId).includes('prism')) out.add(c.id);
+    if (mods.copiesWild) {
+      const k = faceKey(f);
+      if (seen.has(k)) out.add(c.id);
+      seen.add(k);
+    }
+  }
+  return out;
 }
 
 /**
@@ -168,17 +200,19 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
 
   for (const c of cards) {
     for (const f of possibleFaces(c, viewerId)) {
-      presentRanks.add(markedRank(c, f.rank, mods));
+      presentRanks.add(markedRank(c, f.rank, mods, marksFor(c, viewerId)));
       presentSuits.add(f.suit);
     }
   }
   if (presentSuits.size === 0) SUITS.forEach((s) => presentSuits.add(s));
+  const ruledWild = wildByRule(cards, viewerId, mods);
 
   const slots: Slot[] = [];
   for (const card of cards) {
     let cands: Cand[];
+    const marks = marksFor(card, viewerId);
 
-    if (card.marks.includes('wild')) {
+    if (marks.includes('wild') || ruledWild.has(card.id)) {
       // A wild is genuinely any card, so every rank has to be on the table —
       // restricting it to ranks already in play would stop it filling the gap
       // in a straight, which is most of what a wild is for. Its suit is not
@@ -192,10 +226,10 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
       const base = possibleFaces(card, viewerId);
       cands = [];
       for (const f of base) {
-        let rank = markedRank(card, f.rank, mods);
+        let rank = markedRank(card, f.rank, mods, marks);
         if (mods.facesAreKings && (rank === 11 || rank === 12)) rank = 13;
         if (dead.has(rank)) continue;
-        if (card.marks.includes('prism')) {
+        if (marks.includes('prism')) {
           // Any suit, decided by the flush test rather than enumerated: one
           // candidate, not four (see the wild above).
           cands.push({ rank, suit: f.suit, anySuit: true });
@@ -295,7 +329,7 @@ function score5(faces: Cand[], mods: RuleMods): Five {
   const kickers = () => faces.map((f) => f.rank).sort((a, b) => b - a);
 
   const straightHigh = straightSize >= 2
-    ? bestStraightBits(mask, straightSize, !!mods.wheelWrap)
+    ? bestStraightBits(mask, straightSize, !!mods.wheelWrap, !!mods.straightGap)
     : bestStraight(rk, straightSize, !!mods.wheelWrap);
 
   // Impossible tier first.
@@ -328,21 +362,37 @@ function score5(faces: Cand[], mods: RuleMods): Five {
   return { cat: Cat.HighCard, ranks: kickers() };
 }
 
-/** `bestStraight` on a bitmask of ranks (bit r set for rank r), for size 2 and up. */
+/**
+ * `bestStraight` on a bitmask of ranks (bit r set for rank r), for size 2 and up.
+ *
+ * With `gap` (Stepping Stones) a straight may skip one rank: `size` ranks
+ * inside a window one longer, topped by the card that names it, so 5-6-8-9-10
+ * is a Ten-high straight. An unbroken run passes the same test, so the first
+ * top card found from the Ace down is the best straight either way.
+ */
 const RING: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-function bestStraightBits(mask: number, size: number, wrap: boolean): number {
+const popcount = (x: number): number => { let n = 0; while (x) { x &= x - 1; n++; } return n; };
+function bestStraightBits(mask: number, size: number, wrap: boolean, gap = false): number {
   const m = mask & (1 << 14) ? mask | (1 << 1) : mask; // the wheel: an ace is also a one
   const run = (1 << size) - 1;
   for (let high = 14; high >= size; high--) {
     if (((m >> (high - size + 1)) & run) === run) return high;
+    if (gap && (m & (1 << high))) {
+      const lo = Math.max(1, high - size);
+      const window = (m >> lo) & ((1 << (high - lo + 1)) - 1);
+      if (popcount(window) >= size) return high;
+    }
   }
   if (!wrap) return 0;
   // Q-K-A-2-3 and friends: rank space as a ring of 13 from 2..14.
   let best = 0;
+  const span = gap ? size + 1 : size;
   for (let s = 0; s < RING.length; s++) {
-    let ok = true;
-    for (let i = 0; i < size; i++) if (!(mask & (1 << RING[(s + i) % RING.length]))) { ok = false; break; }
-    if (ok) best = Math.max(best, RING[(s + size - 1) % RING.length]);
+    const top = RING[(s + span - 1) % RING.length];
+    if (!(mask & (1 << top))) continue;
+    let held = 0;
+    for (let i = 0; i < span; i++) if (mask & (1 << RING[(s + i) % RING.length])) held++;
+    if (held >= size) best = Math.max(best, top);
   }
   return best;
 }

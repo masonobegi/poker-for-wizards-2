@@ -13,7 +13,7 @@ import {
   faceLabel, isQuantum, standardDeck, viewCard,
 } from '../../shared/cards';
 import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
-import { hasVision, mergeRelicMods, relicNumber } from '../../shared/relics';
+import { RELIC_BY_ID, type RuleId, hasRule, hasVision, mergeRelicMods, relicNumber } from '../../shared/relics';
 import { SIGIL_BY_ID, defOf, entryDef, type SigilDef, type SigilInstance } from '../../shared/sigils';
 import {
   DEFAULT_CONFIG, emptyForeknowledge, isStreet,
@@ -240,6 +240,16 @@ export function modsFor(t: Table, p: Player): RuleMods {
   if (relic.lowWins) m.lowWins = true;
   if (relic.flushSize !== undefined) m.flushSize = Math.min(m.flushSize ?? 5, relic.flushSize);
   if (relic.straightSize !== undefined) m.straightSize = Math.min(m.straightSize ?? 5, relic.straightSize);
+  // Heirloom and The Long Game said every card scores higher for the pots it
+  // has won, and the flag never got this far (found 2026-10-10, round 4):
+  // the Twinned's own relic did nothing. test/relics.test.ts now reads every
+  // relic's mods through here.
+  if (relic.memoryBonus) m.memoryBonus = true;
+  if (relic.straightGap) m.straightGap = true;
+  if (relic.prismIsWild) m.prismIsWild = true;
+  if (relic.copiesWild) m.copiesWild = true;
+  // The Lodestone: this hand's rank is Wild for its owner.
+  if (p.lodestone) m.wildRanks = [...new Set([...(m.wildRanks ?? []), p.lodestone])];
 
   const shift = (m.categoryShift ?? 0) + (relic.categoryShift ?? 0) - p.hexed;
   if (shift !== 0) m.categoryShift = shift;
@@ -388,6 +398,8 @@ export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock |
   if (p.folded || p.eliminated) return { why: 'out' };
 
   const isResponse = def.timing.includes('response');
+  // Vow of Silence: its owner never answers anything.
+  if (isResponse && hasRule(p.relics, 'vow')) return { why: 'relic', relic: ruleRelic(p, 'vow') };
   if (t.stack) {
     if (!isResponse) return { why: 'stack' };
     if (!t.stack.pending.includes(p.id)) return { why: 'responded' };
@@ -397,9 +409,31 @@ export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock |
     return { why: 'timing' };
   }
 
+  // The Sanctum: nothing of its owner's may name an opponent.
+  if (def.target === 'player' && hasRule(p.relics, 'sanctum')) return { why: 'relic', relic: ruleRelic(p, 'sanctum') };
+
   const need = manaCost(p, def, t);
-  if (p.mana < need) return { why: 'mana', need };
+  if (p.mana < need && bloodOwed(t, p, need) === null) return { why: 'mana', need };
   return null;
+}
+
+/** The relic (or creed) that gives this player a rule, for a reason to name. */
+export function ruleRelic(p: Player, rule: RuleId): string {
+  return p.relics.find((id) => RELIC_BY_ID[id]?.rule === rule) ?? rule;
+}
+
+/**
+ * The Blood Price: the chips a player would pay for the mana they are short
+ * of, one big blind a mana, or null when they cannot or may not. A player
+ * never bleeds their last chip: a stack that reaches zero mid-street would be
+ * all in without having bet, so the price has to leave something behind.
+ */
+export function bloodOwed(t: Table, p: Player, need: number): number | null {
+  if (!hasRule(p.relics, 'blood_price')) return null;
+  const short = need - p.mana;
+  if (short <= 0) return 0;
+  const chips = short * t.bb;
+  return p.chips > chips ? chips : null;
 }
 
 export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
@@ -414,6 +448,7 @@ export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
     case 'response': return { ok: false, reason: 'Nothing is being cast' };
     case 'timing': return { ok: false, reason: `Cannot be cast during ${phaseLabel(t.phase)}` };
     case 'mana': return { ok: false, reason: 'Not enough mana' };
+    case 'relic': return { ok: false, reason: `Your ${RELIC_BY_ID[block.relic]?.name ?? 'relic'} forbids it` };
   }
 }
 

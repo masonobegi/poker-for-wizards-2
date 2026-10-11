@@ -37,7 +37,9 @@ export type CastBlock =
   | { why: 'responded' }  // already answered this response window
   | { why: 'response' }   // a response, and nothing is being cast
   | { why: 'timing' }     // not castable on this street; see the def's timing
-  | { why: 'mana'; need: number };
+  | { why: 'mana'; need: number }
+  /** A relic or coven creed the caster owns forbids it (Vow of Silence, the Sanctum). */
+  | { why: 'relic'; relic: string };
 
 export type ActionKind = 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'allin';
 
@@ -110,6 +112,14 @@ export interface Player {
   phylactery?: boolean;
   /** The bust a phylactery caught, for the table and the game-over screen. */
   revived?: BustedBy;
+  /** Sigils cast this hand (Twice-Told doubles the first). Reset every deal. */
+  castsThisHand?: number;
+  /** The Keepsake: a hole card folded before the flop, dealt back next hand. */
+  keepsake?: string;
+  /** The Lodestone: this hand's rank, every card of which is Wild for this player. */
+  lodestone?: number;
+  /** The Quiet's creed: opponents whose tell this player has read this hand. */
+  tells?: string[];
 }
 
 /** The hand that ended a player's run, in words the game-over screen can say. */
@@ -229,6 +239,8 @@ export interface StackEntry {
   costPaid: number;
   /** A sigil written in words: resolved clause by clause. */
   scribed?: Scribed;
+  /** Twice-Told: this entry resolves a second time, with the same targets. */
+  twice?: boolean;
 }
 
 export interface StackState {
@@ -310,6 +322,8 @@ export interface LogEntry {
   /** School id when the entry came from a sigil, for colouring. */
   school?: string;
   playerId?: string;
+  /** The relic or coven creed whose rule made this happen, by id. */
+  rule?: string;
 }
 
 // ---------------------------------------------------------------------------
