@@ -47,6 +47,10 @@ const EXE = process.env.HEXHOLD_EXE
   ?? path.resolve(process.platform === 'win32'
     ? 'release/win-unpacked/HEXHOLD.exe'
     : 'release/linux-unpacked/hexhold');
+// The process name to count on Windows: the build's own exe. The demo is
+// "HEXHOLD Demo.exe", and counting "HEXHOLD.exe" against it found nothing
+// every time, so a demo that left a process behind still passed.
+const IMAGE = path.basename(EXE);
 const SHOT_DIR = path.resolve('steam/screenshots/raw');
 const HEADLESS = /--ozone-platform=headless/.test(process.env.HEXHOLD_EXTRA_ARGS ?? '');
 // Window content size for a headless run, e.g. HEXHOLD_TEST_SIZE=1920x1080.
@@ -185,8 +189,8 @@ function hexholdProcesses() {
     } catch { return 0; } // pgrep exits 1 when nothing matches
   }
   try {
-    const out = execSync('tasklist /FI "IMAGENAME eq HEXHOLD.exe" /FO CSV /NH', { encoding: 'utf8' });
-    return out.split('\n').filter((l) => l.includes('HEXHOLD.exe')).length;
+    const out = execSync(`tasklist /FI "IMAGENAME eq ${IMAGE}" /FO CSV /NH`, { encoding: 'utf8' });
+    return out.split('\n').filter((l) => l.includes(`"${IMAGE}"`)).length;
   } catch { return 0; }
 }
 

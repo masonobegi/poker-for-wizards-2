@@ -19,7 +19,7 @@ sellable at $9.99 as a solo roguelite).
 
 | # | Code-side item | Status | Proof |
 | --- | --- | --- | --- |
-| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt 2026-10-10 from `d31900c` (code as of `8c3b37a`, the last code change). Packaged harness 21/21, quit harness 9/9, slowest 208ms (section 2). |
+| 1 | Windows build, current | DONE | `release/win-unpacked`, installer and zip rebuilt 2026-10-11 from `5840d41` (the code of `aaba11b`: server readiness, item 25, and the orphan-server exit, item 26). Packaged harness 21/21, quit harness 9/9, slowest 109ms after the press (section 2). |
 | 2 | Linux build (Steam Deck depot), current and launched | DONE | `release/linux-unpacked` rebuilt 2026-10-11 from `aaba11b` (`303e2a7` plus the startup fix, item 25). Headless in WSL on SwiftShader GL: packaged harness **21 of 21** at 1280x800 (5 runs); quit harness 6 of 6 on the final harness, and 1 of 72 over its 3s limit (5.9s, under load) in the day's repeats (section 2). |
 | 3 | Steamworks: App ID from Steam, achievements, rich presence, Cloud | DONE | `test/steam.test.ts`; dormant until an App ID exists. |
 | 4 | Achievements: 20 defined, manifests, icons | DONE (was: monogram icons the manifest did not name) | 40 drawn icons in `steam/achievements/`; `achievements.json`/`.vdf` name each pair; test fails if one is missing. |
@@ -42,7 +42,7 @@ sellable at $9.99 as a solo roguelite).
 | 21 | PlayStation (and Nintendo) button glyphs | DONE (was: Xbox only) | Family from the `Gamepad.id` vendor (054c Sony, 057e Nintendo; the Deck and Steam Input stay Xbox); the legend, action bar and Controls follow the pad in hand. `test/padglyphs.test.ts` (5). |
 | 22 | Quit ends the game promptly | DONE (was: 4 to 12s, once over 15s) | Electron's native teardown kept the exe (GPU, audio, browser processes) alive after the window closed; `electron/shutdown.cjs` ends the tree on `quit`. `test/quit.mjs` (menu, table, spell stack; by pid; hidden, muted): before 0/9 under 3s, after 9/9 on Windows (slowest 827ms) and 6/6 on Linux. |
 | 23 | Every menu control reachable on a Deck (1280x800) | DONE (was: Settings, Quit, Daily Rite and hosting off the bottom of a screen that did not scroll) | The menu column scrolls. `npm run responsive` now fails a control nothing scrolls to (`checkReachable`): against the old menu build it reports 12 failures at 1280x800 (Daily Rite, both pickers, Host, Join, Codex...); on this build 0 at 1280x800 and 1024x680. `test/demo.mjs` scrolls to Settings. |
-| 24 | Next Fest demo build, seen in a browser | DONE (was: built, never looked at) | `npm run build:demo`, then `node test/demo.mjs` (headless, muted, 1280x800): 3 covens open and 4 locked with a lock and their pitch, Play and Wishlist above the fold, a folding run reaches the wishlist screen, a shoving run gets the bust line; Wishlist opens the store. Packaged 2026-10-10: `npm run package:demo:win` (installer, zip) and `:linux` (the unpacked dir a depot uploads; the AppImage target needs symlinks Windows refuses). **The packaged demo was first launched 2026-10-11** (Linux, rebuilt from `aaba11b`): `HEXHOLD_BUILD=release-demo/linux-unpacked` packaged harness **22 of 22** (its menu: 3 covens open, 4 locked, Wishlist shown), quit harness **18 of 18**. |
+| 24 | Next Fest demo build, seen in a browser | DONE (was: built, never looked at) | `npm run build:demo`, then `node test/demo.mjs` (headless, muted, 1280x800): 3 covens open and 4 locked with a lock and their pitch, Play and Wishlist above the fold, a folding run reaches the wishlist screen, a shoving run gets the bust line; Wishlist opens the store. Packaged 2026-10-10: `npm run package:demo:win` (installer, zip) and `:linux` (the unpacked dir a depot uploads; the AppImage target needs symlinks Windows refuses). **The packaged demo was first launched 2026-10-11** (Linux, rebuilt from `aaba11b`): `HEXHOLD_BUILD=release-demo/linux-unpacked` packaged harness **22 of 22** (its menu: 3 covens open, 4 locked, Wishlist shown), quit harness **18 of 18**. The Windows demo was rebuilt from `5840d41` the same day: packaged harness **22 of 22**, quit harness **9 of 9** (section 2). |
 | 25 | Launch to the menu without a fixed 6-second wait | DONE (was: every launch waited 6s before the window existed) | The shell waited for a stdout word ("listening") the server never printed, so it always sat out its 6s fallback, and on a machine slower than that it loaded a port nobody listened on. The server now says so over IPC (`electron/serverready.cjs`). Linux build, no harness attached: menu median 7-9s before, **2.9s** after (60 launches). `test/serverready.test.ts` forks the real server; it fails on the old one. |
 | 26 | A killed game leaves no server behind | DONE (was: the game server outlived its shell indefinitely) | Found running half an hour after its shell was SIGKILLed, holding its port and `tables.db`. It now shuts down when the IPC channel to the shell closes (`server/index.ts`); `test/serverready.test.ts` fails without it. |
 
@@ -63,8 +63,9 @@ coven design pass.
   validated on the server. 307 tests.
 - **Packages**: `release-demo/` was rebuilt on this code (Windows). The full
   game's `release/` builds predate round 3: the upload step below rebuilds
-  them. (2026-10-11: both Linux builds are current, `aaba11b`. Both Windows
-  builds predate items 25 and 26, so the upload step still rebuilds them.)
+  them. (2026-10-11: all four builds are current. Linux from `aaba11b`;
+  Windows full game and demo rebuilt from `5840d41`, the same code, after
+  items 25 and 26.)
 
 ## 0. What the fun pass changed (2026-10-10)
 
@@ -156,7 +157,17 @@ kit. Their proofs are in the commit messages.
   scale 200% applied as page zoom. `node test/quit.mjs 3` (quit from the
   menu, a table and a spell stack; every game process timed by pid): **9 of
   9**, slowest 208ms from the press to the last process gone (rebuilt and
-  re-run 2026-10-10 on the final code).
+  re-run 2026-10-10 on the final code). **2026-10-11, rebuilt from
+  `5840d41`** (server readiness and the orphan-server exit, items 25-26):
+  full game packaged harness **21 of 21**, quit harness **9 of 9** (slowest
+  109ms after the press); the demo (`npm run package:demo:win`, run with
+  `HEXHOLD_EXE="release-demo\win-unpacked\HEXHOLD Demo.exe"` and
+  `HEXHOLD_EXPECT_DEMO=1`) packaged harness **22 of 22**, quit harness **9
+  of 9** (slowest 710ms, run beside a CPU-heavy job). Both hidden, muted,
+  off-screen. Fixed on the way: both harnesses counted leftover processes
+  on Windows as `HEXHOLD.exe`, which never matches `HEXHOLD Demo.exe`, so a
+  demo that left a process running would still have passed "no HEXHOLD
+  process left"; they now count the build's own exe name.
 - **Linux**: `npx electron-builder --linux dir` (the depot uploads
   `release/linux-unpacked`). From Windows:
   `wsl -d Ubuntu-24.04 -- bash scripts/linux-smoke.sh 60` (headless Ozone,
