@@ -149,12 +149,17 @@ test('the Prism Lens: a Prism is fully Wild', () => {
   assert.equal(read(hand, { prismIsWild: true }).cat, Cat.Trips);
 });
 
-test('Kin: of two cards with the same face, the second is Wild', () => {
-  // Two King of Spades (a Graft) beside Queen, Jack, Ten: a pair of Kings as
-  // printed, a Straight when the copy is Wild and fills the Ace or the Nine.
-  const hand = [c(13, 'S'), c(13, 'S'), c(12, 'H'), c(11, 'D'), c(10, 'C'), c(2, 'S'), c(4, 'H')];
+test('Kin: a copy of a card you hold is Wild; a pair the board shares is not', () => {
+  // Two King of Spades in the hole (a Graft) beside Queen, Jack, Ten: a pair
+  // of Kings as printed, a Straight when the copy is Wild.
+  const hole = [c(13, 'S'), c(13, 'S')];
+  const board = [c(12, 'H'), c(11, 'D'), c(10, 'C'), c(2, 'S'), c(4, 'H')];
+  const hand = [...hole, ...board];
   assert.equal(read(hand).cat, Cat.Pair);
-  assert.equal(read(hand, { copiesWild: true }).cat, Cat.Straight);
+  assert.equal(read(hand, { copiesWild: true, kinHole: hole.map((x) => x.id) }).cat, Cat.Straight);
+  // The same two Kings on the board (a Mirror) are the table's pair, not kin.
+  const mirrored = [c(2, 'D'), c(5, 'C'), c(13, 'S'), c(13, 'S'), c(12, 'H'), c(11, 'D'), c(10, 'C')];
+  assert.equal(read(mirrored, { copiesWild: true, kinHole: [mirrored[0].id, mirrored[1].id] }).cat, Cat.Pair);
   // No copy, no Wild.
   const plain = [c(13, 'S'), c(12, 'S'), c(13, 'H'), c(7, 'D'), c(7, 'C'), c(2, 'S'), c(4, 'H')];
   assert.equal(read(plain, { copiesWild: true }).score, read(plain).score);

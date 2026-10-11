@@ -73,8 +73,13 @@ export interface RuleMods {
   wildRanks?: Rank[];
   /** The Prism Lens: a Prism card is fully Wild. */
   prismIsWild?: boolean;
-  /** The Twinned's creed: of two cards with the same face, the second is Wild. */
+  /** The Twinned's creed: of two cards with the same face, one held, the second is Wild. */
   copiesWild?: boolean;
+  /**
+   * The hole cards a Kin copy has to touch (set by the server from the
+   * reader's own hole). Without it, any two cards with one face qualify.
+   */
+  kinHole?: string[];
 }
 
 export interface HandResult {
@@ -161,12 +166,20 @@ function markedRank(card: CardEntity, rank: Rank, mods: RuleMods, marks: readonl
 /**
  * The cards a rule makes Wild for this reader, on top of their Wild marks:
  * the Lodestone's rank, a Prism under the Prism Lens, and, under the
- * Twinned's creed, every card after the first with the same printed face.
+ * Twinned's creed, every card after the first with the same printed face,
+ * when one of the two is in the reader's own hole (`kinHole`).
+ *
+ * Kin first counted any two cards with one face, which made every pair on
+ * the board a Wild for the Twinned: the Twinned omen alone puts seven
+ * mirrored cards in the deck. Measured on 70 Twinned runs each way it took
+ * them from 20 runs won to 43 (FUN-REVIEW.md, round 4). A copy they made or
+ * hold (Graft, Twin, Counterfeit) is their kin; a pair the table shares is
+ * not.
  */
 function wildByRule(cards: CardEntity[], viewerId: string | null, mods: RuleMods): Set<string> {
   const out = new Set<string>();
   if (!mods.wildRanks?.length && !mods.prismIsWild && !mods.copiesWild) return out;
-  const seen = new Set<string>();
+  const seen = new Map<string, string>();
   for (const c of cards) {
     const faces = possibleFaces(c, viewerId);
     if (faces.length !== 1) continue;
@@ -175,8 +188,9 @@ function wildByRule(cards: CardEntity[], viewerId: string | null, mods: RuleMods
     if (mods.prismIsWild && marksFor(c, viewerId).includes('prism')) out.add(c.id);
     if (mods.copiesWild) {
       const k = faceKey(f);
-      if (seen.has(k)) out.add(c.id);
-      seen.add(k);
+      const first = seen.get(k);
+      if (first !== undefined && (!mods.kinHole || mods.kinHole.includes(first) || mods.kinHole.includes(c.id))) out.add(c.id);
+      if (first === undefined) seen.set(k, c.id);
     }
   }
   return out;
