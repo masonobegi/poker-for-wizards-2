@@ -30,9 +30,10 @@ import { join } from 'node:path';
 
 import { Engine, bigBlindAt } from '../server/game/engine';
 import { decideAction, decideCast, decideResponse, decideScribe, decideShop, previewClock } from '../server/game/bots';
-import { alive, byId, castableSigils, live, totalPot } from '../server/game/table';
+import { alive, byId, castableSigils, handCards, live, modsFor, totalPot } from '../server/game/table';
+import { evaluate } from '../shared/hand';
 import { COVENS } from '../shared/covens';
-import { RELIC_BY_ID } from '../shared/relics';
+import { RELICS, RELIC_BY_ID, type RelicDef } from '../shared/relics';
 import { SIGIL_BY_ID, defOf } from '../shared/sigils';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type BotSkill, type RoomConfig } from '../shared/types';
@@ -137,6 +138,25 @@ export interface RunReport {
    * next hand clears it.
    */
   overlay?: Record<string, { total: number; yourTurn: number }>;
+  /**
+   * Every relic the Market offered you, what it cost, what you held, and
+   * whether you bought it. The harness's player buys greedily (bots.ts
+   * decideShop: a relic first, whenever it can afford one), so a pick rate
+   * here measures what a relic costs against the shards in hand, not how much
+   * a player wants it.
+   */
+  offers?: Array<{ ante: number; relic: string; price: number; shards: number; bought: boolean }>;
+  /**
+   * How often each relic (or coven creed) you owned changed something: an
+   * engine rule logged under its id, or, for a relic that rewrites how hands
+   * are read, a showdown you reached where your hand read differently without
+   * it. Keyed by relic id.
+   */
+  fires?: Record<string, number>;
+  /** Showdowns you reached, by the category your hand read as. */
+  madeCats?: Record<string, number>;
+  /** Pots you won, by the category named (uncontested pots as "Uncontested"). */
+  wonCats?: Record<string, number>;
   /** How the run ended, when it ended in a bust: the hand, and what you did in it. */
   bust?: { ante: number; hand: number; by: string; theirs: string; yours: string | null; you: string[]; facedAllIn: boolean };
 }
@@ -204,6 +224,13 @@ function playRun(seed: string, coven: string): RunReport {
   let liveTop: { sigilId: string; scribed: boolean } | null = null;
   let autoMs = 0;
 
+  const offers: NonNullable<RunReport['offers']> = [];
+  const fires: Record<string, number> = {};
+  const fire = (id: string, n = 1): void => { fires[id] = (fires[id] ?? 0) + n; };
+  const madeCats: Record<string, number> = {};
+  const wonCats: Record<string, number> = {};
+  const seenLog = new Set<string>();
+
   let lastHand = 0;
   let nextAt = 0;
   let castsThisTurn = 0;
@@ -220,6 +247,10 @@ function playRun(seed: string, coven: string): RunReport {
     // ---- bookkeeping on what the engine just said
     for (const f of fxLog.splice(0)) {
       if (f.t === 'win') {
+        if (f.playerId === YOU) {
+          const cat = f.handName === 'Last one standing' ? 'Uncontested' : catOf(f.handName);
+          wonCats[cat] = (wonCats[cat] ?? 0) + 1;
+        }
         const r = row(t.ante);
         if (IMPOSSIBLE.test(f.handName)) {
           impossibleSeen++; r.impossible++;
@@ -243,6 +274,13 @@ function playRun(seed: string, coven: string): RunReport {
       if (f.t === 'eliminate' && f.playerId === YOU) bustAnte = t.ante;
       if (f.t === 'banner' && /A new rule/.test(f.sub ?? '')) moment('an omen');
     }
+    // Rules that log under a relic's id (log entries carry `rule`).
+    for (let i = t.log.length - 1; i >= 0; i--) {
+      const l = t.log[i] as { id: string; playerId?: string; rule?: string };
+      if (seenLog.has(l.id)) break;
+      seenLog.add(l.id);
+      if (l.rule && l.playerId === YOU) fire(l.rule);
+    }
     if (t.handNumber !== lastHand) {
       lastHand = t.handNumber;
       foldedThisHand = false;
@@ -254,6 +292,21 @@ function playRun(seed: string, coven: string): RunReport {
     if (t.phase === 'payout' && t.payout && !(t.payout as { _seen?: boolean })._seen) {
       (t.payout as { _seen?: boolean })._seen = true;
       const amt = t.payout.pots.reduce((a, p) => a + p.amount, 0);
+      // A showdown you reached: what your hand read as, and which of your
+      // relics changed that reading.
+      const mine = t.payout.entries.find((x) => x.playerId === YOU && x.cards.length > 0);
+      if (mine && !me.folded) {
+        const cat = catOf(mine.handName);
+        madeCats[cat] = (madeCats[cat] ?? 0) + 1;
+        const read = () => evaluate({ cards: handCards(t, me), viewerId: YOU, mods: modsFor(t, me) }).score;
+        const full = read();
+        const owned = [...me.relics];
+        for (const id of owned) {
+          if (!RELIC_BY_ID[id]?.mods) continue;
+          me.relics = owned.filter((x) => x !== id);
+          try { if (read() !== full) fire(id); } finally { me.relics = owned; }
+        }
+      }
       row(t.ante).pots.push(amt);
       if (amt > biggest.chips) biggest = { chips: amt, ante: t.ante, hand: t.handNumber };
     }
@@ -305,7 +358,12 @@ function playRun(seed: string, coven: string): RunReport {
     // ---- the player acts, at a human pace
     if (t.phase === 'shop' && !me.shopDone && !me.eliminated) {
       const key = `m${t.ante}`;
-      if (marketKey !== key) { marketKey = key; nextAt = now + BROWSE_MS; dec.markets++; }
+      if (marketKey !== key) {
+        marketKey = key; nextAt = now + BROWSE_MS; dec.markets++;
+        for (const it of t.shop.get(YOU)?.items ?? []) {
+          if (it.kind === 'relic') offers.push({ ante: t.ante, relic: it.id, price: it.price, shards: me.shards, bought: false });
+        }
+      }
       if (now >= nextAt) {
         for (let guard = 0; guard < 8; guard++) {
           const page = decideScribe(t, me, rng);
@@ -314,6 +372,7 @@ function playRun(seed: string, coven: string): RunReport {
           if (uid && e.shopBuy(YOU, uid).ok) { dec.buys++; continue; }
           break;
         }
+        for (const o of offers) if (o.ante === t.ante && me.relics.includes(o.relic)) o.bought = true;
         e.shopDone(YOU);
       }
     } else if (pendingMe) {
@@ -384,6 +443,7 @@ function playRun(seed: string, coven: string): RunReport {
     revived,
     demoComplete: t.demoComplete,
     overlay,
+    offers, fires, madeCats, wonCats,
     bust: !won && me.bustedBy ? {
       ante: me.bustedBy.ante, hand: me.bustedBy.hand, by: me.bustedBy.name, theirs: me.bustedBy.handName,
       yours: me.bustedBy.yourHand ?? null, you: myActions, facedAllIn,
@@ -397,6 +457,15 @@ function playRun(seed: string, coven: string): RunReport {
   };
   e.dispose();
   return res;
+}
+
+/** A hand's category from the name the showdown gives it ("Pair of Kings" -> "Pair"). */
+function catOf(name: string): string {
+  const head = name.split(',')[0];
+  if (/^Pair of /.test(head)) return 'Pair';
+  if (/^\w+ High$/.test(head)) return 'High Card';
+  if (head === 'Royal Flush') return 'Straight Flush';
+  return head;
 }
 
 /** The big blind at an ante, as the engine computes it with no omen in play. */
@@ -531,6 +600,8 @@ export function summarise(rs: RunReport[]): void {
     const relics = tally(cr.flatMap((r) => r.relics.filter((x) => x !== c.relic)), 3);
     console.log(`    ${c.name.padEnd(16)} runs ${cr.length}  won ${cr.filter((r) => r.won).length}  ante ${(cr.reduce((a, r) => a + r.finalAnte, 0) / cr.length).toFixed(1)}  impossible ${pct(cr.filter((r) => r.impossibleSeen > 0).length, cr.length)}  bought ${relics || '—'}`);
   }
+  relicReport(rs);
+  covenFeel(rs);
   const sets = rs.map((r) => new Set(r.relics));
   let sim = 0; let pairs = 0;
   for (let i = 0; i < sets.length; i++) for (let j = i + 1; j < sets.length; j++) {
@@ -541,6 +612,121 @@ export function summarise(rs: RunReport[]): void {
   }
   console.log(`    relic-set overlap between runs (Jaccard) ${(pairs ? sim / pairs : 0).toFixed(2)} · distinct relics owned across runs ${new Set(rs.flatMap((r) => r.relics)).size}`);
   console.log(`    omens seen across runs ${new Set(rs.flatMap((r) => r.omens)).size} · most common ${tally(rs.flatMap((r) => r.omens), 4)}`);
+}
+
+/** What kind of thing a relic is, read from the fields it sets. */
+export function relicKind(r: RelicDef): 'number' | 'information' | 'rule' {
+  const rec = r as unknown as Record<string, unknown>;
+  if (rec.rule || r.mods || r.deal) return 'rule';
+  if (r.onWin && (r.onWin as Record<string, unknown>).engrave) return 'rule';
+  if (r.vision) return 'information';
+  return 'number';
+}
+
+/**
+ * Relics from the player's chair: what the Market offered, what was bought
+ * (a greedy buyer: see RunReport.offers), and, for every relic owned, how
+ * often its rule changed something in a run that held it.
+ */
+function relicReport(rs: RunReport[]): void {
+  const withOffers = rs.filter((r) => r.offers);
+  if (!withOffers.length) return;
+  const covenRelic = new Set(COVENS.map((c) => c.relic).filter(Boolean) as string[]);
+  const offered = new Map<string, number>();
+  const bought = new Map<string, number>();
+  for (const r of withOffers) for (const o of r.offers!) {
+    offered.set(o.relic, (offered.get(o.relic) ?? 0) + 1);
+    if (o.bought) bought.set(o.relic, (bought.get(o.relic) ?? 0) + 1);
+  }
+  const owners = new Map<string, RunReport[]>();
+  for (const r of rs) for (const id of new Set(r.relics)) owners.set(id, [...(owners.get(id) ?? []), r]);
+  const kinds = { number: 0, information: 0, rule: 0 };
+  for (const x of RELICS) kinds[relicKind(x)]++;
+  console.log("\n  RELICS (the Market's shelf; coven relics and creeds are counted where owned)");
+  console.log(`    the shelf: ${RELICS.length} relics, ${kinds.rule} change a rule, ${kinds.information} give information, ${kinds.number} are a number`);
+  const offers = withOffers.reduce((a, r) => a + r.offers!.length, 0);
+  const buys = withOffers.reduce((a, r) => a + r.offers!.filter((o) => o.bought).length, 0);
+  console.log(`    offered ${offers} (${(offers / withOffers.length).toFixed(1)} a run), bought ${buys} (${Math.round((buys / Math.max(1, offers)) * 100)}%); a greedy buyer, so this is affordability, not appeal`);
+  const boughtIds = withOffers.flatMap((r) => r.offers!.filter((o) => o.bought).map((o) => o.relic));
+  const boughtKinds = { number: 0, information: 0, rule: 0 };
+  for (const id of boughtIds) { const d = RELIC_BY_ID[id]; if (d) boughtKinds[relicKind(d)]++; }
+  console.log(`    bought, by kind: rule ${boughtKinds.rule}, information ${boughtKinds.information}, number ${boughtKinds.number} · distinct bought ${new Set(boughtIds).size} of ${RELICS.length}`);
+  // Shannon entropy of what was bought, against the most it could be.
+  const counts = [...new Set(boughtIds)].map((id) => boughtIds.filter((x) => x === id).length);
+  const H = -counts.reduce((a, c) => a + (c / boughtIds.length) * Math.log2(c / boughtIds.length), 0);
+  console.log(`    spread of purchases: ${H.toFixed(2)} bits of ${Math.log2(RELICS.length).toFixed(2)} possible`);
+  const ownedRuns = rs.map((r) => r.relics.filter((id) => !covenRelic.has(id) && !(RELIC_BY_ID[id] as unknown as { coven?: string })?.coven));
+  const ruleOwned = ownedRuns.map((ids) => ids.filter((id) => RELIC_BY_ID[id] && relicKind(RELIC_BY_ID[id]) === 'rule').length);
+  console.log(`    a run's bought relics that change a rule: ${(ruleOwned.reduce((a, b) => a + b, 0) / rs.length).toFixed(2)} of ${(ownedRuns.reduce((a, b) => a + b.length, 0) / rs.length).toFixed(2)} · runs owning at least one rule relic beyond the coven's ${Math.round(ruleOwned.filter((n) => n > 0).length / rs.length * 100)}%`);
+  const firedRuns = rs.filter((r) => Object.entries(r.fires ?? {}).some(([id, n]) => n > 0 && !covenRelic.has(id) && !(RELIC_BY_ID[id] as unknown as { coven?: string })?.coven));
+  console.log(`    runs where a bought relic's rule visibly fired: ${Math.round(firedRuns.length / rs.length * 100)}%`);
+  const ids = [...new Set([...offered.keys(), ...owners.keys()])]
+    .sort((a, b) => (owners.get(b)?.length ?? 0) - (owners.get(a)?.length ?? 0));
+  console.log('    relic                       kind         offered  bought  owned-runs  fires/run  won');
+  for (const id of ids) {
+    const d = RELIC_BY_ID[id];
+    if (!d) continue;
+    const own = owners.get(id) ?? [];
+    const fired = own.reduce((a, r) => a + (r.fires?.[id] ?? 0), 0);
+    const tag = covenRelic.has(id) ? ' (coven)' : (d as unknown as { coven?: string }).coven ? ' (creed)' : '';
+    console.log(`    ${(d.name + tag).padEnd(28)} ${relicKind(d).padEnd(11)} ${String(offered.get(id) ?? 0).padStart(7)}  ${String(bought.get(id) ?? 0).padStart(6)}  ${String(own.length).padStart(10)}  ${(own.length ? fired / own.length : 0).toFixed(2).padStart(9)}  ${String(own.filter((r) => r.won).length).padStart(3)}`);
+  }
+}
+
+/**
+ * Whether a run as one coven plays differently from a run as another: the
+ * hands you make, the pots you win, and the schools you cast, by coven, and
+ * how far apart the covens sit (total variation distance, 0 = identical,
+ * 1 = nothing in common), averaged over every pair of covens.
+ */
+function covenFeel(rs: RunReport[]): void {
+  if (!rs.some((r) => r.madeCats)) return;
+  const BUCKET = (cat: string): string => {
+    if (/Five of a Kind|Flush House|Flush Five/.test(cat)) return 'impossible';
+    if (/Full House|Four of a Kind|Straight Flush/.test(cat)) return 'full+';
+    if (/^Flush$/.test(cat)) return 'flush';
+    if (/^Straight$/.test(cat)) return 'straight';
+    if (/Three of a Kind|Two Pair/.test(cat)) return 'two pair/trips';
+    if (/^Pair$/.test(cat)) return 'pair';
+    if (cat === 'Uncontested') return 'uncontested';
+    return 'high card';
+  };
+  const dist = (xs: Array<Record<string, number> | undefined>, f: (k: string) => string): Record<string, number> => {
+    const out: Record<string, number> = {};
+    let n = 0;
+    for (const x of xs) for (const [k, v] of Object.entries(x ?? {})) { const b = f(k); out[b] = (out[b] ?? 0) + v; n += v; }
+    for (const k of Object.keys(out)) out[k] /= Math.max(1, n);
+    return out;
+  };
+  const tvd = (a: Record<string, number>, b: Record<string, number>): number => {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    let d = 0;
+    for (const k of keys) d += Math.abs((a[k] ?? 0) - (b[k] ?? 0));
+    return d / 2;
+  };
+  console.log('\n  COVEN FEEL (per coven: the hands you made at showdown, your casts by school, rules fired a run)');
+  const made: Record<string, Record<string, number>> = {};
+  const schools: Record<string, Record<string, number>> = {};
+  for (const c of COVENS) {
+    const cr = rs.filter((r) => r.coven === c.id);
+    if (!cr.length) continue;
+    made[c.id] = dist(cr.map((r) => r.madeCats), BUCKET);
+    schools[c.id] = dist(cr.map((r) => r.castSchools), (k) => k);
+    const showdowns = cr.reduce((a, r) => a + Object.values(r.madeCats ?? {}).reduce((x, y) => x + y, 0), 0);
+    const fires = cr.reduce((a, r) => a + Object.values(r.fires ?? {}).reduce((x, y) => x + y, 0), 0);
+    const creed = (c as unknown as { creed?: string }).creed;
+    const creedFires = creed ? cr.reduce((a, r) => a + (r.fires?.[creed] ?? 0), 0) : 0;
+    const fmt = (m: Record<string, number>) => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+    console.log(`    ${c.name.padEnd(16)} won ${cr.filter((r) => r.won).length}/${cr.length} · ante ${(cr.reduce((a, r) => a + r.finalAnte, 0) / cr.length).toFixed(1)} · showdowns ${(showdowns / cr.length).toFixed(1)}/run · own impossible ${Math.round(cr.filter((r) => r.impossibleYours > 0).length / cr.length * 100)}% · first bust at ante 1 ${Math.round(cr.filter((r) => (r.revived?.ante ?? r.bustAnte) === 1).length / cr.length * 100)}% · rules fired ${(fires / cr.length).toFixed(1)}/run${creed ? ` (its creed ${(creedFires / cr.length).toFixed(1)})` : ''}`);
+    console.log(`      made: ${fmt(made[c.id])}`);
+    console.log(`      cast: ${fmt(schools[c.id])}`);
+  }
+  const ids = Object.keys(made);
+  let dm = 0; let ds = 0; let pairs = 0;
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    dm += tvd(made[ids[i]], made[ids[j]]); ds += tvd(schools[ids[i]], schools[ids[j]]); pairs++;
+  }
+  if (pairs) console.log(`    covens apart (mean total variation distance between two covens): hands made ${(dm / pairs).toFixed(2)} · schools cast ${(ds / pairs).toFixed(2)}`);
 }
 
 function median(xs: number[]): number {
