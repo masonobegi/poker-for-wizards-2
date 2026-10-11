@@ -554,3 +554,54 @@ test('Spell cards: Auto reads a new spell in full and a known one briefly; Full,
   }
   assert.equal(getPrefs().spellCards, 'full');
 });
+
+// ------------------------------------------------- the arcade layer (2026-10-11)
+
+test('a cut-in banner shows, ignores the click that raised it, and skips on the next', async () => {
+  const { act } = await import('react');
+  const { MotionGlobalConfig } = await import('framer-motion');
+  MotionGlobalConfig.skipAnimations = true;
+  const BannerLayer = (await import('../src/components/BannerLayer')).default;
+  const { bannerBusyMs, SKIP_GUARD_MS } = await import('../src/components/BannerLayer');
+  const { root } = await mount(<BannerLayer />);
+  const fire = (window as unknown as { __hexholdFx: (e: unknown[]) => void }).__hexholdFx;
+  const wait = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+  const key = () => act(async () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
+  });
+  try {
+    await act(async () => { fire([{ t: 'banner', text: 'FLUSH FIVE', sub: 'A hand that cannot exist', tone: 'impossible' }]); });
+    assert.match(root.textContent ?? '', /FLUSH FIVE/, 'the banner never showed');
+    assert.ok(bannerBusyMs() > 3000, 'the banner does not hold the screen');
+    await key();
+    await wait(20);
+    assert.match(root.textContent ?? '', /FLUSH FIVE/, 'the input inside the guard skipped it');
+    await wait(SKIP_GUARD_MS + 20);
+    await key();
+    await wait(400);
+    assert.doesNotMatch(root.textContent ?? '', /FLUSH FIVE/, 'a key did not skip the banner');
+    assert.ok(bannerBusyMs() < 300, `a skipped banner still holds the screen for ${bannerBusyMs()}ms`);
+  } finally {
+    MotionGlobalConfig.skipAnimations = false;
+  }
+});
+
+test('a count-up lands exactly on its total and reserves its width', async () => {
+  const { act } = await import('react');
+  const { CountUp } = await import('../src/components/fx/CountUp');
+  const { root } = await mount(<CountUp value={4200} duration={300} />);
+  await act(async () => { await new Promise((r) => setTimeout(r, 700)); });
+  assert.match(root.textContent ?? '', /^(4,200|4200)$/, root.innerHTML);
+  const span = root.querySelector('.hx-countup') as HTMLElement;
+  assert.ok(span.style.minWidth.endsWith('ch'), 'no width reserved: a growing number would shove its row');
+});
+
+test('a stamp names its verdict without speaking it twice', async () => {
+  const { Stamp } = await import('../src/components/fx/Stamp');
+  const { root } = await mount(<Stamp text="BUSTED" />);
+  const el = root.querySelector('.hx-stamp');
+  assert.ok(el, 'no stamp');
+  assert.equal(el?.textContent, 'BUSTED');
+  // The seat already says OUT; the stamp is the picture of it.
+  assert.equal(el?.getAttribute('aria-hidden'), 'true');
+});

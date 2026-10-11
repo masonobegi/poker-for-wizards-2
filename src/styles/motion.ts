@@ -14,9 +14,18 @@ import type { Transition } from 'framer-motion';
 
 /** Mirrors `--ease-out`: strong ease-out, the house entrance curve. */
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-/* `--ease-both` and `--ease-snap` are deliberately not mirrored here: both are
-   used on the CSS side only, and an exported constant with no importer is just
-   another value that can drift out of step with tokens.css. */
+/**
+ * Mirrors `--ease-snap`: easeOutBack (easings.net), the arcade slam. A word or
+ * a relic lands slightly past its size and settles back, which is what makes a
+ * scale-down read as an impact rather than a zoom. Ported from the basketball
+ * roguelike's cut-ins (2026-10-11), whose `_back_out` is the same curve.
+ * Never for anything under reduced motion: `arcade.ts` swaps it for EASE_OUT,
+ * as tokens.css does for the CSS twin.
+ */
+export const EASE_SNAP = [0.34, 1.56, 0.64, 1] as const;
+/* `--ease-both` is deliberately not mirrored here: it is used on the CSS side
+   only, and an exported constant with no importer is just another value that
+   can drift out of step with tokens.css. */
 
 export const T_FAST = 0.16;    // --t-fast
 export const T_BASE = 0.26;    // --t-base

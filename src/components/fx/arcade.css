@@ -1,0 +1,199 @@
+/*
+ * The arcade impact layer: stamps, number pops, count-ups and the cut-in
+ * banner. Ported 2026-10-11 from the basketball roguelike's cut-ins; the
+ * timing lives in arcade.ts and the components, this file is only the look.
+ *
+ * Every element here that framer-motion animates is placed with the
+ * `translate` / `rotate` longhands, never `transform`: framer writes
+ * `transform` inline (including `transform: none` at rest) and would discard
+ * a stylesheet transform. test/motion.test.ts holds that line.
+ */
+
+/* --- stamps ----------------------------------------------------------------
+   A word slammed onto something (Stamp.tsx). Ink-bordered like a rubber stamp
+   rather than glowing like a spell: it is a verdict, not magic. */
+.hx-stamp {
+  --stamp: var(--bad);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 6;
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 3px 12px 2px;
+  border: 3px solid var(--stamp);
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  color: var(--stamp);
+  background: color-mix(in srgb, var(--stamp) 16%, rgba(8, 6, 5, 0.86));
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.65),
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    0 0 22px color-mix(in srgb, var(--stamp) 40%, transparent);
+}
+.hx-stamp.is-bad { --stamp: var(--bad); }
+.hx-stamp.is-ice { --stamp: var(--veil); }
+.hx-stamp.is-gold { --stamp: var(--gold); }
+
+/* Over the seat's cards, under its name: the seat is still legible. */
+.seat-stamp { top: 38%; font-size: 19px; }
+.stack-stamp { font-size: 28px; }
+.shopcard-stamp { top: 40%; font-size: 20px; }
+
+/* --- count-up --------------------------------------------------------------
+   Inline-block so the land pop (a transform) applies; the min-width the
+   component sets reserves the final value's width. */
+.hx-countup { display: inline-block; }
+
+/* --- number pops -----------------------------------------------------------
+   "+N" over a seat that just took a pot (PopLayer.tsx). Portalled to <body>,
+   so it is positioned in viewport pixels and the shake does not carry it. */
+.hx-pops {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx);
+  pointer-events: none;
+  overflow: hidden;
+}
+.hx-pop {
+  position: absolute;
+  translate: -50% -50%;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--gold-hi);
+  text-shadow:
+    0 2px 0 #140f08,
+    0 0 3px #140f08,
+    0 0 16px color-mix(in srgb, var(--gold) 65%, transparent);
+}
+
+/* --- the cut-in banner (BannerLayer.tsx) ------------------------------------ */
+.hx-banner {
+  --banner-color: var(--text);
+  --banner-tilt: 0deg;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  /* The band is wider than the viewport (it is tilted, and it slides in from
+     off-screen). This box is exactly the viewport, so clipping here is free. */
+  overflow: hidden;
+}
+
+/* A band of ink with the tone's colour in it, ruled top and bottom in black
+   and gold the way the basketball bands are: ink, highlight, ink, gold. */
+.hx-banner__band {
+  position: absolute;
+  left: -25vw;
+  right: -25vw;
+  top: 50%;
+  height: 176px;
+  translate: 0 -50%;
+  rotate: var(--banner-tilt);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--banner-color) 10%, rgba(5, 6, 12, 0.9)),
+      color-mix(in srgb, var(--banner-color) 18%, rgba(8, 7, 14, 0.94)) 50%,
+      color-mix(in srgb, var(--banner-color) 10%, rgba(5, 6, 12, 0.9)));
+  box-shadow:
+    inset 0 3px 0 rgba(0, 0, 0, 0.8),
+    inset 0 4px 0 color-mix(in srgb, var(--banner-color) 80%, white),
+    inset 0 7px 0 rgba(0, 0, 0, 0.8),
+    inset 0 8px 0 color-mix(in srgb, var(--gold) 70%, transparent),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.8),
+    inset 0 -4px 0 color-mix(in srgb, var(--banner-color) 80%, white),
+    inset 0 -7px 0 rgba(0, 0, 0, 0.8),
+    inset 0 -8px 0 color-mix(in srgb, var(--gold) 70%, transparent),
+    0 0 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Speed lines running along the band while it holds. One tile of horizontal
+   streaks, translated by exactly one tile width so the loop is seamless, on
+   the compositor (transform only). */
+.hx-banner__lines {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: calc(100% + 480px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='156'%3E%3Cg fill='white'%3E%3Crect x='12' y='9' width='120' height='2' opacity='.5'/%3E%3Crect x='210' y='21' width='64' height='1' opacity='.35'/%3E%3Crect x='330' y='33' width='140' height='2' opacity='.45'/%3E%3Crect x='60' y='47' width='46' height='1' opacity='.3'/%3E%3Crect x='170' y='58' width='96' height='2' opacity='.4'/%3E%3Crect x='402' y='70' width='58' height='1' opacity='.3'/%3E%3Crect x='24' y='84' width='88' height='1' opacity='.35'/%3E%3Crect x='250' y='92' width='132' height='2' opacity='.5'/%3E%3Crect x='120' y='106' width='40' height='1' opacity='.3'/%3E%3Crect x='300' y='117' width='70' height='1' opacity='.35'/%3E%3Crect x='6' y='128' width='150' height='2' opacity='.45'/%3E%3Crect x='200' y='141' width='52' height='1' opacity='.3'/%3E%3Crect x='380' y='148' width='90' height='2' opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 480px 100%;
+  opacity: 0.22;
+  animation: hx-banner-lines 0.7s linear infinite;
+}
+.hx-banner[data-tone='impossible'] .hx-banner__lines { opacity: 0.32; animation-duration: 0.5s; }
+
+@keyframes hx-banner-lines {
+  from { transform: translateX(0); }
+  to { transform: translateX(-480px); }
+}
+
+.hx-banner__words {
+  position: relative;
+  text-align: center;
+  padding: 0 24px;
+  /* The text is server-authored and unbounded (an omen's name, a winner's
+     name): without a cap it runs off both edges at narrower windows. */
+  width: min(94vw, 1100px);
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+}
+.hx-banner__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 7vw, var(--fs-3xl));
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--banner-color);
+  /* A hard ink drop under the glow: arcade lettering sits on the band
+     instead of floating in it. */
+  text-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.9),
+    0 0 40px var(--banner-color),
+    0 6px 30px rgba(0, 0, 0, 0.8);
+}
+.hx-banner__sub {
+  margin: 12px 0 0;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Who made the impossible hand and what it took: a strip under the band. */
+.hx-banner__strip {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 120px);
+  translate: -50% 0;
+  white-space: nowrap;
+  padding: 7px 26px 6px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-hi);
+  background: rgba(5, 6, 12, 0.94);
+  border-top: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Reduced motion: the band holds still. The streaks stay (they are part of
+   the band's look); only their travel goes. Their keyframe passes through
+   identity, so stopping it rests the tile where it started. */
+:root[data-reduced-motion='1'] .hx-banner__lines { animation: none; }

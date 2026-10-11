@@ -1,19 +1,40 @@
 /**
- * Full-screen announcements: ante breaks, impossible hands, the end of a run.
- * Driven straight off the `banner` fx event so the server decides what deserves
- * the whole screen.
+ * Full-screen announcements: ante breaks, impossible hands, new omens, the end
+ * of a run. Driven straight off the `banner` fx event so the server decides
+ * what deserves the whole screen.
+ *
+ * Since 2026-10-11 these play as the basketball roguelike's arcade cut-ins
+ * rather than as a fade (catalogue: plans/ANIM-PORT.md):
+ *
+ *  - the band OPENS from a sliver and overshoots (scaleY, easeOutBack) — or,
+ *    for an impossible hand or an omen, slides in tilted along its own axis;
+ *  - speed lines run along it while it holds;
+ *  - the title SLAMS from ~3x to 1x through an overshoot, whites out for a
+ *    couple of frames on contact, and the table takes a small hit (except
+ *    where the server's own fx already shook it);
+ *  - the subtitle decodes in after the slam;
+ *  - it leaves by a wipe, the title stretching flat on the way out;
+ *  - and any click or key skips it, after a 120ms guard so the input that
+ *    caused it cannot. A skipped banner frees the screen at once, so the
+ *    Market and the game-over panel that wait on it come sooner.
  */
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { onFx } from '@/store/net';
+import { onFx, useGame } from '@/store/net';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
-import { EASE_OUT, T_REDUCED } from '@/styles/motion';
+import { DecodeText } from '@/components/fx/DecodeText';
+import { flashPeak, motionPrefs, SLAM_EXIT } from '@/components/fx/arcade';
+import { shake } from '@/lib/visuals';
+import { EASE_OUT, EASE_SNAP, T_REDUCED } from '@/styles/motion';
+import '@/components/fx/arcade.css';
 
 interface Banner {
   key: number;
   text: string;
   sub?: string;
   tone: 'neutral' | 'magic' | 'impossible' | 'win' | 'danger';
+  /** Who made the impossible hand, and what it took: the name strip. */
+  strip?: string;
 }
 
 const TONE_COLOR: Record<Banner['tone'], string> = {
@@ -27,6 +48,31 @@ const TONE_COLOR: Record<Banner['tone'], string> = {
 const HOLD_MS: Record<Banner['tone'], number> = {
   neutral: 1800, magic: 2200, impossible: 3200, win: 3600, danger: 2200,
 };
+
+/**
+ * How big the title starts before it slams down. The basketball callouts run
+ * 3-3.4x; an ante tick-over is routine and gets the smallest hit, and a
+ * neutral notice does not slam at all.
+ */
+export const SLAM_FROM: Record<Banner['tone'], number> = {
+  neutral: 1, magic: 2.2, impossible: 3, win: 2.6, danger: 2.4,
+};
+
+/**
+ * The hit the table takes as the title lands, in vfx px / ms. Zero for an
+ * impossible-tone banner: the server already shakes for both of those (the
+ * hand and the omen) and a second shake on top reads as a stutter.
+ */
+export const SLAM_SHAKE: Record<Banner['tone'], [number, number]> = {
+  neutral: [0, 0], magic: [6, 180], impossible: [0, 0], win: [10, 240], danger: [8, 200],
+};
+
+/** The click that raised a banner must not also be the one that skips it. */
+export const SKIP_GUARD_MS = 120;
+/** The exit (wipe + squash): what a skipped banner still holds the screen for. */
+const EXIT_MS = 260;
+/** Tilt of the impossible band, in degrees (the basketball cut-ins run -12). */
+const TILT_DEG = -6;
 
 let seq = 0;
 
@@ -91,18 +137,33 @@ export function useBannerIdle(): boolean {
 
 export default function BannerLayer() {
   const [banner, setBanner] = useState<Banner | null>(null);
-  // This layer owns the entire viewport: a full-width horizontal wipe plus a
-  // 26px lift on display-size text is the largest single piece of motion in
-  // the app.
+  // This layer owns the entire viewport: the largest single piece of motion
+  // in the app, so it is also the one reduced motion calms the most.
   const reduced = useReducedMotionPref();
 
-  useEffect(() => onFx((e) => {
-    if (e.t !== 'banner') return;
-    const tone = e.tone ?? 'neutral';
-    // +300 covers the exit fade below.
-    markBusyUntil(Date.now() + HOLD_MS[tone] + 300);
-    setBanner({ key: ++seq, text: e.text, sub: e.sub, tone });
-  }), []);
+  useEffect(() => {
+    // The `win` for an impossible hand arrives in the same fx batch, just
+    // ahead of its banner, and carries what the banner does not: who.
+    let lastWin: { playerId: string; amount: number; at: number } | null = null;
+    return onFx((e) => {
+      if (e.t === 'win' && e.impossible) {
+        lastWin = { playerId: e.playerId, amount: e.amount, at: Date.now() };
+        return;
+      }
+      if (e.t !== 'banner') return;
+      const tone = e.tone ?? 'neutral';
+      let strip: string | undefined;
+      const won = lastWin;
+      if (tone === 'impossible' && won && Date.now() - won.at < 500) {
+        const who = useGame.getState().view?.players.find((p) => p.id === won.playerId);
+        if (who) strip = `${who.isYou ? 'You' : who.name}  ·  +${won.amount.toLocaleString()}`;
+      }
+      lastWin = null;
+      // +EXIT_MS covers the exit below.
+      markBusyUntil(Date.now() + HOLD_MS[tone] + EXIT_MS);
+      setBanner({ key: ++seq, text: e.text, sub: e.sub, tone, strip });
+    });
+  }, []);
 
   useEffect(() => {
     if (!banner) return;
@@ -110,116 +171,151 @@ export default function BannerLayer() {
     return () => window.clearTimeout(id);
   }, [banner]);
 
+  // Any click or key skips it. Listening on window in the capture phase, and
+  // never consuming the event: the click that skips a banner still lands on
+  // whatever it was aimed at, so skipping costs the player nothing.
+  const skip = useCallback(() => {
+    setBanner(null);
+    markBusyUntil(Date.now() + EXIT_MS);
+  }, []);
+  useEffect(() => {
+    if (!banner) return;
+    const shownAt = Date.now();
+    const onInput = (ev: Event): void => {
+      if (Date.now() - shownAt < SKIP_GUARD_MS) return;
+      if (ev instanceof KeyboardEvent && (ev.repeat || MODIFIERS.has(ev.key))) return;
+      skip();
+    };
+    window.addEventListener('pointerdown', onInput, true);
+    window.addEventListener('keydown', onInput, true);
+    return () => {
+      window.removeEventListener('pointerdown', onInput, true);
+      window.removeEventListener('keydown', onInput, true);
+    };
+  }, [banner, skip]);
+
+  // The hit, timed to the title landing rather than to the banner arriving.
+  useEffect(() => {
+    if (!banner || reduced) return;
+    const [px, ms] = SLAM_SHAKE[banner.tone];
+    if (!px) return;
+    const id = window.setTimeout(() => shake(px, ms), 140);
+    return () => window.clearTimeout(id);
+  }, [banner, reduced]);
+
   return (
     <AnimatePresence>
-      {banner ? (
-        <motion.div
-          key={banner.key}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: EASE_OUT }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 'var(--z-overlay)' as unknown as number,
-            display: 'grid',
-            placeItems: 'center',
-            pointerEvents: 'none',
-            // The glow bar's exit scales past 1, so it is briefly wider than
-            // the viewport. This container is already exactly viewport-sized,
-            // so clipping here is free and invisible.
-            overflow: 'hidden',
-          }}
-          role="status"
-          aria-live="assertive"
-        >
-          <motion.div
-            // 0.04 rather than 0: a wipe should start as a sliver of the
-            // thing arriving, not as literally nothing. Under reduced motion
-            // the bar fades in at full width instead of sweeping.
-            initial={reduced ? { scaleX: 1, opacity: 0 } : { scaleX: 0.04, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            exit={reduced ? { opacity: 0 } : { scaleX: 1.2, opacity: 0 }}
-            transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.5, ease: EASE_OUT }}
-            style={{
-              position: 'absolute',
-              inset: '0 0 auto',
-              top: '50%',
-              height: 170,
-              // `translate`, not `transform`: this element animates scaleX, and
-              // framer-motion owns `transform` outright — a centring transform
-              // here is silently discarded. The longhand composes instead.
-              translate: '0 -50%',
-              background:
-                'linear-gradient(90deg, transparent, rgba(5,6,12,.88) 18%, rgba(5,6,12,.92) 82%, transparent)',
-              borderTop: '1px solid rgba(240,196,101,.2)',
-              borderBottom: '1px solid rgba(240,196,101,.2)',
-            }}
-          />
-          <div
-            style={{
-              position: 'relative',
-              textAlign: 'center',
-              padding: '0 24px',
-              // Unlike everything else in this layer, the text here is
-              // server-authored and unbounded in length (an omen's name, a
-              // relic's text) — without a width cap it renders as one
-              // unbroken line and can run off both edges of the viewport at
-              // narrower resolutions.
-              width: 'min(94vw, 1100px)',
-              boxSizing: 'border-box',
-              overflowWrap: 'break-word',
-            }}
+      {banner ? <BannerView key={banner.key} banner={banner} reduced={reduced} /> : null}
+    </AnimatePresence>
+  );
+}
+
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
+
+function BannerView({ banner, reduced }: { banner: Banner; reduced: boolean }) {
+  const tilted = banner.tone === 'impossible';
+  const color = TONE_COLOR[banner.tone];
+  const from = SLAM_FROM[banner.tone];
+  const slams = !reduced && from > 1;
+  const peak = useMemo(() => flashPeak(motionPrefs()), []);
+
+  // Band. Tilted bands slide in along their own axis (the basketball score
+  // cut-in); level ones open from a sliver (its announcements). Both leave
+  // by a wipe. `rotate` is a CSS longhand on the element (arcade.css), which
+  // composes with the transform framer writes instead of being discarded.
+  const band = reduced
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: T_REDUCED, ease: EASE_OUT } }
+    : tilted
+      ? {
+        initial: { transform: 'translateX(-115%)', clipPath: 'inset(0% 0% 0% 0%)' },
+        animate: { transform: 'translateX(0%)', clipPath: 'inset(0% 0% 0% 0%)' },
+        exit: { clipPath: 'inset(0% 0% 0% 100%)', transition: { duration: 0.24, ease: EASE_OUT } },
+        transition: { duration: 0.26, ease: EASE_SNAP },
+      }
+      : {
+        // 0.04 rather than 0: a band opening should start as a sliver of
+        // the thing arriving, not as literally nothing.
+        initial: { transform: 'scaleY(0.04)', clipPath: 'inset(0% 0% 0% 0%)' },
+        animate: { transform: 'scaleY(1)', clipPath: 'inset(0% 0% 0% 0%)' },
+        exit: { clipPath: 'inset(0% 0% 0% 100%)', transition: { duration: 0.24, ease: EASE_OUT } },
+        transition: { duration: 0.18, ease: EASE_SNAP },
+      };
+
+  const tilt = tilted ? -2 : 0;
+  const title = !slams
+    ? {
+      initial: reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(26px)' },
+      animate: { opacity: 1, transform: 'translateY(0px)' },
+      exit: { opacity: 0 },
+      transition: reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.5, ease: EASE_OUT, delay: 0.08 },
+    }
+    : {
+      initial: { opacity: 0, transform: `scale(${from}) rotate(${tilt}deg) skewX(-6deg)`, filter: `brightness(${peak})` },
+      animate: {
+        opacity: 1,
+        transform: `scale(1) rotate(${tilt}deg) skewX(-6deg)`,
+        filter: [`brightness(${peak})`, `brightness(${peak})`, 'brightness(1)'],
+      },
+      // Out stretched wide and flat, the way the basketball callouts leave.
+      exit: {
+        opacity: 0,
+        transform: `scale(${SLAM_EXIT.x}, ${SLAM_EXIT.y}) rotate(${tilt}deg) skewX(-6deg)`,
+        transition: { duration: 0.2, ease: EASE_OUT },
+      },
+      transition: {
+        transform: { duration: 0.18, ease: EASE_SNAP, delay: 0.06 },
+        opacity: { duration: 0.05, delay: 0.06 },
+        filter: { duration: 0.26, times: [0, 0.4, 1], ease: 'linear', delay: 0.06 },
+      },
+    };
+
+  return (
+    <motion.div
+      className="hx-banner"
+      data-tone={banner.tone}
+      style={{ ['--banner-color' as string]: color, ['--banner-tilt' as string]: `${tilted ? TILT_DEG : 0}deg` }}
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      // Holds while the children run their own exits, then goes.
+      exit={{ opacity: 0, transition: { duration: 0.1, delay: (EXIT_MS - 100) / 1000 } }}
+      role="status"
+      aria-live="assertive"
+    >
+      <motion.div className="hx-banner__band" {...band}>
+        <span className="hx-banner__lines" aria-hidden />
+      </motion.div>
+      <div className="hx-banner__words">
+        {/* No `letterSpacing` tween. It is a text-layout property: every
+            frame re-shaped the run, re-measured the <h1> and re-laid-out the
+            width-capped wrapper — so a long, server-authored title could
+            re-wrap between lines mid-animation. Transform, opacity and a
+            filter say the same thing on the compositor. */}
+        <motion.h1 className="hx-banner__title" {...title}>
+          {banner.text}
+        </motion.h1>
+        {banner.sub ? (
+          <motion.p
+            className="hx-banner__sub"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.12, ease: EASE_OUT, delay: 0.22 }}
           >
-            {/* No `letterSpacing` tween. It is a text-layout property: every
-                frame re-shaped the run, re-measured the <h1> and re-laid-out
-                the width-capped wrapper above — so a long, server-authored
-                title could re-wrap between lines mid-animation, at display
-                size, full-screen, on exactly the beats where the particle
-                system is busiest. Opacity and a transform say the same thing
-                on the compositor. */}
-            <motion.h1
-              initial={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(26px)' }}
-              animate={{ opacity: 1, transform: 'translateY(0px)' }}
-              exit={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-14px)' }}
-              transition={reduced
-                ? { duration: T_REDUCED, ease: EASE_OUT }
-                : { duration: 0.62, ease: EASE_OUT, delay: 0.08 }}
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(30px, 7vw, var(--fs-3xl))',
-                fontWeight: 900,
-                letterSpacing: '0.16em',
-                color: TONE_COLOR[banner.tone],
-                textShadow: `0 0 40px ${TONE_COLOR[banner.tone]}, 0 6px 30px rgba(0,0,0,.8)`,
-                margin: 0,
-              }}
-            >
-              {banner.text}
-            </motion.h1>
-            {banner.sub ? (
-              <motion.p
-                initial={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateY(14px)' }}
-                animate={{ opacity: 1, transform: 'translateY(0px)' }}
-                exit={{ opacity: 0 }}
-                transition={reduced
-                  ? { duration: T_REDUCED, ease: EASE_OUT }
-                  : { duration: 0.5, ease: EASE_OUT, delay: 0.24 }}
-                style={{
-                  marginTop: 12,
-                  fontSize: 'var(--fs-sm)',
-                  letterSpacing: '0.3em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-3)',
-                }}
-              >
-                {banner.sub}
-              </motion.p>
-            ) : null}
-          </div>
+            {reduced ? banner.sub : <DecodeText text={banner.sub} lead={260} step={22} />}
+          </motion.p>
+        ) : null}
+      </div>
+      {banner.strip ? (
+        <motion.div
+          className="hx-banner__strip"
+          initial={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateX(60vw)' }}
+          animate={{ opacity: 1, transform: 'translateX(0vw)' }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, transform: 'translateX(-60vw)', transition: { duration: 0.2, ease: EASE_OUT } }}
+          transition={reduced ? { duration: T_REDUCED, ease: EASE_OUT } : { duration: 0.22, ease: EASE_OUT, delay: 0.3 }}
+        >
+          {banner.strip}
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </motion.div>
   );
 }
