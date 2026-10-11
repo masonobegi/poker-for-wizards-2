@@ -28,7 +28,7 @@
  * This module is pure and shared, so the Market shows a live reading as you
  * type and the server re-reads the same text to decide what you actually get.
  */
-import { MARKS, type MarkId, type Rank, type Suit, RANK_NAME } from './cards';
+import { MARKS, type MarkId, type Rank, type Suit, RANK_NAME, rankPlural } from './cards';
 import { SIGIL_BY_ID, type School, type SigilDef, type Timing } from './sigils';
 
 // ---------------------------------------------------------------------------
@@ -537,7 +537,7 @@ export function clauseLabel(c: Clause): string {
   const bits: string[] = [];
   if (c.who) bits.push(whoLabel(c.who));
   for (const r of c.cards ?? []) bits.push(cardLabel(r));
-  if (c.rank) bits.push(`${RANK_NAME[c.rank]}s`);
+  if (c.rank) bits.push(`${rankPlural(c.rank)}`);
   if (c.suit) bits.push(SUIT_NAME[c.suit]);
   if (c.mark) bits.push(MARKS[c.mark]?.name ?? c.mark);
   return `${def?.name ?? c.sigil}${bits.length ? ` → ${bits.join(', ')}` : ''}`;

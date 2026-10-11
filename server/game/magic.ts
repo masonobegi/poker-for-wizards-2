@@ -14,7 +14,7 @@
 import { nanoid } from 'nanoid';
 import {
   type CardEntity, type Face, type MarkId, type Rank, type Suit,
-  MARKS, RANK_LABEL, RANK_NAME, SUITS, collapse, faceLabel, isInscribeMark, isQuantum, makeCard, nextCardId,
+  MARKS, RANK_LABEL, RANK_NAME, SUITS, rankPlural, collapse, faceLabel, isInscribeMark, isQuantum, makeCard, nextCardId,
 } from '../../shared/cards';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -476,7 +476,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     case 'sealed_rank': {
       const r = tg.rank ?? 13;
       if (!t.sealedRanks.includes(r)) t.sealedRanks.push(r);
-      t.modNotes.push(`${RANK_NAME[r]}s are sealed`);
+      t.modNotes.push(`${rankPlural(r)} are sealed`);
       let sealed = 0;
       for (const id of [...t.board, ...t.players.flatMap((p) => p.hole)]) {
         const c = card(t, id);
@@ -658,8 +658,8 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
         const face = firstCard.collapsed !== null ? firstCard.faces[firstCard.collapsed] : null;
         if (face && !(t.mods.deadRanks ?? []).includes(face.rank)) {
           t.mods.deadRanks = [...(t.mods.deadRanks ?? []), face.rank];
-          t.modNotes.push(`${RANK_NAME[face.rank]}s are salted`);
-          log(t, `Salt: ${RANK_NAME[face.rank]}s are struck from every hand.`, 'impossible', {
+          t.modNotes.push(`${rankPlural(face.rank)} are salted`);
+          log(t, `Salt: ${rankPlural(face.rank)} are struck from every hand.`, 'impossible', {
             school: def.school, playerId: caster.id, rule: ruleRelic(caster, 'salt'),
           });
         }
@@ -669,9 +669,9 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     case 'unmake': {
       const r = tg.rank ?? 14;
       t.mods.deadRanks = [...new Set([...(t.mods.deadRanks ?? []), r])];
-      t.modNotes.push(`${RANK_NAME[r]}s are unmade`);
+      t.modNotes.push(`${rankPlural(r)} are unmade`);
       ctx.fx.push({ t: 'flash', color: SCHOOLS.ruin.accent, power: 0.5 });
-      note(`${RANK_NAME[r]}s are struck from every hand.`, 'impossible');
+      note(`${rankPlural(r)} are struck from every hand.`, 'impossible');
       break;
     }
     case 'larceny': {

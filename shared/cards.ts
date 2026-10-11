@@ -25,6 +25,12 @@ export const RANK_NAME: Record<Rank, string> = {
   9: 'Nine', 10: 'Ten', 11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace',
 };
 
+/** "Sixes", "Kings": a rank's name in the plural. "Six" + "s" printed "Sixs". */
+export const rankPlural = (r: Rank): string => {
+  const n = RANK_NAME[r] ?? String(r);
+  return /(?:s|x|z|ch|sh)$/i.test(n) ? `${n}es` : `${n}s`;
+};
+
 export const SUIT_GLYPH: Record<Suit, string> = { S: '♠', H: '♥', D: '♦', C: '♣' };
 export const SUIT_NAME: Record<Suit, string> = {
   S: 'Spades', H: 'Hearts', D: 'Diamonds', C: 'Clubs',

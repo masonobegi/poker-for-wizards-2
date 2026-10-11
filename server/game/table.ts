@@ -413,7 +413,9 @@ export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock |
   if (def.target === 'player' && hasRule(p.relics, 'sanctum')) return { why: 'relic', relic: ruleRelic(p, 'sanctum') };
 
   const need = manaCost(p, def, t);
-  if (p.mana < need && bloodOwed(t, p, need) === null) return { why: 'mana', need };
+  // The Blood Price pays for a sigil on its owner's turn, never a response:
+  // a response window opens only for those who can already pay.
+  if (p.mana < need && (isResponse || bloodOwed(t, p, need) === null)) return { why: 'mana', need };
   return null;
 }
 

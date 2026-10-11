@@ -369,7 +369,7 @@ const RULES: RelicDef[] = [
   // chips are your life, and now they are also your mana.
   {
     id: 'blood_price', name: 'The Blood Price', glyph: '⚕', rarity: 'rare', price: 12,
-    text: 'Short of mana for a sigil? Pay the rest in chips: one big blind for each missing mana, into the pot.',
+    text: 'Short of mana for a sigil on your turn? Pay the rest in chips: one big blind for each missing mana.',
     impossible: 'Spending money on something that is not for sale.',
     rule: 'blood_price',
   },

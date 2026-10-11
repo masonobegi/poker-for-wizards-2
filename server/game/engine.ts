@@ -8,7 +8,7 @@
  */
 import { nanoid } from 'nanoid';
 import { config } from '../config';
-import { type CardEntity, type Face, type Rank, RANKS, RANK_NAME, isQuantum, standardDeck } from '../../shared/cards';
+import { type CardEntity, type Face, type Rank, RANKS, RANK_NAME, isQuantum, rankPlural, standardDeck } from '../../shared/cards';
 import { Cat, evaluate } from '../../shared/hand';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
@@ -476,7 +476,7 @@ export class Engine {
       const seal = def?.deal?.sealRank;
       if (seal && !t.sealedRanks.includes(seal)) {
         t.sealedRanks.push(seal);
-        t.modNotes.push(`${RANK_NAME[seal]}s are sealed`);
+        t.modNotes.push(`${rankPlural(seal)} are sealed`);
       }
     }
 
@@ -535,8 +535,8 @@ export class Engine {
       if (!hasRule(p.relics, 'lodestone')) continue;
       const rank = this.stream(`lodestone:${t.handNumber}:${p.seat}`).pick(RANKS);
       p.lodestone = rank;
-      t.modNotes.push(`${RANK_NAME[rank]}s are Wild for ${p.name}`);
-      log(t, `${p.name}'s Lodestone draws ${RANK_NAME[rank]}s: every ${RANK_NAME[rank]} is Wild for them this hand.`, 'impossible', {
+      t.modNotes.push(`${rankPlural(rank)} are Wild for ${p.name}`);
+      log(t, `${p.name}'s Lodestone draws ${rankPlural(rank)}: every ${RANK_NAME[rank]} is Wild for them this hand.`, 'impossible', {
         playerId: p.id, rule: ruleRelic(p, 'lodestone'),
       });
     }
@@ -1279,7 +1279,7 @@ export class Engine {
 
     for (const p of t.players) refreshMaxMana(p, t);
 
-    const detail = omen.rank ? `${RANK_NAME[omen.rank]}s` : '';
+    const detail = omen.rank ? `${rankPlural(omen.rank)}` : '';
     log(t, `OMEN — ${def.name}: ${def.text}${detail ? ` (${detail})` : ''}`, 'impossible');
     this.fx.push({ t: 'banner', text: def.name.toUpperCase(), sub: 'A new rule, permanently', tone: 'impossible' });
     this.fx.push({ t: 'sfx', name: 'seal' });

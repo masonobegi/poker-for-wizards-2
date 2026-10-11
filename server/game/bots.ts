@@ -170,11 +170,14 @@ function equityKey(t: Table, p: Player): string {
  * the harness's player. Only what this seat was shown is used; previews pass
  * `know` false, because a preview resolves the spell on a copy of the table
  * and would otherwise read the very cards the spell has not yet shown it.
+ * READ_WHAT_IS_SEEN = false puts the blind reads back.
  */
+export const READ_WHAT_IS_SEEN = true;
+
 function known(t: Table, p: Player): { holes: Map<string, CardEntity[]>; runout: Array<CardEntity | null> } {
   const holes = new Map<string, CardEntity[]>();
   const fk = p.foreknowledge;
-  if (!fk) return { holes, runout: [] };
+  if (!fk || !READ_WHAT_IS_SEEN) return { holes, runout: [] };
   for (const q of live(t)) {
     if (q.id === p.id) continue;
     const seen = q.hole
