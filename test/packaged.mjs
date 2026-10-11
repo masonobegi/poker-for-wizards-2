@@ -30,7 +30,9 @@
  * Linux, headless (no display at all, so nothing can appear): run
  * scripts/linux-smoke.sh in WSL or on any x64 Linux. It copies
  * release/linux-unpacked and runs this harness with HEXHOLD_EXE pointing at
- * it and HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless".
+ * it and HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless" plus
+ * SwiftShader GL (the script says why). HEXHOLD_BUILD=release-demo/linux-unpacked
+ * runs it against the Next Fest demo instead.
  */
 import { _electron as electron } from 'playwright';
 import { execSync } from 'node:child_process';
@@ -49,6 +51,11 @@ const SHOT_DIR = path.resolve('steam/screenshots/raw');
 const HEADLESS = /--ozone-platform=headless/.test(process.env.HEXHOLD_EXTRA_ARGS ?? '');
 // Window content size for a headless run, e.g. HEXHOLD_TEST_SIZE=1920x1080.
 const HEADLESS_SIZE = (process.env.HEXHOLD_TEST_SIZE ?? '1280x800').split('x').map(Number);
+// The solo button: "Practice vs Bots" in the full game, "Play the Demo" in the
+// Next Fest demo (release-demo/). HEXHOLD_EXPECT_DEMO=1 says which build this
+// run is meant to be testing, so the wrong one is a failure, not a pass.
+const PLAY = /practice vs bots|play the demo/i;
+const EXPECT_DEMO = process.env.HEXHOLD_EXPECT_DEMO === '1';
 // A throwaway profile, so a test run never touches a real player's save.
 const USER_DATA = path.join(os.tmpdir(), `hexhold-packaged-${process.pid}`);
 
@@ -200,7 +207,7 @@ if (SHOTS) {
   });
 }
 
-const menuUp = await page.locator('button', { hasText: /practice vs bots/i }).first()
+const menuUp = await page.locator('button', { hasText: PLAY }).first()
   .waitFor({ state: 'visible', timeout: 30_000 }).then(() => true).catch(() => false);
 if (menuUp) pass('reached the main menu'); else fail('never reached the main menu');
 
@@ -217,6 +224,19 @@ if (audioState === 'running') pass('audio may start before any input (title musi
 else fail(`audio is held until a gesture: AudioContext is "${audioState}"`);
 await skipIntro(page);
 await page.waitForTimeout(1500);
+
+const isDemo = await page.locator('button', { hasText: /play the demo/i }).first().isVisible().catch(() => false);
+if (isDemo !== EXPECT_DEMO) {
+  fail(`meant to test the ${EXPECT_DEMO ? 'demo' : 'full game'} but launched the ${isDemo ? 'demo' : 'full game'}`);
+} else if (isDemo) {
+  // The demo's own menu (test/demo.mjs checks it in depth in a browser). The
+  // Wishlist button is only looked at: pressing it opens the real browser.
+  const covens = await page.locator('.menu-coven').count();
+  const locked = await page.locator('.menu-coven.is-locked').count();
+  const wish = await page.locator('.menu-actions button:has-text("Wishlist on Steam")').first().isVisible().catch(() => false);
+  if (covens === 7 && locked === 4 && wish) pass('demo menu: 3 covens open, 4 locked, Wishlist on Steam shown');
+  else fail(`demo menu: ${covens} covens, ${locked} locked, wishlist button ${wish ? 'shown' : 'missing'}`);
+}
 
 const size = await page.evaluate(() => [innerWidth, innerHeight]);
 notes.push(`viewport ${size[0]}x${size[1]}`);
@@ -289,7 +309,7 @@ const probe = await page.evaluate(() => localStorage.getItem('hexhold.packagedPr
 const port1 = await page.evaluate(() => location.port);
 
 // --- play --------------------------------------------------------------------
-await page.locator('button', { hasText: /practice vs bots/i }).first().click().catch(() => {});
+await page.locator('button', { hasText: PLAY }).first().click().catch(() => {});
 await skipIntro(page);
 const atTable = await page.locator('.felt').first().waitFor({ state: 'visible', timeout: 30_000 })
   .then(() => true).catch(() => false);
@@ -398,7 +418,7 @@ else fail(`${after - before} HEXHOLD process(es) still running after Quit`);
 
 // --- launch 2: does the save survive a new port? -------------------------------
 ({ app, page, external, errors } = await start(PORT_B));
-await page.locator('button', { hasText: /practice vs bots/i }).first()
+await page.locator('button', { hasText: PLAY }).first()
   .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
 await page.waitForTimeout(800);
 const port2 = await page.evaluate(() => location.port);
@@ -417,7 +437,7 @@ if (!introAgain) pass('intro not shown again on the second launch'); else fail('
   await page.evaluate(() => localStorage.setItem('hexhold.uiScale', '2'));
   await page.waitForTimeout(2200); // the preload's flush writes the save file
   await page.reload();
-  await page.locator('button', { hasText: /practice vs bots/i }).first()
+  await page.locator('button', { hasText: PLAY }).first()
     .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
   await page.waitForTimeout(600);
   const z = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getZoomFactor());
@@ -444,7 +464,7 @@ await app.close().catch(() => {});
 // included. Before 2026-10-09 the preload seeded on top of it, the marker came
 // back and the next flush wrote it into the save for good.
 ({ app, page, external, errors } = await start(PORT_A));
-await page.locator('button', { hasText: /practice vs bots/i }).first()
+await page.locator('button', { hasText: PLAY }).first()
   .waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
 await page.waitForTimeout(800);
 const port3 = await page.evaluate(() => location.port);

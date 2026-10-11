@@ -13,6 +13,8 @@
 # inherit Windows variables):
 #   wsl -d Ubuntu-24.04 -- env HEXHOLD_TEST_SIZE=1920x1080 bash scripts/linux-smoke.sh 60
 #   wsl -d Ubuntu-24.04 -- env HEXHOLD_HARNESS=test/quit.mjs bash scripts/linux-smoke.sh 2
+# The Next Fest demo (npm run package:demo:linux) instead of the full game:
+#   wsl -d Ubuntu-24.04 -- env HEXHOLD_BUILD=release-demo/linux-unpacked bash scripts/linux-smoke.sh 60
 # (run from the repo root; MSYS_NO_PATHCONV=1 if launched from Git Bash).
 set -euo pipefail
 
@@ -21,14 +23,17 @@ SECONDS_TO_PLAY="${1:-60}"
 CACHE="${HOME}/.cache/hexhold-smoke"
 mkdir -p "$CACHE"
 
-[ -x "$REPO/release/linux-unpacked/hexhold" ] || [ -f "$REPO/release/linux-unpacked/hexhold" ] || {
-  echo "No Linux build: run npx electron-builder --linux dir first." >&2; exit 2; }
+BUILD="${HEXHOLD_BUILD:-release/linux-unpacked}"
+[ -f "$REPO/$BUILD/hexhold" ] || {
+  echo "No Linux build in $BUILD: run npx electron-builder --linux dir (or npm run package:demo:linux) first." >&2; exit 2; }
+# The harness fails if it finds the other build than the one asked for.
+case "$BUILD" in *demo*) export HEXHOLD_EXPECT_DEMO=1;; *) export HEXHOLD_EXPECT_DEMO=0;; esac
 
 # A copy on the Linux filesystem: /mnt/c has no execute bits to trust and is
 # slow, and the build must run from somewhere it really could be installed.
-APP="$CACHE/linux-unpacked"
+APP="$CACHE/$(echo "$BUILD" | tr / -)"
 rm -rf "$APP"
-cp -r "$REPO/release/linux-unpacked" "$APP"
+cp -r "$REPO/$BUILD" "$APP"
 chmod +x "$APP/hexhold" "$APP/chrome_crashpad_handler" "$APP/chrome-sandbox"
 
 # Libraries Electron needs that a minimal WSL Ubuntu lacks.
@@ -60,6 +65,15 @@ fi
 # No display of any kind: WSLg would otherwise put a window on the desktop.
 unset DISPLAY WAYLAND_DISPLAY ELECTRON_RUN_AS_NODE
 cd "$REPO"
+# GL through SwiftShader. Headless Ozone has no EGL display, so without these
+# the GPU process fails to start ("Exiting GPU process due to errors during
+# initialization") and about one launch in 20 never draws its first frame:
+# the renderer's main thread waits forever, no window, every harness step
+# times out. Measured 2026-10-11 by launching the build with no Playwright
+# attached, 60 launches each: default 3 stuck, --disable-webgl 1 stuck,
+# SwiftShader 0 (and 0 in the harness runs since). A machine with a GPU, a
+# Deck included, starts its GPU process and never takes that path. This also
+# draws the WebGL menu backdrop instead of its no-GL fallback.
 HEXHOLD_EXE="$APP/hexhold" HEXHOLD_TEST_SIZE="${HEXHOLD_TEST_SIZE:-1280x800}" \
-HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless" \
+HEXHOLD_EXTRA_ARGS="--no-sandbox --ozone-platform=headless --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader" \
   "$NODE" "${HEXHOLD_HARNESS:-test/packaged.mjs}" "$SECONDS_TO_PLAY"

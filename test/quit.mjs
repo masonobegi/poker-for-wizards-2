@@ -35,6 +35,8 @@ import path from 'node:path';
 
 const ROUNDS = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 3);
 const QUIT_MAX_MS = 3000;
+// The solo button: "Practice vs Bots", or "Play the Demo" in the demo build.
+const PLAY = /practice vs bots|play the demo/i;
 const EXE = process.env.HEXHOLD_EXE
   ?? path.resolve(process.platform === 'win32' ? 'release/win-unpacked/HEXHOLD.exe' : 'release/linux-unpacked/hexhold');
 const EXTRA = (process.env.HEXHOLD_EXTRA_ARGS ?? '').split(' ').filter(Boolean);
@@ -72,6 +74,9 @@ async function launch() {
     env,
     timeout: 60_000,
   });
+  // The main process's stdout, for the quit stages it reports (below).
+  app.stdoutText = '';
+  app.process().stdout?.on('data', (b) => { app.stdoutText += String(b); });
   const page = await app.firstWindow();
   if (HEADLESS) {
     await app.evaluate(({ BrowserWindow }) => {
@@ -80,7 +85,7 @@ async function launch() {
       w.setContentSize(1280, 800);
     }).catch(() => {});
   }
-  await page.locator('button', { hasText: /practice vs bots/i }).first().waitFor({ state: 'visible', timeout: 45_000 });
+  await page.locator('button', { hasText: PLAY }).first().waitFor({ state: 'visible', timeout: 45_000 });
   for (let i = 0; i < 8; i++) {
     const skip = page.locator('button:has-text("Skip")').first();
     if (await skip.isVisible().catch(() => false)) { await skip.click().catch(() => {}); break; }
@@ -91,7 +96,7 @@ async function launch() {
 
 /** Reach a practice table; with `stack`, wait for a spell on the stack. */
 async function toTable(page, stack) {
-  await page.locator('button', { hasText: /practice vs bots/i }).first().click();
+  await page.locator('button', { hasText: PLAY }).first().click();
   await page.locator('.ab-buttons, .ab-idle').first().waitFor({ timeout: 30_000 });
   if (!stack) { await page.waitForTimeout(1500); return true; }
   const until = Date.now() + 60_000;
@@ -146,6 +151,20 @@ async function quitFrom(where) {
     ? page.locator('button', { hasText: /^quit$/i }).first()
     : page.locator('.hh-menu-actions button', { hasText: /^quit$/i }).first();
   const pids = await gamePids(app);
+  // Each step of Electron's quit, stamped by the main process itself, so a
+  // slow quit says where its time went (one of 72 on 2026-10-11 took 5.9s,
+  // under load, and nothing said why).
+  await app.evaluate(({ app: a, BrowserWindow }) => {
+    const mark = (what) => process.stdout.write(`QUIT-STAGE ${Date.now()} ${what}\n`);
+    a.on('before-quit', () => mark('before-quit'));
+    a.on('will-quit', () => mark('will-quit'));
+    a.prependListener('quit', () => mark('quit'));
+    for (const w of BrowserWindow.getAllWindows()) {
+      w.on('close', () => mark('window close'));
+      w.on('closed', () => mark('window closed'));
+      w.webContents.on('ipc-message-sync', (_e, channel) => mark(channel));
+    }
+  }).catch(() => {});
   const gone = {};
   let t0 = 0;
   const poll = setInterval(() => {
@@ -155,7 +174,13 @@ async function quitFrom(where) {
   t0 = Date.now();
   let pressMs = null;
   let clickError = '';
-  await quit.click({ timeout: 20_000 }).then(() => { pressMs = Date.now() - t0; }).catch((e) => { clickError = String(e).split('\n')[0]; });
+  let clickClosed = false;
+  await quit.click({ timeout: 20_000 }).then(() => { pressMs = Date.now() - t0; }).catch((e) => {
+    // A quit fast enough to close the page before Playwright's click returns
+    // is the press landing, not a failed press (timed below).
+    if (/has been closed/.test(String(e))) clickClosed = true;
+    else clickError = String(e).split('\n')[0];
+  });
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline && pids.some((q) => !(q.pid in gone))) await new Promise((r) => setTimeout(r, 50));
   clearInterval(poll);
@@ -166,7 +191,15 @@ async function quitFrom(where) {
   let left = processes() - before;
   for (let i = 0; i < 30 && left > 0; i++) { await new Promise((r) => setTimeout(r, 100)); left = processes() - before; }
   const byType = pids.map((q) => `${q.type} ${gone[q.pid] ?? '>30000'}`).join(', ');
+  const marks = app.stdoutText.split('\n').filter((l) => l.startsWith('QUIT-STAGE '))
+    .map((l) => { const [, at, ...what] = l.split(' '); return { what: what.join(' '), ms: Number(at) - t0 }; });
+  const stages = marks.map((m) => `${m.what} ${m.ms}`).join(', ');
+  // The click closed under Playwright: the press landed when the game asked
+  // to quit (before-quit, stamped by the main process). Failing that, time
+  // from before the click: an upper bound, never flattering.
+  if (clickClosed) pressMs = marks.find((m) => m.what === 'before-quit')?.ms ?? 0;
   return {
+    stages,
     where,
     reached,
     pressMs,
@@ -175,6 +208,7 @@ async function quitFrom(where) {
     byType,
     left,
     clickError,
+    clickClosed,
   };
 }
 
@@ -185,8 +219,9 @@ for (let r = 0; r < ROUNDS; r++) {
   for (const where of ['menu', 'table', 'stack']) {
     const res = await quitFrom(where);
     results.push(res);
-    console.log(`  ${where.padEnd(6)} press ${res.pressMs ?? '-'}ms, window gone ${res.windowMs ?? '-'}ms, every process gone ${res.exitMs ?? '>30000'}ms, left ${res.left}${res.reached ? '' : ' (no spell reached the stack)'}${res.clickError ? `, click: ${res.clickError}` : ''}`);
+    console.log(`  ${where.padEnd(6)} press ${res.pressMs ?? '-'}ms, window gone ${res.windowMs ?? '-'}ms, every process gone ${res.exitMs ?? '>30000'}ms, left ${res.left}${res.reached ? '' : ' (no spell reached the stack)'}${res.clickError ? `, click: ${res.clickError}` : ''}${res.clickClosed ? ' (the page closed under the click: press timed at before-quit)' : ''}`);
     console.log(`         ${res.byType}`);
+    if (res.stages) console.log(`         stages: ${res.stages}`);
   }
 }
 rmSync(USER_DATA_ROOT, { recursive: true, force: true });
