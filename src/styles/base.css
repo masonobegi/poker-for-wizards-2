@@ -165,7 +165,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   border-radius: 2px;
   background:
     radial-gradient(110% 80% at 50% -10%, rgba(170, 120, 255, 0.34), transparent 60%),
-    linear-gradient(180deg, #432c80, #261752);
+    linear-gradient(180deg, #27368f, #141d55);
   box-shadow:
     inset 0 0 0 1px var(--plate-rule),
     inset 0 0 0 4px rgba(9, 7, 6, 0.5),
@@ -250,8 +250,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .hx-plate {
   --cut: 20px;
   --plate-rule: rgba(255, 210, 63, 0.52);
-  --plate-fill-a: #432c80;
-  --plate-fill-b: #261752;
+  --plate-fill-a: #27368f;
+  --plate-fill-b: #141d55;
 
   position: relative;
   isolation: isolate;
@@ -280,14 +280,14 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
    clip-path so it reads as light coming off the plate rather than a border. */
 @keyframes plate-breathe {
   0%, 100% { box-shadow: var(--e-4), 0 0 18px -6px rgba(255, 210, 63, 0.26); }
-  50%      { box-shadow: var(--e-4), 0 0 34px -4px rgba(190, 150, 255, 0.42); }
+  50%      { box-shadow: var(--e-4), 0 0 34px -4px rgba(255, 208, 120, 0.40); }
 }
 
 /* Resting lit, not dark: the halo is part of how a plate reads as enchanted,
    so stopping the animation keeps the mid state rather than deleting it. */
 :root[data-reduced-motion='1'] .hx-plate {
   animation: none;
-  box-shadow: var(--e-4), 0 0 24px -5px rgba(190, 150, 255, 0.32);
+  box-shadow: var(--e-4), 0 0 24px -5px rgba(255, 208, 120, 0.30);
 }
 
 /* The fill, and with it the second rule of the double line: the gap between
@@ -305,11 +305,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     /* one faint ring, off-centre so it never reads as a loading spinner */
     radial-gradient(circle at 80% 16%, transparent 70px, rgba(240, 196, 101, 0.055) 71px, rgba(240, 196, 101, 0.055) 72px, transparent 73px),
     radial-gradient(circle at 80% 16%, transparent 104px, rgba(240, 196, 101, 0.03) 105px, transparent 106px),
-    radial-gradient(120% 90% at 50% -10%, rgba(190, 150, 255, 0.46), transparent 62%),
+    radial-gradient(120% 90% at 50% -10%, rgba(255, 214, 140, 0.30), transparent 62%),
     /* A second light, low and off to one side, so the fill has a lit corner
        and a shadowed one instead of reading as a single matte sheet. */
-    radial-gradient(90% 70% at 88% 108%, rgba(80, 220, 200, 0.16), transparent 64%),
-    linear-gradient(177deg, var(--plate-fill-a), var(--plate-fill-b) 72%, #1d1140 100%);
+    radial-gradient(90% 70% at 88% 108%, rgba(90, 140, 255, 0.22), transparent 64%),
+    linear-gradient(177deg, var(--plate-fill-a), var(--plate-fill-b) 72%, #0d1442 100%);
   box-shadow: inset 0 0 0 4px rgba(9, 7, 6, 0.55), inset 0 0 0 5px rgba(240, 196, 101, 0.14);
   clip-path: polygon(
     calc(var(--cut) - 1px) 0,

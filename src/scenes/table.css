@@ -107,7 +107,7 @@
      it is lit, which is why it can have a shadow side at all. */
   background:
     radial-gradient(ellipse 78% 70% at var(--lamp-x) var(--lamp-y),
-      var(--felt-mid), var(--felt-edge) 72%, #0a3f30 100%);
+      var(--felt-mid), var(--felt-edge) 72%, #0c1640 100%);
   box-shadow:
     inset 0 0 140px rgba(0, 0, 0, 0.82),
     inset 0 2px 0 rgba(255, 255, 255, 0.035),
@@ -174,11 +174,28 @@
   position: absolute;
   inset: 11% 9%;
   border-radius: 50% / 42%;
-  border: 1px solid rgba(var(--lamp-warm), 0.10);
+  /* Gold drawn ON the cloth, at a weight you can actually see. These rings
+     were set at 0.045-0.11 alpha, which on a dark green felt was invisible
+     and on a sapphire one is the whole point of the table. */
+  border: 1px solid rgba(255, 216, 130, 0.55);
   box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(10, 20, 70, 0.55),
     inset 0 0 0 7px transparent,
-    inset 0 0 0 8px rgba(var(--lamp-warm), 0.045);
+    inset 0 0 0 8px rgba(255, 216, 130, 0.30),
+    inset 0 0 26px rgba(255, 200, 100, 0.10),
+    0 0 18px rgba(255, 200, 110, 0.12);
+  pointer-events: none;
+}
+
+/* A second, inner ring, the way an astrological plate has several. Drawn on
+   the same element so it costs no extra box. */
+.felt-inlay::after {
+  content: '';
+  position: absolute;
+  inset: 13% 10%;
+  border-radius: 50% / 42%;
+  border: 1px solid rgba(255, 216, 130, 0.26);
+  box-shadow: inset 0 0 0 4px rgba(255, 216, 130, 0.10);
   pointer-events: none;
 }
 
@@ -191,8 +208,8 @@
   border-radius: inherit;
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(var(--lamp-warm), 0.11) 0deg 0.3deg,
-    transparent 0.3deg 6deg);
+    rgba(255, 216, 130, 0.42) 0deg 0.45deg,
+    transparent 0.45deg 6deg);
   -webkit-mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
   mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
 }
@@ -433,7 +450,7 @@
   gap: 2px var(--s-2);
   padding: 6px 12px 6px 6px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #4a3190 0%, #35215f 62%, #281a4a 100%);
+  background: linear-gradient(180deg, #2f44a8 0%, #1e2c73 62%, #141d52 100%);
   border: 1px solid var(--line-soft);
   border-top-color: color-mix(in srgb, var(--line) 70%, var(--gold-deep));
   box-shadow:
@@ -1006,14 +1023,17 @@
      bypassed the palette entirely, which is why the whole lower third of the
      screen stayed black after the tokens went violet. */
   background:
-    /* the lamp spilling over the rail's near edge */
-    radial-gradient(130% 120% at 50% -14%, rgba(255, 214, 140, 0.20), transparent 58%),
-    radial-gradient(80% 140% at 12% 120%, rgba(80, 220, 200, 0.12), transparent 60%),
+    /* candlelight spilling over the rail's near edge */
+    radial-gradient(130% 120% at 50% -14%, rgba(255, 224, 150, 0.26), transparent 58%),
+    /* the sapphire bounce off the cloth, on the far side */
+    radial-gradient(80% 140% at 12% 120%, rgba(70, 120, 255, 0.16), transparent 60%),
+    /* brass: a lit crown, a bright band where the bevel turns, then shadow */
     linear-gradient(180deg,
-      #7d57b4 0%,
-      #553585 26%,
-      #38215e 62%,
-      #241444 100%);
+      #d9a84e 0%,
+      #a8762a 14%,
+      #7d5418 34%,
+      #2a2f6e 72%,
+      #141c4a 100%);
   z-index: var(--z-ui);
   box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.55);
 }

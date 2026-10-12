@@ -97,9 +97,9 @@ void main() {
   // the room it built was unlit and grim under a game whose whole subject is
   // magic doing delightful things to a deck. A night sky is still dark enough
   // to read a card against; it is not the same as an unlit one.
-  vec3 night = vec3(0.098, 0.051, 0.212);
-  vec3 dusk  = vec3(0.231, 0.123, 0.420);
-  vec3 jade  = vec3(0.090, 0.420, 0.330);
+  vec3 night = vec3(0.035, 0.055, 0.195);
+  vec3 dusk  = vec3(0.090, 0.135, 0.400);
+  vec3 jade  = vec3(0.145, 0.200, 0.560);
 
   vec3 col = mix(night, dusk, smoothstep(0.18, 0.95, weather));
   col = mix(col, jade, smoothstep(0.55, 1.0, weather) * (0.26 + 0.30 * uAtTable));
@@ -109,22 +109,22 @@ void main() {
   // thinnest, which is what keeps the sky from reading as one flat wash.
   float band = sin(q.x * 2.1 + t * 0.7) * 0.12 + sin(q.x * 3.7 - t * 0.45) * 0.07;
   float aurora = smoothstep(0.26, 0.0, abs(q.y - 0.18 - band));
-  col += mix(vec3(0.22, 0.74, 0.62), vec3(0.58, 0.28, 0.92), 0.5 + 0.5 * sin(t * 0.5))
-       * aurora * (0.52 - 0.18 * uAtTable);
+  col += mix(vec3(0.24, 0.40, 0.92), vec3(0.62, 0.46, 0.95), 0.5 + 0.5 * sin(t * 0.5))
+       * aurora * (0.46 - 0.16 * uAtTable);
 
   // A second curtain, lower, slower and the other way, so the sky has two
   // things moving at different rates instead of one band sliding across it.
   float band2 = sin(q.x * 1.4 - t * 0.38) * 0.16 + sin(q.x * 2.6 + t * 0.29) * 0.06;
   float aurora2 = smoothstep(0.34, 0.0, abs(q.y + 0.26 - band2));
-  col += mix(vec3(0.46, 0.20, 0.72), vec3(0.14, 0.44, 0.70), 0.5 + 0.5 * sin(t * 0.33 + 1.7))
-       * aurora2 * (0.34 - 0.14 * uAtTable);
+  col += mix(vec3(0.30, 0.22, 0.78), vec3(0.12, 0.34, 0.80), 0.5 + 0.5 * sin(t * 0.33 + 1.7))
+       * aurora2 * (0.30 - 0.12 * uAtTable);
 
   // Large, very slow blooms of colour drifting under everything. This is what
   // keeps a wide screen from being one flat field of violet between the
   // aurora and the table.
   float bloom = fbm(q * 0.9 + vec2(t * 0.21, -t * 0.13));
-  col += mix(vec3(0.20, 0.06, 0.34), vec3(0.05, 0.26, 0.30), bloom)
-       * smoothstep(0.35, 0.95, bloom) * 0.55;
+  col += mix(vec3(0.08, 0.07, 0.30), vec3(0.04, 0.16, 0.42), bloom)
+       * smoothstep(0.35, 0.95, bloom) * 0.50;
 
   // The spell-light over the table. Warm gold, and it actually lights the
   // felt rather than merely tinting it.
@@ -142,7 +142,7 @@ void main() {
     vec2 c = fract(g) - 0.5;
     float d = length(c);
     float twinkle = 0.45 + 0.55 * sin(uTime * 0.0021 + m * 90.0);
-    vec3 spark = mix(vec3(1.0, 0.88, 0.52), vec3(0.62, 0.78, 1.0), hash(cell + 7.3));
+    vec3 spark = mix(vec3(1.0, 0.86, 0.46), vec3(0.70, 0.84, 1.0), hash(cell + 7.3) * 0.7);
     col += spark * smoothstep(0.26, 0.0, d) * 0.62 * twinkle;
   }
 
@@ -155,7 +155,7 @@ void main() {
     vec2 c2 = fract(g2) - 0.5;
     float d2 = length(c2);
     float pulse = 0.5 + 0.5 * sin(uTime * 0.0009 + m2 * 40.0);
-    col += vec3(0.42, 0.30, 0.62) * smoothstep(0.42, 0.0, d2) * 0.30 * pulse;
+    col += vec3(0.34, 0.30, 0.70) * smoothstep(0.42, 0.0, d2) * 0.30 * pulse;
   }
 
   // The ripple a resolving sigil pushes out. One expanding ring that fades
