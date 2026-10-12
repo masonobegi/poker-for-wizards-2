@@ -13,9 +13,15 @@ import { memo } from 'react';
  * alpha low enough that a hand always wins the eye — a table that competes
  * with the cards on it is worse than a plain one.
  *
- * The geometry is deliberately not centred on the board. The board sits in the
- * upper middle of the felt, so a rose centred there would be permanently
- * hidden; this sits where the cloth is actually visible.
+ * The middle is deliberately EMPTY, and must stay that way. The first version
+ * put a sixteen-point rose and two inner rings at the centre of the plate —
+ * which is exactly where the five community cards land. Under `screen` the
+ * gold bled through the semi-transparent card slots in some places and showed
+ * around them in others, so it read as simultaneously over and under the
+ * cards. There is no alpha at which that looks deliberate.
+ *
+ * Everything drawn here therefore lives outside rx 300 / ry 170 of centre,
+ * which is the box the board occupies. The plate is a border, not a medallion.
  */
 
 /** Points on a circle, for the repeating motifs. */
@@ -49,11 +55,6 @@ function FeltArcanaBase() {
           <stop offset="48%" stopColor={GOLD} stopOpacity="0.9" />
           <stop offset="100%" stopColor={GOLD} stopOpacity="0.5" />
         </linearGradient>
-        <radialGradient id="hx-arc-core">
-          <stop offset="0%" stopColor="#fff2cf" stopOpacity="0.55" />
-          <stop offset="60%" stopColor={GOLD} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
-        </radialGradient>
       </defs>
 
       <g stroke="url(#hx-arc-gold)" fill="none" strokeLinecap="round">
@@ -61,8 +62,6 @@ function FeltArcanaBase() {
         <ellipse cx="500" cy="300" rx="462" ry="250" strokeWidth="3.4" />
         <ellipse cx="500" cy="300" rx="448" ry="241" strokeWidth="0.9" opacity="0.7" />
         <ellipse cx="500" cy="300" rx="372" ry="206" strokeWidth="2.0" opacity="0.85" />
-        <ellipse cx="500" cy="300" rx="206" ry="118" strokeWidth="1.7" opacity="0.7" />
-        <ellipse cx="500" cy="300" rx="120" ry="70" strokeWidth="1.4" opacity="0.6" />
 
         {/* Spokes between the two outer rings — the degree marks of a chart. */}
         {spokes.map((p, i) => {
@@ -116,22 +115,6 @@ function FeltArcanaBase() {
         })}
       </g>
 
-      {/* The rose at the centre of the plate, and a soft bloom under it so the
-          cloth looks lit from within rather than printed on. */}
-      <g transform="translate(500 300)">
-        <circle r="92" fill="url(#hx-arc-core)" />
-        {ring(16, 1, 1, 0, 0).map((p, i) => (
-          <path
-            key={`r${i}`}
-            d={i % 4 === 0 ? 'M 0 0 L 0 -104 L 7 -72 L -7 -72 z' : 'M 0 0 L 0 -74 L 4 -54 L -4 -54 z'}
-            transform={`rotate(${p.deg})`}
-            fill="url(#hx-arc-gold)"
-            opacity={i % 4 === 0 ? 0.6 : 0.3}
-          />
-        ))}
-        <circle r="13" fill="none" stroke={GOLD} strokeWidth="1.4" opacity="0.7" />
-        <circle r="4.5" fill={GOLD} opacity="0.75" />
-      </g>
     </svg>
   );
 }
