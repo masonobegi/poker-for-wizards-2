@@ -43,3 +43,7 @@ steam/screenshots/raw/
 # Python bytecode from steam/make_*.py
 __pycache__/
 demo-shots/
+
+# The trailer recorder's rendered score and one-shots (tools/trailer/render_music.py)
+tools/trailer/out/
+tools/trailer/__pycache__/
