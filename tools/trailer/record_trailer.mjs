@@ -140,6 +140,12 @@ function camNow() {
 
 // ── Frames ───────────────────────────────────────────────────────────────────
 const ff = MEASURE ? { stdin: { write: () => true, end: () => {} }, on: (e, f) => f(), stderr: { on: () => {} } } : spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+  // Pad to even dimensions before encoding. The page is opened at 1920x1080,
+  // but a Chromium build other than the one Playwright pins can hand back a
+  // capture a row short (1920x1079 here), and libx264 refuses an odd height
+  // outright: "height not divisible by 2". Rounding up lands back on exactly
+  // 1080p rather than cropping to a non-standard 1078.
+  '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '14', '-pix_fmt', 'yuv420p', '-r', String(FPS), join(OUT, 'frames.mp4')]);
 ff.stderr.on('data', (d) => process.stderr.write(d));
 
