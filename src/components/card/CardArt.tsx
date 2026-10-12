@@ -359,11 +359,13 @@ function CourtArt({ rank, suit }: { rank: Rank; suit: Suit }) {
   return (
     <>
       <CourtFrame />
-      <CourtPips suit={suit} />
-      {rank === 11 && <Jack />}
-      {rank === 12 && <Queen />}
-      {rank === 13 && <King />}
-      {rank === 14 && <Ace suit={suit} />}
+      <g className="hx-art__court">
+        <CourtPips suit={suit} />
+        {rank === 11 && <Jack />}
+        {rank === 12 && <Queen />}
+        {rank === 13 && <King />}
+        {rank === 14 && <Ace suit={suit} />}
+      </g>
     </>
   );
 }
@@ -437,6 +439,12 @@ export const CardArt = memo(function CardArt({ face, className }: CardArtProps) 
     <div
       className={className ? `hx-art ${className}` : 'hx-art'}
       data-ink={red ? 'red' : 'black'}
+      /* The court medallion takes an elemental colour per suit, as a painted
+         deck does. Only the medallion: the corner indices and the number pips
+         stay red/black, because those are what a hand is read from and a
+         four-colour deck is a choice a player makes, not one a theme makes
+         for them. */
+      data-suit={face.suit}
       aria-hidden="true"
     >
       <CornerIndex rank={face.rank} suit={face.suit} corner="tl" />

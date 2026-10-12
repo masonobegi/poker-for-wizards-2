@@ -785,6 +785,20 @@
    `.board` above. Placed after that rule rather than before it, because these
    have equal specificity and source order is the whole difference between a
    fix and a no-op. */
+/* The same collision, one band up. The 720px rule below was written for the
+   minimum window and misses the two resolutions that matter most: at 1280x800
+   (Steam Deck) and 1366x768 the top-centre seat's pod ends at y=250 and the
+   board's box starts at 237, so the pod hangs 13px into it. Measured, not
+   guessed — test/responsive.mjs reports it as "seat ... overlaps the board" at
+   both and passed everywhere else.
+   
+   This block comes FIRST so the 720px rule after it still wins at the minimum
+   window, where 72% is right; equal specificity makes source order the whole
+   difference. */
+@media (max-height: 820px) {
+  .board { top: 65%; }
+}
+
 @media (max-height: 720px) {
   .board { top: 72%; }
 }

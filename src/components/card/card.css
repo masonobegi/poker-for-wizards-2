@@ -304,8 +304,28 @@
 }
 
 /* Court frame + engraving. */
-.hx-art__frame { fill: none; stroke: currentColor; stroke-width: 1.6; opacity: 0.55; }
-.hx-art__frame-2 { fill: none; stroke: currentColor; stroke-width: 0.8; opacity: 0.32; }
+/* The medallion frame is gilt, not ink — a painted court sits in a gold
+   cartouche, and on a sapphire table it is the thing that makes a court card
+   read as a court card from across the felt. */
+.hx-art__frame {
+  fill: none;
+  stroke: #c8972e;
+  stroke-width: 1.9;
+  opacity: 0.95;
+}
+.hx-art__frame-2 {
+  fill: none;
+  stroke: #f0cf7a;
+  stroke-width: 0.9;
+  opacity: 0.75;
+}
+
+/* The elemental ink of each court, scoped to the medallion. The corner indices
+   and the number pips are untouched and stay red/black. */
+.hx-art[data-suit='S'] .hx-art__court { color: #4b3a86; }
+.hx-art[data-suit='H'] .hx-art__court { color: #c02a3c; }
+.hx-art[data-suit='C'] .hx-art__court { color: #2f6b3c; }
+.hx-art[data-suit='D'] .hx-art__court { color: #1f5aa8; }
 /* Engraving texture in the medallion. Kept very faint: at 0.14 the rows read
    straight through the court figures' robes and the cards looked like they
    were drawn on lined paper. */
