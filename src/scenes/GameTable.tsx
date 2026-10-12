@@ -22,6 +22,7 @@ import GameOver from '@/components/table/GameOver';
 import OmenBar from '@/components/OmenBar';
 import Hints from '@/components/onboarding/Hints';
 import FeltDust from '@/components/table/FeltDust';
+import { FeltArcana } from '@/components/table/FeltArcana';
 import { useBannerIdle } from '@/components/BannerLayer';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import Deck from '@/components/table/Deck';
@@ -246,6 +247,7 @@ export default function GameTable() {
           <div className="felt-surface" aria-hidden>
             <div className="felt-nap" />
             <div className="felt-inlay" />
+            <FeltArcana />
             <div className="felt-lamp" />
             <div className="felt-wear" />
             <div className="felt-shimmer" />

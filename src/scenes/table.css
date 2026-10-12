@@ -114,6 +114,19 @@
     0 34px 90px rgba(0, 0, 0, 0.66);
 }
 
+/* The gold plate drawn on the cloth (FeltArcana.tsx). Sits above the weave and
+   below everything that matters — cards, chips, seats — because the table must
+   never compete with the hand on it. */
+.felt-arcana {
+  position: absolute;
+  inset: 4% 2%;
+  width: 96%;
+  height: 92%;
+  pointer-events: none;
+  opacity: 0.9;
+  mix-blend-mode: screen;
+}
+
 /* The enchantment on the cloth.
  *
  * A slow band of spell-light drifting across the felt, plus a gentle breathe
