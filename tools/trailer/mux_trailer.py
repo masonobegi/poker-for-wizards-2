@@ -156,13 +156,16 @@ def main():
     mp4 = os.path.join(dst, "hexhold-trailer.mp4")
     webm = os.path.join(dst, "hexhold-trailer.webm")
     jpg = os.path.join(dst, "hexhold-trailer.jpg")
-    # CRF 16 lands a little over 5 Mbps on this cut, the 5,000 kbps Valve
-    # recommends for a 1080p trailer (about 55 MB for 81 s; git takes it).
+    # CRF 20 lands around half what CRF 16 did. Valve's 5,000 kbps is a
+    # recommendation rather than a limit, and Steam re-encodes on upload, so
+    # the quality that survives to a viewer is the same; what changes is a
+    # 50 MB file in git and in anyone's download. Raise this back toward 16 if
+    # a master is ever wanted for somewhere that does not re-encode.
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
-         "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-r", str(fps),
+         "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-r", str(fps),
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", mp4])
-    run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1",
-         "-cpu-used", "3", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "160k", webm])
+    run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "36", "-row-mt", "1",
+         "-cpu-used", "3", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "128k", webm])
     run(["ffmpeg", "-y", "-v", "error", "-ss", f"{min(POSTER_AT, length - 1):.2f}", "-i", mp4, "-frames:v", "1", "-q:v", "2", jpg])
 
     # The Steam preview: six silent seconds of the opening's payoff. Its last
@@ -175,8 +178,8 @@ def main():
             f"[a][b]xfade=transition=fade:duration=0.4:offset={b - a - 0.4:.3f},trim=0:{b - a + 0.4:.3f},format=yuv420p[v]")
     pmp4 = os.path.join(dst, "hexhold-preview-6s.mp4")
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-i", first, "-filter_complex", loop, "-map", "[v]", "-an",
-         "-c:v", "libx264", "-profile:v", "high", "-preset", "slow", "-crf", "19", "-r", str(fps), "-movflags", "+faststart", pmp4])
-    run(["ffmpeg", "-y", "-v", "error", "-i", pmp4, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1",
+         "-c:v", "libx264", "-profile:v", "high", "-preset", "slow", "-crf", "23", "-r", str(fps), "-movflags", "+faststart", pmp4])
+    run(["ffmpeg", "-y", "-v", "error", "-i", pmp4, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "36", "-row-mt", "1",
          "-cpu-used", "3", "-an", pmp4.replace(".mp4", ".webm")])
     for f in (mp4, webm, jpg, pmp4, pmp4.replace(".mp4", ".webm")):
         print(f"  wrote {f}  ({os.path.getsize(f) / 1e6:.1f} MB)")
