@@ -176,17 +176,39 @@ over the showdown, until the next hand or a click. Steam screenshots 06 and
 t03 both show it. Fixed (the timer now belongs to the lingering card) and
 covered in `render.test.tsx`.
 
-**Open: the COUNTERED stamp and the "countered" badge cannot appear in a real
-game.** A counterspell sets `countered` inside `resolveStack`, which resolves
-the whole stack and clears it before anything is sent, so no view a client
-ever receives carries `countered: true` (the only writers are in
-`magic.ts` resolution and a bot's private preview). The stamp from plan 030
-was proven by staging a view in `test/anim-frames.mjs`, which is why nothing
-caught it. What a player sees when they counter is the blue flash and the
-Nullify card; the spell they cancelled lingers underneath looking like it
-landed. A fix wants the server to send the resolved stack (with outcomes)
-alongside the empty one, and the linger to show that; and the stamp belongs on
-the spell that was cancelled, which is never the top of the stack.
+**The COUNTERED stamp and the "countered" badge could not appear in a real
+game.** A counterspell sets `countered` inside `resolveStack`, which clears
+`t.stack` first and then unwinds the entries, so no view a client ever
+received carried `countered: true` (the only writers were `magic.ts`
+resolution and a bot's private preview). The stamp from plan 030 was proven by
+staging a view in `test/anim-frames.mjs` that marked the *live* stack
+countered, a state no server sends, which is why nothing caught it. A player
+who countered saw the blue flash and then the Nullify card lingering as
+"Resolved", with the spell they had cancelled underneath it, looking as if it
+had landed. And the stamp sat on the featured card, which was always the top
+of the stack, but a counter answers the entry beneath it, so the top is never
+the spell that was cancelled.
+
+Fixed 2026-10-11 without touching a rule. `resolveStack` now keeps the stack
+it unwound, outcomes included, on `t.resolved` (cleared with the hand's
+magic). Every view carries it as `resolvedEntries`. When the live stack
+empties, `StackOverlay` lingers on that, matched to the stack it was showing
+by the top entry's id, and features the spell that was cancelled under the
+stamp, with the rest of the stack listed below it. Players and bots both
+counter through `Engine.cast`, so one path covers both. `render.test.tsx` ("a
+real counter...") plays a bot's Hex answered by the player's Nullify, and the
+player's Hex answered by a bot on its own judgement (`runBots`). It feeds every
+view the host was sent into the real overlay and asserts COUNTERED lands on
+Hex. It fails with either half of the fix reverted. An off-screen capture of a
+real game (the trailer stage's server, headless and muted, the Nullify clicked
+in the real response window) shows the slam 67ms after the click, settled by
+133ms, still there at 1.8s. `anim-frames.mjs` now stages the counter in the
+shape the server sends. Its one cost is the stamp covering part of the cancelled
+spell's rules text, which is plan 030's placement and is left as it was.
+
+**The lesson:** a cue proven against a hand-written view proves only the
+component. When the state that triggers it comes from the server, the test has
+to get that state from the engine.
 
 ## Known remaining flakiness
 
