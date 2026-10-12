@@ -628,3 +628,22 @@ test('a stamp names its verdict without speaking it twice', async () => {
   // The seat already says OUT; the stamp is the picture of it.
   assert.equal(el?.getAttribute('aria-hidden'), 'true');
 });
+
+// ------------------------------------------------- the trailer's ear (2026-10-11)
+
+test('the trailer recorder hears every sound the game asks for, and nothing listens otherwise', async () => {
+  // tools/trailer/record_trailer.mjs mixes the game's own synths onto the
+  // frames that asked for them; this is the only way it learns which.
+  const { playSfx, setMusic } = await import('../src/lib/sound');
+  const w = window as unknown as { __hexholdSoundTap?: (k: string, n: string, o?: { vol?: number }) => void };
+  const heard: Array<[string, string, number | undefined]> = [];
+  w.__hexholdSoundTap = (k, n, o) => { heard.push([k, n, o?.vol]); };
+  try {
+    playSfx('card_deal', { vol: 0.5 });
+    setMusic('table');
+  } finally {
+    delete w.__hexholdSoundTap;
+  }
+  playSfx('card_flip');
+  assert.deepEqual(heard, [['sfx', 'card_deal', 0.5], ['music', 'table', undefined]]);
+});

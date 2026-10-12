@@ -148,3 +148,14 @@ export function usePrefs(): [GameplayPrefs, (patch: Partial<GameplayPrefs>) => v
   const prefs = useSyncExternalStore(subscribe, getPrefs, () => DEFAULT_PREFS);
   return [prefs, setPrefs];
 }
+
+/*
+ * The trailer recorder (tools/trailer/) switches Spell cards between shots,
+ * the way a player would in Settings: Off while it copies a card four times
+ * in a row, Full while an opponent's spell is answered. Only on a page opened
+ * with `?harness`, like the store hook in src/store/net.ts; the desktop build
+ * never loads a URL with a query string.
+ */
+if (typeof window !== 'undefined' && /[?&]harness(?:=|&|$)/.test(window.location?.search ?? '')) {
+  try { (window as unknown as { __hexholdPrefs: unknown }).__hexholdPrefs = { get: getPrefs, set: setPrefs }; } catch { /* ignore */ }
+}

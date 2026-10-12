@@ -55,12 +55,25 @@ export function unlockAudio(): void {
   void load().then(() => api?.unlock());
 }
 
+/**
+ * The trailer recorder (tools/trailer/) sets this before the page loads to
+ * hear every sound the game asks for, stamped on its own clock, so the video's
+ * soundtrack is the game's own synths on the frames that fired them. Nothing
+ * in play sets it; when it is absent this costs one property read.
+ */
+type SoundTap = (kind: 'sfx' | 'music', name: string, opts?: PlayOpts) => void;
+const tap = (): SoundTap | undefined => (typeof window === 'undefined'
+  ? undefined
+  : (window as unknown as { __hexholdSoundTap?: SoundTap }).__hexholdSoundTap);
+
 export function playSfx(name: string, opts?: PlayOpts): void {
+  tap()?.('sfx', name, opts);
   if (!api) { void load(); return; }
   try { api.play(name, opts); } catch { /* silence beats a crash */ }
 }
 
 export function setMusic(mood: Mood): void {
+  tap()?.('music', mood);
   if (!api) { pendingMood = mood; void load(); return; }
   try { api.music(mood); } catch { /* ignore */ }
 }
