@@ -167,6 +167,27 @@ past the window while it runs. `npm run play` sampled mid-shake and reported
 layout check now returns early while the root carries a transform, because
 geometry measured during a shake is not geometry.
 
+## Found filming the trailer (2026-10-11)
+
+**A resolved spell card never left on its own.** `StackOverlay` started the
+linger timer inside the effect keyed on the view, and every bet sends a fresh
+view, so the next push cleared the timer and the card sat over the board, and
+over the showdown, until the next hand or a click. Steam screenshots 06 and
+t03 both show it. Fixed (the timer now belongs to the lingering card) and
+covered in `render.test.tsx`.
+
+**Open: the COUNTERED stamp and the "countered" badge cannot appear in a real
+game.** A counterspell sets `countered` inside `resolveStack`, which resolves
+the whole stack and clears it before anything is sent, so no view a client
+ever receives carries `countered: true` (the only writers are in
+`magic.ts` resolution and a bot's private preview). The stamp from plan 030
+was proven by staging a view in `test/anim-frames.mjs`, which is why nothing
+caught it. What a player sees when they counter is the blue flash and the
+Nullify card; the spell they cancelled lingers underneath looking like it
+landed. A fix wants the server to send the resolved stack (with outcomes)
+alongside the empty one, and the linger to show that; and the stamp belongs on
+the spell that was cancelled, which is never the top of the stack.
+
 ## Known remaining flakiness
 
 `npm run play` fails roughly 1 run in 5 with "the table looks stuck", in runs

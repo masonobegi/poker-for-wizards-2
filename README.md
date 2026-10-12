@@ -30,6 +30,7 @@ npm run sim -- 120 6      # headless bot-vs-bot game, checks invariants
 npm run metrics -- 150 5  # balance report: pacing, magic rate, fizzles, action spread
 HEXHOLD_PACE=10 npm run runs -- 8 4 400  # full runs to game over: length, depth, impossible hands
 HEXHOLD_PACE=10 npx tsx test/balance-scribe.ts 30  # does writing sigils give an edge?
+tools/trailer/record_trailer.sh       # films the Steam trailer from the real game (steam/trailer/, ~30 min, silent)
 ```
 
 The only runtime requirement is Node 20+. There are no database, no API keys and no audio or image assets — every sound is synthesised in the browser at runtime and every card is drawn in CSS and inline SVG.

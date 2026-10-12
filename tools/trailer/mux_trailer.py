@@ -134,8 +134,10 @@ def main():
     mp4 = os.path.join(dst, "hexhold-trailer.mp4")
     webm = os.path.join(dst, "hexhold-trailer.webm")
     jpg = os.path.join(dst, "hexhold-trailer.jpg")
+    # CRF 17 lands about 5.3 Mbps: over the 5,000 kbps Valve asks a 1080p
+    # trailer to have, under 50 MB so git hosts it without complaint.
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
-         "-preset", "slow", "-crf", "19", "-pix_fmt", "yuv420p", "-r", str(fps),
+         "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-r", str(fps),
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", mp4])
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1",
          "-cpu-used", "3", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "160k", webm])

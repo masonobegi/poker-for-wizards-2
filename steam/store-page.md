@@ -178,12 +178,37 @@ Controller tag: paste from this file, not from that one.
   ($14.99, the genre's ceiling), Luck be a Landlord ($9.99), Poker Quest
   ($14.99), Dicey Dungeons ($14.99).
 - HEXHOLD has real depth (71 sigils, 41 omens, 7 covens, hexes, a daily) but
-  no reviews, no trailer, one language and an unknown name. $9.99 sits under
+  no reviews, one language and an unknown name (a trailer exists since
+  2026-10-11). $9.99 sits under
   the genre leader, inside the impulse-buy band, and leaves room to raise the
   price after content updates. Raising later is easier than defending a
   higher price with no reviews.
 - Avoid $4.99: it reads as a slight game, and Steam's 30% cut plus the $100
   fee makes the maths worse for no gain in conversion.
+
+## Trailer
+
+`trailer/hexhold-trailer.mp4` (58 s, 1920x1080, 60 fps, H.264 High at about
+5.5 Mbps + AAC 192k, faststart, 40 MB) is the upload for the store page's
+first trailer slot; Valve takes .mp4 and asks for 1920x1080 at 5,000 kbps or
+more, so upload this file, not a re-encode. `hexhold-trailer.webm` is the same cut for the web,
+`hexhold-trailer.jpg` its poster (the Flush Five), and
+`hexhold-preview-6s.mp4` / `.webm` the first six seconds, silent, ending on
+their own first frame so they loop: for the store's autoplay preview,
+events and social posts.
+
+What it shows, beat by beat, and why, is in `trailer/STORYBOARD.md`: four
+Kings made five by a spell typed in plain words; undo the last card; cancel
+an opponent's spell; write a longer spell and watch it do both halves; a
+permanent new rule (the worst hand wins) and a bought one (three cards a
+hand); then one King of Spades copied into a Flush Five. Every shot is the
+real game on the real server with stacked decks; the music is an original
+score rendered from code, the sound effects are the game's own synths.
+
+Rebuild it with `tools/trailer/record_trailer.sh` (about 25 minutes, headless
+and silent; see the header of `tools/trailer/record_trailer.mjs`). If the
+game's look changes, re-record before the next store update: the trailer is
+only as true as the build it was filmed from.
 
 ## Assets in this folder
 
@@ -207,6 +232,8 @@ section 2.2). Every file is at Steam's exact size.
 | `art/hexhold.ico` | Client icon (also `electron/icon.ico`) |
 | `achievements/<api_name>.png`, `<api_name>_locked.png` | Achieved and unachieved icon for each of the 20 achievements, 256x256 PNG; `achievements.json` names the pair for each one. `achievements/64/` holds 64x64 copies, `achievements/contact-sheet.png` shows them all (not an upload) |
 | `screenshots/*.png` | 1920x1080, from the packaged build |
+| `trailer/hexhold-trailer.mp4` | Trailer 1 (see Trailer above); `.webm` and `.jpg` beside it for the web |
+| `trailer/hexhold-preview-6s.mp4` | Six-second silent loop of the opening, for autoplay previews |
 | `achievements.json`, `achievements.vdf` | 20 achievements, 6 hidden |
 
 **Screenshots: upload the six gameplay ones.** Valve's review wants
