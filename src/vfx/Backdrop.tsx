@@ -92,35 +92,70 @@ void main() {
   float b = fbm(q * 3.1 - vec2(t * 0.72, t * 0.41) + 11.0);
   float weather = a * 0.65 + b * 0.35;
 
-  // The palette, straight off tokens.css: ink, a warm charcoal, and the dark
-  // bottle green the felt is cut from. There is deliberately no violet in
-  // here any more — an ambient purple wash over everything was most of what
-  // made the whole interface read as generated rather than designed. The only
-  // colour that enters this shader now is the school tint on a cast, which
-  // means something.
-  vec3 ink = vec3(0.040, 0.036, 0.033);
-  vec3 ash = vec3(0.094, 0.086, 0.079);
-  vec3 bottle = vec3(0.070, 0.140, 0.118);
+  // The palette, off tokens.css: a twilight violet, a lit indigo, and the
+  // jewel green the felt is cut from. This used to be three near-blacks, and
+  // the room it built was unlit and grim under a game whose whole subject is
+  // magic doing delightful things to a deck. A night sky is still dark enough
+  // to read a card against; it is not the same as an unlit one.
+  vec3 night = vec3(0.098, 0.051, 0.212);
+  vec3 dusk  = vec3(0.231, 0.123, 0.420);
+  vec3 jade  = vec3(0.090, 0.420, 0.330);
 
-  vec3 col = mix(ink, ash, smoothstep(0.22, 0.95, weather));
-  col = mix(col, bottle, smoothstep(0.58, 1.0, weather) * (0.30 + 0.34 * uAtTable));
+  vec3 col = mix(night, dusk, smoothstep(0.18, 0.95, weather));
+  col = mix(col, jade, smoothstep(0.55, 1.0, weather) * (0.26 + 0.30 * uAtTable));
 
-  // The lamp over the table. Brass-warm rather than blue, and only really
-  // present once you are at the felt.
+  // An aurora band drifting across the upper sky. Two offset sine ridges so
+  // it undulates instead of sliding, and it leans teal where the violet is
+  // thinnest, which is what keeps the sky from reading as one flat wash.
+  float band = sin(q.x * 2.1 + t * 0.7) * 0.12 + sin(q.x * 3.7 - t * 0.45) * 0.07;
+  float aurora = smoothstep(0.26, 0.0, abs(q.y - 0.18 - band));
+  col += mix(vec3(0.22, 0.74, 0.62), vec3(0.58, 0.28, 0.92), 0.5 + 0.5 * sin(t * 0.5))
+       * aurora * (0.52 - 0.18 * uAtTable);
+
+  // A second curtain, lower, slower and the other way, so the sky has two
+  // things moving at different rates instead of one band sliding across it.
+  float band2 = sin(q.x * 1.4 - t * 0.38) * 0.16 + sin(q.x * 2.6 + t * 0.29) * 0.06;
+  float aurora2 = smoothstep(0.34, 0.0, abs(q.y + 0.26 - band2));
+  col += mix(vec3(0.46, 0.20, 0.72), vec3(0.14, 0.44, 0.70), 0.5 + 0.5 * sin(t * 0.33 + 1.7))
+       * aurora2 * (0.34 - 0.14 * uAtTable);
+
+  // Large, very slow blooms of colour drifting under everything. This is what
+  // keeps a wide screen from being one flat field of violet between the
+  // aurora and the table.
+  float bloom = fbm(q * 0.9 + vec2(t * 0.21, -t * 0.13));
+  col += mix(vec3(0.20, 0.06, 0.34), vec3(0.05, 0.26, 0.30), bloom)
+       * smoothstep(0.35, 0.95, bloom) * 0.55;
+
+  // The spell-light over the table. Warm gold, and it actually lights the
+  // felt rather than merely tinting it.
   float centre = 1.0 - smoothstep(0.0, 0.95, length(q * vec2(1.0, 1.25)));
-  col += vec3(0.086, 0.070, 0.040) * centre * (0.45 + 0.95 * uAtTable);
+  col += vec3(0.180, 0.140, 0.070) * centre * (0.50 + 1.05 * uAtTable);
 
-  // Dust in the lamplight. Warm, sparse, never bright enough to be mistaken
-  // for a card.
+  // Stars. Far more of them than the old dust, and they twinkle in colour —
+  // this is the cheapest thing in the whole renderer that reads as "magic"
+  // rather than as "a dark background with motes in it".
   vec2 g = q * 5.5;
   g.y += t * 1.7;
   vec2 cell = floor(g);
   float m = hash(cell);
-  if (m > 0.976) {
+  if (m > 0.905) {
     vec2 c = fract(g) - 0.5;
     float d = length(c);
-    float twinkle = 0.55 + 0.45 * sin(uTime * 0.0013 + m * 90.0);
-    col += vec3(0.46, 0.40, 0.28) * smoothstep(0.24, 0.0, d) * 0.42 * twinkle;
+    float twinkle = 0.45 + 0.55 * sin(uTime * 0.0021 + m * 90.0);
+    vec3 spark = mix(vec3(1.0, 0.88, 0.52), vec3(0.62, 0.78, 1.0), hash(cell + 7.3));
+    col += spark * smoothstep(0.26, 0.0, d) * 0.62 * twinkle;
+  }
+
+  // A second, slower layer of big soft motes drifting the other way, so the
+  // sky has depth rather than one plane of sparkles.
+  vec2 g2 = q * 2.3 - vec2(0.0, t * 0.6);
+  vec2 cell2 = floor(g2);
+  float m2 = hash(cell2 + 31.7);
+  if (m2 > 0.93) {
+    vec2 c2 = fract(g2) - 0.5;
+    float d2 = length(c2);
+    float pulse = 0.5 + 0.5 * sin(uTime * 0.0009 + m2 * 40.0);
+    col += vec3(0.42, 0.30, 0.62) * smoothstep(0.42, 0.0, d2) * 0.30 * pulse;
   }
 
   // The ripple a resolving sigil pushes out. One expanding ring that fades

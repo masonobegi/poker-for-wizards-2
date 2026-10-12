@@ -164,8 +164,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   border: 0;
   border-radius: 2px;
   background:
-    radial-gradient(110% 80% at 50% -10%, rgba(74, 58, 38, 0.42), transparent 60%),
-    linear-gradient(180deg, #262320, #141110);
+    radial-gradient(110% 80% at 50% -10%, rgba(170, 120, 255, 0.34), transparent 60%),
+    linear-gradient(180deg, #432c80, #261752);
   box-shadow:
     inset 0 0 0 1px var(--plate-rule),
     inset 0 0 0 4px rgba(9, 7, 6, 0.5),
@@ -234,11 +234,24 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
    chamfer is a custom property so a small plate can take a smaller cut.
    =========================================================================== */
 
+/* Anything set in the display face in gold is treated as a light source, not
+   as ink. A still frame of this game had no highlights in it at all, which is
+   most of why a bright palette still read as matte. */
+.hx-glow-gold,
+.menu-title,
+.pot-amount,
+.showdown-title {
+  text-shadow:
+    0 0 14px rgba(255, 210, 63, 0.50),
+    0 0 38px rgba(255, 170, 60, 0.26),
+    0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
 .hx-plate {
   --cut: 20px;
-  --plate-rule: rgba(240, 196, 101, 0.42);
-  --plate-fill-a: #262320;
-  --plate-fill-b: #141110;
+  --plate-rule: rgba(255, 210, 63, 0.52);
+  --plate-fill-a: #432c80;
+  --plate-fill-b: #261752;
 
   position: relative;
   isolation: isolate;
@@ -259,7 +272,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     0 100%,
     0 var(--cut)
   );
-  box-shadow: var(--e-4);
+  box-shadow: var(--e-4), 0 0 0 0 rgba(255, 210, 63, 0);
+  animation: plate-breathe 6.5s ease-in-out infinite;
+}
+
+/* The glow travels from nothing to a soft gold halo and back. Kept outside the
+   clip-path so it reads as light coming off the plate rather than a border. */
+@keyframes plate-breathe {
+  0%, 100% { box-shadow: var(--e-4), 0 0 18px -6px rgba(255, 210, 63, 0.26); }
+  50%      { box-shadow: var(--e-4), 0 0 34px -4px rgba(190, 150, 255, 0.42); }
+}
+
+/* Resting lit, not dark: the halo is part of how a plate reads as enchanted,
+   so stopping the animation keeps the mid state rather than deleting it. */
+:root[data-reduced-motion='1'] .hx-plate {
+  animation: none;
+  box-shadow: var(--e-4), 0 0 24px -5px rgba(190, 150, 255, 0.32);
 }
 
 /* The fill, and with it the second rule of the double line: the gap between
@@ -277,8 +305,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     /* one faint ring, off-centre so it never reads as a loading spinner */
     radial-gradient(circle at 80% 16%, transparent 70px, rgba(240, 196, 101, 0.055) 71px, rgba(240, 196, 101, 0.055) 72px, transparent 73px),
     radial-gradient(circle at 80% 16%, transparent 104px, rgba(240, 196, 101, 0.03) 105px, transparent 106px),
-    radial-gradient(120% 90% at 50% -10%, rgba(74, 58, 38, 0.42), transparent 62%),
-    linear-gradient(180deg, var(--plate-fill-a), var(--plate-fill-b));
+    radial-gradient(120% 90% at 50% -10%, rgba(190, 150, 255, 0.46), transparent 62%),
+    /* A second light, low and off to one side, so the fill has a lit corner
+       and a shadowed one instead of reading as a single matte sheet. */
+    radial-gradient(90% 70% at 88% 108%, rgba(80, 220, 200, 0.16), transparent 64%),
+    linear-gradient(177deg, var(--plate-fill-a), var(--plate-fill-b) 72%, #1d1140 100%);
   box-shadow: inset 0 0 0 4px rgba(9, 7, 6, 0.55), inset 0 0 0 5px rgba(240, 196, 101, 0.14);
   clip-path: polygon(
     calc(var(--cut) - 1px) 0,

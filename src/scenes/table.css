@@ -107,11 +107,51 @@
      it is lit, which is why it can have a shadow side at all. */
   background:
     radial-gradient(ellipse 78% 70% at var(--lamp-x) var(--lamp-y),
-      var(--felt-mid), var(--felt-edge) 72%, #050d0b 100%);
+      var(--felt-mid), var(--felt-edge) 72%, #0a3f30 100%);
   box-shadow:
     inset 0 0 140px rgba(0, 0, 0, 0.82),
     inset 0 2px 0 rgba(255, 255, 255, 0.035),
     0 34px 90px rgba(0, 0, 0, 0.66);
+}
+
+/* The enchantment on the cloth.
+ *
+ * A slow band of spell-light drifting across the felt, plus a gentle breathe
+ * on the whole surface. The table used to be a dead green ellipse that only
+ * changed when a card landed on it; this is the cheapest way to make the
+ * thing you stare at for a whole run feel alive rather than printed.
+ *
+ * Kept under the cards (z-index below --z-cards) and at low alpha, because a
+ * surface that competes with the hand on it is worse than a still one.
+ */
+.felt-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(104deg,
+      transparent 32%,
+      rgba(140, 255, 214, 0.10) 46%,
+      rgba(198, 160, 255, 0.13) 54%,
+      transparent 68%);
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: felt-sheen 13s linear infinite;
+}
+
+@keyframes felt-sheen {
+  0%   { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
+
+/* The sheen stops where it entered, not mid-sweep: a band frozen across the
+   middle of the felt reads as a rendering artefact, where one parked off the
+   edge reads as nothing at all, which is the correct resting state. */
+:root[data-reduced-motion='1'] .felt-shimmer {
+  animation: none;
+  background-position: 160% 0;
 }
 
 /* The weave. Two plates at different scales so it never reads as one tiling
@@ -172,9 +212,13 @@
   border-radius: 50%;
   background:
     radial-gradient(ellipse 41% 48% at var(--lamp-x) var(--lamp-y),
-      rgba(var(--lamp-warm), 0.115), rgba(var(--lamp-warm), 0.034) 46%, transparent 68%),
+      rgba(var(--lamp-warm), 0.30), rgba(var(--lamp-warm), 0.10) 46%, transparent 68%),
     radial-gradient(ellipse 86% 94% at var(--lamp-x) var(--lamp-y),
-      rgba(var(--lamp-warm), 0.05), transparent 74%);
+      rgba(var(--lamp-warm), 0.13), transparent 74%),
+    /* a cool bounce off the far rim, so the shadow side is coloured rather
+       than merely darker — flat shading is most of what read as matte */
+    radial-gradient(ellipse 70% 60% at 86% 86%,
+      rgba(90, 230, 210, 0.10), transparent 70%);
   mix-blend-mode: screen;
   pointer-events: none;
   /* Filament flicker. Two-thirds of a percent of brightness, eight seconds
@@ -233,7 +277,7 @@
       var(--rail-hi) 13%,
       color-mix(in srgb, var(--rail) 60%, var(--rail-hi)) 38%,
       var(--rail) 66%,
-      #0d0a07 100%) border-box;
+      #241548 100%) border-box;
   -webkit-mask:
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
@@ -389,7 +433,7 @@
   gap: 2px var(--s-2);
   padding: 6px 12px 6px 6px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #23222b 0%, #16161c 62%, #101015 100%);
+  background: linear-gradient(180deg, #4a3190 0%, #35215f 62%, #281a4a 100%);
   border: 1px solid var(--line-soft);
   border-top-color: color-mix(in srgb, var(--line) 70%, var(--gold-deep));
   box-shadow:
@@ -474,7 +518,7 @@
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(180deg, #fff8e4, var(--gold-deep));
-  color: #1a1206;
+  color: #2d1a52;
   font-size: 12px;
   font-weight: 900;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -781,7 +825,7 @@
   gap: var(--s-2);
   padding: 6px 20px;
   border-radius: var(--r-pill);
-  background: rgba(9, 7, 6, 0.85);
+  background: rgba(38, 23, 82, 0.88);
   border: 1px solid var(--gold-deep);
   box-shadow: var(--e-2), 0 0 28px color-mix(in srgb, var(--gold) 18%, transparent);
 }
@@ -958,12 +1002,18 @@
   align-items: end;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-4) 0;
+  /* Enchanted wood rather than an unlit plank. These were four browns that
+     bypassed the palette entirely, which is why the whole lower third of the
+     screen stayed black after the tokens went violet. */
   background:
+    /* the lamp spilling over the rail's near edge */
+    radial-gradient(130% 120% at 50% -14%, rgba(255, 214, 140, 0.20), transparent 58%),
+    radial-gradient(80% 140% at 12% 120%, rgba(80, 220, 200, 0.12), transparent 60%),
     linear-gradient(180deg,
-      #2a2016 0%,
-      #1d160f 26%,
-      #140f0a 62%,
-      #0c0906 100%);
+      #7d57b4 0%,
+      #553585 26%,
+      #38215e 62%,
+      #241444 100%);
   z-index: var(--z-ui);
   box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.55);
 }
@@ -991,6 +1041,21 @@
     transparent);
   opacity: 0.75;
   pointer-events: none;
+  background-size: 220% 100%;
+  animation: rail-run 9s linear infinite;
+}
+
+/* Light running along the rail's lit lip. The rail is a third of the screen
+   and was a single matte band; this is what stops it reading as a painted
+   strip under the table. */
+@keyframes rail-run {
+  0%   { background-position: 120% 0; }
+  100% { background-position: -80% 0; }
+}
+
+:root[data-reduced-motion='1'] .rail::after {
+  animation: none;
+  background-position: 20% 0;
 }
 
 .rail-me {
@@ -1169,7 +1234,7 @@
     linear-gradient(168deg,
       color-mix(in srgb, var(--school) 5%, var(--card-face)),
       color-mix(in srgb, var(--school) 9%, var(--card-face-2)));
-  border: 1px solid color-mix(in srgb, var(--school) 55%, #2b2519);
+  border: 1px solid color-mix(in srgb, var(--school) 55%, #4a3180);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
     inset 0 -2px 4px rgba(0, 0, 0, 0.12),
@@ -1413,8 +1478,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #201c14); }
-.sigil-timing { color: color-mix(in srgb, var(--info) 70%, #201c14); }
+.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #3a2566); }
+.sigil-timing { color: color-mix(in srgb, var(--info) 70%, #3a2566); }
 
 .sigil-discard {
   position: absolute;
@@ -1483,7 +1548,7 @@
   padding: var(--s-2) var(--s-4) var(--s-4);
   /* The same wood as `.rail`, further from the lamp. No border between them:
      a rule there would cut one object into two panels. */
-  background: linear-gradient(180deg, #0c0906 0%, #080604 70%, #050403 100%);
+  background: linear-gradient(180deg, #231340 0%, #1b0f36 70%, #160c2e 100%);
   z-index: var(--z-ui);
 }
 .actionbar::before {

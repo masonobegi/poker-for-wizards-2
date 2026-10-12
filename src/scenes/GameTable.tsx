@@ -248,6 +248,7 @@ export default function GameTable() {
             <div className="felt-inlay" />
             <div className="felt-lamp" />
             <div className="felt-wear" />
+            <div className="felt-shimmer" />
             <FeltDust />
           </div>
           <div className="felt-rail" aria-hidden />
