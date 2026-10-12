@@ -188,27 +188,30 @@ Controller tag: paste from this file, not from that one.
 
 ## Trailer
 
-`trailer/hexhold-trailer.mp4` (58 s, 1920x1080, 60 fps, H.264 High at about
-5.5 Mbps + AAC 192k, faststart, 40 MB) is the upload for the store page's
-first trailer slot; Valve takes .mp4 and asks for 1920x1080 at 5,000 kbps or
-more, so upload this file, not a re-encode. `hexhold-trailer.webm` is the same cut for the web,
+`trailer/hexhold-trailer.mp4` (81 s, 1920x1080, 60 fps, H.264 High at about
+5.2 Mbps + AAC 192k, faststart, 53 MB) is the upload for the store page's
+first trailer slot; Valve takes .mp4 at 1920x1080 and recommends 5,000 kbps
+or more, so upload this file, not a re-encode. `hexhold-trailer.webm` is the same cut for the web,
 `hexhold-trailer.jpg` its poster (the Flush Five), and
-`hexhold-preview-6s.mp4` / `.webm` the first six seconds, silent, ending on
-their own first frame so they loop: for the store's autoplay preview,
-events and social posts.
+`hexhold-preview-6s.mp4` / `.webm` six silent seconds of the opening's payoff
+(two Kings of Spades, then FIVE OF A KIND) that end on their own first frame
+so they loop: for autoplay previews, events and social posts.
 
-What it shows, beat by beat, and why, is in `trailer/STORYBOARD.md`: four
-Kings made five by a spell typed in plain words; undo the last card; cancel
-an opponent's spell; write a longer spell and watch it do both halves; a
-permanent new rule (the worst hand wins) and a bought one (three cards a
-hand); then one King of Spades copied into a Flush Five. Every shot is the
-real game on the real server with stacked decks; the music is an original
+Cut 2 (2026-10-11) is paced for reading: Mason found cut 1 "a little too
+quick to read anything", so every text card and every line the game puts up
+now stays at least 1.5 s plus 0.3 s a word once it has landed, measured on
+the finished file (`trailer/STORYBOARD.md`, Measured). What it shows: four
+Kings made five by a spell written in plain words; write your own spell and
+watch it do both halves; undo the last card; a permanent new rule (the worst
+hand wins); then one King of Spades copied into a Flush Five. Every shot is
+the real game on the real server with stacked decks; the music is an original
 score rendered from code, the sound effects are the game's own synths.
 
-Rebuild it with `tools/trailer/record_trailer.sh` (about 25 minutes, headless
-and silent; see the header of `tools/trailer/record_trailer.mjs`). If the
-game's look changes, re-record before the next store update: the trailer is
-only as true as the build it was filmed from.
+Rebuild it with `tools/trailer/record_trailer.sh` (about 45 minutes, headless
+and silent; see the header of `tools/trailer/record_trailer.mjs`), then
+`tools/trailer/legibility.py` on the work folder to re-check reading time. If
+the game's look changes, re-record before the next store update: the trailer
+is only as true as the build it was filmed from.
 
 ## Assets in this folder
 
@@ -233,7 +236,7 @@ section 2.2). Every file is at Steam's exact size.
 | `achievements/<api_name>.png`, `<api_name>_locked.png` | Achieved and unachieved icon for each of the 20 achievements, 256x256 PNG; `achievements.json` names the pair for each one. `achievements/64/` holds 64x64 copies, `achievements/contact-sheet.png` shows them all (not an upload) |
 | `screenshots/*.png` | 1920x1080, from the packaged build |
 | `trailer/hexhold-trailer.mp4` | Trailer 1 (see Trailer above); `.webm` and `.jpg` beside it for the web |
-| `trailer/hexhold-preview-6s.mp4` | Six-second silent loop of the opening, for autoplay previews |
+| `trailer/hexhold-preview-6s.mp4` | Six-second silent loop of the opening's payoff, for autoplay previews |
 | `achievements.json`, `achievements.vdf` | 20 achievements, 6 hidden |
 
 **Screenshots: upload the six gameplay ones.** Valve's review wants
