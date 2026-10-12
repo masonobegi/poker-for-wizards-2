@@ -283,14 +283,22 @@ await film('bust', async () => {
   await patch('const p = v.players.find((x) => x.id === a); p.eliminated = true; p.chips = 0;', b.id);
 }, 900);
 
+// Staged in the shape a real counter arrives in. This moment used to mark the
+// LIVE stack countered, which no server ever sends (the counter happens while
+// the stack resolves, after it is cleared), and so it filmed a stamp the game
+// could not show (plans/FINDINGS.md). The live stack never says countered; the
+// view that empties it carries the outcome in `resolvedEntries`. The engine
+// sending exactly this is proven in test/render.test.tsx ("a real counter").
 await film('counter', async () => {
   await patch(`
-    const e = { id: 'st1', casterId: a.c, sigilId: 'burn', targets: {}, countered: false, costPaid: 1,
+    const burn = { id: 'st1', casterId: a.c, sigilId: 'burn', targets: {}, countered: false, costPaid: 1,
       sigilName: 'Burn', casterName: a.n, school: 'ruin' };
-    v.stack = { entries: [e], pending: [], closesAt: Date.now() + 8000 };
-    v.stackEntries = [e];`, { c: c.id, n: c.name });
+    const nullify = { id: 'st2', casterId: v.youId, sigilId: 'nullify', targets: {}, countered: false, costPaid: 2,
+      sigilName: 'Nullify', casterName: 'You', school: 'veil' };
+    v.stack = { entries: [burn, nullify], pending: [], closesAt: Date.now() + 8000 };
+    v.stackEntries = [burn, nullify];`, { c: c.id, n: c.name });
   await page.waitForTimeout(500);
-  await patch('v.stackEntries = v.stackEntries.map((e) => ({ ...e, countered: true })); v.stack = { ...v.stack, entries: v.stackEntries };');
+  await patch('v.resolvedEntries = v.stackEntries.map((e, i) => (i === 0 ? { ...e, countered: true } : e)); v.stack = null; v.stackEntries = [];');
 }, 1000);
 await patch('v.stack = null; v.stackEntries = [];');
 await page.waitForTimeout(500);

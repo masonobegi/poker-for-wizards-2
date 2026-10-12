@@ -442,6 +442,15 @@ export interface TableView {
 
   stack: StackState | null;
   stackEntries: Array<StackEntry & { sigilName: string; casterName: string; school: string }>;
+  /**
+   * The stack that last resolved this hand, with what became of each entry.
+   *
+   * A counter only exists during resolution: `resolveStack` clears the live
+   * stack and then unwinds it, so no `stackEntries` a client ever receives
+   * says `countered: true`. This is the only place that outcome travels, and
+   * what the resolved spell card lingers on (the COUNTERED stamp).
+   */
+  resolvedEntries: Array<StackEntry & { sigilName: string; casterName: string; school: string }>;
 
   /** Table-wide rules in force this hand, from sigils. */
   activeMods: RuleMods;
@@ -518,6 +527,8 @@ export interface Table {
   minRaise: number;
 
   stack: StackState | null;
+  /** The last stack to resolve this hand, outcomes and all (TableView.resolvedEntries). */
+  resolved?: StackEntry[] | null;
   /** Table-wide mods applied by sigils this hand. */
   mods: RuleMods;
   modNotes: string[];

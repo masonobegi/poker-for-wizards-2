@@ -649,6 +649,7 @@ export function viewFor(t: Table, viewerId: string): TableView {
     canCheck: toCall === 0,
     stack: t.stack,
     stackEntries: t.stack ? t.stack.entries.map((e) => stackEntryView(t, e)) : [],
+    resolvedEntries: (t.resolved ?? []).map((e) => stackEntryView(t, e)),
     activeMods: t.mods,
     modNotes: t.modNotes,
     omens: t.omens,

@@ -15,6 +15,11 @@
  * The stack renders top-down below the featured spell so the resolution
  * order — last cast, first resolved — is visible rather than something you
  * have to have read the rules to know.
+ *
+ * Once it resolves, the linger shows the stack as the server resolved it
+ * (`view.resolvedEntries`), and features the spell that was countered, if one
+ * was, under a COUNTERED stamp. A counter happens only during resolution, so
+ * the live stack never shows one.
  */
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -65,6 +70,17 @@ function aimOf(e: StackEntry, view: TableView): string | null {
   return null;
 }
 
+/**
+ * The entry the panel features. On a live stack, its top: the spell that
+ * resolves first. On a resolved one, the spell that was cancelled, if one was:
+ * that is the news, and it is never the top, because a counter answers the
+ * entry beneath it. In a counter war, the earliest spell cancelled.
+ */
+function featuredIndex(entries: readonly StackEntry[], live: boolean): number {
+  const cancelled = live ? -1 : entries.findIndex((e) => e.countered);
+  return cancelled >= 0 ? cancelled : entries.length - 1;
+}
+
 function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   const pass = useGame((s) => s.pass);
   const stack = view.stack;
@@ -90,14 +106,22 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
     if (!lastEntries.current.length) return;
     const last = lastEntries.current;
     lastEntries.current = [];
-    // The card shown is the top of the stack; Auto judges by that sigil.
-    const top = last[last.length - 1];
-    const ms = lingerFor(mode.current, timesSeen(top.sigilId), !!top.scribed);
+    // Linger on the stack as it resolved, not as it last stood. The server
+    // unwinds the whole stack at once after clearing it, so a counter is
+    // never in any live `stackEntries`: lingering on those showed the spell
+    // that was cancelled looking as if it had landed. `resolvedEntries` is
+    // the same stack with its outcomes; it is matched by the top entry's id
+    // so an older resolution can never stand in for this one.
+    const after = view.resolvedEntries ?? [];
+    const settled = after.length && after[after.length - 1].id === last[last.length - 1].id ? after : last;
+    // Auto judges by the card the panel features.
+    const shown = settled[featuredIndex(settled, false)];
+    const ms = lingerFor(mode.current, timesSeen(shown.sigilId), !!shown.scribed);
     if (ms <= 0) { setLingering(null); return; }
-    markSeen(top.sigilId);
+    markSeen(shown.sigilId);
     lingerMs.current = ms;
-    setLingering(last);
-  }, [stack, view.stackEntries]);
+    setLingering(settled);
+  }, [stack, view.stackEntries, view.resolvedEntries]);
   // The linger's clock belongs to the card, not to the view. Every bet sends
   // a fresh view, and a timer cleared by the effect above re-running left the
   // card over the board (and the showdown) until the next hand.
@@ -135,11 +159,15 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
     onBeginCast(uid);
   };
 
-  const top = entries[entries.length - 1];
-  const topDef = top ? entryDef(top) : undefined;
-  const topSchool = top ? (SCHOOLS[top.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil) : SCHOOLS.veil;
-  const topAim = top ? aimOf(top, view) : null;
-  const words = top?.scribed?.text;
+  const featured = featuredIndex(entries, live);
+  const lead = entries[featured];
+  // Everything else, last cast first: under a live stack's top, or around
+  // the cancelled spell once the stack has resolved.
+  const rest = entries.filter((_, i) => i !== featured).reverse();
+  const leadDef = lead ? entryDef(lead) : undefined;
+  const leadSchool = lead ? (SCHOOLS[lead.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil) : SCHOOLS.veil;
+  const leadAim = lead ? aimOf(lead, view) : null;
+  const words = lead?.scribed?.text;
 
   return (
     <AnimatePresence>
@@ -165,25 +193,25 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
               ? { duration: T_REDUCED, ease: EASE_OUT }
               : SPRING_CRISP}
           >
-            {top && topDef ? (
+            {lead && leadDef ? (
               <section
-                className={`stack-feature ${top.countered ? 'is-countered' : ''}`}
-                style={{ ['--school' as string]: topSchool.accent }}
+                className={`stack-feature ${lead.countered ? 'is-countered' : ''}`}
+                style={{ ['--school' as string]: leadSchool.accent }}
                 aria-live="polite"
               >
                 <span className="stack-feature__glyph" aria-hidden>
-                  <Mark kind="sigil" id={topDef.id} fallback={topDef.glyph} />
+                  <Mark kind="sigil" id={leadDef.id} fallback={leadDef.glyph} />
                 </span>
                 <div className="stack-feature__body">
                   <p className="stack-feature__who">
-                    {top.casterId === me.id ? 'You cast' : `${top.casterName} casts`}
-                    {topAim ? <> &rarr; <strong>{topAim}</strong></> : null}
+                    {lead.casterId === me.id ? 'You cast' : `${lead.casterName} casts`}
+                    {leadAim ? <> &rarr; <strong>{leadAim}</strong></> : null}
                   </p>
-                  <h3 className="stack-feature__name">{words ? `“${words}”` : top.sigilName}</h3>
-                  <p className="stack-feature__text">{topDef.text}</p>
+                  <h3 className="stack-feature__name">{words ? `“${words}”` : lead.sigilName}</h3>
+                  <p className="stack-feature__text">{leadDef.text}</p>
                   <p className="stack-feature__state">
-                    {top.countered ? 'Countered — it never happened.'
-                      : live ? `${topSchool.name} · resolves first`
+                    {lead.countered ? 'Countered — it never happened.'
+                      : live ? `${leadSchool.name} · resolves first`
                         : 'Resolved'}
                   </p>
                 </div>
@@ -192,18 +220,20 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                     strikethrough was all it got. Keyed by the entry, so the
                     next countered spell slams again. */}
                 <AnimatePresence>
-                  {top.countered
-                    ? <Stamp key={`countered-${top.id}`} text="COUNTERED" tone="ice" from={2.8} rotate={-7} className="stack-stamp" />
+                  {lead.countered
+                    ? <Stamp key={`countered-${lead.id}`} text="COUNTERED" tone="ice" from={2.8} rotate={-7} className="stack-stamp" />
                     : null}
                 </AnimatePresence>
               </section>
             ) : null}
 
-            {entries.length > 1 ? (
+            {rest.length ? (
               <>
-                <p className="stack-note">Underneath, resolving after it</p>
+                <p className="stack-note">
+                  {featured === entries.length - 1 ? 'Underneath, resolving after it' : 'The rest of the stack'}
+                </p>
                 <ol className="stack-list">
-                  {[...entries].reverse().slice(1).map((e, i) => {
+                  {rest.map((e, i) => {
                     const def = entryDef(e);
                     const school = SCHOOLS[e.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil;
                     return (

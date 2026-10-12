@@ -368,6 +368,10 @@ export function resolveStack(ctx: MagicCtx): void {
     }
   }
 
+  // What became of each entry. The live stack was cleared above, before any
+  // of it resolved, so this is the only record of a counter a view can carry.
+  t.resolved = entries;
+
   // Bound cards catch up with whatever just happened to their partners.
   for (const id of [...t.board, ...t.players.flatMap((p) => p.hole)]) {
     propagateEntanglement(ctx, id);
@@ -1405,6 +1409,7 @@ export function clearHandMagic(t: Table): void {
   t.echoTimeline = null;
   t.quantumFlop = false;
   t.stack = null;
+  t.resolved = null;
 
   for (const p of t.players) {
     p.warded = false;

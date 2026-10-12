@@ -629,6 +629,122 @@ test('a stamp names its verdict without speaking it twice', async () => {
   assert.equal(el?.getAttribute('aria-hidden'), 'true');
 });
 
+test('a real counter, by the player or by a bot, slams COUNTERED onto the spell it cancelled', async () => {
+  // plans/FINDINGS.md: the stamp shipped proven against a staged view and
+  // could not appear in a real game. `resolveStack` clears the live stack and
+  // only then unwinds it, so the counter happened where no view could see it,
+  // and the resolved card lingered on the counterspell with the cancelled
+  // spell beneath it looking as if it had landed. Nothing here is staged: the
+  // engine plays the casts and the answer through the same `cast` the sockets
+  // and the bots call, and the overlay is fed every view the host was sent.
+  const { Engine } = await import('../server/game/engine');
+  const { viewFor } = await import('../server/game/table');
+  const { DEFAULT_CONFIG } = await import('../shared/types');
+  const StackOverlay = (await import('../src/components/table/StackOverlay')).default;
+  const { getPrefs, setPrefs } = await import('../src/components/shell/prefs');
+  const { createRoot } = await import('react-dom/client');
+  const { act } = await import('react');
+  const { MotionGlobalConfig } = await import('framer-motion');
+  type View = import('../shared/types').TableView;
+  type Ticks = { tick(): void; botClock: Map<string, number> };
+
+  /** A started three-seat table on the turn, its clock stopped, every host view kept. */
+  function game(seed: string) {
+    const views: View[] = [];
+    let e: InstanceType<typeof Engine> | null = null;
+    e = new Engine('CNTR', 'host', { ...DEFAULT_CONFIG, seed }, () => {}, () => { if (e) views.push(viewFor(e.table, 'host')); });
+    e.addPlayer('host', 'Hero');
+    e.addBot();
+    e.addBot();
+    e.start();
+    e.dispose();
+    const t = e.table;
+    for (const p of t.players) { p.sigils = []; p.relics = []; p.mana = 9; }
+    t.phase = 'turn';
+    t.stack = null;
+    const hero = t.players.find((p) => p.id === 'host')!;
+    const bot = t.players.find((p) => p.isBot)!;
+    return { e, t, hero, bot, views, ix: e as unknown as Ticks };
+  }
+
+  const prior = getPrefs().spellCards;
+  setPrefs({ spellCards: 'full' });
+  MotionGlobalConfig.skipAnimations = true;
+  const host = dom.window.document.createElement('div');
+  container.appendChild(host);
+  const root = createRoot(host);
+
+  /** Play the views into the overlay, in order, and read what the resolved card shows. */
+  async function shown(views: View[]) {
+    for (const v of views) {
+      const me = v.players.find((p) => p.isYou)!;
+      await act(async () => { root.render(<StackOverlay view={v} me={me} onBeginCast={() => {}} />); });
+    }
+    const feature = host.querySelector('.stack-feature');
+    return {
+      countered: !!feature?.classList.contains('is-countered'),
+      name: feature?.querySelector('.stack-feature__name')?.textContent ?? null,
+      stamp: feature?.querySelector('.hx-stamp')?.textContent ?? null,
+      list: [...host.querySelectorAll('.stack-item strong')].map((n) => n.textContent),
+    };
+  }
+
+  /** What every run must show, whoever countered. */
+  function resolvedWithCounter(views: View[], cancelled: string): void {
+    // The old trigger: no live stack a client receives ever carries a counter.
+    assert.ok(views.every((v) => v.stackEntries.every((x) => !x.countered)), 'a live stack carried a counter');
+    const last = views[views.length - 1];
+    assert.equal(last.stack, null, 'the stack never resolved');
+    assert.deepEqual(last.resolvedEntries.map((x) => [x.sigilId, x.countered]), [[cancelled, true], ['nullify', false]]);
+  }
+
+  try {
+    // 1. The player answers a bot's Hex with Nullify.
+    {
+      const { e, hero, bot, views, ix } = game('counter:player');
+      bot.sigils = [{ uid: 'hx', defId: 'hex' }];
+      hero.sigils = [{ uid: 'nf', defId: 'nullify' }];
+      assert.ok(e.cast(bot.id, 'hx', { playerId: hero.id }).ok);
+      assert.ok(e.cast(hero.id, 'nf', {}).ok);
+      ix.tick(); // nobody can answer the Nullify: the stack resolves
+      resolvedWithCounter(views, 'hex');
+      const card = await shown(views);
+      assert.equal(card.stamp, 'COUNTERED', 'the player countered a Hex and no stamp landed');
+      assert.equal(card.countered, true);
+      assert.equal(card.name, 'Hex', 'the stamp is on the counterspell, not the spell it cancelled');
+      assert.deepEqual(card.list, ['Nullify']);
+      await act(async () => { root.render(<></>); });
+    }
+
+    // 2. A bot answers the player's Hex, on its own judgement (runBots). It
+    //    nearly always counters a Hex aimed at it; a few seeds keep this from
+    //    hanging on one roll of its dice.
+    let botCountered = false;
+    for (let s = 0; s < 8 && !botCountered; s++) {
+      const { e, t, hero, bot, views, ix } = game(`counter:bot:${s}`);
+      hero.sigils = [{ uid: 'hx', defId: 'hex' }];
+      bot.sigils = [{ uid: 'nf', defId: 'nullify' }];
+      assert.ok(e.cast(hero.id, 'hx', { playerId: bot.id }).ok);
+      ix.botClock.clear(); // its thinking time is up
+      ix.tick();
+      if (t.stack?.entries.length !== 2) continue;
+      botCountered = true;
+      ix.tick();
+      resolvedWithCounter(views, 'hex');
+      const card = await shown(views);
+      assert.equal(card.stamp, 'COUNTERED', 'a bot countered your Hex and no stamp landed');
+      assert.equal(card.name, 'Hex');
+      assert.deepEqual(card.list, ['Nullify']);
+    }
+    assert.ok(botCountered, 'no bot answered a Hex aimed at it in 8 hands');
+  } finally {
+    await act(async () => { root.unmount(); });
+    host.remove();
+    MotionGlobalConfig.skipAnimations = false;
+    setPrefs({ spellCards: prior });
+  }
+});
+
 // ------------------------------------------------- the trailer's ear (2026-10-11)
 
 test('the trailer recorder hears every sound the game asks for, and nothing listens otherwise', async () => {
