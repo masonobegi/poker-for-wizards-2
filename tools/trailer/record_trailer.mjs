@@ -7,6 +7,7 @@
  *     --only hook_cast,finale   record only these shots (the rest still play, unfilmed)
  *     --stills 10               also write every 10th frame as a JPEG, for review
  *     --until hook_cast         stop after that shot
+ *     --measure                 time every text on screen (legibility.json), no pictures
  *
  * The approach is Bootleggers' (lords-of-vegas/tools/trailer/record_trailer.js),
  * adapted to a game that is DOM and a Node server rather than a canvas:
@@ -30,7 +31,8 @@
  *    and the game's own layout never knows the camera moved.
  *  - SHOTS, THEN AN EDIT. Shots are recorded in the order the game plays them
  *    and named; mux_trailer.py cuts them into EDIT order. Only one moves: the
- *    spell for the opening is written in the Market before the hand it wins.
+ *    Undo hand is played before the Market where the sentence is written, and
+ *    is cut in after it.
  *  - SOUND AS DATA. The page reports every sound the game asks for
  *    (window.__hexholdSoundTap, src/lib/sound.ts) on the frame it asked;
  *    render_sfx.mjs renders those synths offline and the mux places them.
@@ -53,6 +55,8 @@ const argv = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) => {
 const OUT = resolve(argv.out ?? join(ROOT, 'tools', 'trailer', 'out', 'rec'));
 const ONLY = argv.only ? new Set(argv.only.split(',')) : null;
 const STILLS = Number(argv.stills ?? 0);
+/** --measure: play every shot and time its text (legibility.json), take no pictures. */
+const MEASURE = !!argv.measure;
 const FPS = 60;
 const STEP = 1000 / FPS;
 mkdirSync(OUT, { recursive: true });
@@ -60,10 +64,8 @@ if (STILLS) mkdirSync(join(OUT, 'stills'), { recursive: true });
 
 /** The cut, in order, with each shot's length in seconds. Music is written to these. */
 export const EDIT = [
-  ['hook_kings', 1.3], ['hook_type', 1.4], ['hook_cast', 3.3], ['title', 3.0],
-  ['undo', 5.0], ['counter', 4.0], ['write', 4.5], ['write_cast', 4.5],
-  ['omen', 3.0], ['buy', 2.5], ['deal3', 2.0], ['worst_wins', 4.5],
-  ['finale', 11.0], ['end', 8.0],
+  ['hook_kings', 2.5], ['hook_cast', 9.0], ['title', 4.5], ['write', 8.0], ['write_cast', 7.5],
+  ['undo', 9.5], ['omen', 4.5], ['worst_wins', 7.5], ['finale', 20.5], ['end', 7.5],
 ];
 const LEN = Object.fromEntries(EDIT);
 const EDIT_AT = {};
@@ -97,7 +99,7 @@ const FULL = { x: 0, y: 0, w: 1920 };
 const BANNER_LEAD = Number(argv.lead ?? 0.4);
 const BANNER_LEAD_AT = (hit) => hit - BANNER_LEAD;
 /** Where the game's cut-in banners slam: across the middle of the felt. */
-const BANNER = { x: 120, y: 70, w: 1680 };
+const BANNER = { x: 200, y: 110, w: 1520 };
 let camFrom = FULL;
 let camTo = FULL;
 let camT0 = 0;
@@ -137,7 +139,7 @@ function camNow() {
 }
 
 // ── Frames ───────────────────────────────────────────────────────────────────
-const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+const ff = MEASURE ? { stdin: { write: () => true, end: () => {} }, on: (e, f) => f(), stderr: { on: () => {} } } : spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '14', '-pix_fmt', 'yuv420p', '-r', String(FPS), join(OUT, 'frames.mp4')]);
 ff.stderr.on('data', (d) => process.stderr.write(d));
 
@@ -147,7 +149,9 @@ let speed = 1;          // game milliseconds per video millisecond
 let shot = null;        // { name, f0, rec0 }
 const shots = [];
 const sfx = [];         // { name, t (edit seconds), vol, pan, pitch }
-const capturing = () => !!shot && (!ONLY || ONLY.has(shot.name));
+const seen = new Map(); // readable text -> when it was first and last on screen
+const filming = () => !!shot && (!ONLY || ONLY.has(shot.name));
+const capturing = () => filming() && !MEASURE;
 const SILENT = new Set(['title', 'end']);
 /** Seconds since the current shot began. */
 const st = () => (shot ? (frame - shot.f0) / FPS : 0);
@@ -160,9 +164,19 @@ async function step() {
   cost.server += performance.now() - t0;
   const c = camNow();
   t0 = performance.now();
-  const sounds = await page.evaluate(([d, cc, w]) => window.__tr.frame(d, cc, w), [dt, c, want]);
+  const { sounds, text } = await page.evaluate(([d, cc, w]) => window.__tr.frame(d, cc, w), [dt, c, want]);
   cost.page += performance.now() - t0;
   t0 = performance.now();
+  if (shot && filming()) {
+    const editT = EDIT_AT[shot.name] + st();
+    // How long each readable thing is on screen, in the cut (legibility.json).
+    for (const [kind, words] of Object.entries(text)) {
+      const key = `${shot.name}|${kind}|${words}`;
+      const v = seen.get(key);
+      if (v && v.last >= editT - 2.5 / FPS) v.last = editT;
+      else seen.set(key + (v ? `|${editT}` : ''), { shot: shot.name, kind, text: words, first: editT, last: editT });
+    }
+  }
   if (capturing()) {
     const w = Math.max(16, c.w);
     const { data } = await cdp.send('Page.captureScreenshot', {
@@ -189,6 +203,26 @@ async function step() {
 }
 /** Film (or, outside a shot, just play) until the shot clock reads `sec`. */
 const at = async (sec) => { while (st() < sec - 1e-6) await step(); };
+/**
+ * Film on until `selector` is on the page and has stopped moving (its box the
+ * same for a tenth of a second), or `limit` seconds into the shot: a panel
+ * measured while it is still flying in frames the wrong part of the table.
+ */
+async function whenOnScreen(selector, limit) {
+  let last = '';
+  let still = 0;
+  while (st() < limit && still < 6) {
+    await step();
+    const box = await page.evaluate((sel) => {
+      const e = document.querySelector(sel);
+      if (!e) return '';
+      const b = e.getBoundingClientRect();
+      return b.width ? [b.x, b.y, b.width, b.height].map(Math.round).join() : '';
+    }, selector);
+    still = box && box === last ? still + 1 : 0;
+    last = box;
+  }
+}
 /** Off camera: run the table forward `sec` seconds of game time, cheaply. */
 async function skip(sec) {
   let left = sec * 1000;
@@ -260,10 +294,11 @@ async function inShop() {
 const setPrefs = (p) => tr((x) => window.__hexholdPrefs.set(x), p);
 /** Type into the focused field a character every `per` seconds of the shot. */
 async function typeOut(text, per) {
-  for (const ch of text) {
+  const t0 = st();
+  for (const [i, ch] of [...text].entries()) {
+    await at(t0 + i * per);
     await page.keyboard.type(ch);
     cue('key', 0.55);
-    await at(st() + per);
   }
 }
 
@@ -272,6 +307,12 @@ async function scenes() {
 // The shots. `--until <shot>` stops after that one, for quick iterations.
 // The table: you and two bots, Hex I, a practice table that never ends an ante
 // on its own; the director opens each Market.
+//
+// Pacing (Mason, 2026-10-11: "a little too quick to read anything"): every
+// text card is held at least 1.5 s plus 0.3 s a word from the moment its slam
+// has landed (0.32 s after it is called), every payoff is held to be read,
+// cause and effect runs in slow motion with a still beat before the payoff.
+// legibility.json measures each one in the finished cut.
 // ═════════════════════════════════════════════════════════════════════════════
 await tr(async () => {
   const st = window.__hexholdStore.getState();
@@ -286,25 +327,18 @@ await tr(() => window.__hexholdStore.getState().startGame());
 await skip(0.2);
 await S(`ctx.setHand(1, { sigils: [] }); ctx.setHand(2, { sigils: [] });`);
 
-// ── Market 1: write the opening's spell ──────────────────────────────────────
+// ── Market 1, off camera: the opening's spell is written in plain words ──────
 await inShop();
 await S(`const h = ctx.hero; h.sigils = []; h.shards = 40; ctx.engine.flush();`);
 await skip(1.4);
 await page.locator('.scribe-strip button').first().click();
 await skip(0.7);
 await page.locator('.scribe-input').click();
-await skip(0.2);
-camCut(await frameOf(['.scribe-input', '.scribe-reading'], { pad: 70, minW: 860, dy: 20 }));
-
-await begin('hook_type');
-await caption('Type a spell.', { pos: 'top' });
-await at(0.12);
-await typeOut('copy my king', 0.06);
-await end();
+await page.keyboard.type('copy my king');
+await skip(0.6);
 await page.locator('.scribe-foot button').last().click();
 await skip(0.6);
 await S('ctx.engine.shopDone(ctx.hero.id)');
-await tr(() => { window.__tr.hush(); });
 
 // ── Hand 1: four Kings, and the written spell makes five ─────────────────────
 await nextHand(
@@ -319,29 +353,34 @@ const tableWide = await frameOf(['.board', '.rail [data-card-id]', '[data-seat-i
 const handClose = await frameOf(['.board [data-card-id]', '.rail [data-card-id]'], { pad: 46, minW: 900 });
 
 camCut(tableWide);
-await begin('hook_kings');
-camMove(handClose, 1.0);
-await caption('Four Kings.', { pos: 'top' });
-await at(0.25);
-for (const id of kings) { await ring(cardSel(id), 7); await at(st() + 0.08); }
+await begin('hook_kings');                       // 2.5 s
+camMove(handClose, 1.2);
+await caption('Four Kings.', { pos: 'top' });   // on 0.32, read to 2.42
+await at(0.3);
+for (const id of kings) { await ring(cardSel(id), 7); await at(st() + 0.1); }
 await end();
 
-await begin('hook_cast');
-await unring();
-await caption('Make it five.', { pos: 'top' });
-await heroCast('!!s.scribed');
-speed = 0.4;
-await at(0.3);
+await begin('hook_cast');                        // 9.0 s; the banner lands at 3.0 (edit 5.5)
+await caption('Make it five.', { pos: 'top' }); // on 0.32, read to 2.72
 const sevenRing = await ring(cardSel(I.hole[1]), 8);
-await at(0.85);
+await at(0.3);
+await heroCast('!!s.scribed');
+// The spell flies and the 7 turns, at a third of real speed.
+speed = 0.35;
+await at(1.9);
 speed = 1;
+// A still beat on two Kings of Spades before the showdown.
+await at(BANNER_LEAD_AT(3.0));
 await unring(sevenRing);
-await at(BANNER_LEAD_AT(1.3));
 await S('ctx.checkAround()');
+camMove(BANNER, 0.4);
+await at(2.75);
 await hush();
-// The game's own banner takes the frame from here.
-camMove(BANNER, 0.35);
-await at(1.3);
+await at(3.05);
+// Held long enough to read FIVE OF A KIND, KINGS and its line (the game's own
+// banner holds 3.2 s; at half speed it stays the whole shot).
+speed = 0.5;
+await at(3.5);
 await nextHandArm();
 await end();
 
@@ -351,61 +390,44 @@ async function nextHandArm() {
 }
 
 // ── Title ────────────────────────────────────────────────────────────────────
-await begin('title');
+await begin('title');                            // 4.5 s; the line is read to ~3.8
 await tr(() => window.__tr.title('Cheat at poker. With magic.'));
 cue('boom', 1);
 await end();
 await tr(() => window.__tr.clearFull());
 
-// ── Hand 2: undo the last card ───────────────────────────────────────────────
+// ── Hand 2: undo the last card (cut in after the written spell) ─────────────
 await skipUntil(`ctx.table.handNumber >= 3 && ctx.table.phase === 'preflop'`, 30);
 await S(`ctx.setHand(1, { sigils: [] }); ctx.setHand(2, { sigils: [] }); ctx.setHand(0, { sigils: ['rewind'], mana: 6, maxMana: 8 });`);
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(1.0);
 I = await ids();
 camCut(await frameOf(['.board [data-card-id]', '.rail [data-card-id]'], { pad: 46, minW: 900 }));
-await begin('undo');
-await caption('Hate the last card?', { pos: 'top' });
+await begin('undo');                             // 9.5 s
+await caption('Hate the last card?', { pos: 'top' });   // read to 3.02
 const lastRing = await ring(cardSel(I.board[4]), 8);
-await at(1.5);
+await at(3.1);
 await unring(lastRing);
 await heroCast(`s.defId === 'rewind'`);
-await caption('Undo it.', { pos: 'top' });
-await at(2.3);
+await caption('Undo it.', { pos: 'top' });      // read to 5.52
+// The card goes back and a new one is dealt, at half speed.
+speed = 0.5;
+await at(4.5);
+speed = 1;
 I = await ids();
 await ring(cardSel(I.board[4]), 8);
-await at(3.0);
+await at(5.3);
 await S('ctx.checkAround()');
-await at(3.42);
+await at(5.75);
 await unring();
 camMove(await frameOf(['.showdown'], { pad: 50, minW: 1100 }), 0.5);
-await caption('Now you win.', { pos: 'bottom' });
+await at(6.0);
+await caption('Now you win.', { pos: 'bottom' });   // on 6.32, read to 8.72; the row settles ~6.6
 await end();
-
-// ── Hand 3: they cast, you cancel ────────────────────────────────────────────
-await nextHand(
-  { hole: [['AS', 'AD'], ['TC', '9C'], ['6D', '5S']], board: ['AC', '8H', '2D', 'JS', '4C'] },
-  `ctx.setHand(0, { sigils: ['nullify'], mana: 6, maxMana: 8 }); ctx.setHand(1, { sigils: ['burn'], mana: 6 }); ctx.auto.holdHero = ['turn'];`,
-);
-await skipUntil(`ctx.table.phase === 'turn' && ctx.table.actingId === ctx.hero.id`);
-await skip(0.8);
-await setPrefs({ spellCards: 'full' });
-I = await ids();
-camCut(await frameOf(['.board [data-card-id]', '[data-seat-id]'], { pad: 10 }));
-await begin('counter');
-await S(`const b = ctx.bots[0]; const r = ctx.engine.cast(b.id, b.sigils[0].uid, { cardIds: [ctx.table.board[0]] }); if (!r.ok) throw new Error(r.error);`);
-await at(0.15);
-await caption('They cast spells too.', { pos: 'top' });
-camMove(await frameOf(['.stack-panel'], { pad: 60, minW: 1000 }), 0.5);
-await at(2.0);
-await heroCast(`s.defId === 'nullify'`);
-await caption('Cancel it.', { pos: 'top' });
-await end();
-await setPrefs({ spellCards: 'off' });
 await S('ctx.auto.holdHero = []');
 await openShopAfterThisHand('the_watchful');
 
-// ── Market 2: write a longer one ─────────────────────────────────────────────
+// ── Market 2: write a sentence ───────────────────────────────────────────────
 await inShop();
 await S(`const h = ctx.hero; h.sigils = []; h.shards = 40; ctx.engine.flush();`);
 await skip(1.4);
@@ -413,13 +435,24 @@ await page.locator('.scribe-strip button').first().click();
 await skip(0.7);
 await page.locator('.scribe-input').click();
 await skip(0.2);
-camCut(await frameOf(['.scribe-input', '.scribe-reading', '.scribe-foot'], { pad: 60, minW: 1000 }));
-await begin('write');
-await caption('Write anything.', { pos: 'top' });
-await at(0.2);
-await typeOut("make my worst card wild and see everyone's cards", 0.05);
-// Hold on the whole reading (two effects, a price), then press Write.
-await at(4.3);
+// Close on the words and the game's reading of them; the page's right half
+// (its presets and the Write button) can go out of frame.
+{
+  // Measured before a word is typed, so from the page's title and its input box.
+  const r = await page.evaluate(() => {
+    const t = document.querySelector('.scribe-title').getBoundingClientRect();
+    const i = document.querySelector('.scribe-input').getBoundingClientRect();
+    return { x: i.left, y: t.top };
+  });
+  camCut({ x: Math.round(r.x - 25), y: Math.round(r.y - 58), w: 660 });
+}
+await begin('write');                            // 8.0 s
+await caption('Write your own spells.', { pos: 'top' });
+await at(0.4);
+// About fourteen letters a second, so the words can be read as they arrive.
+await typeOut("make my worst card wild and see everyone's cards", 0.065);
+// Nine words and the reading under them, held 4.3 s once the last letter is in.
+await at(7.8);
 await page.locator('.scribe-foot button').last().click();
 cue('slam', 0.4);
 await end();
@@ -427,7 +460,7 @@ await skip(0.6);
 await S('ctx.engine.shopDone(ctx.hero.id)');
 await hush();
 
-// ── Hand 4: the written spell, cast ──────────────────────────────────────────
+// ── Hand 3: the written spell, cast ──────────────────────────────────────────
 await nextHand(
   { hole: [['2C', '9S'], ['AC', 'AS'], ['QD', 'JS']], board: ['KH', '9H', '5D', '7S', '4C'] },
   `ctx.setHand(0, { mana: 10, maxMana: 10 }); ctx.auto.holdHero = ['flop'];`,
@@ -436,16 +469,16 @@ await skipUntil(`ctx.table.phase === 'flop' && ctx.table.actingId === ctx.hero.i
 await skip(0.8);
 I = await ids();
 camCut(await frameOf(['.board [data-card-id]', '.rail [data-card-id]', '[data-seat-id]'], { pad: 24 }));
-await begin('write_cast');
+await begin('write_cast');                       // 7.5 s
 await heroCast('!!s.scribed');
 await at(0.45);
-await caption("See everyone's cards: done.", { pos: 'top', size: 'small' });
+await caption("See everyone's cards: done.", { pos: 'top', size: 'small' });   // read to 3.47
 for (const b of I.bots) for (const c of b.hole) await ring(cardSel(c), 6);
-await at(2.25);
+await at(3.5);
 await unring();
 camMove(await frameOf(['.rail [data-card-id]'], { pad: 90, minW: 900, dy: -40 }), 0.5);
-await caption('Make my worst card wild: done.', { pos: 'top', size: 'small' });
-await at(2.5);
+await caption('Make my worst card wild: done.', { pos: 'top', size: 'small' }); // read to 7.22
+await at(3.9);
 await ring(cardSel(I.hole[0]), 8);
 await end();
 await unring();
@@ -453,63 +486,49 @@ await S('ctx.auto.holdHero = []');
 await hush();
 await openShopAfterThisHand('inversion');
 
-// ── The new rule, then Market 3 ──────────────────────────────────────────────
+// ── The new rule ─────────────────────────────────────────────────────────────
 // openShop shows ANTE n, and two seconds later the omen lands (Engine.rollOmen).
 await skipUntil(`ctx.table.ante >= 4`, 60);
 // The omen's banner replaces the ante's at 2.0 s; the shot opens on it.
 await skip(2.02);
 camCut(BANNER);
-await begin('omen');
-await at(0.5);
-await caption('Every round, a new rule. Forever.', { pos: 'bottom', size: 'small' });
+await begin('omen');                             // 4.5 s, the banner held at 0.7x
+speed = 0.7;
+await at(0.35);
+await caption('Every round, a new rule. Forever.', { pos: 'top', size: 'small' }); // read to 3.97 (4.5)
 await end();
 await hush();
 await inShop();
-await S(`const t = ctx.table; const h = ctx.hero; h.shards = 40;
-  const s = t.shop.get(h.id);
-  s.items = [{ kind: 'relic', id: 'third_hand', uid: 'tr1', price: 18 }, { kind: 'relic', id: 'apotheosis', uid: 'tr2', price: 30 },
-    { kind: 'relic', id: 'wild_inheritance', uid: 'tr3', price: 20 }, ...s.items.filter((i) => i.kind === 'scribe')];
-  ctx.engine.flush();`);
-// The page holds the Market back until the omen's banner has gone.
-await skip(2.6);
-camCut(await frameOf(['.shop-grid'], { pad: 70, minW: 900 }));
-await begin('buy');
-await caption('Or buy your own.', { pos: 'bottom' });
-await ring('.shop-grid > *:first-child', 6);
-await at(1.0);
-await S(`const r = ctx.engine.shopBuy(ctx.hero.id, 'tr1'); if (!r.ok) throw new Error(r.error);`);
-await end();
-await unring();
-await hush();
-
-// ── Hand 5: three cards, and the worst hand wins ────────────────────────────
-await S('ctx.rigNextDeal(arg); ctx.setHand(0, { sigils: [] }); ctx.auto.holdHero = ["river"];',
-  { hole: [['7C', '2D', '4S'], ['AC', 'AH'], ['KS', 'QS']], board: ['9H', '5S', '3D', 'JC', '8H'] });
 await S('ctx.engine.shopDone(ctx.hero.id)');
-await skip(0.25);
-// The hand area, before there are cards in it to measure: the three land here.
-camCut({ x: 0, y: 1080 - Math.round(1100 * 9 / 16), w: 1100 });
-await begin('deal3');
-await at(0.3);
-await caption('Three cards. Every hand.', { pos: 'top' });
-await end();
-await hush();
-await S(`ctx.setHand(1, { sigils: [] }); ctx.setHand(2, { sigils: [] });`);
+
+// ── Hand 4: the worst hand wins ──────────────────────────────────────────────
+await nextHand(
+  { hole: [['7C', '2D'], ['AC', 'AH'], ['KS', 'QS']], board: ['9H', '5S', '3D', 'JC', '8H'] },
+  `ctx.setHand(0, { sigils: [] }); ctx.auto.holdHero = ['river'];`,
+);
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(0.8);
 camCut(FULL);
-await begin('worst_wins');
+await begin('worst_wins');                       // 7.5 s; the table holds the result while it is read
 await S('ctx.checkAround()');
-await at(0.45);
-camMove(await frameOf(['.showdown'], { pad: 40, minW: 1000 }), 0.45);
-await caption('The worst hand wins.', { pos: 'bottom' });
-await at(2.2);
-await caption('You had nothing. You won.', { pos: 'bottom' });
+await at(0.7);
+await caption('The worst hand wins.', { pos: 'bottom' });        // read to 3.72
+// The camera goes to the results once their panel is on the table (the board
+// also carries a small SHOWDOWN label, so the panel is found by its list).
+await whenOnScreen('.showdown', 3.2);
+// The engine would deal the next hand after its payout hold; the director
+// keeps the result on the table for the length of the shot instead.
+await S(`if (ctx.table.phase === 'payout') ctx.engine.deadline = Date.now() + 30000;`);
+// Framed with room under the rows, so the line below covers none of them.
+camMove(await frameOf(['.showdown'], { pad: 40, minW: 1180, dy: 85 }), 0.5);
+await at(3.75);
+await caption('You had nothing. You won.', { pos: 'bottom' });   // read to 7.07
 await end();
+await S('ctx.engine.deadline = Date.now() + 300;');
 await hush();
 
-// ── Hand 6: one King of Spades, five times ───────────────────────────────────
-await S(`const t = ctx.table; t.omens = t.omens.filter((o) => o.id !== 'inversion'); ctx.hero.relics = ctx.hero.relics.filter((r) => r !== 'third_hand'); ctx.engine.flush();`);
+// ── Hand 5: one King of Spades, five times ───────────────────────────────────
+await S(`const t = ctx.table; t.omens = t.omens.filter((o) => o.id !== 'inversion'); ctx.engine.flush();`);
 await nextHand(
   { hole: [['KS', '3D'], ['AC', '9D'], ['QH', '8C']], board: ['JH', '6C', '2S', 'TD', '4H'] },
   `ctx.setHand(0, { sigils: ['graft', 'twin', 'mirror', 'mirror'], mana: 12, maxMana: 12 }); ctx.auto.holdHero = ['river'];`,
@@ -517,55 +536,54 @@ await nextHand(
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(1.0);
 I = await ids();
-const finaleCam = await frameOf(['.board', '.rail [data-card-id]'], { pad: 60, minW: 1100 });
-camCut(finaleCam);
-await begin('finale');
-await caption('There is one King of Spades.', { pos: 'top', size: 'small' });
+camCut(await frameOf(['.board', '.rail [data-card-id]'], { pad: 60, minW: 1100 }));
+await begin('finale');                           // 20.5 s; copies at 4.0, 6.5, 9.0, 11.5; banner at 14.5
+await caption('There is one King of Spades.', { pos: 'top', size: 'small' });   // read to 3.62
 await ring(cardSel(I.hole[0]), 8);
-await at(2.0);
+await at(4.0);
 await heroCast(`s.defId === 'graft'`);
 await caption('Two.', { pos: 'top', size: 'huge' });
-await at(2.25);
+await at(4.3);
 await ring(cardSel(I.hole[1]), 8);
-await at(3.0);
+await at(6.5);
 await heroCast(`s.defId === 'twin'`, { cardIds: [I.hole[0]] });
 await caption('Three.', { pos: 'top', size: 'huge' });
-await at(3.35);
+await at(6.9);
 const twin = (await ids()).board.at(-1);
 await ring(cardSel(twin), 8);
-await at(4.0);
+await at(9.0);
 await heroCast(`s.defId === 'mirror'`, { cardIds: [twin, I.board[0]] });
 await caption('Four.', { pos: 'top', size: 'huge' });
-await at(4.25);
+await at(9.3);
 await ring(cardSel(I.board[0]), 8);
-await at(5.0);
+await at(11.5);
 await heroCast(`s.defId === 'mirror'`, { cardIds: [twin, I.board[1]] });
-await caption('Five.', { pos: 'top', size: 'huge' });
-await at(5.25);
+await caption('Five.', { pos: 'top', size: 'huge' });   // read to 13.62
+await at(11.8);
 await ring(cardSel(I.board[1]), 8);
-await at(6.4);
-await unring();
+await at(13.65);
 await hush();
-// The banner should slam at 7.0 (edit 46.0), seen at a third of real speed:
-// 0.35 s of the 0.40 s lead at full speed, the last 0.05 s slowed to 0.15.
-await at(6.5);
+// A still beat on five Kings of Spades; then the showdown, and the banner
+// slams at 14.5 (edit 66.0) seen at a third of real speed.
+await at(BANNER_LEAD_AT(14.5));
+await unring();
 await S('ctx.checkAround()');
 camMove(BANNER, 0.5);
-await at(6.85);
+await at(14.47);
 speed = 0.34;
-await at(8.4);
-speed = 1;
-await caption('Five of the same card.', { pos: 'low' });
+await at(15.6);
+// Slowed still, so the game's banner (3.2 s) stays up while it is read.
+speed = 0.55;
+await caption('Five of the same card.', { pos: 'low' });   // read to 20.5
 await end();
 await hush();
 
 // ── End card ─────────────────────────────────────────────────────────────────
-await begin('end');
+await begin('end');                              // 7.5 s
 await tr(() => window.__tr.flash());
 await tr(() => window.__tr.endCard("Texas Hold'em with a deck that breaks physics.", 'Wishlist on Steam', 'Solo against bots  ·  Or host friends on your network'));
 cue('boom', 1);
 await end();
-
 }
 
 try { await scenes(); } catch (e) { if (e !== STOP) throw e; }
@@ -576,6 +594,9 @@ await new Promise((r) => ff.on('exit', r));
 const editOrder = EDIT.map(([n]) => n).filter((n) => shots.some((s) => s.name === n));
 writeFileSync(join(OUT, 'shots.json'), JSON.stringify({ fps: FPS, edit: editOrder, edit_all: EDIT.map(([n]) => n), shots, length: EDIT.reduce((a, [, l]) => a + l, 0) }, null, 1));
 writeFileSync(join(OUT, 'sfx.json'), JSON.stringify(sfx.sort((a, b) => a.t - b.t), null, 1));
+writeFileSync(join(OUT, 'legibility.json'), JSON.stringify([...seen.values()]
+  .map((v) => ({ ...v, first: +v.first.toFixed(3), last: +(v.last + 1 / FPS).toFixed(3) }))
+  .sort((a, b) => a.first - b.first), null, 1));
 console.log(`wrote ${recorded} frames, ${sfx.length} sound cues → ${OUT}`);
 if (errors.length) console.log(`page errors:\n  ${errors.join('\n  ')}`);
 await browser.close();

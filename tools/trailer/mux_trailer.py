@@ -35,7 +35,11 @@ GAME_GAIN = 0.62     # the game's mix ladder, under the score's level
 CUE_GAIN = 0.8
 THROTTLE = 0.025     # src/audio/engine.ts THROTTLE_SEC: one name, once per 25 ms
 TARGET_LUFS = -14.0
-POSTER_AT = 48.6     # FLUSH FIVE, KINGS, and the two Kings of Spades in your hand
+POSTER_AT = 70.4     # FLUSH FIVE, KINGS, and the two Kings of Spades in your hand
+# The six-second preview: two Kings of Spades under MAKE IT FIVE, then
+# FIVE OF A KIND landing and held 3.4 s, then 0.4 s dissolving back to the
+# first frame. The payoff gets the reading time; the loop repeats the rest.
+PREVIEW = (4.0, 9.6)
 
 
 def read_wav(path):
@@ -56,12 +60,29 @@ def write_wav(path, x):
         w.writeframes(pcm.T.tobytes())
 
 
+def owners(recs):
+    """Which recording each stretch of the cut comes from: a shot filmed again
+    in a later recording (a re-take) replaces the earlier one."""
+    spans = {}
+    for r in recs:
+        meta = json.load(open(os.path.join(r, "shots.json")))
+        for s in meta["shots"]:
+            spans[s["name"]] = (r, s["edit"], s["edit"] + s["frames"] / meta["fps"])
+    return list(spans.values())
+
+
+def owned(rec, t, spans):
+    return any(r == rec and a - 1e-6 <= t < b for r, a, b in spans)
+
+
 def mix_audio(recs, length):
     n = int(math.ceil(length * SR))
     music = read_wav(os.path.join(AUDIO, "music.wav"))
     out = np.zeros((2, n))
     out[:, : min(n, music.shape[1])] += music[:, :n]
-    cues = [dict(c, rec=r) for r in recs for c in json.load(open(os.path.join(r, "sfx.json")))]
+    spans = owners(recs)
+    cues = [dict(c, rec=r) for r in recs for c in json.load(open(os.path.join(r, "sfx.json")))
+            if owned(r, c["t"], spans)]
     cache = {}
     last = {}
     placed = 0
@@ -89,7 +110,7 @@ def mix_audio(recs, length):
             placed += 1
     gain = 10 ** ((TARGET_LUFS - lufs(out)) / 20.0)
     out = limiter(out * gain, -1.0)
-    fo = int(1.2 * SR)
+    fo = int(0.9 * SR)
     out[:, -fo:] *= np.linspace(1, 0, fo)
     print(f"  mix: {placed} sounds over the score, {lufs(out):.1f} LUFS, peak {20 * math.log10(np.max(np.abs(out)) + 1e-12):.1f} dBFS")
     return out
@@ -122,8 +143,9 @@ def main():
     for i, n in enumerate(order):
         s = shots[n]
         parts.append(f"[{s['src']}:v]trim=start_frame={s['start']}:end_frame={s['start'] + s['frames']},setpts=PTS-STARTPTS[v{i}]")
-    fade_out = length - 1.2
-    graph = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(len(order))) +         f"concat=n={len(order)}:v=1:a=0,fade=t=in:st=0:d=0.12,fade=t=out:st={fade_out:.3f}:d=1.2,format=yuv420p[v]"
+    # A short fade out: the end card's small print is read to the last second.
+    fade_out = length - 0.8
+    graph = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(len(order))) +         f"concat=n={len(order)}:v=1:a=0,fade=t=in:st=0:d=0.12,fade=t=out:st={fade_out:.3f}:d=0.8,format=yuv420p[v]"
     master = os.path.join(work, "master.mov")
     inputs = [a for r in recs for a in ("-i", os.path.join(r, "frames.mp4"))]
     run(["ffmpeg", "-y", "-v", "error", *inputs, "-i", mix,
@@ -134,23 +156,23 @@ def main():
     mp4 = os.path.join(dst, "hexhold-trailer.mp4")
     webm = os.path.join(dst, "hexhold-trailer.webm")
     jpg = os.path.join(dst, "hexhold-trailer.jpg")
-    # CRF 17 lands about 5.3 Mbps: over the 5,000 kbps Valve asks a 1080p
-    # trailer to have, under 50 MB so git hosts it without complaint.
+    # CRF 16 lands a little over 5 Mbps on this cut, the 5,000 kbps Valve
+    # recommends for a 1080p trailer (about 55 MB for 81 s; git takes it).
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
-         "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-r", str(fps),
+         "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-r", str(fps),
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", mp4])
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-row-mt", "1",
          "-cpu-used", "3", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "160k", webm])
     run(["ffmpeg", "-y", "-v", "error", "-ss", f"{min(POSTER_AT, length - 1):.2f}", "-i", mp4, "-frames:v", "1", "-q:v", "2", jpg])
 
-    # The Steam preview: the opening, silent, six seconds. It starts after the
-    # trailer's fade from black, stops before the title card, and its last
+    # The Steam preview: six silent seconds of the opening's payoff. Its last
     # 0.4 s dissolves into its own first frame, so a looping player never jumps.
     first = os.path.join(work, "first.png")
-    run(["ffmpeg", "-y", "-v", "error", "-ss", "0.15", "-i", master, "-frames:v", "1", first])
-    loop = (f"[0:v]trim=start=0.15:end=5.95,setpts=PTS-STARTPTS,fps={fps},format=yuv420p,settb=AVTB[a];"
-            f"[1:v]loop=loop=-1:size=1:start=0,trim=0:0.6,setpts=PTS-STARTPTS,fps={fps},format=yuv420p,settb=AVTB[b];"
-            f"[a][b]xfade=transition=fade:duration=0.4:offset=5.4,trim=0:6,format=yuv420p[v]")
+    a, b = PREVIEW
+    run(["ffmpeg", "-y", "-v", "error", "-ss", f"{a}", "-i", master, "-frames:v", "1", first])
+    loop = (f"[0:v]trim=start={a}:end={b},setpts=PTS-STARTPTS,fps={fps},format=yuv420p,settb=AVTB[a];"
+            f"[1:v]loop=loop=-1:size=1:start=0,trim=0:0.8,setpts=PTS-STARTPTS,fps={fps},format=yuv420p,settb=AVTB[b];"
+            f"[a][b]xfade=transition=fade:duration=0.4:offset={b - a - 0.4:.3f},trim=0:{b - a + 0.4:.3f},format=yuv420p[v]")
     pmp4 = os.path.join(dst, "hexhold-preview-6s.mp4")
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-i", first, "-filter_complex", loop, "-map", "[v]", "-an",
          "-c:v", "libx264", "-profile:v", "high", "-preset", "slow", "-crf", "19", "-r", str(fps), "-movflags", "+faststart", pmp4])

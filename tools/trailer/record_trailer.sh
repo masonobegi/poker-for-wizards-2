@@ -3,7 +3,7 @@
 #   hexhold-trailer.mp4 / .webm / .jpg, hexhold-preview-6s.mp4 / .webm
 # Needs Node 20+, ffmpeg, Python 3 + numpy, and a Chromium Playwright can drive.
 # Silent and invisible: headless, muted, no window, nothing played aloud.
-#   tools/trailer/record_trailer.sh            everything (about 30 minutes)
+#   tools/trailer/record_trailer.sh            everything (about 45 minutes)
 #   KEEP=1 tools/trailer/record_trailer.sh     keep the work folder for review
 # The shots are filmed by two recorders at once, each playing the whole run
 # and filming its half (the run is seeded, so both play the same game).
@@ -19,10 +19,10 @@ mkdir -p "$OUT" "$WORK/a" "$WORK/b"
 npx vite build >/dev/null
 "$PY" tools/trailer/render_music.py
 node tools/trailer/record_trailer.mjs --port 3419 --out "$WORK/a" \
-  --only hook_type,hook_kings,hook_cast,title,undo,counter,write,write_cast --until write_cast > "$WORK/a.log" 2>&1 &
+  --only hook_kings,hook_cast,title,undo,write,write_cast --until write_cast > "$WORK/a.log" 2>&1 &
 A=$!
 node tools/trailer/record_trailer.mjs --port 3420 --out "$WORK/b" \
-  --only omen,buy,deal3,worst_wins,finale,end > "$WORK/b.log" 2>&1 &
+  --only omen,worst_wins,finale,end > "$WORK/b.log" 2>&1 &
 B=$!
 wait $A || { cat "$WORK/a.log"; exit 1; }
 wait $B || { cat "$WORK/b.log"; exit 1; }

@@ -19,6 +19,18 @@ export const ROOT = resolve(import.meta.dirname, '..', '..');
 // Animation are driven from here. `enable(epoch)` pins Date.now to the
 // server's virtual epoch so countdowns agree on both sides.
 const VIRTUAL_CLOCK = `(() => {
+  // framer-motion hands opacity and transform animations to the browser (Web
+  // Animations) when Element.prototype owns animate(), and commits their end
+  // state from an onfinish it cannot get from an animation this clock has
+  // paused and seeked: rows of the showdown panel came in and then vanished.
+  // Moving animate() one level down keeps it for the game's own el.animate()
+  // punches but makes framer run everything on requestAnimationFrame, which is
+  // this clock's.
+  const nativeAnimate = Element.prototype.animate;
+  delete Element.prototype.animate;
+  for (const P of [HTMLElement.prototype, SVGElement.prototype]) {
+    Object.defineProperty(P, 'animate', { value: nativeAnimate, writable: true, configurable: true });
+  }
   const rPerf = performance.now.bind(performance), rDate = Date.now;
   const rST = window.setTimeout.bind(window), rCT = window.clearTimeout.bind(window);
   const rSI = window.setInterval.bind(window), rCI = window.clearInterval.bind(window);

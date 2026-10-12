@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline renderer for the HEXHOLD trailer score and the director's one-shots.
 
-An original ~58 s cue in D minor at 120 BPM, synthesised entirely with numpy
+An original ~81 s cue in D minor at 120 BPM, synthesised entirely with numpy
 (no samples, no loops, nothing licensed): a sub drone and a ticking clock for
 the cold open, trailer impacts (sub boom, taiko, crash) on every reveal, a
 driving arpeggiated groove under the spells, a formant choir for the
@@ -36,27 +36,31 @@ TAU = 2.0 * math.pi
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "out")
 
-DUR = 58.0
+DUR = 81.0
 N = int(round(DUR * SR))
 BEAT = 0.5
 BAR = 2.0
 
 # Hit points the picture is cut to (edit seconds; see EDIT in record_trailer.mjs).
-FIVE_KINGS = 4.0     # the banner: FIVE OF A KIND
-TITLE = 6.0
-UNDO = 10.5          # the Rewind cast
-THEIR_SPELL = 14.0
-CANCEL = 16.0
-WRITE = 18.0
-WRITE_CAST = 22.5
-NEW_RULE = 27.0
-BUY = 31.0
-DEAL3 = 32.5
-WORST_WINS = 34.5
-ONE_KING = 39.0
-COUNT = [41.0, 42.0, 43.0, 44.0]
-FLUSH_FIVE = 46.0
-END = 50.0
+# Re-cut 2026-10-11 for reading time: every text card holds 1.5 s + 0.3 s a
+# word from when it lands (tools/trailer/legibility.py checks the cut).
+CAST_SEVEN = 2.8     # the written spell flies; the 7 turns (slow motion)
+FIVE_KINGS = 5.5     # the banner: FIVE OF A KIND, held at half speed to 11.5
+TITLE = 11.5
+WRITE = 16.0         # the Blank Page; typing 16.4-19.5, Write pressed 23.8
+WRITE_CAST = 24.0
+WILD_DONE = 27.5     # MAKE MY WORST CARD WILD: DONE
+UNDO_SHOT = 31.5
+UNDO = 34.6          # the Rewind cast (half speed to 36.0)
+YOU_WIN = 37.0
+NEW_RULE = 41.0
+WORST_SHOT = 45.5
+WORST_WINS = 46.0
+YOU_WON = 49.25      # YOU HAD NOTHING. YOU WON.
+ONE_KING = 53.0
+COUNT = [57.0, 59.5, 62.0, 64.5]
+FLUSH_FIVE = 67.5
+END = 73.5
 
 
 # ---------------------------------------------------------------------------
@@ -529,12 +533,15 @@ CH = {
 
 # Where the harmony sits: (start, end, chord).
 HARMONY = [
-    (0.0, 4.0, "Dm"), (4.0, 6.0, "Dm"), (6.0, 8.0, "Bb"), (8.0, 9.0, "A"),
-    (9.0, 10.0, "Dm"), (10.0, 12.0, "Bb"), (12.0, 14.0, "Gm"), (14.0, 16.0, "A"), (16.0, 18.0, "Dm"),
-    (18.0, 20.0, "Bb"), (20.0, 22.0, "Gm"), (22.0, 24.0, "A"), (24.0, 26.0, "Dm"), (26.0, 27.0, "Bb"),
-    (27.0, 30.0, "Eb"), (30.0, 32.0, "Gm"), (32.0, 34.0, "Eb"), (34.0, 36.0, "Bb"), (36.0, 39.0, "A"),
-    (39.0, 41.0, "A"), (41.0, 42.0, "Dm"), (42.0, 43.0, "Bb"), (43.0, 44.0, "C"), (44.0, 46.0, "A7"),
-    (46.0, 50.0, "D"), (50.0, 54.0, "Dm9"), (54.0, 58.0, "Dm"),
+    (0.0, FIVE_KINGS, "Dm"), (FIVE_KINGS, TITLE, "Dm"), (TITLE, TITLE + 2.0, "Bb"), (TITLE + 2.0, WRITE, "A"),
+    (WRITE, WRITE + 2.0, "Dm"), (WRITE + 2.0, WRITE + 4.0, "Bb"), (WRITE + 4.0, WRITE + 6.0, "Gm"), (WRITE + 6.0, WRITE_CAST, "A"),
+    (WRITE_CAST, WRITE_CAST + 2.0, "Dm"), (WRITE_CAST + 2.0, WRITE_CAST + 4.0, "Bb"), (WRITE_CAST + 4.0, WRITE_CAST + 6.0, "Gm"),
+    (WRITE_CAST + 6.0, UNDO_SHOT, "A"),
+    (UNDO_SHOT, UNDO_SHOT + 2.0, "Dm"), (UNDO_SHOT + 2.0, UNDO + 0.4, "Bb"), (UNDO + 0.4, YOU_WIN, "C"), (YOU_WIN, NEW_RULE, "Dm"),
+    (NEW_RULE, WORST_SHOT, "Eb"), (WORST_SHOT, WORST_SHOT + 2.0, "Gm"), (WORST_SHOT + 2.0, WORST_SHOT + 4.0, "Eb"),
+    (WORST_SHOT + 4.0, WORST_SHOT + 6.0, "Bb"), (WORST_SHOT + 6.0, ONE_KING, "A"),
+    (ONE_KING, COUNT[0], "A"), (COUNT[0], COUNT[1], "Dm"), (COUNT[1], COUNT[2], "Bb"), (COUNT[2], COUNT[3], "C"), (COUNT[3], FLUSH_FIVE, "A7"),
+    (FLUSH_FIVE, END, "D"), (END, END + 4.0, "Dm9"), (END + 4.0, DUR, "Dm"),
 ]
 
 
@@ -634,130 +641,135 @@ def compose(rng):
         for dt, note, d in MOTIF:
             mix.add("bell", t0 + dt, bell(nm(note) + octave, d, 0.9, rng), gain, 0.15)
 
-    # ── 0-4: the cold open. A drone, a clock, a held breath. ────────────────
-    mix.add("pad", 0.0, sub_drone(nm("D1"), 4.3, rng), 0.38)
-    mix.add("pad", 0.0, pad([nm("D3"), nm("A3")], 4.0, rng, cutoff=900.0, a=0.6, r=0.6), 0.28)
-    for i in range(8):
-        mix.add("drums", i * BEAT, kits["tick_hi" if i % 2 == 0 else "tick_lo"], 0.25)
-    for i in range(8, 16):
-        mix.add("drums", i * BEAT / 2 + 2.0, kits["tick_hi" if i % 2 == 0 else "tick_lo"], 0.3)
+    # ── the cold open. A drone, a clock, a held breath. ─────────────────────
     # The first frame lands on a hit: a scroller hears it before they read it.
     mix.add("fx", 0.0, kits["boom"], 0.55)
     mix.add("drums", 0.0, kits["taiko"][1], 0.7)
     mix.add("cym", 0.0, kits["crash"], 0.22, -0.3)
     mix.add("drums", 0.0, kits["kick_deep"], 0.7)
-    mix.add("drums", 1.0, kits["kick_deep"], 0.5)
-    mix.add("drums", 1.25, kits["kick_deep"], 0.35)
-    for k, note in enumerate(("A4", "D5", "F5", "A5")):   # the typing insert
-        mix.add("bell", 1.35 + k * 0.3, bell(nm(note), 0.4, 0.6, rng), 0.32)
-    riser_into(FIVE_KINGS, 1.3, 0.55)
+    mix.add("pad", 0.0, sub_drone(nm("D1"), FIVE_KINGS + 0.3, rng), 0.38)
+    mix.add("pad", 0.0, pad([nm("D3"), nm("A3")], FIVE_KINGS, rng, cutoff=900.0, a=0.6, r=0.6), 0.28)
+    for i in range(int(FIVE_KINGS / BEAT)):
+        mix.add("drums", i * BEAT, kits["tick_hi" if i % 2 == 0 else "tick_lo"], 0.25 + 0.01 * i)
+    for t in (1.0, 2.0, 3.0, 4.0, 4.5, 5.0):
+        mix.add("drums", t, kits["kick_deep"], 0.4)
+    # The spell: a rising bell figure over the slowed turn of the card.
+    for k, note in enumerate(("A4", "D5", "F5", "A5", "D6")):
+        mix.add("bell", CAST_SEVEN + k * 0.32, bell(nm(note), 0.5, 0.6, rng), 0.32)
+    riser_into(FIVE_KINGS, 1.6, 0.55)
 
-    # ── 4: FIVE OF A KIND ────────────────────────────────────────────────────
-    impact(FIVE_KINGS, 1.0, "Dm", choir_dur=1.8)
-    mix.add("pad", FIVE_KINGS, sub_drone(nm("D1"), 2.2, rng), 0.32)
+    # ── FIVE OF A KIND, held while it is read ────────────────────────────────
+    impact(FIVE_KINGS, 1.0, "Dm", choir_dur=TITLE - FIVE_KINGS - 0.8)
+    mix.add("pad", FIVE_KINGS, sub_drone(nm("D1"), TITLE - FIVE_KINGS, rng), 0.32)
+    for k, note in enumerate(("D5", "F5", "A5", "D6", "A5", "F5")):
+        mix.add("bell", FIVE_KINGS + 0.6 + k * 0.75, bell(nm(note), 0.6, 0.6, rng), 0.22, 0.3 if k % 2 else -0.3)
+    riser_into(TITLE, 1.0, 0.35)
 
-    # ── 6: the title ─────────────────────────────────────────────────────────
+    # ── the title ────────────────────────────────────────────────────────────
     impact(TITLE, 0.85, "Bb", choir_dur=None)
     motif(TITLE + 0.5, 0.55)
-    pads(TITLE, 9.0, 0.24, 1400.0)
+    pads(TITLE, WRITE, 0.24, 1400.0)
     mix.add("bass", TITLE, sub_drone(nm("Bb0"), 2.0, rng), 0.45)
-    arps(7.0, 9.0, 0.22)
+    arps(TITLE + 2.0, WRITE, 0.22)
     for i in range(4):
-        mix.add("drums", 8.0 + i * 0.25, pick(kits["snare"]), 0.18 + 0.08 * i)
-    riser_into(9.0, 1.0, 0.35)
+        mix.add("drums", WRITE - 0.5 + i * 0.125, pick(kits["snare"]), 0.18 + 0.08 * i)
 
-    # ── 9-18: the groove. Undo, then their spell, then yours. ────────────────
-    # It builds: hats and kick first, the backbeat joins at 11.
-    groove(9.0, 11.0, density=0.5, clap_on=False)
-    groove(11.0, 18.0)
-    bassline(9.0, 18.0)
-    arps(9.0, 18.0)
-    pads(9.0, 18.0, 0.16)
-    mix.add("cym", 9.0, kits["crash"], 0.35)
-    mix.add("fx", UNDO - 0.38, whoosh(rng), 0.35)
-    mix.add("brass", 12.0, brass_stab(CH["Gm"][1], 0.3, 0.6, rng), 0.35)
-    impact(THEIR_SPELL, 0.55, "A")
-    impact(CANCEL, 0.7, "Dm")
-    motif(CANCEL + 0.5, 0.35, 12)
-
-    # ── 18-22.5: the blank page. The beat drops to the clock. ───────────────
-    pads(18.0, 22.5, 0.24, 1500.0)
-    arps(18.0, 22.5, 0.26, 24, (0, 2, 1, 3))
-    bassline(18.0, 22.0, 0.45)
-    for i in range(int(4.0 / (BEAT / 2))):
-        mix.add("drums", 18.0 + i * BEAT / 2, kits["tick_hi" if i % 2 == 0 else "tick_lo"], 0.22)
+    # ── the blank page. A light pulse under the typing. ─────────────────────
+    pads(WRITE, WRITE_CAST, 0.24, 1500.0)
+    arps(WRITE, WRITE_CAST, 0.26, 24, (0, 2, 1, 3))
+    bassline(WRITE + 2.0, WRITE_CAST - 0.5, 0.42)
+    groove(WRITE + 2.0, WRITE_CAST - 0.5, density=0.5, clap_on=False)
+    for i in range(int((WRITE_CAST - WRITE) / (BEAT / 2))):
+        mix.add("drums", WRITE + i * BEAT / 2, kits["tick_hi" if i % 2 == 0 else "tick_lo"], 0.18)
     for i in range(8):
-        mix.add("drums", 21.5 + i * 0.0625, pick(kits["snare"]), 0.12 + 0.05 * i)
-    riser_into(WRITE_CAST, 1.0, 0.4)
+        mix.add("drums", WRITE_CAST - 0.5 + i * 0.0625, pick(kits["snare"]), 0.12 + 0.05 * i)
+    riser_into(WRITE_CAST, 1.2, 0.4)
 
-    # ── 22.5-27: it does what you wrote ─────────────────────────────────────
+    # ── it does what you wrote ───────────────────────────────────────────────
     mix.add("cym", WRITE_CAST, kits["crash"], 0.45)
     mix.add("drums", WRITE_CAST, kits["taiko"][2], 0.6)
-    groove(WRITE_CAST, 27.0)
-    bassline(WRITE_CAST, 27.0)
-    arps(WRITE_CAST, 27.0, 0.36, 24, (0, 1, 2, 3, 3, 2, 1, 0))
-    pads(WRITE_CAST, 27.0, 0.17)
-    mix.add("brass", 24.75, brass_stab(CH["Dm"][1], 0.35, 0.6, rng), 0.35)
+    groove(WRITE_CAST, UNDO_SHOT)
+    bassline(WRITE_CAST, UNDO_SHOT)
+    arps(WRITE_CAST, UNDO_SHOT, 0.34, 24, (0, 1, 2, 3, 3, 2, 1, 0))
+    pads(WRITE_CAST, UNDO_SHOT, 0.17)
+    mix.add("brass", WILD_DONE, brass_stab(CH["Bb"][1], 0.35, 0.6, rng), 0.4)
+    mix.add("bell", WILD_DONE, bell(nm("D6"), 0.5, 0.8, rng), 0.3)
 
-    # ── 27: a new rule. Half time, darker. ──────────────────────────────────
-    impact(NEW_RULE, 0.9, "Eb", choir_dur=2.4)
-    for i, t in enumerate((28.0, 28.5, 29.0, 29.25, 29.5, 29.75)):
-        mix.add("drums", t, kits["taiko"][i % 3], 0.45 + 0.05 * i)
-    mix.add("bass", NEW_RULE, sub_drone(nm("Eb1"), 3.0, rng), 0.5)
-    arps(28.0, 30.0, 0.2, 24, (0, 2))
+    # ── undo the last card ──────────────────────────────────────────────────
+    mix.add("cym", UNDO_SHOT, kits["crash"], 0.3)
+    groove(UNDO_SHOT, UNDO - 0.5, density=0.5, clap_on=False)
+    bassline(UNDO_SHOT, NEW_RULE, 0.6)
+    arps(UNDO_SHOT, NEW_RULE, 0.3)
+    pads(UNDO_SHOT, NEW_RULE, 0.16)
+    mix.add("fx", UNDO - 0.38, whoosh(rng), 0.4)
+    mix.add("brass", UNDO, brass_stab(CH["Bb"][1], 0.4, 0.7, rng), 0.45)
+    impact(YOU_WIN, 0.65, "C")
+    groove(YOU_WIN, NEW_RULE)
+    motif(YOU_WIN + 0.5, 0.3, 12)
 
-    # ── 30-39: buy your own, three cards, the worst hand wins ────────────────
-    mix.add("cym", 30.0, kits["crash"], 0.4)
-    groove(30.0, 39.0)
-    bassline(30.0, 39.0)
-    arps(30.0, 39.0, 0.34)
-    pads(30.0, 39.0, 0.16)
-    mix.add("brass", BUY, brass_stab(CH["Gm"][1], 0.3, 0.75, rng), 0.45)
-    mix.add("fx", DEAL3 - 0.38, whoosh(rng), 0.3)
-    impact(WORST_WINS, 0.6, "Bb")
+    # ── a new rule. Half time, darker. ──────────────────────────────────────
+    impact(NEW_RULE, 0.9, "Eb", choir_dur=WORST_SHOT - NEW_RULE - 0.6)
+    for i, d in enumerate((1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.75, 4.0, 4.25)):
+        mix.add("drums", NEW_RULE + d, kits["taiko"][i % 3], 0.4 + 0.04 * i)
+    mix.add("bass", NEW_RULE, sub_drone(nm("Eb1"), WORST_SHOT - NEW_RULE, rng), 0.5)
+    arps(NEW_RULE + 1.0, WORST_SHOT, 0.2, 24, (0, 2))
+
+    # ── the worst hand wins ──────────────────────────────────────────────────
+    mix.add("cym", WORST_SHOT, kits["crash"], 0.4)
+    groove(WORST_SHOT, ONE_KING)
+    bassline(WORST_SHOT, ONE_KING)
+    arps(WORST_SHOT, ONE_KING, 0.32)
+    pads(WORST_SHOT, ONE_KING, 0.16)
+    impact(WORST_WINS, 0.6, "Gm")
     # A falling bell run: the joke lands.
     for k, note in enumerate(("A5", "F5", "D5", "A4", "F4")):
-        mix.add("bell", 36.5 + k * 0.125, bell(nm(note), 0.3, 0.7, rng), 0.3)
+        mix.add("bell", YOU_WON + k * 0.125, bell(nm(note), 0.3, 0.7, rng), 0.3)
     for i in range(8):
-        mix.add("drums", 38.5 + i * 0.0625, pick(kits["snare"]), 0.15 + 0.05 * i)
+        mix.add("drums", ONE_KING - 0.5 + i * 0.0625, pick(kits["snare"]), 0.15 + 0.05 * i)
 
-    # ── 39-46: one King of Spades, then four ────────────────────────────────
-    mix.add("pad", ONE_KING, sub_drone(nm("A0"), 2.2, rng), 0.55)
-    mix.add("pad", ONE_KING, pad([nm("A3"), nm("E4"), nm("A4")], 2.0, rng, cutoff=1200.0, a=0.4, r=0.4), 0.22)
-    for i in range(4):
-        mix.add("drums", ONE_KING + i * BEAT, kits["kick_deep"], 0.55 if i % 2 == 0 else 0.35)
-        mix.add("drums", ONE_KING + i * BEAT, kits["tick_hi"], 0.25)
+    # ── one King of Spades, then four more ──────────────────────────────────
+    mix.add("pad", ONE_KING, sub_drone(nm("A0"), COUNT[0] - ONE_KING + 0.2, rng), 0.55)
+    mix.add("pad", ONE_KING, pad([nm("A3"), nm("E4"), nm("A4")], COUNT[0] - ONE_KING, rng, cutoff=1200.0, a=0.4, r=0.4), 0.22)
+    for i in range(int((COUNT[0] - ONE_KING) / BEAT)):
+        mix.add("drums", ONE_KING + i * BEAT, kits["kick_deep"], 0.5 if i % 2 == 0 else 0.3)
+        mix.add("drums", ONE_KING + i * BEAT, kits["tick_hi"], 0.22)
     rising = ["Dm", "Bb", "C", "A7"]
+    gap = COUNT[1] - COUNT[0]
     for k, (t, c) in enumerate(zip(COUNT, rising)):
         g = 0.55 + 0.15 * k
         mix.add("drums", t, kits["taiko"][k % 3], g)
         mix.add("drums", t, timpani(CH[c][0] + 12, 0.9, rng), 0.5 + 0.1 * k)
-        mix.add("brass", t, brass_stab([CH[c][0] + 12] + CH[c][1], 0.45, 0.8, rng, cutoff=2400.0 + 500 * k), 0.5 + 0.1 * k)
-        mix.add("choir", t, choir([v + 12 for v in CH[c][1][1:]], 0.8, rng, a=0.03, r=0.35), 0.45 + 0.12 * k)
+        mix.add("brass", t, brass_stab([CH[c][0] + 12] + CH[c][1], 0.6, 0.8, rng, cutoff=2400.0 + 500 * k), 0.5 + 0.1 * k)
+        mix.add("choir", t, choir([v + 12 for v in CH[c][1][1:]], gap - 0.5, rng, a=0.03, r=0.5), 0.45 + 0.12 * k)
         mix.add("cym", t, kits["crash"], 0.15 + 0.08 * k)
         mix.add("bell", t, bell(CH[c][1][-1] + 24, 0.4, 0.8, rng), 0.3)
-    for i in range(16):
-        mix.add("drums", 44.0 + i * 0.125, pick(kits["snare"]), 0.12 + 0.03 * i)
-    mix.add("bass", 44.0, sub_drone(nm("A0"), 2.0, rng), 0.5)
-    riser_into(FLUSH_FIVE, 2.0, 0.7)
+        # The pulse between counts, quickening as it climbs.
+        n_pulse = 4 + k
+        for i in range(1, n_pulse):
+            mix.add("drums", t + i * gap / n_pulse, kits["kick_deep"], 0.25 + 0.04 * k)
+        mix.add("pad", t, pad(CH[c][1], gap - 0.1, rng, cutoff=1300.0 + 300 * k, a=0.1, r=0.3), 0.18)
+    for i in range(24):
+        mix.add("drums", FLUSH_FIVE - 1.5 + i * 0.0625, pick(kits["snare"]), 0.1 + 0.025 * i)
+    mix.add("bass", COUNT[-1], sub_drone(nm("A0"), FLUSH_FIVE - COUNT[-1], rng), 0.5)
+    riser_into(FLUSH_FIVE, 2.4, 0.7)
 
-    # ── 46: FLUSH FIVE. D major, everything at once, then it rings. ─────────
-    impact(FLUSH_FIVE, 1.25, "D", choir_dur=3.6)
-    mix.add("pad", FLUSH_FIVE, pad(CH["D"][1] + [nm("F#4"), nm("A4")], 3.6, rng, cutoff=2400.0, a=0.05, r=1.0), 0.3)
-    mix.add("pad", FLUSH_FIVE, sub_drone(nm("D1"), 4.0, rng), 0.4)
-    for k, note in enumerate(("D5", "F#5", "A5", "D6", "A5", "F#5", "D6")):
-        mix.add("bell", FLUSH_FIVE + 0.4 + k * 0.33, bell(nm(note), 0.5, 0.7, rng), 0.26, 0.3 if k % 2 else -0.3)
+    # ── FLUSH FIVE. D major, everything at once, then it rings. ─────────────
+    impact(FLUSH_FIVE, 1.25, "D", choir_dur=END - FLUSH_FIVE - 0.6)
+    mix.add("pad", FLUSH_FIVE, pad(CH["D"][1] + [nm("F#4"), nm("A4")], END - FLUSH_FIVE - 0.6, rng, cutoff=2400.0, a=0.05, r=1.0), 0.3)
+    mix.add("pad", FLUSH_FIVE, sub_drone(nm("D1"), END - FLUSH_FIVE, rng), 0.4)
+    for k, note in enumerate(("D5", "F#5", "A5", "D6", "A5", "F#5", "D6", "F#6", "A6", "D6")):
+        mix.add("bell", FLUSH_FIVE + 0.5 + k * 0.55, bell(nm(note), 0.5, 0.7, rng), 0.24, 0.3 if k % 2 else -0.3)
 
-    # ── 50-58: the end card ─────────────────────────────────────────────────
+    # ── the end card ─────────────────────────────────────────────────────────
     impact(END, 0.75, "Dm9", choir_dur=None)
     motif(END + 0.5, 0.6)
     motif(END + 2.5, 0.38, -12)
     mix.add("pad", END, pad(CH["Dm9"][1], 4.0, rng, cutoff=1500.0, a=0.3, r=1.5), 0.26)
-    mix.add("pad", 54.0, pad(CH["Dm"][1], 4.0, rng, cutoff=1100.0, a=0.6, r=2.0), 0.24)
-    mix.add("pad", END, sub_drone(nm("D1"), 8.0, rng), 0.3)
-    arps(51.0, 55.0, 0.18, 24, (0, 2, 1, 3))
+    mix.add("pad", END + 4.0, pad(CH["Dm"][1], DUR - END - 4.0, rng, cutoff=1100.0, a=0.6, r=2.0), 0.24)
+    mix.add("pad", END, sub_drone(nm("D1"), DUR - END, rng), 0.3)
+    arps(END + 1.0, END + 5.0, 0.18, 24, (0, 2, 1, 3))
     for i in range(8):
-        mix.add("drums", 51.0 + i * BEAT, kits["kick_deep"], 0.3 if i % 2 == 0 else 0.0)
+        mix.add("drums", END + 1.0 + i * BEAT, kits["kick_deep"], 0.3 if i % 2 == 0 else 0.0)
     return mix
 
 
@@ -783,7 +795,7 @@ def sidechain(x, kicks, depth=0.45, rel=0.18):
 def render_music():
     rng = np.random.default_rng(20261011)
     mix = compose(rng)
-    kicks = [t for a, b in ((9.0, 18.0), (22.5, 27.0), (30.0, 39.0)) for t in np.arange(a, b, BEAT)]
+    kicks = [t for a, b in ((WRITE_CAST, UNDO_SHOT), (YOU_WIN, NEW_RULE), (WORST_SHOT, ONE_KING)) for t in np.arange(a, b, BEAT)]
     dry = np.zeros((2, N))
     wet_in = np.zeros((2, N))
     for name, b in mix.buses.items():

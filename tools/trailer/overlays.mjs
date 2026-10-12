@@ -59,7 +59,7 @@ export const OVERLAY_CSS = `
     color: #120d06; background: linear-gradient(180deg, #f6e2ae, #d4a24a 60%, #a67c2a); border-radius: 6px;
     box-shadow: 0 0 0 2px #f0d69c, 0 10px 30px rgba(0,0,0,.6), 0 0 50px rgba(212,162,74,.35); animation: tr-cta .5s cubic-bezier(.2,1.4,.4,1) both; }
   @keyframes tr-cta { 0% { transform: scale(.6); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
-  .tr-full .fine { margin-top: 26px; font: 600 26px/1 Inter, system-ui, sans-serif; letter-spacing: .3em; color: #aaa293; animation: tr-in .5s both; }
+  .tr-full .fine { margin-top: 28px; font: 600 33px/1 Inter, system-ui, sans-serif; letter-spacing: .22em; color: #d8cfbd; text-shadow: 0 2px 0 #000; animation: tr-in .5s both; }
   .tr-flash { position: absolute; inset: 0; background: #fff8e6; animation: tr-flash .22s both; }
   @keyframes tr-flash { from { opacity: .85 } to { opacity: 0 } }
   .tr-dim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,.55)); animation: tr-in .3s both; }
@@ -128,8 +128,8 @@ export function installOverlays(cssText) {
     endCard(line, cta, fine) {
       const e = add(screen, 'tr-full', EMBLEM + '<div class="word">HEXHOLD</div><div class="rule"></div>');
       const l = add(e, 'line'); l.textContent = line; l.style.animationDelay = '.5s';
-      setTimeout(() => { const c = add(e, 'cta'); c.textContent = cta; }, 1300);
-      setTimeout(() => { const f = add(e, 'fine'); f.textContent = fine; }, 2000);
+      setTimeout(() => { const c = add(e, 'cta'); c.textContent = cta; }, 1000);
+      setTimeout(() => { const f = add(e, 'fine'); f.textContent = fine; }, 1500);
     },
     clearFull() { screen.querySelectorAll('.tr-full').forEach((e) => e.remove()); },
     flash() { const f = add(screen, 'tr-flash'); setTimeout(() => f.remove(), 260); },
@@ -146,7 +146,45 @@ export function installOverlays(cssText) {
       screen.style.top = cam.y + 'px';
       screen.style.transform = 'scale(' + (cam.w / 1920) + ')';
       const s = window.__sounds; window.__sounds = [];
-      return s;
+      return { sounds: s, text: this.readable() };
+    },
+    /**
+     * Every piece of text a viewer is meant to read, as it stands this frame:
+     * the text card, the game's cut-in banner and its line, the showdown's
+     * winning row, the words typed on the Blank Page, the end card. The
+     * recorder times how long each one is on screen (legibility.json).
+     */
+    readable() {
+      const out = {};
+      // What a reader sees once it has settled: decoding letters and other
+      // aria-hidden decoration are left out, so a line is one line.
+      const txt = (el) => {
+        if (!el) return '';
+        const c = el.cloneNode(true);
+        c.querySelectorAll('[aria-hidden="true"]').forEach((e) => e.remove());
+        const words = (c.textContent || '').replace(/\s+/g, ' ').trim();
+        // The game decodes some lines letter by letter (DecodeText): until
+        // every letter has settled the line is not yet readable.
+        const live = [...el.querySelectorAll('.hx-decode__live')];
+        const settled = live.every((b) => b.textContent === b.getAttribute('data-decode-live'));
+        return settled ? words : words + ' [decoding]';
+      };
+      if (cap && !cap.classList.contains('out')) out.card = txt(cap.querySelector('h1'));
+      const bt = document.querySelector('.hx-banner__title');
+      if (bt) out.banner = txt(bt) + (document.querySelector('.hx-banner__sub') ? ' / ' + txt(document.querySelector('.hx-banner__sub')) : '');
+      const row = document.querySelector('.showdown-list > li');
+      if (row) out.showdown = txt(row).slice(0, 80);
+      const typed = document.querySelector('.scribe-input');
+      if (typed && typed.value) out.typed = typed.value;
+      const read = document.querySelectorAll('.scribe-chip');
+      if (read.length) out.reading = [...read].map(txt).join(' + ');
+      for (const k of ['line', 'cta', 'fine']) {
+        const e = screen.querySelector('.tr-full .' + k);
+        if (e) out['end_' + k] = txt(e);
+      }
+      const w = screen.querySelector('.tr-full .word');
+      if (w) out.title = txt(w) + (screen.querySelector('.tr-full .line') ? ' / ' + txt(screen.querySelector('.tr-full .line')) : '');
+      return out;
     },
   };
 }
