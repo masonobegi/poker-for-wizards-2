@@ -687,8 +687,13 @@
   .board { top: 65%; }
 }
 
+/* 78%, not 72%. Measured at 1024x680 — the Electron minimum window — the
+   top-centre seat's pod runs to y=218 and the board's box started at 204, so
+   it hung 14px into it and `test/responsive.mjs` reported the overlap. There
+   is room below to give: the showdown panel is anchored to the TOP of the felt
+   now rather than 250px off its bottom, so the lower band is free. */
 @media (max-height: 720px) {
-  .board { top: 72%; }
+  .board { top: 78%; }
 }
 
 .board-mods {
@@ -1967,22 +1972,35 @@
      every resolution rather than at a viewport offset tuned for one. */
   position: absolute;
   left: 50%;
-  /* This sits ON the board, not under it — at 1280x800 the gap between the pot
-     and the rail is about 140px and this needs roughly 300, so there is
-     nowhere else for it to go. That is why the panel carries its own copy of
-     the board (see ShowdownPanel.tsx). Raised slightly from 278px to make room
-     for that row while still clearing the rail. */
-  bottom: 250px;
+  /* Anchored to the TOP of the felt, at every size.
+  
+     This used to hang 250px off the felt's bottom, with a media query
+     switching to a top anchor under 820px of viewport. Both numbers were
+     tuned against one resolution and the felt's height scales with the
+     viewport, so in between them the panel ran off the top: measured at
+     1440x900, its top edge sat at y = -12 and the title row was simply gone
+     above the screen, with the last player's row clipped at the bottom of the
+     same panel. One anchor needs no numbers — the felt already starts below
+     the HUD, so a panel pinned 8px inside it always clears it.
+     
+     And it SCROLLS rather than clipping. A four-player showdown needs about
+     470px of rows and the felt has roughly 400 at 1280x800; something has to
+     give, and the one thing it must not be is a player's hand disappearing
+     with nothing to say it was ever there. */
+  top: 8px;
+  bottom: auto;
   translate: -50% 0;
   z-index: var(--z-overlay);
   pointer-events: none;
   width: min(660px, 92vw);
-  /* Six seats plus the board row has to fit, or the last player's hand is
-     silently cropped and reads as though they never showed. The floor keeps
-     it clear of the rail at 1024x680. */
-  max-height: min(430px, calc(100vh - 330px));
-  overflow: hidden;
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+
+/* The panel is `pointer-events: none` so clicks reach the table under it, but
+   a scrollable panel nobody can scroll is worse than one that clips. */
+.showdown-inner { pointer-events: auto; }
 
 /*
  * Short screens anchor the panel to the top of the felt instead of 250px off
@@ -2001,12 +2019,8 @@
  * starts below the HUD, so the panel always clears it. Measured after: panel
  * top 70, nothing behind the HUD, and seats fully hidden went 1 -> 0.
  */
-@media (max-height: 820px) {
-  .showdown {
-    top: 8px;
-    bottom: auto;
-  }
-}
+/* (The short-screen anchor override is gone: the panel is top-anchored at
+   every size now, which is what that media query was reaching for.) */
 
 /* A 1366x768 laptop. The 12px text floor (2026-10-09) made each seat a few
    pixels taller, and test/responsive.mjs caught the top seat touching the
