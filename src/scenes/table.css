@@ -1218,7 +1218,12 @@
 
 .rail-sigils {
   display: flex;
-  align-items: flex-end;
+  /* `stretch`, not `flex-end`. The frames used to be a fixed height and the
+     description was clamped to whatever lines were left over, which is how
+     most of the set ended up cut off mid-sentence. Now the text takes the room
+     it needs, the tallest card in the hand sets the row height, and every
+     other card matches it — which is also how a hand of cards should look. */
+  align-items: stretch;
   gap: 7px;
   /* `overflow-y: visible` here is a lie the spec will not honour: when one
      axis is not `visible`, the other computes to `auto`. So this row clipped
@@ -1256,6 +1261,7 @@
      on the frame it would project the frame's own contents and leave the
      frame flat. */
   perspective: 900px;
+  display: flex;
   flex: none;
   /* Wider than it was, because the tile has to hold a whole rules sentence.
      At 1.59 every description wrapped past the frame and was cut mid-word by
@@ -1294,8 +1300,12 @@
   flex-direction: column;
   gap: 4px;
   padding: 9px 9px 7px;
-  /* Tall enough for the longest sigil text in the set at this width. */
-  height: calc(var(--card-h) * 1.5);
+  /* A floor, not a ceiling: `min-height` keeps a short card (Second Wind, two
+     words) from looking stunted, and `height: 100%` makes it fill whatever the
+     tallest card in the hand asked for. Nothing here is ever sized smaller
+     than its own contents, so nothing on the face of a card is ever clipped.*/
+  min-height: calc(var(--card-h) * 1.5);
+  height: 100%;
   border-radius: var(--r-card);
   background:
     var(--grain),
@@ -1349,7 +1359,10 @@
   position: absolute;
   left: 7px;
   right: 7px;
-  top: calc(var(--card-h) * 1.5 - 25px);
+  /* Hung off the bottom rather than computed from the frame's height: the
+     frame is `min-height` plus `height: 100%` now, so there is no constant to
+     subtract from. */
+  bottom: 7px;
   z-index: 1;
   padding: 3px 4px;
   border-radius: var(--r-xs);
@@ -1512,28 +1525,28 @@
   hyphens: auto;
 }
 
+/*
+ * The gist, set whole.
+ *
+ * This was the full rules text under `-webkit-line-clamp: 4` with a fade over
+ * the last line. Both halves of that were wrong. The clamp lands wherever the
+ * wrap happens to fall, so in a real hand most sigils were cut off in the
+ * middle of a sentence — and the fade, which was meant to read as "there is
+ * more here", just made the cut look intentional while still telling the
+ * player nothing. A fade is not a summary.
+ *
+ * So the card prints `brief` instead: one written line per sigil, short enough
+ * to set whole at the smallest card size the game ships at. No clamp, no mask,
+ * no ellipsis, no overflow — if a line of this ever did not fit, the frame
+ * would grow and take the rest of the hand with it, which is a layout you can
+ * see rather than a sentence you cannot. The rule itself is one hover or one
+ * focus away in `.sigil-tip`.
+ */
 .sigil-text {
   font-size: 12px;
   line-height: 1.4;
   color: #4a443a;
-  /* The clamp sets the height; the frame is sized to hold exactly this many
-     lines, so the ellipsis comes from the clamp rather than the text being
-     sliced off by the frame's overflow. */
   flex: 0 0 auto;
-  display: -webkit-box;
-  /* Four lines, with an ellipsis. The longest sigil in the set runs to 178
-     characters and no tile this size will ever hold it, so the tile's job is
-     to summarise visibly and the tooltip's job is to carry the rest. */
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  /* The card is a glance, not the rulebook — the tooltip carries the full
-     text. But the clamp lands wherever the wrap falls, and at Steam Deck's
-     1280x800 the card is narrow enough that most sigils lose three to seven
-     lines, cut mid-word with nothing to say so. Fading the last line reads
-     as "there is more here" rather than as a rendering bug. */
-  mask-image: linear-gradient(180deg, #000 calc(100% - 1.1em), transparent 100%);
 }
 
 .sigil-foot {
@@ -2459,7 +2472,8 @@
 .sigil.is-written .sigil-device { display: none; }
 .sigil.is-written .sigil-glyph { font-size: 0.8em; }
 .sigil.is-written .sigil-name--written { flex: 0 0 auto; }
-.sigil.is-written .sigil-text { -webkit-line-clamp: 2; line-clamp: 2; }
+/* A scribed sigil's reading is at most three clauses, each one an effect and
+   its target, so it is already as short as it goes. Nothing to clamp. */
 
 /* --- the spell, in the middle of the screen ----------------------------------
    Overrides the bottom-anchored stack panel above. A player could not tell
@@ -2556,8 +2570,7 @@
    big screen instead of staying fixed at the size that fits a Steam Deck. */
 .sigil { width: calc(var(--card-w) * 2.3); }
 .rail-sigils { min-height: calc(var(--card-h) * 1.78); }
-.sigil-frame { height: calc(var(--card-h) * 1.78); padding: 10px 10px 8px; }
-.sigil-lock { top: calc(var(--card-h) * 1.78 - 27px); }
+.sigil-frame { min-height: calc(var(--card-h) * 1.78); padding: 10px 10px 8px; }
 .sigil-name { font-size: clamp(12px, calc(var(--card-h) * 0.12), 18px); }
 .sigil-text {
   font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px);

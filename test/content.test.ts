@@ -31,6 +31,7 @@ import { readFileSync } from 'node:fs';
 import { MARKS, type MarkId } from '../shared/cards';
 import { OMENS, DUPLICATING_MARKS, opensImpossible } from '../shared/omens';
 import { ACHIEVEMENTS, CAT_ACHIEVEMENT } from '../shared/achievements';
+import { SIGILS } from '../shared/sigils';
 
 const src = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
@@ -138,4 +139,60 @@ test('the Steam manifest never offers an achievement the game cannot give', () =
   for (const a of ACHIEVEMENTS) {
     assert.ok(a.api && a.name && a.text, `${a.id} is missing manifest copy`);
   }
+});
+
+/**
+ * A card that cannot print its own description is a bug you cannot test for
+ * with a typecheck.
+ *
+ * The sigil tile used to print the full rules text under a four-line clamp
+ * with a fade over the last line. Sealed Rank runs to 178 characters; at the
+ * smallest card size the game ships at, that is eleven lines. So most of the
+ * set was cut off mid-sentence in the player's own hand, and the fade made the
+ * cut look deliberate rather than saying what was missing.
+ *
+ * Every sigil now carries a written `brief` for the face of the card, and the
+ * tile has no clamp at all. That only holds while the briefs stay short: this
+ * is the ceiling, measured against the narrowest tile the game renders.
+ *
+ *   smallest card width  58px   (table.css, the 1280x800-and-under band)
+ *   tile width           x2.3   -> 133px
+ *   frame padding        10px   both sides -> 113px of line
+ *   description          12px   Inter, ~6.2px average advance -> ~18 chars
+ *   lines on the face    4             -> ~72 characters
+ *
+ * 64 leaves a line of slack for a brief that wraps badly, and the tile grows
+ * rather than clips if one ever does.
+ */
+const BRIEF_CEILING = 64;
+
+test('every sigil can print its own description without being cut off', () => {
+  const tooLong = SIGILS
+    .filter((s) => s.brief.length > BRIEF_CEILING)
+    .map((s) => `${s.id} (${s.brief.length})`);
+  assert.deepEqual(
+    tooLong, [],
+    `briefs over ${BRIEF_CEILING} characters will not fit the face of a card: ${tooLong.join(', ')}`,
+  );
+});
+
+test('a brief is a summary, not a copy of the rule', () => {
+  // A brief that is just the rules text again is the old bug wearing a new
+  // field name: it would be as long as the thing it was meant to replace.
+  for (const s of SIGILS) {
+    assert.ok(s.brief.length > 0, `${s.id} has no brief`);
+    assert.ok(
+      s.brief.length <= s.text.length,
+      `${s.id}'s brief is longer than its rules text`,
+    );
+  }
+});
+
+test('the sigil tile does not clamp or fade its description', () => {
+  // The two mechanisms that produced the clipping, named so they cannot come
+  // back by accident.
+  const css = src('src/scenes/table.css');
+  const tile = css.slice(css.indexOf('.sigil-text {'), css.indexOf('.sigil-foot {'));
+  assert.ok(!/line-clamp/.test(tile), '.sigil-text clamps its lines again');
+  assert.ok(!/mask-image/.test(tile), '.sigil-text fades its last line again');
 });

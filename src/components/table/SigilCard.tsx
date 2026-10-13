@@ -148,7 +148,12 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           ? <h4 className="sigil-name sigil-name--written">&ldquo;{written.text}&rdquo;</h4>
           : <h4 className="sigil-name">{def.name}</h4>}
 
-        {!compact ? <p className="sigil-text">{def.text}</p> : null}
+        {/* The gist, not the rule. `def.brief` is written to fit the face of
+            the card whole at the smallest size the game ships at; `def.text`
+            is the rule, and lives in the tooltip below. The tile used to print
+            the rule under a four-line clamp, which cut most of the set off
+            mid-sentence in the player's own hand. */}
+        {!compact ? <p className="sigil-text">{def.brief}</p> : null}
 
         <footer className="sigil-foot">
           <span className="sigil-rarity">{written ? `${written.clauses.length} effect${written.clauses.length === 1 ? '' : 's'}` : def.rarity}</span>
