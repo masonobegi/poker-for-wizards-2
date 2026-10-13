@@ -302,7 +302,7 @@ function BannerView({ banner, reduced }: { banner: Banner; reduced: boolean }) {
             width-capped wrapper — so a long, server-authored title could
             re-wrap between lines mid-animation. Transform, opacity and a
             filter say the same thing on the compositor. */}
-        <motion.h1 className="hx-banner__title" {...title}>
+        <motion.h1 className="hx-banner__title hx-gilt" {...title}>
           {banner.text}
         </motion.h1>
         {banner.sub ? (

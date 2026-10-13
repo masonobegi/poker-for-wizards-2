@@ -127,6 +127,15 @@
   mix-blend-mode: screen;
 }
 
+/* The inscribed band: the display face, small, widely tracked and in small
+   caps — how words are actually cut into a plate rather than typed onto one. */
+.felt-arcana__band {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant: small-caps;
+  text-transform: lowercase;
+}
+
 /* The enchantment on the cloth.
  *
  * A slow band of spell-light drifting across the felt, plus a gentle breathe

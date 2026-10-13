@@ -234,17 +234,67 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
    chamfer is a custom property so a small plate can take a smaller cut.
    =========================================================================== */
 
-/* Anything set in the display face in gold is treated as a light source, not
-   as ink. A still frame of this game had no highlights in it at all, which is
-   most of why a bright palette still read as matte. */
-.hx-glow-gold,
+/* ===========================================================================
+   GILT — the display treatment
+   ---------------------------------------------------------------------------
+   The one thing this interface was missing, and the reason a bright palette
+   still read as flat and uninspired: a palette is not an art direction. Every
+   title in the game was the display face in flat gold, which is ink. A game
+   with a committed look treats its titles as an *object* — struck metal with a
+   gradient down its face, an ink outline, a hard shadow under it, and a glow
+   coming off it.
+
+   Four layers, in paint order:
+     1. a vertical gradient down the letterform, pale gold to deep bronze, so
+        the face of each letter is lit at the top and in shadow at the bottom;
+     2. a one-pixel ink outline on all four sides, which is what separates it
+        from whatever it is sitting on;
+     3. a hard offset shadow — the letter standing proud of the surface;
+     4. a soft glow, because in this game gold is a light source.
+
+   The outline is drawn with stacked drop-shadows rather than
+   `-webkit-text-stroke`, which paints the stroke OVER the fill and eats the
+   gradient's lightest values.
+   =========================================================================== */
+.hx-gilt,
 .menu-title,
 .pot-amount,
 .showdown-title {
-  text-shadow:
-    0 0 14px rgba(255, 210, 63, 0.50),
-    0 0 38px rgba(255, 170, 60, 0.26),
-    0 2px 0 rgba(0, 0, 0, 0.45);
+  background: linear-gradient(177deg,
+    #fff6d4 0%,
+    #ffd957 38%,
+    #e0a521 66%,
+    #9a6708 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(1px 0 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(-1px 0 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 1px 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 -1px 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 3px 0 rgba(8, 5, 22, 0.55))
+    drop-shadow(0 0 18px rgba(255, 196, 70, 0.45));
+}
+
+/* The same strike in the school's own colour, for a spell's name. */
+.hx-gilt--school {
+  background: linear-gradient(177deg,
+    color-mix(in srgb, var(--school, #ffd23f) 35%, #ffffff) 0%,
+    var(--school, #ffd23f) 46%,
+    color-mix(in srgb, var(--school, #ffd23f) 62%, #1a1040) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(1px 0 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(-1px 0 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 1px 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 -1px 0 rgba(14, 9, 34, 0.95))
+    drop-shadow(0 3px 0 rgba(8, 5, 22, 0.55))
+    drop-shadow(0 0 20px color-mix(in srgb, var(--school, #ffd23f) 55%, transparent));
 }
 
 .hx-plate {

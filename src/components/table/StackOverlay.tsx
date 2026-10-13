@@ -207,7 +207,7 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                     {lead.casterId === me.id ? 'You cast' : `${lead.casterName} casts`}
                     {leadAim ? <> &rarr; <strong>{leadAim}</strong></> : null}
                   </p>
-                  <h3 className="stack-feature__name">{words ? `“${words}”` : lead.sigilName}</h3>
+                  <h3 className="stack-feature__name hx-gilt--school">{words ? `“${words}”` : lead.sigilName}</h3>
                   <p className="stack-feature__text">{leadDef.text}</p>
                   <p className="stack-feature__state">
                     {lead.countered ? 'Countered — it never happened.'
