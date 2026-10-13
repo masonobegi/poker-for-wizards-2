@@ -30,6 +30,8 @@ import { ENTER } from '@/styles/motion';
  * so it loads the same way: after first paint, and a failed chunk renders
  * nothing while the CSS gradient underneath carries on being the background.
  */
+import { Crt } from '@/vfx/Crt';
+
 const Backdrop = lazy(async (): Promise<{ default: React.ComponentType }> => {
   try {
     const m = await import('@/vfx/Backdrop');
@@ -186,6 +188,11 @@ export default function App() {
         <Backdrop />
         <VfxLayer />
       </Suspense>
+
+      {/* Last, and above everything: the tube. Not lazy — it is four divs and
+          no code, and loading it a frame late would show the game un-filtered
+          first, which is the one way to make a CRT look bolted on. */}
+      <Crt />
     </div>
   );
 }

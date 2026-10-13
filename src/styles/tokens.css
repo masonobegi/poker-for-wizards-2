@@ -40,64 +40,69 @@
    =========================================================================== */
 
 :root {
+  /* === THE BASKETROGUE PALETTE ============================================
+     Lifted straight out of ../basketball-rogueliek/docs/ART_STYLE.md, because
+     this game is now wearing that game's art direction and a palette you
+     invent next to one that exists is just a third palette.
+
+     Fourteen colours, and the rule that makes them read as pixel art rather
+     than as a recolour: NOTHING is between two of them. A material gets two
+     or three tones — base, shadow, highlight — with a hard edge or a dither
+     checkerboard between, and never a ramp through values that are not on
+     this list. Light comes from the top left.
+     ======================================================================== */
+  --ink:         #0d0a14;   /* outlines, deep shadow — the heaviest mark here */
+  --night:       #14102b;   /* backgrounds */
+  --indigo:      #2b2266;   /* stage shadow, button fill */
+  --purple:      #5b2a86;   /* stage mid */
+  --magenta:     #c2185b;   /* neon, accents */
+  --hotpink:     #ff4fa3;   /* neon highlight */
+  --cyan:        #00e5ff;   /* neon, UI frames */
+  --teal:        #1fa3a3;   /* secondary neon */
+  --arc-gold:    #ffd23f;   /* title top, highlights */
+  --arc-orange:  #ff8c1a;   /* title mid */
+  --arc-red:     #e5261e;   /* title bottom, danger */
+  --wood:        #c98a3e;
+  --wood-dark:   #a86a2a;
+  --wood-light:  #e8b064;
+  --bone:        #f4f1e8;   /* lines, net, paper */
+
   /* --- surfaces, darkest to lightest -------------------------------------
-     Seven weights of blue glass, from the piece with nothing behind it to the
-     piece with the sun behind it. They are a ladder, not a ramp: a surface
-     picks one and stays on it, and where it needs to be lighter in one place
-     it becomes a second piece with a line of came between. */
-  --void:        #0b1038;
-  --abyss:       #101845;
-  --bg:          #152055;
-  --bg-2:        #1b2a68;
-  --surface:     #223080;
-  --surface-2:   #2c3f9c;
-  --surface-3:   #3a51b8;
-  /* Higher contrast than before, because these now do the work the glows
-     used to. A rule you cannot see is not a rule. */
-  --line:        #e8c168;
-  --line-soft:   #35479c;
+     A LADDER, not a ramp. Every one of these is on the list above; a surface
+     picks a rung and stays on it. */
+  --void:        var(--ink);
+  --abyss:       #100c20;
+  --bg:          var(--night);
+  --bg-2:        #1d1744;
+  --surface:     var(--indigo);
+  --surface-2:   #3a2d85;
+  --surface-3:   var(--purple);
+  /* A frame in this style is cyan or gold and three pixels thick. */
+  --line:        var(--arc-gold);
+  --line-soft:   #3a2d85;
 
-  /* --- glass ---------------------------------------------------------------
-     The one idea the whole interface is built out of: leaded glass, lit from
-     behind. Every one of these is a FLAT fill. Nothing in this file ramps into
-     anything else, and nothing that uses these is allowed to either — if a
-     surface needs to be lighter in one place, it becomes a second piece of
-     glass with a line of came between, which is the only way light changes
-     across a real window.
+  /* Kept so nothing that asks for them by name breaks; they now point at the
+     rungs above rather than at a palette of their own. */
+  --glass-deep:  var(--night);
+  --glass:       var(--indigo);
+  --glass-dark:  #1d1744;
+  --glass-lit:   var(--purple);
+  --lead:        var(--ink);
+  --lead-soft:   #1d1744;
+  --brass:       var(--wood-dark);
+  --brass-hi:    var(--wood-light);
+  --brass-deep:  #5c3a16;
 
-     The values are deep on purpose. Glass seen from inside a building reads
-     dark even in full sun; a pale pane here would put a bright field directly
-     behind a bone-white playing card. */
-  --glass-deep:  #101d5e;   /* the centre light, where the cards land */
-  --glass:       #1b2f86;   /* the common blue of the second order */
-  --glass-dark:  #142469;   /* its partner, alternating */
-  --glass-lit:   #2b49bd;   /* a piece with the sun behind it */
-
-  /* Came: the lead that holds every piece. The heaviest mark in the game and
-     the thing that does the drawing. Near-black, with just enough blue in it
-     to belong to the window rather than sitting on top of it. */
-  --lead:        #080a1e;
-  --lead-soft:   #141a3c;
-
-  /* The frame the window is set into, and the solder. Two flat tones, never
-     a ramp — a facet is a flat plane with a hard edge. */
-  --brass:       #9a6c23;
-  --brass-hi:    #e8b949;
-  --brass-deep:  #4d3310;
-
-  /* --- the cloth -----------------------------------------------------------
-     Three values of one dye: what the lamp reaches, the body of the cloth, and
-     what turns down into the rail. The spread between them is about fifteen
-     percent of luminance — enough for the felt to be modelled rather than
-     printed, not enough to notice as an effect. A deep blue rather than a
-     table green, because the whole game is lit cold and a green cloth under it
-     reads as a different room. */
-  --felt-lit:    #2f4ba6;
-  --felt-core:   #16255f;
-  --felt-edge:   #070e2e;
+  /* --- the court ----------------------------------------------------------
+     Three tones of one material, exactly as the doc says: base, shadow,
+     highlight. The felt is the indigo/purple stage rather than a blue dye,
+     because in this palette that is what a lit floor is made of. */
+  --felt-lit:    var(--purple);
+  --felt-core:   var(--indigo);
+  --felt-edge:   var(--night);
   --felt-mid:    var(--felt-core);
-  --rail:        var(--brass);
-  --rail-hi:     var(--brass-hi);
+  --rail:        var(--wood-dark);
+  --rail-hi:     var(--wood-light);
 
   /* --- text ---------------------------------------------------------------
      Bone, not blue-white. Paper that has been somewhere. */
@@ -193,9 +198,15 @@
      Linux including SteamOS, and Noto Sans Symbols 2 covers what it misses. */
   --sym: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans';
 
-  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Georgia, var(--sym), serif;
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, var(--sym), monospace;
+  /* BasketRogue's three faces, per its docs/ART_STYLE.md: Bungee for titles
+     and announcer text, Press Start 2P for HUD and labels, Pixelify Sans for
+     anything longer than a label. The old faces stay in each stack behind
+     them — a serif behind the display face and Inter behind the body — so a
+     missing file degrades to something readable rather than to tofu. */
+  --font-display: 'Bungee', 'Cinzel', 'Iowan Old Style', Georgia, var(--sym), serif;
+  --font-hud: 'Press Start 2P', 'Pixelify Sans', 'Inter', system-ui, var(--sym), sans-serif;
+  --font-ui: 'Pixelify Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
+  --font-mono: 'Press Start 2P', 'JetBrains Mono', ui-monospace, Menlo, var(--sym), monospace;
 
   --fs-xs: 12px;
   --fs-sm: 13px;

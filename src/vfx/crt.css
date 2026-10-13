@@ -1,0 +1,152 @@
+/* ===========================================================================
+   The CRT, ported from BasketRogue's `scripts/ui/fx/crt_overlay.gdshader`
+   ---------------------------------------------------------------------------
+   Same numbers, same decisions, different renderer. That shader runs as a
+   canvas_item pass over a Godot viewport; this is a DOM overlay, so it has to
+   reach the same result with blend modes instead of a fragment program.
+
+   Its three load-bearing choices, which are the reason it reads as an arcade
+   cabinet instead of as a filter:
+
+     1. **The image is never warped or colour-split.** No barrel distortion, no
+        chromatic aberration. Both are the first thing people reach for and
+        both destroy small text, which is most of this game — seventy-one
+        spell cards with rules on them. The curvature is PAINTED at the extreme
+        edges instead, and nothing resamples.
+     2. **Scanlines are one row in four, not every other row.** A 50% duty
+        scanline halves the brightness of everything and makes a UI look dim
+        and dirty. One dark row per 4px band at 22% is the whole effect.
+     3. **Brightness is compensated back.** The shader multiplies by
+        `1 + strength * 0.08` after the lines and the grille, because an
+        overlay that only ever subtracts light leaves the game darker than it
+        was drawn. Here `.app` carries the same 8% so the compensation happens
+        under the overlay rather than inside it.
+
+   Everything is `position: fixed`, `pointer-events: none`, and above all game
+   content. Nothing below it ever has to know it exists.
+   =========================================================================== */
+
+.crt {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  /* The compositor can keep every layer below this one; none of them repaint
+     when it does. */
+  will-change: opacity;
+}
+
+/*
+ * Scanlines and the aperture grille, in one element.
+ *
+ * `scanline_px = 4.0`, and `line >= scanline_px - 1.0` — the last row of each
+ * four-pixel band, at `1.0 - strength * 0.22`. With the shader's default
+ * strength of 0.6 that is a 13% dip on one row in four.
+ *
+ * Composited NORMALLY, with transparent gaps, rather than multiplied against
+ * a near-white plate. The shader can multiply because it samples the screen
+ * texture; a DOM overlay cannot. `mix-blend-mode` blends an element with the
+ * backdrop inside its nearest stacking context, and this overlay has to carry
+ * a z-index above every modal in the game, which makes it a stacking context
+ * of its own — so a multiply here blends against nothing and the plate paints
+ * as what it is, an opaque white sheet over the entire game. (It did exactly
+ * that, once.) Subtracting light with transparent ink needs no blending and
+ * cannot be isolated away.
+ */
+.crt__lines {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg,
+      transparent 0px, transparent 3px,
+      rgba(13, 10, 20, 0.22) 3px, rgba(13, 10, 20, 0.22) 4px),
+    /* The grille: `mod(FRAGCOORD.x, 3.0)`, each column keeping its own channel
+       and dropping the other two by 3%. One pixel of ink per three, tinted,
+       which at this alpha is the same reading. */
+    repeating-linear-gradient(90deg,
+      rgba(0, 40, 40, 0.035) 0px, rgba(0, 40, 40, 0.035) 1px,
+      rgba(40, 0, 40, 0.035) 1px, rgba(40, 0, 40, 0.035) 2px,
+      rgba(40, 40, 0, 0.035) 2px, rgba(40, 40, 0, 0.035) 3px);
+}
+
+/*
+ * The vignette, and the painted bezel.
+ *
+ * `vig = 1.0 - strength * 0.3 * smoothstep(0.85, 1.55, length(c))` — only the
+ * outer corners, never the middle, so the table does not sit in a tunnel. The
+ * bezel is the `corner` term: black, hard, and only at the extreme edge, which
+ * is what sells "this is a tube in a cabinet" without bending a single pixel.
+ */
+.crt__glass {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 74% 74% at 50% 50%,
+      transparent 58%,
+      rgba(13, 10, 20, 0.12) 80%,
+      rgba(13, 10, 20, 0.34) 100%);
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    inset 0 0 24px 8px rgba(13, 10, 20, 0.5),
+    inset 0 0 80px 26px rgba(13, 10, 20, 0.26);
+  border-radius: 14px;
+}
+
+/*
+ * The phosphor glare.
+ *
+ * Not in the Godot shader — it does not need one, because a Godot game is
+ * already being shown on the player's real monitor and the cabinet is implied.
+ * Here the whole page is the tube, so it wants the one thing a photograph of a
+ * CRT always has: a soft off-axis reflection across the top of the glass. At
+ * 4% of white it is under the threshold of noticing and over the threshold of
+ * the screen reading as a physical surface with a light in front of it.
+ */
+.crt__glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(168deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.02) 18%,
+    transparent 42%);
+  border-radius: 14px;
+}
+
+/*
+ * The hum bar.
+ *
+ * A very faint horizontal band drifting down the screen about once every
+ * twelve seconds — the beat frequency between the mains and the vertical
+ * refresh, which every un-synced CRT has. It is the only moving part of this
+ * overlay and it is at 2.5%; you should never catch it, only notice that the
+ * screen is alive when it is sitting still.
+ */
+.crt__hum {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22%;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(255, 255, 255, 0.022) 48%,
+    transparent);
+  animation: crt-hum 12s linear infinite;
+}
+
+@keyframes crt-hum {
+  0%   { transform: translateY(-30vh); }
+  100% { transform: translateY(130vh); }
+}
+
+/* Reduced motion keeps the tube and loses the roll. */
+:root[data-reduced-motion='1'] .crt__hum { animation: none; opacity: 0; }
+
+/*
+ * Off.
+ *
+ * A CRT look is the one effect that some players genuinely cannot use — it is
+ * texture over every piece of text in the game, and on a small screen it is
+ * the difference between reading a spell card and not. The settings toggle
+ * sets this, and everything above collapses.
+ */
+:root[data-crt='0'] .crt { display: none; }

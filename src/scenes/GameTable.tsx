@@ -244,14 +244,14 @@ export default function GameTable() {
 
       <main className="tbl-main">
         <div className="felt">
-          {/* The window, then the two things that live in front of it: the
-              ripple in the glass, and the motes in the light above the table.
-              The inlay, the lamp, the wear map and the sheen are gone — all
-              four were describing light falling on a smooth sheet, and the
-              surface is not a smooth sheet any more. */}
+          {/* The floor, its inlay, the dither that joins its tones, and the
+              motes in the light above it. The nap plate is gone: a noise
+              texture is how you suggest cloth in a rendered image and the
+              wrong tool entirely here — pixel art joins two flat tones with a
+              checkerboard, not with grain. */}
           <div className="felt-surface" aria-hidden>
             <FeltArcana />
-            <div className="felt-nap" />
+            <div className="felt-dither" />
             <FeltDust />
           </div>
           <div className="felt-rail" aria-hidden />

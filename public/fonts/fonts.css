@@ -82,3 +82,30 @@
   font-display: block;
   src: url('./jetbrains-mono-700.woff2') format('woff2');
 }
+
+/* --- the arcade faces ------------------------------------------------------
+   Ported from BasketRogue (docs/ART_STYLE.md): Bungee for titles and announcer
+   text, Press Start 2P for HUD and labels at multiples of 8px, Pixelify Sans
+   for anything longer than a label. All three are OFL and bundled, so the
+   offline build keeps its typography like every other face here. */
+@font-face {
+  font-family: 'Bungee';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./bungee-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./press-start-2p-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./pixelify-sans-400.woff2') format('woff2');
+}

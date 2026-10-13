@@ -66,9 +66,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   height: 100%;
   width: 100%;
   overflow: hidden;
-  /* Flat. This is what shows when the shader does not start, and a pair of
-     soft radial washes behind a game made entirely of flat pieces would be
-     the one surface still describing light on a curved sheet. */
   background: var(--void);
 }
 
@@ -232,23 +229,27 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
    =========================================================================== */
 
 /* ===========================================================================
-   GILT — the display treatment
+   The title treatment
    ---------------------------------------------------------------------------
-   Gold that has been FIRED INTO GLASS, not gold that has been shaded.
+   BasketRogue's, verbatim from its docs/ART_STYLE.md:
 
-   This was a four-stop vertical gradient down the letterform — pale gold at
-   the cap, deep bronze at the baseline — which is how you draw struck metal,
-   and it was the loudest remaining ramp in the game. A window does not have
-   that colour. Silver stain is one flat yellow, and the only reason you can
-   read it against the glass behind it is the black enamel line round every
-   letter.
+     "Arcade display (titles, announcer text, cut-in callouts): Bungee with a
+      vertical gradient gold->orange->red, thick ink outline, hard drop shadow,
+      slight italic skew — the classic fighting-game title treatment."
 
-   So: one flat gold, and a heavy black outline doing all the work. Three
-   layers, in paint order:
-     1. the flat fill;
-     2. a two-pixel outline on all eight compass points, which is what makes
-        the title legible on any colour of glass it lands on;
-     3. a soft halo, because in this game light comes through from behind.
+   With one correction the doc implies but does not spell out: the gradient is
+   in THREE HARD BANDS, not a ramp. Every arcade logo this is descended from
+   was drawn by somebody filling scanline ranges with palette entries, and the
+   banding is the look. A smooth ramp through the same three colours is the
+   same hues and the wrong decade.
+
+   Four layers, in paint order:
+     1. the three bands, clipped to the letterform;
+     2. a two-pixel ink outline on all eight compass points, which is what
+        makes a title legible on any colour it lands on;
+     3. a hard offset shadow — no blur, because a drop shadow in this style is
+        the letter stamped again in black and moved;
+     4. a warm halo, because the marquee is lit.
 
    The outline is stacked drop-shadows rather than `-webkit-text-stroke`, which
    paints the stroke OVER the fill and eats a display face's thin strokes.
@@ -257,34 +258,50 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .menu-title,
 .pot-amount,
 .showdown-title {
-  color: var(--brass-hi);
-  -webkit-text-fill-color: var(--brass-hi);
+  background: linear-gradient(180deg,
+    var(--arc-gold) 0 40%,
+    var(--arc-orange) 40% 70%,
+    var(--arc-red) 70% 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
   filter:
-    drop-shadow(2px 0 0 var(--lead))
-    drop-shadow(-2px 0 0 var(--lead))
-    drop-shadow(0 2px 0 var(--lead))
-    drop-shadow(0 -2px 0 var(--lead))
-    drop-shadow(1.4px 1.4px 0 var(--lead))
-    drop-shadow(-1.4px 1.4px 0 var(--lead))
-    drop-shadow(1.4px -1.4px 0 var(--lead))
-    drop-shadow(-1.4px -1.4px 0 var(--lead))
-    drop-shadow(0 0 16px rgba(232, 185, 73, 0.4));
+    drop-shadow(2px 0 0 var(--ink))
+    drop-shadow(-2px 0 0 var(--ink))
+    drop-shadow(0 2px 0 var(--ink))
+    drop-shadow(0 -2px 0 var(--ink))
+    drop-shadow(1.4px 1.4px 0 var(--ink))
+    drop-shadow(-1.4px 1.4px 0 var(--ink))
+    drop-shadow(1.4px -1.4px 0 var(--ink))
+    drop-shadow(-1.4px -1.4px 0 var(--ink))
+    drop-shadow(0 4px 0 rgba(13, 10, 20, 0.85))
+    drop-shadow(0 0 18px rgba(255, 140, 26, 0.45));
 }
 
-/* The same stain in the school's own colour, for a spell's name. */
+/* The skew is on the headlines only. `.hx-gilt` is also on inline numbers —
+   a pot total inside a laid-out row — and skewing those leans the layout. */
+.menu-title,
+.showdown-title { transform: skewX(-4deg); }
+
+/* The same strike in a spell's own school colour, which replaces the three
+   bands rather than tinting them: a Veil sigil's name is cyan all the way
+   down, because the colour is carrying the information. */
 .hx-gilt--school {
-  color: var(--school, #e8b949);
-  -webkit-text-fill-color: var(--school, #e8b949);
+  background: none;
+  color: var(--school, var(--arc-gold));
+  -webkit-text-fill-color: var(--school, var(--arc-gold));
   filter:
-    drop-shadow(2px 0 0 var(--lead))
-    drop-shadow(-2px 0 0 var(--lead))
-    drop-shadow(0 2px 0 var(--lead))
-    drop-shadow(0 -2px 0 var(--lead))
-    drop-shadow(1.4px 1.4px 0 var(--lead))
-    drop-shadow(-1.4px 1.4px 0 var(--lead))
-    drop-shadow(1.4px -1.4px 0 var(--lead))
-    drop-shadow(-1.4px -1.4px 0 var(--lead))
-    drop-shadow(0 0 18px color-mix(in srgb, var(--school, #e8b949) 50%, transparent));
+    drop-shadow(2px 0 0 var(--ink))
+    drop-shadow(-2px 0 0 var(--ink))
+    drop-shadow(0 2px 0 var(--ink))
+    drop-shadow(0 -2px 0 var(--ink))
+    drop-shadow(1.4px 1.4px 0 var(--ink))
+    drop-shadow(-1.4px 1.4px 0 var(--ink))
+    drop-shadow(1.4px -1.4px 0 var(--ink))
+    drop-shadow(-1.4px -1.4px 0 var(--ink))
+    drop-shadow(0 4px 0 rgba(13, 10, 20, 0.85))
+    drop-shadow(0 0 18px color-mix(in srgb, var(--school, #ffd23f) 50%, transparent));
 }
 
 /* ---------------------------------------------------------------------------
