@@ -103,6 +103,44 @@ async function collectInPage({ sfxList, moods }) {
   }
 
   /**
+   * How much of a sound lives where a speaker can actually play it.
+   *
+   * The centroid answers "where is the middle of this sound" and is the wrong
+   * question for the failure this set had: a sound can carry a crisp transient
+   * and still show a centroid of 117Hz, because a tenth of a second of 90Hz
+   * sine holds far more ENERGY than eight milliseconds of 2.4kHz noise even
+   * when the noise is the part you hear. Energy is not audibility.
+   *
+   * This is the share of the spectrum above 1.2kHz, flat-weighted across the
+   * bank rather than energy-weighted, which is the band a laptop speaker and a
+   * Steam Deck speaker are efficient in and an ear is most sensitive to. A
+   * sound at 0.02 here is a sound most players will barely hear.
+   */
+  function presence(mono, sr, n) {
+    // 2048 samples, not 4096: at 48kHz that is 43ms, and several sounds in
+    // this set are shorter than one 4096-sample window, which smears their
+    // whole transient into a single reading dominated by the body under it.
+    const winLen = Math.min(2048, n);
+    if (winLen < 8) return 0;
+    const hop = Math.max(1, Math.floor(winLen / 4));
+    const win = hannWindow(winLen);
+    const bins = 40;
+    const fMin = 60;
+    const fMax = Math.min(10000, sr / 2 - 100);
+    let hi = 0;
+    let all = 0;
+    for (let start = 0; start + winLen <= n; start += hop) {
+      for (let b = 0; b < bins; b++) {
+        const f = fMin * Math.pow(fMax / fMin, b / (bins - 1));
+        const mag = goertzelMag(mono, start, winLen, f, sr, win);
+        all += mag;
+        if (f >= 1200) hi += mag;
+      }
+    }
+    return all > 0 ? hi / all : 0;
+  }
+
+  /**
    * Spectral centroid averaged over the whole audible span, energy-weighted.
    *
    * The single-window reading above is taken at the loudest sample, which is
@@ -203,7 +241,8 @@ async function collectInPage({ sfxList, moods }) {
     }
     const spectralHz = first !== -1 ? spectralCentroid(mono, sr, peakIdx, n) : 0;
     const meanHz = first !== -1 ? meanCentroid(mono, sr, n) : 0;
-    return { peak, rms, loud, dcOffset: dc, durationSec, spectralHz, meanHz, renderSec: n / sr };
+    const air = first !== -1 ? presence(mono, sr, n) : 0;
+    return { peak, rms, loud, dcOffset: dc, durationSec, spectralHz, meanHz, air, renderSec: n / sr };
   }
 
   /** Coefficient of variation (stddev / mean) of an array of non-negative numbers. */
@@ -258,7 +297,8 @@ async function collectInPage({ sfxList, moods }) {
       }
     }
     const spectralHz = spectralCentroid(mono, sr, peakIdx, n);
-    return { peak, rms, dcOffset: dc, segCoV, brightCoV, spectralHz, renderSec: n / sr };
+    const air = presence(mono, sr, n);
+    return { peak, rms, dcOffset: dc, segCoV, brightCoV, spectralHz, air, renderSec: n / sr };
   }
 
   const hook = window.__hexholdAudioTest;
@@ -380,13 +420,13 @@ const sfxGraded = sfx.map((s) => ({ ...s, ...gradeSfx(s) }));
 const nameW = Math.max(...sfxGraded.map((s) => s.name.length), 10);
 console.log('SFX'.padEnd(1));
 console.log(
-  `  ${'name'.padEnd(nameW)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dur(s)'.padStart(6)}  ${'dc'.padStart(8)}  ${'centroid'.padStart(8)}  status`,
+  `  ${'name'.padEnd(nameW)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dur(s)'.padStart(6)}  ${'dc'.padStart(8)}  ${'centroid'.padStart(8)}  ${'air'.padStart(5)}  status`,
 );
 console.log('  ' + '-'.repeat(nameW + 60));
 for (const s of sfxGraded) {
   const row = s.error
     ? `  ${s.name.padEnd(nameW)}  ${'—'.padStart(6)}  ${'—'.padStart(6)}  ${'—'.padStart(6)}  ${'—'.padStart(8)}  ${'—'.padStart(8)}  ${s.status}`
-    : `  ${s.name.padEnd(nameW)}  ${s.peak.toFixed(3).padStart(6)}  ${s.rms.toFixed(3).padStart(6)}  ${s.durationSec.toFixed(2).padStart(6)}  ${s.dcOffset.toFixed(4).padStart(8)}  ${Math.round(s.spectralHz).toString().padStart(7)}Hz  ${s.status}`;
+    : `  ${s.name.padEnd(nameW)}  ${s.peak.toFixed(3).padStart(6)}  ${s.rms.toFixed(3).padStart(6)}  ${s.durationSec.toFixed(2).padStart(6)}  ${s.dcOffset.toFixed(4).padStart(8)}  ${Math.round(s.spectralHz).toString().padStart(7)}Hz  ${s.air.toFixed(3).padStart(5)}  ${s.status}`;
   console.log(row);
   for (const n of s.notes) console.log(`  ${' '.repeat(nameW)}    · ${n}`);
 }
@@ -419,13 +459,13 @@ const musicGraded = music.map((m) => ({ ...m, ...gradeMood(m) }));
 
 console.log('\nMUSIC (7s render)');
 console.log(
-  `  ${'mood'.padEnd(10)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dc'.padStart(8)}  ${'loud var'.padStart(8)}  ${'tone var'.padStart(8)}  centroid  status`,
+  `  ${'mood'.padEnd(10)}  ${'peak'.padStart(6)}  ${'rms'.padStart(6)}  ${'dc'.padStart(8)}  ${'loud var'.padStart(8)}  ${'tone var'.padStart(8)}  centroid  ${'air'.padStart(5)}  status`,
 );
 console.log('  ' + '-'.repeat(80));
 for (const m of musicGraded) {
   const row = m.error
     ? `  ${m.mood.padEnd(10)}  ${'—'.padStart(6)}  ${'—'.padStart(6)}  ${'—'.padStart(8)}  ${'—'.padStart(8)}  ${'—'.padStart(8)}  —  ${m.status}`
-    : `  ${m.mood.padEnd(10)}  ${m.peak.toFixed(3).padStart(6)}  ${m.rms.toFixed(3).padStart(6)}  ${m.dcOffset.toFixed(4).padStart(8)}  ${m.segCoV.toFixed(3).padStart(8)}  ${m.brightCoV.toFixed(3).padStart(8)}  ${Math.round(m.spectralHz)}Hz  ${m.status}`;
+    : `  ${m.mood.padEnd(10)}  ${m.peak.toFixed(3).padStart(6)}  ${m.rms.toFixed(3).padStart(6)}  ${m.dcOffset.toFixed(4).padStart(8)}  ${m.segCoV.toFixed(3).padStart(8)}  ${m.brightCoV.toFixed(3).padStart(8)}  ${Math.round(m.spectralHz)}Hz  ${m.air.toFixed(3).padStart(5)}  ${m.status}`;
   console.log(row);
   for (const n of m.notes) console.log(`  ${' '.repeat(10)}    · ${n}`);
 }

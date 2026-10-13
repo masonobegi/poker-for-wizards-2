@@ -197,6 +197,32 @@ function thump(
     hold: 0,
     release: decay * 0.6,
   });
+  // The click the sine does not have.
+  //
+  // `thump` is under about twenty sounds in this game — every card landing,
+  // every street, every won hand — and on its own it is a pitch dropping from
+  // 130Hz to 70Hz with no transient at all. Measured across the set, that one
+  // helper was holding the spectral centroid of a card landing at 116Hz and a
+  // won hand at 150Hz, which on a laptop or a Deck speaker is most of the
+  // sound living below what the driver can move. What you hear on that
+  // hardware is the dull remains of a thing that is mostly happening
+  // somewhere you cannot hear it.
+  //
+  // Eight milliseconds of bandpassed noise at the top of the hit is what a
+  // real impact has and a sine does not: the moment of contact, before the
+  // body of the sound. It rides the same gain, so a quiet thump gets a quiet
+  // one, and it is far too short to read as a sound of its own — but it puts
+  // energy where a small speaker is efficient and an ear is listening.
+  noiseHit(g, {
+    at: t,
+    gain: gain * 0.20,
+    filterType: 'bandpass',
+    filterFreq: 2400,
+    q: 0.9,
+    attack: 0.0006,
+    decay: 0.007,
+    release: 0.012,
+  });
 }
 
 /** Stacked detuned saws through one filter — the "orchestra" of this engine. */
@@ -390,25 +416,39 @@ export const SFX: Record<SfxName, SfxDef> = {
   card_place: {
     len: 0.45,
     play: (g, t, p) => {
-      thump(g, t, vary(132, 0.08) * p, 74 * p, 0.26, 0.2, 0.08);
+      // A card landing on cloth is mostly paper. This had it the other way
+      // round — a 132Hz body at 0.26 over a 420Hz rustle at 0.13 and a slap at
+      // 0.04 — which is the sound of a table being hit, not of a card being
+      // put down on one. The table is still there; it is underneath now.
+      // 0.05. Measured, a 0.12 sine at 80Hz still carried twenty-eight times
+      // the magnitude of everything above 2kHz in this sound put together — a
+      // card being put down does not move a table, and on a speaker that
+      // cannot play 80Hz, a card that is mostly 80Hz is a card you cannot
+      // hear.
+      thump(g, t, vary(132, 0.08) * p, 74 * p, 0.05, 0.2, 0.08);
       noiseHit(g, {
         at: t,
-        gain: 0.13,
+        gain: 0.2,
         filterType: 'lowpass',
-        filterFreq: 420 * p,
+        filterFreq: 900 * p,
         q: 1.1,
         attack: 0.001,
         decay: 0.055,
         release: 0.05,
       });
+      // The slap. This is the loudest part of a card landing on cloth and it
+      // was the quietest thing in the graph, which is why the sound measured
+      // at a spectral centroid of 116Hz with a thousandth of its spectrum
+      // above 1.2kHz — on a laptop speaker, essentially nothing.
       noiseHit(g, {
         at: t,
-        gain: 0.04,
+        gain: 0.26,
         filterType: 'bandpass',
-        filterFreq: 2600 * p,
-        attack: 0.0008,
-        decay: 0.012,
-        release: 0.015,
+        filterFreq: 2400 * p,
+        q: 0.7,
+        attack: 0.0006,
+        decay: 0.026,
+        release: 0.03,
       });
     },
   },

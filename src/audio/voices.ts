@@ -218,9 +218,29 @@ export function noiseSource(ctx: AudioContext, seconds = 2): AudioBufferSourceNo
 }
 
 /**
- * Render a stereo impulse response for the shared convolution reverb: white
- * noise pushed through a one-pole lowpass (to keep the tail dark rather than
- * hissy) under an exponential-feeling amplitude envelope down to silence.
+ * Render a stereo impulse response for the shared convolution reverb.
+ *
+ * This was 2.2 seconds of heavily lowpassed noise under a slow decay, fed at a
+ * 0.9 return, which is a long dark wash on every sound in the game at once.
+ * Measured, the whole set came back with spectral centroids between 100 and
+ * 600Hz — a card landing at 107Hz, a won hand at 150Hz, the table bed at
+ * 159Hz. Below about 300Hz a laptop speaker and a Steam Deck speaker have
+ * essentially nothing, so what a player on either actually hears is the dull
+ * low-mid remains of each sound smeared into a two-second tail. That is a
+ * sound design problem you can hear as "garbage" long before you can name it.
+ *
+ * Three changes, all of them in the same direction:
+ *
+ *   - **Shorter.** 1.15s rather than 2.2s, and a steeper decay curve. A room,
+ *     not a cathedral. Two sounds a second apart no longer overlap.
+ *   - **Brighter.** The one-pole coefficient goes from 0.22 to 0.46, which
+ *     moves the tail's corner up about an octave. A dark tail was the right
+ *     instinct against a hissy one and overshot: a reverb with nothing above
+ *     1kHz in it reads as a blanket over the speaker.
+ *   - **Early reflections.** A short cluster of discrete taps in the first
+ *     35ms, which is what makes a convolution read as a space rather than as
+ *     a noise envelope. Seeded off the channel so the two sides differ and the
+ *     tail has width.
  *
  * Lives here (rather than in `engine.ts`, its only real caller) purely so
  * the offline-rendering test hooks in `engine.ts` and `music.ts` can both
@@ -229,7 +249,7 @@ export function noiseSource(ctx: AudioContext, seconds = 2): AudioBufferSourceNo
  * circular. Takes `BaseAudioContext` (not `AudioContext`) so it works
  * identically for the real engine and for an `OfflineAudioContext`.
  */
-export function makeReverbImpulse(ctx: BaseAudioContext, seconds = 2.2): AudioBuffer {
+export function makeReverbImpulse(ctx: BaseAudioContext, seconds = 1.15): AudioBuffer {
   const length = Math.max(1, Math.floor(ctx.sampleRate * seconds));
   const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
@@ -237,12 +257,106 @@ export function makeReverbImpulse(ctx: BaseAudioContext, seconds = 2.2): AudioBu
     let lp = 0;
     for (let i = 0; i < length; i++) {
       const white = Math.random() * 2 - 1;
-      lp += (white - lp) * 0.22;
-      const env = Math.pow(1 - i / length, 2.4);
+      lp += (white - lp) * 0.46;
+      const env = Math.pow(1 - i / length, 3.1);
       data[i] = lp * env;
+    }
+    // The early cluster: a handful of discrete taps inside the first 35ms,
+    // offset per channel so the two sides are not the same room.
+    const taps = ch === 0
+      ? [0.004, 0.009, 0.014, 0.021, 0.029]
+      : [0.006, 0.011, 0.017, 0.024, 0.033];
+    // Gently. These are discrete unit impulses in a short IR, and the
+    // convolver normalises by power — a cluster at 0.9 takes most of that
+    // budget, scales the diffuse tail down behind it, and gives the whole bus
+    // a peak response big enough that Superpose's near-unison beat lands
+    // within a couple of percent of full scale on an unlucky IR. At a third
+    // of that they do their one job, which is to say "room" before the tail
+    // arrives, and nothing else.
+    for (let t = 0; t < taps.length; t++) {
+      const i = Math.floor(taps[t] * ctx.sampleRate);
+      if (i < length) data[i] += (0.3 - t * 0.045) * (ch === 0 ? 1 : -1);
     }
   }
   return buffer;
+}
+
+/**
+ * The tone of the whole game, as two filters.
+ *
+ * Nothing in the synths was wrong on its own; what was wrong was that all of
+ * them together occupied the same narrow, dark band, and the one place to fix
+ * that is on the bus rather than in fifty separate node graphs.
+ *
+ *   - a **high-pass at 46Hz**, because nothing below it is reproducible on a
+ *     laptop or a Deck and it is all eating the compressor's headroom;
+ *   - a **cut at 300Hz**, which is the mud: the band where a filtered noise
+ *     burst, a low sine and a dark reverb tail all pile up and cancel each
+ *     other's definition;
+ *   - a **shelf at 3kHz**, the presence band, where a speaker is most
+ *     efficient and an ear is most sensitive. This is what makes a card sound
+ *     like a card landing rather than a thump somewhere behind a door.
+ *
+ * Returns the two ends of the chain, because a caller has to patch something
+ * into the front of it and take the back of it somewhere else.
+ */
+export function makeToneChain(ctx: BaseAudioContext): { input: AudioNode; output: AudioNode } {
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 46;
+  hp.Q.value = 0.7;
+
+  const mud = ctx.createBiquadFilter();
+  mud.type = 'peaking';
+  mud.frequency.value = 300;
+  mud.Q.value = 1.0;
+  mud.gain.value = -2.5;
+
+  const air = ctx.createBiquadFilter();
+  air.type = 'highshelf';
+  air.frequency.value = 3000;
+  air.gain.value = 3.5;
+
+  /*
+   * A soft ceiling at the end of the chain.
+   *
+   * Several synths here randomise their voicing, and a few of them — the
+   * riffle, Superpose — have a crest factor that moves by a factor of three
+   * between rolls. Without a ceiling, the fader for one of those has to be set
+   * for the loudest roll nobody sampled, which lands them about 4dB under
+   * where the mix wants them for the other ninety-nine plays; set for the
+   * target instead, one unlucky roll renders at 2.7 and clips.
+   *
+   * So the bus gets what a real console has. Below 0.6 this is exactly
+   * linear — which is almost always, since a single sound peaks around 0.2 —
+   * and above it the curve bends over to a hard ceiling at 0.81, so no
+   * combination of sounds and no roll of a synth's dice can reach full scale.
+   *
+   * 4x oversampled, because a curve this sharp aliases at audio rate — and
+   * that is also why the ceiling is 0.81 rather than the 0.9 it wants to be.
+   * Oversampled shaping up-samples through a sinc filter, shapes, then
+   * down-samples; both filters ring, so the output overshoots the curve's own
+   * maximum a little. A first pass set the asymptote at 0.905 and Superpose
+   * still rendered at 1.028. The headroom is for the filter, not the signal.
+   */
+  const CURVE = 1024;
+  const curve = new Float32Array(CURVE);
+  const knee = 0.6;
+  const top = 0.88;
+  for (let i = 0; i < CURVE; i++) {
+    const x = (i / (CURVE - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    const y = a <= knee ? a : knee + (top - knee) * Math.tanh((a - knee) / (top - knee));
+    curve[i] = Math.sign(x) * y;
+  }
+  const ceiling = ctx.createWaveShaper();
+  ceiling.curve = curve;
+  ceiling.oversample = '4x';
+
+  hp.connect(mud);
+  mud.connect(air);
+  air.connect(ceiling);
+  return { input: hp, output: ceiling };
 }
 
 /** Filter options shared by most voices, including an optional cutoff sweep. */

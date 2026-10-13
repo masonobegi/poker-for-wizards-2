@@ -22,9 +22,17 @@ import { launch } from '../test/browser.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:5173/';
-const RENDERS = 5;
-/** No synth may be pushed so hard it clips on its own. */
-const PEAK_CEILING = 0.92;
+const RENDERS = 9;
+/**
+ * No synth may be pushed so hard it clips on its own.
+ *
+ * The bus now ends in a soft ceiling (`makeToneChain`), so nothing can reach
+ * full scale whatever a synth rolls, and this is a design guideline rather
+ * than the only thing standing between the mix and a clip. Nine renders rather
+ * than five, because a synth that randomises its voicing does not show its
+ * loudest roll in five.
+ */
+const PEAK_CEILING = 0.9;
 /** A trim outside this range means the synth, not the fader, is wrong. */
 const TRIM_MIN = 0.05;
 const TRIM_MAX = 12;

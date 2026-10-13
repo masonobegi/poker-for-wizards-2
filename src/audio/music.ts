@@ -26,6 +26,7 @@ import {
   chance,
   fmBell,
   makeReverbImpulse,
+  makeToneChain,
   mtof,
   noiseBuffer,
   noiseHit,
@@ -780,7 +781,11 @@ export function renderMoodOffline(mood: Mood, ctx: OfflineAudioContext, duration
 
   const dest = ctx.createGain();
   dest.gain.value = 1;
-  dest.connect(ctx.destination);
+  // The same bus tone the engine puts every sound through, so a mood measured
+  // here is the mood that ships.
+  const tone = makeToneChain(ctx);
+  dest.connect(tone.input);
+  tone.output.connect(ctx.destination);
 
   const reverbSend = ctx.createGain();
   reverbSend.gain.value = 1;
@@ -788,7 +793,7 @@ export function renderMoodOffline(mood: Mood, ctx: OfflineAudioContext, duration
   convolver.normalize = true;
   convolver.buffer = makeReverbImpulse(ctx);
   const reverbReturn = ctx.createGain();
-  reverbReturn.gain.value = 0.9;
+  reverbReturn.gain.value = 0.34;
   reverbSend.connect(convolver);
   convolver.connect(reverbReturn);
   reverbReturn.connect(dest);

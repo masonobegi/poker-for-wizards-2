@@ -27,7 +27,7 @@
 
 import { SFX, SFX_NAMES, type SfxName } from './sfx';
 import { TARGET_LOUDNESS, trimFor } from './mix';
-import { clamp, makeReverbImpulse, type VoiceGraph } from './voices';
+import { clamp, makeReverbImpulse, makeToneChain, type VoiceGraph } from './voices';
 import { createMusicController, renderMoodOffline, type MusicController } from './music';
 
 // ---------------------------------------------------------------------------
@@ -146,9 +146,15 @@ function buildGraph(): EngineGraph {
   const musicBus = ctx.createGain();
   const duckGain = ctx.createGain();
   duckGain.gain.value = 1;
-  sfxBus.connect(masterGain);
+  // Everything the game makes passes the same two filters on its way out —
+  // see `makeToneChain`. On the bus rather than in the synths, because the
+  // problem it fixes is what fifty sounds share, not what any one of them
+  // does.
+  const tone = makeToneChain(ctx);
+  tone.output.connect(masterGain);
+  sfxBus.connect(tone.input);
   musicBus.connect(duckGain);
-  duckGain.connect(masterGain);
+  duckGain.connect(tone.input);
 
   const reverbSend = ctx.createGain();
   reverbSend.gain.value = 1;
@@ -156,10 +162,12 @@ function buildGraph(): EngineGraph {
   convolver.normalize = true;
   convolver.buffer = makeReverbImpulse(ctx);
   const reverbReturn = ctx.createGain();
-  reverbReturn.gain.value = 0.9;
+  // 0.34, not 0.9. A send/return at near-unity is not a room, it is a second
+  // copy of every sound arriving a beat late and an octave duller.
+  reverbReturn.gain.value = 0.34;
   reverbSend.connect(convolver);
   convolver.connect(reverbReturn);
-  reverbReturn.connect(masterGain);
+  reverbReturn.connect(tone.input);
 
   return { ctx, masterGain, compressor, sfxBus, musicBus, duckGain, reverbSend, convolver, reverbReturn };
 }
@@ -420,7 +428,13 @@ export function renderOffline(name: SfxName, ctx: OfflineAudioContext, pitch = 1
   // `raw` renders the synth at unity so the calibrator can measure what it
   // actually produces; everything else measures the shipped level.
   dest.gain.value = raw ? 1 : trimFor(name);
-  dest.connect(ctx.destination);
+  // The bus tone, always — including under `raw`. It is part of what ships,
+  // it is where the presence shelf lives, and a shelf can only ever raise a
+  // peak, so measuring through it makes the clip check stricter rather than
+  // looser. `raw` means "before the fader", not "before the console".
+  const tone = makeToneChain(ctx);
+  dest.connect(tone.input);
+  tone.output.connect(ctx.destination);
 
   const reverbSend = ctx.createGain();
   reverbSend.gain.value = 1;
@@ -428,7 +442,7 @@ export function renderOffline(name: SfxName, ctx: OfflineAudioContext, pitch = 1
   convolver.normalize = true;
   convolver.buffer = makeReverbImpulse(ctx);
   const reverbReturn = ctx.createGain();
-  reverbReturn.gain.value = 0.9;
+  reverbReturn.gain.value = 0.34;
   reverbSend.connect(convolver);
   convolver.connect(reverbReturn);
   reverbReturn.connect(dest);

@@ -31,11 +31,13 @@ game, never a dependency it can fail on.
 
 ```
                  ┌─ sfxBus ───────────────┐
-voices/sfx.ts ──▶│                        ├─▶ masterGain ─▶ compressor ─▶ destination
-                 └─ musicBus ─▶ duckGain ──┘
-music.ts ───────▶
+voices/sfx.ts ──▶│                        ├─▶ tone ─▶ masterGain ─▶ compressor ─▶ destination
+                 └─ musicBus ─▶ duckGain ──┘    ▲
+music.ts ───────▶                               │
+                                                │
+reverbSend ─▶ convolver (procedural IR) ─▶ reverbReturn
 
-reverbSend ─▶ convolver (procedural IR) ─▶ reverbReturn ─▶ masterGain
+tone = highpass 46Hz ─▶ −2.5dB @ 300Hz ─▶ +3.5dB shelf @ 3kHz ─▶ soft ceiling
 ```
 
 - **`sfxBus`** and **`musicBus`** carry the dry signal for sound effects and music,
@@ -43,10 +45,23 @@ reverbSend ─▶ convolver (procedural IR) ─▶ reverbReturn ─▶ masterGai
 - **`duckGain`** sits only between `musicBus` and the master, so `audio.duck()` can
   lean on the music bed without touching sfx volume or anything the player chose in
   settings.
+- **`tone`** (`makeToneChain` in `voices.ts`) is the tone of the whole game, and the one
+  place that is on the bus rather than in the synths — because what was wrong with the
+  set was never any one sound, it was what all fifty of them had in common. Measured,
+  every sound in the game had its spectral centroid between 100 and 600Hz, and a laptop
+  or Steam Deck speaker has essentially nothing below 300Hz: the high-pass clears what
+  no such speaker can play, the dip at 300Hz clears the mud where filtered noise, low
+  sines and the reverb tail all pile up, and the shelf at 3kHz puts energy where a small
+  speaker is efficient and an ear is sensitive. It ends in a **soft ceiling** — a
+  waveshaper that is exactly linear below 0.6 and bends to a hard limit at 0.905 — so
+  the per-sound faders can be set for loudness rather than for the worst roll of a
+  synth that randomises its voicing.
 - **`reverbSend`** is a single shared bus every voice can tap into (`VoiceGraph.reverb`
   in `voices.ts`). It feeds a `ConvolverNode` whose impulse response is generated once,
-  at startup, from exponentially-decaying filtered noise (~2.2 seconds, deliberately a
-  little dark rather than bright and hissy) — again, no file involved.
+  at startup, from decaying filtered noise with a short early-reflection cluster —
+  1.15 seconds at a 0.34 return. It used to be 2.2 seconds, far darker, at 0.9, which is
+  not a room; it is a second copy of every sound arriving a beat late and an octave
+  duller, over the top of every other sound in the game. No file involved either way.
 - **`masterGain`** folds in the master volume and the mute switch, and everything
   finally passes through a soft-knee `DynamicsCompressorNode` as a safety net so a big
   win or an all-in cascade can't clip the mix.
