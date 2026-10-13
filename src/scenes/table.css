@@ -106,11 +106,63 @@
    is strong enough to notice on its own, it is competing with the hand.
    --------------------------------------------------------------------------- */
 
+/* The table has a side.
+ *
+ * Everything above was still a drawing of a table seen from directly above:
+ * a cloth, a ring of brass, and no indication that any of it was an object
+ * with a thickness sitting in a room. That is what "flat" means here, and no
+ * amount of texture on the top surface fixes it — what is missing is the EDGE
+ * and the SHADOW IT CASTS, which is how an eye decides something is a solid
+ * body rather than a shape.
+ *
+ * So the table is built the way a real one looks from a player's chair:
+ *
+ *   `.felt::before`   the body of the table — the same ellipse, dropped and
+ *                     dark, so a band of its side shows below the rail. This
+ *                     is the single change that stops it reading as a decal.
+ *   `.felt::after`    what it throws on the floor. A real cast shadow is
+ *                     offset away from the light and much larger than the
+ *                     object, and it is most of why the table reads as being
+ *                     ABOVE something rather than printed on it.
+ *   `.felt-rail`      the top of the rail, lit where the lamp reaches it.
+ *   `.felt-surface`   the cloth, set DOWN inside the rail — see the shadow it
+ *                     takes along its far edge.
+ */
 .felt {
   position: relative;
   border-radius: 50% / 28%;
   min-height: 0;
   isolation: isolate;
+  /* How much of the table's side you can see. Scales, so a 4K table does not
+     end up with a rail you could cut yourself on. */
+  --edge: clamp(9px, 1.7vmin, 24px);
+}
+
+/* The body of the table, below the top. Two stops only — the near side of a
+   dark object catches a little bounce and the rest does not. */
+.felt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  translate: 0 var(--edge);
+  border-radius: inherit;
+  background: linear-gradient(180deg, #2a1c07 0%, #140d04 55%, #0a0703 100%);
+  box-shadow: inset 0 -2px 0 rgba(255, 210, 130, 0.14);
+  z-index: -2;
+}
+
+/* The shadow on the floor: offset away from the lamp, wider than the table,
+   and soft. Not a glow under the element — a real one has a direction. */
+.felt::after {
+  content: '';
+  position: absolute;
+  inset: 4% -2% -6% -2%;
+  translate: 0 calc(var(--edge) * 1.6);
+  border-radius: 50% / 40%;
+  background: #000;
+  opacity: 0.55;
+  filter: blur(26px);
+  z-index: -3;
 }
 
 .felt-surface {
@@ -128,10 +180,15 @@
       var(--felt-core) 46%,
       var(--felt-edge) 100%);
   box-shadow:
-    /* the cloth turning down into the rail */
-    inset 0 0 90px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.5),
-    0 30px 80px rgba(0, 0, 0, 0.66);
+    /* The cloth is set DOWN inside the rail, so the far side of the rail
+       throws a hard band of shadow onto it and the near side catches a thin
+       bounce. This pair is what makes the cloth read as the bottom of a well
+       rather than as a fill inside a ring. */
+    inset 0 13px 34px -16px rgba(0, 0, 0, 0.7),
+    inset 0 -9px 22px -16px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(120, 150, 255, 0.09),
+    inset 0 0 120px rgba(0, 0, 0, 0.46),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6);
 }
 
 /* The inlay. Under everything that matters, above the cloth. */
@@ -185,13 +242,17 @@
   inset: 0;
   border-radius: 50% / 30%;
   border: 13px solid transparent;
-  /* Aged brass, not screen yellow. `--brass-hi` is the stain used on type and
-     is too bright for forty pixels of frame at 1080p. */
+  /* Aged brass, lit from above and behind the player: the far side of the ring
+     takes the lamp almost square on and the near side is turning away from it.
+     The jump at 52% is the crown of the moulding — a hard edge where the
+     surface changes direction, which is the thing a soft ramp cannot say. */
   background:
-    linear-gradient(174deg,
-      #d2a44e 0%,
-      #9c7026 36%,
-      #3f2c0e 100%) border-box;
+    linear-gradient(177deg,
+      #f0cd84 0%,
+      #c79a45 16%,
+      #8a6322 51%,
+      #6b4a17 52%,
+      #3a2708 100%) border-box;
   -webkit-mask:
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
@@ -201,8 +262,7 @@
   pointer-events: none;
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.7),
-    0 10px 30px rgba(0, 0, 0, 0.55);
+    0 0 0 1px rgba(0, 0, 0, 0.75);
 }
 
 /* The brass's own hammer marks. Soft-light, so it modulates the metal without
@@ -884,9 +944,22 @@
 
 .tbl-sidechat { min-height: 0; }
 
+/* The ledger is a WELL, not a panel.
+ *
+ * It was a flat navy rectangle with a gold hairline round it — at this size,
+ * the largest unbroken area of one colour on the screen and the flattest thing
+ * left after the table got a side. A sunk panel has light catching its top
+ * inner edge and shadow pooling under the lip above it, which is the cheapest
+ * possible statement that one surface is behind another. */
 .log {
   overflow-y: auto;
   padding: var(--s-3);
+  background: #0c1234;
+  box-shadow:
+    inset 0 10px 14px -10px rgba(0, 0, 0, 0.9),
+    inset 0 -8px 12px -10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 2px 0 rgba(130, 160, 255, 0.07);
   display: grid;
   gap: 4px;
   align-content: start;
@@ -951,15 +1024,28 @@
      falling away from the lamp. A flat slab of brass at this size — a third of
      the screen — reads as mustard; what makes it metal is that the top edge
      catches the light the table does and the bottom does not. */
-  background: linear-gradient(179deg,
-    var(--brass-hi) 0%,
-    var(--brass) 9%,
-    var(--brass-deep) 48%,
-    #1a1230 100%);
+  /* The rail you rest your arms on, with a lip you can see over.
+  
+     The hard pair of stops at 11% is the crown of the moulding — the line
+     where the top of the rail stops and its face starts falling away. A
+     surface that changes direction has an edge there, and a single soft ramp
+     from light to dark cannot say so; it says "a flat panel with a gradient
+     on it", which is exactly what this read as. */
+  background: linear-gradient(180deg,
+    #f3d089 0%,
+    #d4a750 6%,
+    #a97d2e 11%,
+    #8a6322 11%,
+    #5f431a 46%,
+    #2b1e3e 82%,
+    #160f28 100%);
   z-index: var(--z-ui);
   box-shadow:
-    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
-    0 -16px 40px rgba(0, 0, 0, 0.55);
+    /* a hairline of light along the very top edge, and the dark underside
+       where the rail overhangs the apron below it */
+    inset 0 1px 0 rgba(255, 240, 200, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.75),
+    0 -18px 44px rgba(0, 0, 0, 0.6);
 }
 
 /* Hammer marks in the metal. Soft-light, so it modulates the brass without
@@ -1521,7 +1607,9 @@
   padding: var(--s-2) var(--s-4);
   /* The piece of glass the frame is sitting on, flat, with came along the top
      where it meets the brass. */
-  background: #140e28;
+  /* The apron under the rail: in shadow, and taking the rail's. */
+  background: #120c22;
+  box-shadow: inset 0 14px 22px -12px rgba(0, 0, 0, 0.85);
   z-index: var(--z-ui);
 }
 .actionbar::before {
