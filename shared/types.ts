@@ -324,6 +324,19 @@ export interface LogEntry {
   playerId?: string;
   /** The relic or coven creed whose rule made this happen, by id. */
   rule?: string;
+  /**
+   * A richer line for the seats allowed to read it, swapped in by `viewFor`.
+   *
+   * The log is broadcast verbatim to every seat, so a card's identity written
+   * into `text` is a card every player can read. Naming a hole card there
+   * would hand the table someone's hand. This carries the named version and
+   * the seats entitled to it; everyone else keeps `text`, which says where the
+   * card is without saying what it is.
+   *
+   * Stripped by `viewFor` before the view is sent, so it never reaches a
+   * client that was not on the list.
+   */
+  seen?: { text: string; to: string[] };
 }
 
 // ---------------------------------------------------------------------------
@@ -392,11 +405,17 @@ export const DEFAULT_CONFIG: RoomConfig = {
   baseBlind: 200,
   handsPerAnte: 3,
   actionSeconds: 30,
-  // Ten, not five. Five seconds is enough to notice a spell has been cast and
-  // not enough to read what it does, decide whether it matters, and find the
-  // answer in your hand — which made the counterspell layer feel like a
-  // reflex test rather than a decision. The bar still shows the urgency.
-  responseSeconds: 10,
+  // Sixteen, not ten, and ten was already up from five. The window opens the
+  // instant the spell is cast, but the cut-in still has to slide in and its
+  // title still has to decode, so a second or more of it is gone before there
+  // is anything to read — and then you have to take in an effect you may never
+  // have seen, decide whether it matters, and find the answer in your hand.
+  // Playtest: still a reflex test at ten.
+  //
+  // This is a cap, not a delay: the stack settles the moment everyone has
+  // answered, and bots answer in a few hundred ms, so raising it costs nothing
+  // when nobody is reading. The bar still shows the urgency.
+  responseSeconds: 16,
   shopSeconds: 45,
   magicEnabled: true,
   botFill: 0,

@@ -658,7 +658,11 @@ export function viewFor(t: Table, viewerId: string): TableView {
       : null,
     shop: t.shop.get(viewer.id) ?? null,
     payout: t.payout,
-    log: t.log.slice(-60),
+    // Swap in the named version for the seats entitled to it, and strip the
+    // `seen` payload either way so it never travels to a client that was not
+    // on the list.
+    log: t.log.slice(-60).map(({ seen, ...e }) =>
+      (seen && seen.to.includes(viewer.id) ? { ...e, text: seen.text } : e)),
     yourTurn: acting?.id === viewer.id && !t.stack,
     castable: castableSigils(t, viewer),
     castBlocks: castBlocks(t, viewer),
@@ -669,6 +673,49 @@ export function viewFor(t: Table, viewerId: string): TableView {
 }
 
 /** Compact label used in log lines. */
+/**
+ * Where a card is, in words: the board, or whose hand it is in.
+ *
+ * Every note about a card used to name the card and nothing else, so "the
+ * possibility collapses into 3♥" never said whether that was a community card
+ * everyone could use or something in an opponent's hand, which is most of what
+ * decides whether it matters to you.
+ */
+export function cardPlace(t: Table, id: string): string {
+  if (t.board.includes(id)) return 'on the board';
+  for (const p of t.players) {
+    if (p.hole.includes(id)) return `in ${p.name}'s hand`;
+  }
+  return 'in the deck';
+}
+
+/** Who may be told what a card is: everyone for the board, its holder otherwise. */
+export function cardSeenBy(t: Table, id: string): string[] {
+  if (t.board.includes(id)) return t.players.map((p) => p.id);
+  const holder = t.players.find((p) => p.hole.includes(id));
+  if (!holder) return t.players.map((p) => p.id);
+  // The holder, plus anyone the card has been revealed to.
+  const c = t.cards.get(id);
+  const extra = c?.divergent ? Object.keys(c.divergent) : [];
+  return [holder.id, ...extra];
+}
+
+/**
+ * A card named where naming it is public, and placed where it is not.
+ *
+ * Returns the line everyone may read, plus the richer line for the seats that
+ * are allowed to know the card's face. Feed both to `log` via `seen`.
+ */
+export function describeCardInPlace(t: Table, id: string): { text: string; seen: { text: string; to: string[] } } {
+  const place = cardPlace(t, id);
+  const named = `${describeCard(t, id)} ${place}`;
+  const onBoard = t.board.includes(id);
+  return {
+    text: onBoard ? named : `a card ${place}`,
+    seen: { text: named, to: cardSeenBy(t, id) },
+  };
+}
+
 export function describeCard(t: Table, id: string): string {
   const c = t.cards.get(id);
   if (!c) return '??';

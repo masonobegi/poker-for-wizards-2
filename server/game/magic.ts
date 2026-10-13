@@ -27,7 +27,8 @@ import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, bloodOwed, byId, canCast, card, describeCard, live, log, manaCost, ruleRelic, sigilHandSize,
+  alive, bloodOwed, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
+  ruleRelic, sigilHandSize,
 } from './table';
 
 export interface MagicCtx {
@@ -422,6 +423,30 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
   const note = (s: string, tone: 'magic' | 'impossible' | 'warn' = 'magic') =>
     log(t, s, tone, { school: def.school, playerId: caster.id });
 
+  /**
+   * A note about a specific card. `build` is handed the card's description and
+   * returns the sentence; it is called twice — once with the public form ("a
+   * card in Thorn's hand") for the shared log, once with the named form ("K♥
+   * in Thorn's hand") for the seats allowed to know the face. A community card
+   * is public, so both come out the same.
+   *
+   * Every note used to name the card and say nothing about where it was, which
+   * left "the possibility collapses into 3♥" ambiguous about the one thing
+   * that decides whether it matters to you.
+   */
+  const noteCard = (
+    id: string,
+    build: (desc: string) => string,
+    tone: 'magic' | 'impossible' | 'warn' = 'magic',
+  ) => {
+    const d = describeCardInPlace(t, id);
+    log(t, build(d.text), tone, {
+      school: def.school,
+      playerId: caster.id,
+      seen: { text: build(d.seen.text), to: d.seen.to },
+    });
+  };
+
   /** The entry this response is answering. */
   const below = (): StackEntry | undefined => stack[index - 1];
 
@@ -541,7 +566,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       if (fresh) t.board.push(fresh);
       ctx.fx.push({ t: 'rewind', cardId: fresh ?? undefined });
       ctx.fx.push({ t: 'sfx', name: 'rewind' });
-      note(`${caster.name} unmakes ${describeCard(t, id)} and the river runs again.`, 'impossible');
+      noteCard(id, (d) => `${caster.name} unmakes ${d} and the river runs again.`, 'impossible');
       break;
     }
     case 'echo_hand': {
@@ -611,7 +636,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       if (!dst.marks.includes('mirrored')) dst.marks.push('mirrored');
       t.tempMarks.push({ cardId: dst.id, markId: 'mirrored' });
       ctx.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
-      note(`The board now holds two of ${describeCard(t, src.id)}.`, 'impossible');
+      noteCard(src.id, (d) => `The board now holds two of ${d}.`, 'impossible');
       break;
     }
     case 'twin': {
@@ -656,7 +681,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       t.discard.push(firstCard.id);
       ctx.fx.push({ t: 'burn', cardId: firstCard.id });
       ctx.fx.push({ t: 'sfx', name: 'card_burn' });
-      note(`${caster.name} burns ${describeCard(t, firstCard.id)} out of the board.`, 'impossible');
+      noteCard(firstCard.id, (d) => `${caster.name} burns ${d} out of the board.`, 'impossible');
       // The Ashen's creed: the rank goes with the card, as Unmake would take it.
       if (hasRule(caster.relics, 'salt')) {
         const face = firstCard.collapsed !== null ? firstCard.faces[firstCard.collapsed] : null;
@@ -963,7 +988,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
         here = next;
       }
       ctx.fx.push({ t: 'deal', cardIds: [here], to: 'board' });
-      note(`${caster.name} writes over that slot twice. It reads ${describeCard(t, here)} now.`, 'impossible');
+      noteCard(here, (d) => `${caster.name} writes over that slot twice. It reads ${d} now.`, 'impossible');
       break;
     }
 
@@ -1018,7 +1043,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       t.board.push(id);
       applySeal(t, id);
       ctx.fx.push({ t: 'deal', cardIds: [id], to: 'board' });
-      note(`${describeCard(t, id)} comes back out of the ashes.`, 'impossible');
+      noteCard(id, (d) => `${d} comes back out of the ashes.`, 'impossible');
       break;
     }
 

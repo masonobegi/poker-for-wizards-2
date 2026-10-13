@@ -131,30 +131,37 @@ void main() {
   float centre = 1.0 - smoothstep(0.0, 0.95, length(q * vec2(1.0, 1.25)));
   col += vec3(0.180, 0.140, 0.070) * centre * (0.50 + 1.05 * uAtTable);
 
-  // Stars. Far more of them than the old dust, and they twinkle in colour —
-  // this is the cheapest thing in the whole renderer that reads as "magic"
-  // rather than as "a dark background with motes in it".
+  // Stars, drifting. They twinkle in colour, which is the cheapest thing in
+  // the whole renderer that reads as magic rather than as a dark background
+  // with motes in it.
+  //
+  // Drift speed, which was the bug: t advances at 16 units a second and this
+  // grid is 5.5 units tall, so the old coefficient of 1.7 moved a star about
+  // five screen-heights per second. Against the sparse, dim motes it replaced
+  // that read as a faint streak; against brighter, denser stars it read as
+  // thrown snowballs. At 0.014 a star takes about 25 seconds to cross, which
+  // is drift. Density came back down too — brighter stars need fewer.
   vec2 g = q * 5.5;
-  g.y += t * 1.7;
+  g.y += t * 0.014;
   vec2 cell = floor(g);
   float m = hash(cell);
-  if (m > 0.905) {
+  if (m > 0.938) {
     vec2 c = fract(g) - 0.5;
     float d = length(c);
-    float twinkle = 0.45 + 0.55 * sin(uTime * 0.0021 + m * 90.0);
+    float twinkle = 0.55 + 0.45 * sin(uTime * 0.0007 + m * 90.0);
     vec3 spark = mix(vec3(1.0, 0.86, 0.46), vec3(0.70, 0.84, 1.0), hash(cell + 7.3) * 0.7);
-    col += spark * smoothstep(0.26, 0.0, d) * 0.62 * twinkle;
+    col += spark * smoothstep(0.26, 0.0, d) * 0.50 * twinkle;
   }
 
   // A second, slower layer of big soft motes drifting the other way, so the
   // sky has depth rather than one plane of sparkles.
-  vec2 g2 = q * 2.3 - vec2(0.0, t * 0.6);
+  vec2 g2 = q * 2.3 - vec2(0.0, t * 0.004);
   vec2 cell2 = floor(g2);
   float m2 = hash(cell2 + 31.7);
   if (m2 > 0.93) {
     vec2 c2 = fract(g2) - 0.5;
     float d2 = length(c2);
-    float pulse = 0.5 + 0.5 * sin(uTime * 0.0009 + m2 * 40.0);
+    float pulse = 0.5 + 0.5 * sin(uTime * 0.00035 + m2 * 40.0);
     col += vec3(0.34, 0.30, 0.70) * smoothstep(0.42, 0.0, d2) * 0.30 * pulse;
   }
 
