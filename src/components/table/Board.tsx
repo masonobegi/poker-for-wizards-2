@@ -126,9 +126,14 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
             // initial/animate transform on top of Card's would fight Card's
             // carefully-tuned per-axis springs and blur the arc.
             <motion.div key={c.id} layout data-card-id={c.id}>
+              {/* `lg` matches `--board-scale` in table.css, which is documented
+                  as tracking exactly this and had drifted: a dealt card came
+                  out at 1.0 while the empty slot beside it was at 1.36, so the
+                  flop was 17px shorter than the sockets it landed in and sat
+                  17px higher than them in the same row. */}
               <Card
                 view={c}
-                size="md"
+                size="lg"
                 dealFlip
                 index={i}
                 dealFrom={dealFrom.current}

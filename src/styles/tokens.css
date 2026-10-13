@@ -208,6 +208,19 @@
   --font-ui: 'Pixelify Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
   --font-mono: 'Press Start 2P', 'JetBrains Mono', ui-monospace, Menlo, var(--sym), monospace;
 
+  /* --- leading --------------------------------------------------------------
+     Integer line boxes, in multiples of four, so a box whose height comes from
+     its text lands on the pixel grid rather than wherever the font's metrics
+     put it. `--fs-sm: 13px` at a 1.45 multiplier is 18.85px of leading, and
+     every bordered box containing one line of it was a fraction of a pixel
+     tall — which is invisible on its own and is the whole screen disagreeing
+     with the scanlines about where the pixels are. */
+  --lh-xs: 16px;
+  --lh-sm: 20px;
+  --lh-md: 24px;
+  --lh-lg: 28px;
+  --lh-xl: 36px;
+
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-md: 15px;
@@ -294,8 +307,29 @@
      table shipped with at 1440x900 (78x112) so that resolution is barely
      affected; --card-h always derives from --card-w so the 78:112 aspect
      ratio never drifts at any viewport size. */
-  --card-w: clamp(58px, 8.2vmin, 168px);
+  /* Snapped to the art-pixel grid.
+  
+     BasketRogue's rule is "one art pixel = 4 screen pixels", and this is the
+     token the whole table is built out of: a card, a board slot, a spell tile,
+     the deck, the height of both rails and therefore the y of everything below
+     them. At `clamp(58px, 8.2vmin, 168px)` it lands on 65.6px at 1280x800 and
+     every one of those boxes inherits the fraction — measured, nineteen pieces
+     of chrome were sitting on half pixels, from the HUD buttons at y=19.89 to
+     the rail at y=508.59. On its own that is a soft edge nobody names. Under a
+     scanline overlay pinned to the integer grid it is the whole screen
+     disagreeing with itself about where the pixels are, which is what "not
+     lined up" looks like.
+     
+     The plain clamp stays as the first declaration: `round()` is a 2023
+     addition and an unsupported function invalidates the whole declaration, so
+     a browser that lacks it falls back to the line above rather than to
+     nothing. 4px keeps the 78:112 ratio within half a percent. */
+  --card-w: clamp(56px, 8.2vmin, 168px);
+  --card-w: round(clamp(56px, 8.2vmin, 168px), 4px);
+  /* ...and the height lands on the grid too, rather than inheriting the
+     ratio's own fraction. */
   --card-h: calc(var(--card-w) * 112 / 78);
+  --card-h: round(calc(var(--card-w) * 112 / 78), 4px);
   --rail-h: 132px;
   --z-felt: 1;
   --z-cards: 20;

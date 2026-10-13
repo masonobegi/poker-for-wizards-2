@@ -8,7 +8,16 @@
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  padding: 11px 20px;
+  /* Fixed heights rather than padding plus a line box.
+  
+     A button sized by `padding + line-height * font-size` lands wherever the
+     font's metrics put it — these were 33.39px tall and starting at y=19.89.
+     An integer height and an integer line-height put every button in the game
+     on the pixel grid, which is the one thing that matters next to a scanline
+     overlay. */
+  height: 40px;
+  line-height: 20px;
+  padding: 0 20px;
   /* Squared off, with the plates. No `clip-path` here: it would clip the
      gold focus outline, and a chamfer is not worth a focus ring. */
   border-radius: 3px;
@@ -73,9 +82,9 @@
   box-shadow: none;
 }
 
-.btn-lg { padding: 15px 30px; font-size: var(--fs-md); border-radius: 3px; }
-.btn-sm { padding: 7px 13px; font-size: var(--fs-xs); border-radius: 2px; }
-.btn-icon { padding: 9px; aspect-ratio: 1; border-radius: 3px; }
+.btn-lg { height: 48px; line-height: 24px; padding: 0 30px; font-size: var(--fs-md); border-radius: 3px; }
+.btn-sm { height: 32px; line-height: 16px; padding: 0 13px; font-size: var(--fs-xs); border-radius: 2px; }
+.btn-icon { height: 36px; width: 36px; padding: 0; aspect-ratio: 1; border-radius: 3px; }
 .btn-block { width: 100%; }
 
 .btn-display {

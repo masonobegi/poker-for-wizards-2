@@ -21,8 +21,18 @@
   overflow: hidden;
   align-items: center;
   gap: var(--s-3);
-  padding: 8px var(--s-4);
-  border-bottom: 1px solid var(--line-soft);
+  /* A fixed height, not padding around three lines of type.
+  
+     Everything below this bar inherits its height: the felt, the seats, both
+     rails, the action bar and every button on it. Sized by its own content it
+     came out at 73.67px and put the whole screen a two-thirds of a pixel off
+     the grid — one rule here is worth a dozen downstream. */
+  height: 72px;
+  padding: 0 var(--s-4);
+  /* The rule is a shadow, not a border: a 1px `border-bottom` inside a
+     border-box height leaves a 71px content box, and a 32px button centred in
+     71px starts at y=19.5. */
+  box-shadow: inset 0 -1px 0 var(--line-soft);
   background: var(--abyss);
   z-index: var(--z-ui);
 }
@@ -314,7 +324,8 @@
 
 .deck {
   position: absolute;
-  left: 13%;
+  /* Further out than the board can ever reach. */
+  left: 9%;
   top: 64%;
   transform: translate(-50%, -50%);
   z-index: var(--z-felt);
@@ -326,8 +337,8 @@
 
 .deck-stack {
   position: relative;
-  width: calc(var(--card-w) * 0.62);
-  height: calc(var(--card-h) * 0.62);
+  width: round(calc(var(--card-w) * 0.62), 2px);
+  height: round(calc(var(--card-h) * 0.62), 2px);
 }
 
 /* The cut edges. Each is a sliver offset down and right of the one above, so
@@ -523,6 +534,7 @@
 .seat-info { display: grid; min-width: 0; }
 .seat-name {
   font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   font-weight: 700;
   color: var(--text-2);
   overflow: hidden;
@@ -530,7 +542,7 @@
   white-space: nowrap;
   max-width: 96px;
 }
-.seat-chips { font-size: var(--fs-sm); font-weight: 700; color: var(--chip); }
+.seat-chips { font-size: var(--fs-sm); line-height: var(--lh-sm); font-weight: 700; color: var(--chip); }
 .seat.is-out .seat-chips { color: var(--bad); font-size: var(--fs-xs); }
 
 .seat-meta { grid-column: 2; display: flex; align-items: center; gap: 6px; }
@@ -729,8 +741,9 @@
   position: absolute;
   left: 50%;
   /* Sits below the seat arc, leaving the felt's lower band clear for the
-     showdown panel. */
-  top: 60%;
+     showdown panel. 62%, because at 60% the top-centre seat's pod still hung
+     4px into the strip at 1280x800. */
+  top: 62%;
   /* At the shortest supported window the felt is only ~334px tall and a seat
      is 176px of that, so the seat opposite you and the board are competing
      for the same band and the seat wins by about 30px. The lower band is
@@ -743,7 +756,10 @@
   gap: var(--s-3);
   z-index: var(--z-cards);
   width: max-content;
-  max-width: 92%;
+  /* 76%, not 92%. Seven community cards at this size is 682px, and at 92% of
+     the felt the strip reached far enough left to sit on the deck and far
+     enough out to slide under a side seat. */
+  max-width: 76%;
   /* Must track Card.tsx's SCALE.lg — the board renders at `lg`, so the empty
      slots have to match the cards that will land in them. */
   --board-scale: 1.36;
@@ -801,15 +817,26 @@
   color: var(--bad);
 }
 
+/* The strip the community cards lie in.
+ *
+ * `flex: none` on the children is load-bearing, not tidiness. A flex item
+ * shrinks below its content by default, and these items wrap a fixed-size
+ * card: once a hand grows past five community cards — Sixth Card, Twin, a
+ * second timeline — the wrappers shrank and the cards inside them overflowed
+ * on top of each other. Measured at 1280x800 with seven cards, consecutive
+ * gaps ran 11, 11, -26, -17, 11: two cards overlapping by most of their width
+ * in the middle of the row, which is the single most visible thing on the
+ * table. */
 .board-cards { display: flex; align-items: center; gap: 11px; }
+.board-cards > * { flex: none; }
 
 /* An undealt slot. Not a dashed placeholder box: it reads as a place on the
    table where a card is going to be, with the corner radius and inner shadow
    the real cards sit in, and a hex ghost echoing the card back. */
 .board-slot {
   position: relative;
-  width: calc(var(--card-w) * var(--board-scale, 1));
-  height: calc(var(--card-h) * var(--board-scale, 1));
+  width: round(calc(var(--card-w) * var(--board-scale, 1)), 2px);
+  height: round(calc(var(--card-h) * var(--board-scale, 1)), 2px);
   border-radius: var(--r-card);
   /* A shadow on the cloth, not a box drawn on it.
   
@@ -895,6 +922,7 @@
 .pot-label {
   font-family: var(--font-display);
   font-size: 12px;
+  line-height: var(--lh-xs);
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--text-4);
@@ -902,6 +930,7 @@
 .pot-amount {
   display: inline-block;
   font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
   font-weight: 700;
   color: var(--chip);
   transition: color var(--t-base) var(--ease-out);
@@ -995,6 +1024,7 @@
 
 .log-line {
   --accent: var(--text-3);
+  line-height: var(--lh-sm);
   color: var(--text-3);
   padding-left: 8px;
   border-left: 2px solid transparent;
@@ -1044,6 +1074,15 @@
   align-items: end;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-4) 0;
+  /* A fixed height off the snapped card grid.
+  
+     This is the last fractional box in the column, and everything above it
+     inherits the fraction: the main row's height is the viewport minus the
+     header, this and the action bar, and the felt is that minus its padding —
+     so a rail that is 186.48px tall puts every seat, the board, the deck and
+     the pot, all of which are positioned as a percentage of the felt, on a
+     fraction of a pixel. One number here lands the whole table on the grid. */
+  height: round(calc(var(--card-h) * 1.78 + 24px), 4px);
   /* The same metal as the frame around the cloth, seen from underneath and
      falling away from the lamp. A flat slab of brass at this size — a third of
      the screen — reads as mustard; what makes it metal is that the top edge
@@ -1123,9 +1162,10 @@
   align-items: center;
   gap: 6px;
   font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   font-weight: 700;
 }
-.rail-chips { font-size: var(--fs-lg); font-weight: 700; color: var(--chip); }
+.rail-chips { font-size: var(--fs-lg); line-height: var(--lh-lg); font-weight: 700; color: var(--chip); }
 
 .rail-resources {
   grid-column: 2;
@@ -1268,8 +1308,8 @@
      The floor is the width the longest brief needs; the ceiling stops two
      sigils on an ultrawide from becoming posters. */
   flex: 1 1 auto;
-  min-width: calc(var(--card-w) * 2.3);
-  max-width: calc(var(--card-w) * 3.4);
+  min-width: round(calc(var(--card-w) * 2.3), 2px);
+  max-width: round(calc(var(--card-w) * 3.4), 2px);
   cursor: default;
   transform-origin: bottom center;
 }
@@ -1306,7 +1346,7 @@
      words) from looking stunted, and `height: 100%` makes it fill whatever the
      tallest card in the hand asked for. Nothing here is ever sized smaller
      than its own contents, so nothing on the face of a card is ever clipped.*/
-  min-height: calc(var(--card-h) * 1.5);
+  min-height: round(calc(var(--card-h) * 1.5), 2px);
   height: 100%;
   border-radius: 2px;
   background: color-mix(in srgb, var(--school) 9%, var(--bone));
@@ -1621,9 +1661,20 @@
 
 .actionbar {
   position: relative;
-  /* Trimmed. This was 116px of chrome holding a 48px row of buttons, on a
-     screen where the table itself only got 52% of the height. */
-  min-height: 60px;
+  /* Tall enough for the taller of its two states, always.
+  
+     This bar holds one row when it is not your turn and two when it is — the
+     buttons plus the raise control — so a content-driven height made it 60px
+     and then 110px, and the felt, the seats, the board and the pot all moved
+     up and down by fifty pixels every time the turn came round to you. That
+     is the most visible kind of "not lined up" there is, and no amount of
+     snapping the pieces to a grid fixes a grid that moves.
+     
+     Pinning it to 72 was worse and was mine: the content needs 94 and the
+     buttons went thirty pixels below the bottom of the screen at every
+     resolution, which `test/responsive.mjs` caught at 1440p and 4K. 104 is
+     the taller state rounded up to the art-pixel grid. */
+  min-height: 104px;
   display: grid;
   place-items: center;
   padding: var(--s-2) var(--s-4);
@@ -2579,8 +2630,8 @@
    text was 10px on a tile about one and a half playing cards tall. The tile is
    now larger and every line on it scales with the card size, so it grows on a
    big screen instead of staying fixed at the size that fits a Steam Deck. */
-.rail-sigils { min-height: calc(var(--card-h) * 1.78); }
-.sigil-frame { min-height: calc(var(--card-h) * 1.78); padding: 10px 10px 8px; }
+.rail-sigils { min-height: round(calc(var(--card-h) * 1.78), 2px); }
+.sigil-frame { min-height: round(calc(var(--card-h) * 1.78), 2px); padding: 10px 10px 8px; }
 .sigil-name { font-size: clamp(12px, calc(var(--card-h) * 0.12), 18px); }
 .sigil-text {
   font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px);
