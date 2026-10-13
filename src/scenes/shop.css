@@ -238,7 +238,7 @@
   padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  background: rgba(9, 7, 6, 0.45);
+  background: rgba(8, 10, 30, 0.45);
 }
 .scribe-title {
   font-family: var(--font-display);

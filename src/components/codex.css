@@ -14,7 +14,7 @@
   padding: 3px;
   border-radius: 0;
   clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   border: 1px solid var(--line-soft);
 }
 .codex-tab {
@@ -74,7 +74,7 @@
   gap: var(--s-3);
   padding: var(--s-3);
   border-radius: var(--r-md);
-  background: rgba(9, 7, 6, 0.4);
+  background: rgba(8, 10, 30, 0.4);
   border: 1px solid var(--line-soft);
   border-left: 2px solid var(--accent);
   transition: background var(--t-fast), translate var(--t-fast);

@@ -1,42 +1,50 @@
 /* ===========================================================================
    HEXHOLD — design tokens
    ---------------------------------------------------------------------------
-   The reference is a printed object, not a piece of software: an engraved
-   plate, an oxblood-and-brass grimoire, a card table with a real felt on it.
-   Ink, paper and metal.
+   The reference is leaded glass. One object, one idea, and a constraint rather
+   than a palette.
 
-   This replaces what was here before, which was the house style of every dark
-   interface built in the last few years — everything rounded to 26px, every
-   panel a violet gradient behind a backdrop blur, every edge defined by a
-   coloured glow instead of a line. It read as a settings screen, and for a
-   game whose whole subject is a physical deck behaving impossibly, looking
-   like software was the wrong end of the argument entirely.
+   This file has had three art directions written at the top of it. The first
+   was the house style of every dark interface built in the last few years —
+   everything rounded to 26px, every panel a violet gradient behind a backdrop
+   blur, every edge defined by a glow instead of a line. The second said "ink,
+   paper and metal", which was better, and under it the game still shipped a
+   radial-gradient cloth under a three-stop lamp with a sheen sweeping across
+   it. The review of that build was "it still looks so flat and bad, take away
+   the gradients, make it very strongly themed in one way — right now it's just
+   a fucking blue poker table", and the useful part of it is the diagnosis:
+   a palette is not an art direction, and nor is a surface treatment. Something
+   has to DECIDE what the thing is.
 
-   Four rules the rest of the app inherits from here:
+   A window decides. Glass comes in pieces. A piece is one flat colour from
+   edge to edge. The only way light changes across a window is by changing to a
+   different piece, and what holds the pieces apart is a heavy black line.
 
-     1. **Edges are lines, not glows.** A panel is defined by a hairline rule
-        and a hard shadow, the way printed matter sitting on a table is. Glow
-        is reserved for magic, where it means something.
-     2. **Corners are nearly square.** The largest radius in the system is
-        5px, and the only thing rounder than that is a playing card, which is
-        rounder in real life too.
-     3. **Fills are flat.** Gradients describe light falling on a curved
-        surface. Almost nothing here is curved.
-     4. **Colour is ink.** Desaturated, printed, slightly dirty. Nothing in
-        this file is a colour a screen invented.
+   Four rules the rest of the app inherits from here, and a test for each:
+
+     1. **Nothing ramps.** No fill anywhere interpolates between two opaque
+        colours. Hard stops, stripe plates, fades to transparent and solid
+        slabs are all still gradients and are all still allowed, because none
+        of them is a ramp. Held by `test/css.test.ts`, which also holds the
+        shader to the same rule — the sky is quantised into pieces too.
+     2. **The black does the drawing.** Came is the heaviest mark on the
+        screen: 4px around every piece of glass on the table, 3px around every
+        panel, 2px around every display letterform. It is doing the work the
+        glows and the blurs used to.
+     3. **Corners are nearly square.** The largest radius in the system is 5px,
+        and the only thing rounder is a playing card, which is rounder in real
+        life too. A plate takes a CHAMFER instead — how a glazier gets a
+        straight piece into a curved frame.
+     4. **Glow means magic.** Light coming off a thing is reserved for spells,
+        a lit piece of glass, and gold. Nothing uses it as an edge.
    =========================================================================== */
 
 :root {
   /* --- surfaces, darkest to lightest -------------------------------------
-     Neutral charcoal with a trace of warmth, so the brass reads as metal
-     against it rather than as a second accent colour. Deliberately not blue:
-     blue-violet greys are the tell. */
-  /* These were written to this description and then set to blue-leaning
-     values anyway — `#1e1f28` carries ten more points of blue than red, and
-     `#262833` thirteen. Against a bottle-green felt under a brass lamp every
-     panel in the game therefore read as belonging to a different room from
-     the table it was sitting on. Same luminance, hue turned back to the warm
-     side it always claimed to be on. */
+     Seven weights of blue glass, from the piece with nothing behind it to the
+     piece with the sun behind it. They are a ladder, not a ramp: a surface
+     picks one and stays on it, and where it needs to be lighter in one place
+     it becomes a second piece with a line of came between. */
   --void:        #0b1038;
   --abyss:       #101845;
   --bg:          #152055;
@@ -77,11 +85,17 @@
   --brass-hi:    #e8b949;
   --brass-deep:  #4d3310;
 
-  /* Kept: a few places still ask for these by name. They now point at the
-     glass, so nothing is left describing a cloth that no longer exists. */
-  --felt-core:   var(--glass);
-  --felt-mid:    var(--glass);
-  --felt-edge:   var(--glass-deep);
+  /* --- the cloth -----------------------------------------------------------
+     Three values of one dye: what the lamp reaches, the body of the cloth, and
+     what turns down into the rail. The spread between them is about fifteen
+     percent of luminance — enough for the felt to be modelled rather than
+     printed, not enough to notice as an effect. A deep blue rather than a
+     table green, because the whole game is lit cold and a green cloth under it
+     reads as a different room. */
+  --felt-lit:    #284191;
+  --felt-core:   #17266a;
+  --felt-edge:   #0b1440;
+  --felt-mid:    var(--felt-core);
   --rail:        var(--brass);
   --rail-hi:     var(--brass-hi);
 

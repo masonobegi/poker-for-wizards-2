@@ -97,9 +97,9 @@ void main() {
   // the room it built was unlit and grim under a game whose whole subject is
   // magic doing delightful things to a deck. A night sky is still dark enough
   // to read a card against; it is not the same as an unlit one.
-  vec3 night = vec3(0.045, 0.062, 0.230);
-  vec3 dusk  = vec3(0.115, 0.160, 0.470);
-  vec3 jade  = vec3(0.190, 0.245, 0.640);
+  vec3 night = vec3(0.028, 0.040, 0.150);
+  vec3 dusk  = vec3(0.070, 0.098, 0.300);
+  vec3 jade  = vec3(0.110, 0.148, 0.400);
 
   vec3 col = mix(night, dusk, smoothstep(0.18, 0.95, weather));
   col = mix(col, jade, smoothstep(0.55, 1.0, weather) * (0.26 + 0.30 * uAtTable));
@@ -110,21 +110,21 @@ void main() {
   float band = sin(q.x * 2.1 + t * 0.7) * 0.12 + sin(q.x * 3.7 - t * 0.45) * 0.07;
   float aurora = smoothstep(0.26, 0.0, abs(q.y - 0.18 - band));
   col += mix(vec3(0.24, 0.40, 0.92), vec3(0.62, 0.46, 0.95), 0.5 + 0.5 * sin(t * 0.5))
-       * aurora * (0.46 - 0.16 * uAtTable);
+       * aurora * (0.26 - 0.10 * uAtTable);
 
   // A second curtain, lower, slower and the other way, so the sky has two
   // things moving at different rates instead of one band sliding across it.
   float band2 = sin(q.x * 1.4 - t * 0.38) * 0.16 + sin(q.x * 2.6 + t * 0.29) * 0.06;
   float aurora2 = smoothstep(0.34, 0.0, abs(q.y + 0.26 - band2));
   col += mix(vec3(0.30, 0.22, 0.78), vec3(0.12, 0.34, 0.80), 0.5 + 0.5 * sin(t * 0.33 + 1.7))
-       * aurora2 * (0.30 - 0.12 * uAtTable);
+       * aurora2 * (0.17 - 0.07 * uAtTable);
 
   // Large, very slow blooms of colour drifting under everything. This is what
   // keeps a wide screen from being one flat field of violet between the
   // aurora and the table.
   float bloom = fbm(q * 0.9 + vec2(t * 0.21, -t * 0.13));
   col += mix(vec3(0.08, 0.07, 0.30), vec3(0.04, 0.16, 0.42), bloom)
-       * smoothstep(0.35, 0.95, bloom) * 0.50;
+       * smoothstep(0.35, 0.95, bloom) * 0.30;
 
   // The spell-light over the table. Warm gold, and it actually lights the
   // felt rather than merely tinting it.
@@ -145,12 +145,12 @@ void main() {
   g.y += t * 0.014;
   vec2 cell = floor(g);
   float m = hash(cell);
-  if (m > 0.938) {
+  if (m > 0.958) {
     vec2 c = fract(g) - 0.5;
     float d = length(c);
     float twinkle = 0.55 + 0.45 * sin(uTime * 0.0007 + m * 90.0);
     vec3 spark = mix(vec3(1.0, 0.86, 0.46), vec3(0.70, 0.84, 1.0), hash(cell + 7.3) * 0.7);
-    col += spark * smoothstep(0.26, 0.0, d) * 0.50 * twinkle;
+    col += spark * smoothstep(0.26, 0.0, d) * 0.34 * twinkle;
   }
 
   // A second, slower layer of big soft motes drifting the other way, so the
@@ -180,37 +180,17 @@ void main() {
   float vig = smoothstep(1.38, 0.28, length((uv - 0.5) * vec2(1.05, 1.0)) * 1.55);
   col *= 0.42 + 0.58 * vig;
 
-  // --- the sky is glass too -------------------------------------------------
-  // Everything above this line is a smooth field: two octaves of fbm, two
-  // aurora curtains, a bloom, a pool of warm light and a vignette, all of them
-  // ramps. Behind a table made of flat pieces of glass in heavy lead, a
-  // smoothly shaded sky is the thing that gives the whole screen away as
-  // rendered — and "take away the gradients" has to mean the shader too, or it
-  // means nothing.
+  // The sky stays smooth.
   //
-  // So the sky is cut into pieces as well. The colour is snapped to a fixed
-  // number of levels, which turns every one of those smooth ramps into a set
-  // of flat regions with hard edges between them. The shapes are the noise's
-  // own, so they are irregular the way hand-cut glass is, and they drift and
-  // change as the weather moves under them — a piece of sky is one colour,
-  // then it is the next one, which is exactly how the window on the table
-  // behaves.
-  //
-  // Quantised through a gamma rather than linearly: this palette lives almost
-  // entirely in the bottom third of the range, and even steps there put nearly
-  // every pixel in the first two bands and crush the sky to two colours.
-  const float LEVELS = 5.0;
-  vec3 g6 = pow(max(col, 0.0), vec3(0.4545));
-  col = pow(floor(g6 * LEVELS + 0.5) / LEVELS, vec3(2.2));
-
-  // The came between them. A fraction is near zero on either side of a step, so
-  // the distance from the middle of a band finds the boundaries without
-  // needing derivatives (WebGL 1, no OES_standard_derivatives on the machines
-  // this has to run on). Only darkened a little — this is lead seen against a
-  // night sky, not against the lit glass of the table.
-  float step6 = fract(dot(g6, vec3(0.333)) * LEVELS);
-  float came = smoothstep(0.5, 0.42, abs(step6 - 0.5));
-  col *= 1.0 - came * 0.46;
+  // A previous pass quantised this to seven levels and darkened the band
+  // boundaries, to match a table that had been rebuilt as flat panes of leaded
+  // glass. It did what it was asked: every soft ramp up there became a flat
+  // region with a hard edge, drifting and recutting itself as the weather
+  // moved. It also turned the background into a contour map with a poker game
+  // in front of it, and the table it was matching has since gone back to being
+  // a table. A night sky is the one thing in this game that genuinely is a
+  // smooth gradient, and the room behind a card table should be the quietest
+  // surface on the screen, not the busiest.
 
   gl_FragColor = vec4(col, 1.0);
 }

@@ -830,7 +830,7 @@
   font-size: clamp(10px, 0.62em, 16px);
   line-height: 1;
   font-weight: 700;
-  background: rgba(14, 11, 9, 0.72);
+  background: rgba(10, 13, 36, 0.72);
   box-shadow: var(--e-1);
 }
 .hx-badge--diverged { color: var(--veil); box-shadow: 0 0 0 1px var(--veil), 0 0 0.5em -0.1em var(--veil); }
@@ -863,7 +863,7 @@
   font-size: clamp(10px, 0.62em, 16px);
   font-weight: 700;
   color: var(--gold-hi);
-  background: rgba(14, 11, 9, 0.55);
+  background: rgba(10, 13, 36, 0.55);
   border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   border-radius: var(--r-pill);
   padding: 0.08em 0.4em;

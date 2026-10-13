@@ -101,7 +101,7 @@
   padding: 12px 14px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
-  background: rgba(9, 7, 6, 0.55);
+  background: rgba(8, 10, 30, 0.55);
   color: var(--text);
   transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
 }
@@ -110,7 +110,7 @@
 .input:focus {
   outline: none;
   border-color: var(--gold-deep);
-  background: rgba(9, 7, 6, 0.75);
+  background: rgba(8, 10, 30, 0.75);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent);
 }
 
@@ -192,7 +192,7 @@
   padding: 3px 9px;
   border-radius: var(--r-pill);
   border: 1px solid var(--line);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -263,7 +263,7 @@
   gap: var(--s-2);
   padding: 10px 18px;
   border-radius: var(--r-pill);
-  background: rgba(14, 11, 9, 0.94);
+  background: rgba(10, 13, 36, 0.94);
   border: 1px solid var(--line);
   box-shadow: var(--e-3);
   font-size: var(--fs-sm);

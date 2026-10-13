@@ -141,138 +141,22 @@ test('nothing replaces the fill of a `.hx-plate`', async () => {
 });
 
 /**
- * Nothing on a surface ramps from one colour to another.
+ * (Removed: a rule that no gradient anywhere may interpolate between two
+ * opaque colours, and a check that the backdrop shader posterised.)
  *
- * HEXHOLD is leaded glass: a piece is one flat colour from edge to edge, and
- * the only way light changes across a window is by changing to a different
- * piece. That is the whole art direction, and it is a rule a stylesheet can be
- * held to — "it still looks so flat and bad, take away the gradients" was the
- * review of a build in which I had already removed most of them, because the
- * ones left over were the big surfaces: the cloth, the rail, the plate fill,
- * the card face, the chips.
+ * Both were written for a build in which the table was leaded glass — flat
+ * panes, black came, nothing shaded — and both did exactly what they were
+ * asked. The art direction they were holding the line for turned out to be the
+ * wrong one: a table drawn as flat coloured shapes reads as clip art with a
+ * card game on top of it, and a posterised sky reads as a contour map behind
+ * it. The table is a lit material again, the sky is smooth again, and a test
+ * that forbids a gradient would now be stopping the thing that makes them look
+ * like objects rather than like diagrams.
  *
- * So: a gradient may not interpolate between two OPAQUE colours at different
- * positions. Which leaves, deliberately, everything a gradient is legitimately
- * for in a flat design:
- *
- *   - a hard stop (two colours at the same position) — a progress bar, a
- *     facet, two pieces of glass meeting;
- *   - a stripe plate (`repeating-linear-gradient` of a colour and
- *     `transparent`) — the grain, the weave, a hatch;
- *   - a fade to `transparent` or an `rgba()` — a shadow, a vignette, a glow.
- *     Glow is reserved for magic in this game, and magic is allowed to glow;
- *   - `linear-gradient(x, x)` of a single colour — a solid slab at an exact
- *     size, which is how a 14px registration tick is drawn without a box;
- *   - anything inside a `mask`, which is geometry, not colour.
+ * What is worth keeping from it is the reason it was written: the failure it
+ * was aimed at was never gradients as such, it was a surface described ONLY by
+ * a soft ramp, with no material, no texture and no edge. That is a judgement
+ * about how something looks, and a brace counter cannot make it. The checks
+ * above — which catch the class of CSS bug that is genuinely invisible until
+ * it ships — stay.
  */
-
-/** Split a comma list at top level, ignoring commas inside parens. */
-function topLevel(s: string): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let cur = '';
-  for (const ch of s) {
-    if (ch === '(') depth++;
-    if (ch === ')') depth--;
-    if (ch === ',' && depth === 0) { out.push(cur); cur = ''; continue; }
-    cur += ch;
-  }
-  if (cur.trim()) out.push(cur);
-  return out.map((x) => x.trim());
-}
-
-/** The colour at the head of a stop, and whatever position follows it. */
-function stop(arg: string): { colour: string; pos: string } | null {
-  const m = /^(var|rgba?|hsla?|color-mix|oklch|lab)\s*\(/i.exec(arg);
-  if (m) {
-    let depth = 0;
-    for (let i = m[0].length - 1; i < arg.length; i++) {
-      if (arg[i] === '(') depth++;
-      else if (arg[i] === ')' && --depth === 0) {
-        return { colour: arg.slice(0, i + 1).replace(/\s+/g, ''), pos: arg.slice(i + 1).trim() };
-      }
-    }
-    return null;
-  }
-  const w = /^(\S+)\s*(.*)$/.exec(arg);
-  return w ? { colour: w[1].toLowerCase(), pos: w[2].trim() } : null;
-}
-
-/**
- * A stop that carries alpha anywhere in it is a fade, and a fade is a shadow,
- * a vignette or a glow rather than a surface. `color-mix(… , transparent)` and
- * `var(--x, rgba(…))` both land here, which is why this looks at the whole
- * expression rather than its head.
- */
-/**
- * The position tokens of a stop, split at top level — a position may itself be
- * a `var(--pct, 0%)` with a comma and a space inside it.
- */
-function positions(pos: string): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let cur = '';
-  for (const ch of pos) {
-    if (ch === '(') depth++;
-    if (ch === ')') depth--;
-    if (/\s/.test(ch) && depth === 0) { if (cur) out.push(cur); cur = ''; continue; }
-    cur += ch;
-  }
-  if (cur) out.push(cur);
-  return out;
-}
-
-const SEE_THROUGH = /transparent|rgba\(|hsla\(|#[0-9a-f]{8}\b|#[0-9a-f]{4}\b/i;
-
-/** The leading argument of a gradient is its geometry, not a colour. */
-const GEOMETRY = /^(to\b|at\b|circle\b|ellipse\b|in\b|from\b|closest-|farthest-|-?[\d.]+(deg|turn|rad|grad)\b|[\d.]+(%|px|em|rem|vh|vw)\s)/i;
-
-test('no surface ramps from one opaque colour to another', async () => {
-  const bad: string[] = [];
-  for (const f of await stylesheets('src')) {
-    const css = code(readFileSync(f, 'utf8'));
-    for (const decl of css.split(';')) {
-      // Masks are geometry. So is anything a shader draws.
-      if (/(-webkit-)?mask(-image)?\s*:/.test(decl)) continue;
-      for (const g of decl.matchAll(/(repeating-)?(linear|radial|conic)-gradient\s*\(/g)) {
-        if (g[1]) continue; // a repeating stripe plate is flat by construction
-        const open = g.index! + g[0].length;
-        let depth = 1;
-        let i = open;
-        for (; i < decl.length && depth > 0; i++) {
-          if (decl[i] === '(') depth++;
-          else if (decl[i] === ')') depth--;
-        }
-        const args = topLevel(decl.slice(open, i - 1));
-        if (args.length && GEOMETRY.test(args[0])) args.shift();
-        const stops = args
-          .map(stop)
-          .filter((s): s is { colour: string; pos: string } => !!s);
-        const opaque = stops.filter((s) => !SEE_THROUGH.test(s.colour));
-        for (let k = 1; k < opaque.length; k++) {
-          const a = opaque[k - 1];
-          const b = opaque[k];
-          if (a.colour === b.colour) continue;          // a solid slab
-          // A hard stop: where one piece ends is exactly where the next
-          // begins, so nothing is interpolated between them. Written either as
-          // two stops at the same position, or — the clearer form — as a stop
-          // given a span of its own (`var(--ruin) 0deg 60deg`).
-          const ends = positions(a.pos).pop();
-          const starts = positions(b.pos)[0];
-          if (ends && ends === starts) continue;
-          bad.push(`${f}: ${a.colour} ${a.pos} -> ${b.colour} ${b.pos}`);
-        }
-      }
-    }
-  }
-  assert.deepEqual(bad, [], `gradients that ramp between opaque colours:\n  ${bad.join('\n  ')}`);
-});
-
-test('the shader does not ramp either', () => {
-  // The sky is quantised to a fixed number of levels for exactly the same
-  // reason the stylesheets are: a smoothly shaded backdrop behind a table made
-  // of flat pieces is the thing that gives the whole screen away as rendered.
-  const src = readFileSync(new URL('../src/vfx/Backdrop.tsx', import.meta.url), 'utf8');
-  assert.match(src, /LEVELS\s*=\s*[\d.]+/, 'the backdrop no longer posterises');
-  assert.match(src, /floor\(.*LEVELS/, 'the backdrop no longer snaps colour to levels');
-});

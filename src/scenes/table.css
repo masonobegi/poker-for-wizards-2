@@ -75,33 +75,35 @@
 }
 
 /* --- the table top -------------------------------------------------------
-   One object, one idea: a rose window of leaded glass, laid flat and lit from
-   underneath.
+   A dark, well-made object, and nothing else.
 
-   This replaces a stack of seven layers — a radial-gradient cloth, a fibre
-   plate, two gold rings, a three-stop lamp, a wear map and a sweeping sheen —
-   that between them held about twenty gradients and still read, correctly, as
-   "a blue poker table". The problem was never that there was too little on the
-   surface. It was that every layer described light falling on a smooth sheet,
-   and a smooth sheet lit smoothly is what a renderer makes when nobody has
-   decided what the thing is.
+   Two versions of this went wrong in opposite directions and both are worth
+   recording. The first was a cloth with seven layers over it — a nap plate,
+   two gold rings, a three-stop lamp, a wear map and a sweeping sheen — which
+   read as a matte purple sheet with effects on it. The second threw all of
+   that out for a leaded rose window in the six schools' colours: flat panes,
+   black came, no gradient anywhere. It was certainly committed, and it read as
+   clip art — a vector illustration with a card game happening on top of it.
 
-   A window decides. Glass comes in pieces; a piece is one flat colour from
-   edge to edge; the only way light changes across a window is by changing to
-   a different piece. So there is not one gradient left on this surface, and
-   there cannot be one. What was doing the shading is now doing the drawing:
-   4px of near-black came around every piece of glass in the window.
+   The thing both versions were avoiding is that a card table is the quietest
+   object in the room. Everything good about how one looks comes from the
+   MATERIAL: the depth of the dye, the nap of the wool, one lamp above it,
+   wear where hands have been. Not from anything drawn on it. The five cards in
+   the middle are the picture; the table is what they sit on.
 
-   The layers that remain:
+   So this is four layers and no decoration:
 
-     felt-surface  the aperture — an ellipse, a hard dark edge, a shadow under
-                   it. It holds the window; it is not itself a material.
-     felt-arcana   the window (FeltArcana.tsx). This IS the table top.
-     felt-nap      ripple. Old glass is full of it, and it is the one thing a
-                   flat fill genuinely cannot do on its own.
+     felt-surface  the dyed wool. Deep, desaturated, and darker at the rail
+                   than under the lamp — because that is what a lit cloth does,
+                   and a surface that does not take light does not read as a
+                   surface at all.
+     felt-nap      the fibre. Soft-light, so it modulates the cloth rather than
+                   tinting it, at two scales so it never reads as one tile.
+     felt-arcana   two gold hairlines (FeltArcana.tsx). The whole decoration.
      felt-dust     motes in the light above the table.
-     felt-rail     the frame the window is set into: flat brass, two tones, a
-                   hard line between them instead of a bevel.
+
+   The contrast across all of it is deliberately low. The moment any of these
+   is strong enough to notice on its own, it is competing with the hand.
    --------------------------------------------------------------------------- */
 
 .felt {
@@ -116,23 +118,23 @@
   inset: 4%;
   border-radius: 50% / 34%;
   overflow: hidden;
-  /* Flat. The window covers nearly all of this; what shows past its edge is
-     the dark of the aperture, not a lit sheet. */
-  background: var(--glass-deep);
+  /* One light, high and a little off centre, falling on a deep cloth. The
+     range top to bottom is about fifteen percent of luminance — enough that
+     the felt is modelled rather than printed, quiet enough that you would not
+     name it if asked what the table looks like. */
+  background:
+    radial-gradient(ellipse 86% 78% at var(--lamp-x) var(--lamp-y),
+      var(--felt-lit) 0%,
+      var(--felt-core) 46%,
+      var(--felt-edge) 100%);
   box-shadow:
-    /* The came continues round the rim: the window's outermost lead. */
-    inset 0 0 0 5px var(--lead),
-    0 30px 80px rgba(0, 0, 0, 0.7);
+    /* the cloth turning down into the rail */
+    inset 0 0 90px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 30px 80px rgba(0, 0, 0, 0.66);
 }
 
-/* The window. Stretched to fill the ellipse — it is drawn to be stretched,
-   and its lead lines are `non-scaling-stroke` so they stay one weight however
-   wide the table gets.
-
-   No `mix-blend-mode`. The old plate was `screen`-blended gold scratched over
-   the cloth, and where it crossed a translucent card slot it showed through
-   from underneath while also lying on top, which is what made the centre of
-   the table look broken. Opaque glass cannot do that. */
+/* The inlay. Under everything that matters, above the cloth. */
 .felt-arcana {
   position: absolute;
   inset: 0;
@@ -141,56 +143,26 @@
   pointer-events: none;
 }
 
-/* The inscribed band: the display face, small, widely tracked and in small
-   caps — how words are actually fired into glass rather than typed onto it. */
-.felt-arcana__band {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-variant: small-caps;
-  text-transform: lowercase;
-}
-
-/* Weather behind the window.
+/* The nap.
  *
- * Six of the twelve lights in the first order cycle between two flat values on
- * three long, offset periods. Nothing fades through a middle colour — it is
- * one glass, then the other — so this reads as light changing behind the
- * window rather than as an element animating. It is the whole of the table's
- * idle life now that the sweeping sheen and the flickering lamp are gone, and
- * it costs two compositor properties.
- */
-.rose-lit { animation: rose-weather 19s ease-in-out infinite; }
-.rose-lit--1 { animation-duration: 23s; animation-delay: -7s; }
-.rose-lit--2 { animation-duration: 29s; animation-delay: -13s; }
-
-@keyframes rose-weather {
-  0%, 44%   { filter: none; }
-  58%, 86%  { filter: brightness(1.45); }
-  100%      { filter: none; }
-}
-
-:root[data-reduced-motion='1'] .rose-lit { animation: none; }
-
-/* Ripple.
- *
- * The one place a flat fill is genuinely not enough: glass of this kind is
- * drawn by hand and is never optically flat, so it has a slow waviness that
- * catches the light. Soft-light keeps it colourless — it modulates the glass,
- * it does not tint it. Two plates at different scales so it never reads as one
- * tiling pattern. */
+ * Two plates at different scales so it never reads as one tiling pattern: a
+ * fine fibre and a coarse slub. Soft-light keeps it colourless — it modulates
+ * the light on the cloth, it does not tint the cloth — and it is the single
+ * cheapest thing in this file that makes the surface read as woven rather than
+ * as filled. */
 .felt-nap {
   position: absolute;
   inset: 0;
   background-image: var(--nap), var(--nap);
-  background-size: 300px 300px, 91px 91px;
+  background-size: 260px 260px, 79px 79px;
   mix-blend-mode: soft-light;
-  opacity: 0.4;
+  opacity: 0.5;
   pointer-events: none;
   z-index: 1;
 }
 
 /* The motes' canvas. Screen-blended so a mote can only ever add light, which
-   is what keeps them from showing up as grey specks on the dark glass. */
+   is what keeps them from showing up as grey specks on the dark side. */
 .felt-dust {
   position: absolute;
   inset: 0;
@@ -198,28 +170,38 @@
   height: 100%;
   mix-blend-mode: screen;
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.75;
   z-index: 2;
 }
 
-/* The frame the window is set into.
+/* The rail: the padded lip around the cloth.
  *
- * It was a six-stop brass gradient pretending to be a padded leather lip. A
- * frame holding glass is made of metal and has facets, and a facet is a flat
- * plane with a hard edge — so it is two flat tones with a line between them.
- * The line is the thing that reads as an edge; the ramp never was. */
+ * A lit crown where the lamp catches it, the body of the metal, and a
+ * shadowed face turning away. Three stops rather than six, and the range
+ * between them is narrow — this is a frame, and a frame that draws the eye is
+ * a frame that has failed. */
 .felt-rail {
   position: absolute;
   inset: 0;
   border-radius: 50% / 30%;
-  border: 13px solid var(--brass);
+  border: 13px solid transparent;
+  /* Aged brass, not screen yellow. `--brass-hi` is the stain used on type and
+     is too bright for forty pixels of frame at 1080p. */
+  background:
+    linear-gradient(174deg,
+      #d2a44e 0%,
+      #9c7026 36%,
+      #3f2c0e 100%) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) padding-box exclude,
+    linear-gradient(#000 0 0);
   pointer-events: none;
   box-shadow:
-    /* lit facet inside, shadowed facet outside, came either side of both */
-    inset 0 0 0 1px var(--lead),
-    inset 0 0 0 5px var(--brass-hi),
-    inset 0 0 0 6px var(--lead),
-    0 0 0 1px var(--lead),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.7),
     0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
@@ -277,8 +259,9 @@
   position: absolute;
   inset: 0;
   border-radius: 4px;
-  background: #141a33;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+  /* The cut edges of the cards under the top one — paper, not a dark slab. */
+  background: linear-gradient(170deg, #cdbfa4, #6d6552);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
   transform: translate(calc(var(--i) * 0.9px), calc(var(--i) * 1.5px));
   opacity: calc(0.45 + var(--i) * 0.1);
 }
@@ -290,7 +273,7 @@
   background:
     repeating-linear-gradient(46deg,
       rgba(212, 162, 74, 0.10) 0 1px, transparent 1px 5px),
-    var(--card-back-1);
+    linear-gradient(152deg, var(--card-back-1), var(--card-back-2));
   box-shadow:
     inset 0 0 0 1px rgba(212, 162, 74, 0.26),
     inset 0 0 0 3px rgba(0, 0, 0, 0.3),
@@ -577,7 +560,7 @@
   gap: 5px;
   padding: 3px 10px 3px 5px;
   border-radius: var(--r-pill);
-  background: rgba(9, 7, 6, 0.92);
+  background: rgba(8, 10, 30, 0.92);
   border: 1px solid var(--gold-deep);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -626,7 +609,7 @@
   translate: -50% 0;
   padding: 3px 12px;
   border-radius: var(--r-pill);
-  background: rgba(9, 7, 6, 0.95);
+  background: rgba(8, 10, 30, 0.95);
   border: 1px solid var(--line);
   font-size: 12px;
   font-weight: 800;
@@ -743,21 +726,17 @@
   width: calc(var(--card-w) * var(--board-scale, 1));
   height: calc(var(--card-h) * var(--board-scale, 1));
   border-radius: var(--r-card);
-  /* On the old near-black felt a whisper of a border was enough. On a green
-     one these vanished entirely, so the slot is now a printed position on the
-     cloth: a brass hairline and a darker patch, the way a real table has its
-     card positions marked. */
-  border: 1px solid color-mix(in srgb, var(--gold) 16%, transparent);
-  background: rgba(0, 0, 0, 0.3);
-  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.45);
-}
-.board-slot::after {
-  content: '';
-  position: absolute;
-  inset: 26%;
-  border: 1px solid color-mix(in srgb, var(--gold) 7%, transparent);
-  /* The same hexagon the logo and the card backs are cut from. */
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  /* A shadow on the cloth, not a box drawn on it.
+  
+     This was a brass hairline around a dark fill with a hexagon inside, and
+     before the flop lands that is five outlined rectangles sitting in the
+     middle of the table — the loudest thing on the screen, and all of it
+     describing cards that are not there yet. A place on a table where a card
+     is about to go looks like a slight darkening of the cloth and nothing
+     else. */
+  border: 0;
+  background: rgba(0, 0, 0, 0.13);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.26);
 }
 
 .board-pot {
@@ -774,9 +753,9 @@
   gap: var(--s-2);
   padding: 6px 20px;
   border-radius: var(--r-pill);
-  background: rgba(38, 23, 82, 0.88);
-  border: 1px solid var(--gold-deep);
-  box-shadow: var(--e-2), 0 0 28px color-mix(in srgb, var(--gold) 18%, transparent);
+  background: rgba(10, 13, 38, 0.9);
+  border: 1px solid var(--brass);
+  box-shadow: var(--e-2), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 /* --- the pile ------------------------------------------------------------
@@ -878,7 +857,7 @@
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-md);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   border: 1px solid var(--line-soft);
 }
 .tbl-sidetab {
@@ -963,13 +942,18 @@
   align-items: end;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-4) 0;
-  background: var(--brass);
+  /* The same metal as the frame around the cloth, seen from underneath and
+     falling away from the lamp. A flat slab of brass at this size — a third of
+     the screen — reads as mustard; what makes it metal is that the top edge
+     catches the light the table does and the bottom does not. */
+  background: linear-gradient(179deg,
+    var(--brass-hi) 0%,
+    var(--brass) 9%,
+    var(--brass-deep) 48%,
+    #1a1230 100%);
   z-index: var(--z-ui);
   box-shadow:
-    /* the lit facet along the top, and the came that ends it */
-    inset 0 6px 0 var(--brass-hi),
-    inset 0 8px 0 var(--lead),
-    inset 0 -2px 0 var(--lead),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
     0 -16px 40px rgba(0, 0, 0, 0.55);
 }
 
@@ -993,10 +977,10 @@
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 6px;
-  width: 170px;
-  background: var(--gold-hi);
-  opacity: 0.55;
+  height: 3px;
+  width: 260px;
+  background: linear-gradient(90deg, transparent, var(--gold-hi) 50%, transparent);
+  opacity: 0.5;
   pointer-events: none;
   animation: rail-run 9s linear infinite;
 }
@@ -1159,12 +1143,20 @@
      frame flat. */
   perspective: 900px;
   display: flex;
-  flex: none;
-  /* Wider than it was, because the tile has to hold a whole rules sentence.
-     At 1.59 every description wrapped past the frame and was cut mid-word by
-     the frame's overflow — no ellipsis, no warning, and no hover to recover
-     it on a controller. Six of these still fit the rail without scrolling. */
-  width: calc(var(--card-w) * 1.88);
+  /* The hand grows into the rail rather than leaving a hole in it.
+     
+     At four sigils on a 1366-wide screen the fixed-width tiles left about
+     three hundred pixels of bare brass to the right of the row — the largest
+     single piece of dead space on the table screen. Letting the tiles share
+     out whatever the row does not use spends that space on the thing the
+     player most wants bigger, and costs nothing at six sigils, where they sit
+     at their floor and the row scrolls exactly as it did.
+     
+     The floor is the width the longest brief needs; the ceiling stops two
+     sigils on an ultrawide from becoming posters. */
+  flex: 1 1 auto;
+  min-width: calc(var(--card-w) * 2.3);
+  max-width: calc(var(--card-w) * 3.4);
   cursor: default;
   transform-origin: bottom center;
 }
@@ -1259,7 +1251,7 @@
   z-index: 1;
   padding: 3px 4px;
   border-radius: var(--r-xs);
-  background: rgba(14, 11, 9, 0.9);
+  background: rgba(10, 13, 36, 0.9);
   border: 1px solid var(--line);
   font-size: 12px;
   font-weight: 700;
@@ -1460,7 +1452,7 @@
   top: -7px; right: -7px;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: rgba(9, 7, 6, 0.95);
+  background: rgba(8, 10, 30, 0.95);
   border: 1px solid var(--line);
   color: var(--text-4);
   font-size: 12px;
@@ -1516,14 +1508,15 @@
 
 .actionbar {
   position: relative;
-  min-height: 74px;
+  /* Trimmed. This was 116px of chrome holding a 48px row of buttons, on a
+     screen where the table itself only got 52% of the height. */
+  min-height: 60px;
   display: grid;
   place-items: center;
-  padding: var(--s-2) var(--s-4) var(--s-4);
+  padding: var(--s-2) var(--s-4);
   /* The piece of glass the frame is sitting on, flat, with came along the top
      where it meets the brass. */
-  background: var(--glass-deep);
-  box-shadow: inset 0 2px 0 var(--lead);
+  background: #140e28;
   z-index: var(--z-ui);
 }
 .actionbar::before {
@@ -1621,7 +1614,7 @@
   gap: 6px;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
-  background: rgba(9, 7, 6, 0.6);
+  background: rgba(8, 10, 30, 0.6);
   border: 1px solid var(--line-soft);
   overflow: hidden;
   min-height: 0;   /* a 0fr row only collapses if its item can shrink */
@@ -1670,7 +1663,7 @@
   gap: var(--s-3);
   padding: 9px 9px 9px 16px;
   border-radius: var(--r-pill);
-  background: rgba(14, 11, 9, 0.96);
+  background: rgba(10, 13, 36, 0.96);
   border: 1px solid var(--veil);
   box-shadow: var(--e-3), 0 0 32px rgba(110, 200, 255, 0.35);
   font-size: var(--fs-sm);
@@ -1739,12 +1732,12 @@
   gap: var(--s-3);
   padding: 9px 12px;
   border-radius: var(--r-md);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   border: 1px solid var(--line-soft);
   border-left: 3px solid var(--school);
 }
 .stack-item.is-top {
-  background: color-mix(in srgb, var(--school) 10%, rgba(9, 7, 6, 0.5));
+  background: color-mix(in srgb, var(--school) 10%, rgba(8, 10, 30, 0.5));
   box-shadow: 0 0 20px color-mix(in srgb, var(--school) 30%, transparent);
 }
 /* Opacity and the strike-through only. The punch itself is a framer animation
@@ -1807,7 +1800,7 @@
   padding: 10px 13px;
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--school) 40%, transparent);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   text-align: left;
   transition: border-color var(--t-fast) var(--ease-out),
               background var(--t-fast) var(--ease-out),
@@ -1931,7 +1924,7 @@
   padding: 10px 13px;
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--mark) 35%, transparent);
-  background: rgba(9, 7, 6, 0.5);
+  background: rgba(8, 10, 30, 0.5);
   text-align: left;
   transition: border-color var(--t-fast) var(--ease-out),
               transform var(--t-fast) var(--ease-out);
@@ -2405,7 +2398,7 @@
   border-radius: var(--r-lg);
   border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
   border-left: 5px solid var(--school);
-  background: color-mix(in srgb, var(--school) 9%, rgba(9, 7, 6, 0.55));
+  background: color-mix(in srgb, var(--school) 9%, rgba(8, 10, 30, 0.55));
 }
 .stack-feature__glyph {
   display: grid;
@@ -2462,7 +2455,6 @@
    text was 10px on a tile about one and a half playing cards tall. The tile is
    now larger and every line on it scales with the card size, so it grows on a
    big screen instead of staying fixed at the size that fits a Steam Deck. */
-.sigil { width: calc(var(--card-w) * 2.3); }
 .rail-sigils { min-height: calc(var(--card-h) * 1.78); }
 .sigil-frame { min-height: calc(var(--card-h) * 1.78); padding: 10px 10px 8px; }
 .sigil-name { font-size: clamp(12px, calc(var(--card-h) * 0.12), 18px); }
