@@ -97,7 +97,7 @@
   width: min(460px, 100%);
   padding: var(--s-6);
   border-radius: var(--r-xl);
-  background: linear-gradient(180deg, #241a24, #10141f);
+  background: var(--glass-dark);
   border: 1px solid rgba(244, 87, 111, 0.35);
   box-shadow: var(--e-4), 0 0 80px rgba(244, 87, 111, 0.12);
 }

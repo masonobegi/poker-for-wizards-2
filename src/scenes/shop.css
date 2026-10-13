@@ -7,7 +7,7 @@
   padding: var(--s-4);
   /* Warm black, like everything the lamp is not reaching, with enough shape
      in it that the panel is not floating on a flat wash. */
-  background: radial-gradient(120% 90% at 50% 40%, rgba(22, 14, 8, 0.82), rgba(6, 4, 3, 0.94));
+  background: rgba(5, 6, 20, 0.88);
 }
 
 .shop-panel {
@@ -21,8 +21,7 @@
      It used to open a purple-lit surface over a bottle-green table under a
      brass lamp — the one screen the player is sent to every three hands, in
      a colour that appeared nowhere else in the game. */
-  --plate-fill-a: #262320;
-  --plate-fill-b: #141110;
+  --plate-fill: #101c52;
 }
 
 .shop-head {
@@ -36,7 +35,7 @@
   font-size: var(--fs-2xl);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #fff6dd, var(--gold) 55%, var(--gold-deep));
+  background: var(--brass-hi);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -77,11 +76,7 @@
   /* Printed on the same bone stock as a sigil in hand and a playing card on
      the felt, in one ink. `#101427` was the last hard-coded blue-black left
      in the game. */
-  background:
-    var(--grain),
-    linear-gradient(168deg,
-      color-mix(in srgb, var(--accent) 5%, var(--card-face)),
-      color-mix(in srgb, var(--accent) 10%, var(--card-face-2)));
+  background: var(--grain), color-mix(in srgb, var(--accent) 7%, var(--card-face));
   border: 1px solid color-mix(in srgb, var(--accent) 55%, #2b2519);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
@@ -299,4 +294,4 @@
   .scribe-strip .btn { grid-column: 1 / -1; }
 }
 .scribe-replace { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.scribe-preset.is-on { color: var(--void); background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-color: var(--gold); }
+.scribe-preset.is-on { color: var(--void); background: var(--brass-hi); border-color: var(--gold); }

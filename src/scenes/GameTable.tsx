@@ -244,13 +244,14 @@ export default function GameTable() {
 
       <main className="tbl-main">
         <div className="felt">
+          {/* The window, then the two things that live in front of it: the
+              ripple in the glass, and the motes in the light above the table.
+              The inlay, the lamp, the wear map and the sheen are gone — all
+              four were describing light falling on a smooth sheet, and the
+              surface is not a smooth sheet any more. */}
           <div className="felt-surface" aria-hidden>
-            <div className="felt-nap" />
-            <div className="felt-inlay" />
             <FeltArcana />
-            <div className="felt-lamp" />
-            <div className="felt-wear" />
-            <div className="felt-shimmer" />
+            <div className="felt-nap" />
             <FeltDust />
           </div>
           <div className="felt-rail" aria-hidden />

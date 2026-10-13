@@ -97,9 +97,9 @@ void main() {
   // the room it built was unlit and grim under a game whose whole subject is
   // magic doing delightful things to a deck. A night sky is still dark enough
   // to read a card against; it is not the same as an unlit one.
-  vec3 night = vec3(0.035, 0.055, 0.195);
-  vec3 dusk  = vec3(0.090, 0.135, 0.400);
-  vec3 jade  = vec3(0.145, 0.200, 0.560);
+  vec3 night = vec3(0.045, 0.062, 0.230);
+  vec3 dusk  = vec3(0.115, 0.160, 0.470);
+  vec3 jade  = vec3(0.190, 0.245, 0.640);
 
   vec3 col = mix(night, dusk, smoothstep(0.18, 0.95, weather));
   col = mix(col, jade, smoothstep(0.55, 1.0, weather) * (0.26 + 0.30 * uAtTable));
@@ -179,6 +179,38 @@ void main() {
   // Vignette, so the edges of the screen stay out of the way of the UI.
   float vig = smoothstep(1.38, 0.28, length((uv - 0.5) * vec2(1.05, 1.0)) * 1.55);
   col *= 0.42 + 0.58 * vig;
+
+  // --- the sky is glass too -------------------------------------------------
+  // Everything above this line is a smooth field: two octaves of fbm, two
+  // aurora curtains, a bloom, a pool of warm light and a vignette, all of them
+  // ramps. Behind a table made of flat pieces of glass in heavy lead, a
+  // smoothly shaded sky is the thing that gives the whole screen away as
+  // rendered — and "take away the gradients" has to mean the shader too, or it
+  // means nothing.
+  //
+  // So the sky is cut into pieces as well. The colour is snapped to a fixed
+  // number of levels, which turns every one of those smooth ramps into a set
+  // of flat regions with hard edges between them. The shapes are the noise's
+  // own, so they are irregular the way hand-cut glass is, and they drift and
+  // change as the weather moves under them — a piece of sky is one colour,
+  // then it is the next one, which is exactly how the window on the table
+  // behaves.
+  //
+  // Quantised through a gamma rather than linearly: this palette lives almost
+  // entirely in the bottom third of the range, and even steps there put nearly
+  // every pixel in the first two bands and crush the sky to two colours.
+  const float LEVELS = 5.0;
+  vec3 g6 = pow(max(col, 0.0), vec3(0.4545));
+  col = pow(floor(g6 * LEVELS + 0.5) / LEVELS, vec3(2.2));
+
+  // The came between them. A fraction is near zero on either side of a step, so
+  // the distance from the middle of a band finds the boundaries without
+  // needing derivatives (WebGL 1, no OES_standard_derivatives on the machines
+  // this has to run on). Only darkened a little — this is lead seen against a
+  // night sky, not against the lit glass of the table.
+  float step6 = fract(dot(g6, vec3(0.333)) * LEVELS);
+  float came = smoothstep(0.5, 0.42, abs(step6 - 0.5));
+  col *= 1.0 - came * 0.46;
 
   gl_FragColor = vec4(col, 1.0);
 }

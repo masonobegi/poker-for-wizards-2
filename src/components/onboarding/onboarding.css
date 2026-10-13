@@ -134,14 +134,16 @@
   border: 1px solid var(--line);
 }
 .intro-mana__pip.is-lit {
-  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold-deep));
+  background: var(--gold-hi);
+  box-shadow: inset 0 0 0 2px var(--gold-deep);
   border-color: var(--gold);
   box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 50%, transparent);
 }
 .intro-mana__value { font-size: var(--fs-sm); font-weight: 700; color: var(--text-2); }
 .intro-mana.is-warn { border-color: rgba(244, 87, 111, 0.4); }
 .intro-mana.is-warn .intro-mana__pip.is-lit {
-  background: radial-gradient(circle at 35% 30%, #ffb3bd, var(--ruin-deep));
+  background: #ffb3bd;
+  box-shadow: inset 0 0 0 2px var(--ruin-deep);
   border-color: var(--ruin);
   box-shadow: 0 0 8px rgba(255, 122, 138, 0.5);
 }

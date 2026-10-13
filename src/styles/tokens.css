@@ -49,15 +49,41 @@
   --line:        #e8c168;
   --line-soft:   #35479c;
 
-  /* --- felt ---------------------------------------------------------------
-     A real card-table green, dirty and nearly black at the rail. This is the
-     single loudest signal in the whole interface that the thing on screen is
-     a table and not a dashboard. */
-  --felt-core:   #2c4fc4;
-  --felt-mid:    #1d3796;
-  --felt-edge:   #122259;
-  --rail:        #a8762a;
-  --rail-hi:     #ffe09c;
+  /* --- glass ---------------------------------------------------------------
+     The one idea the whole interface is built out of: leaded glass, lit from
+     behind. Every one of these is a FLAT fill. Nothing in this file ramps into
+     anything else, and nothing that uses these is allowed to either — if a
+     surface needs to be lighter in one place, it becomes a second piece of
+     glass with a line of came between, which is the only way light changes
+     across a real window.
+
+     The values are deep on purpose. Glass seen from inside a building reads
+     dark even in full sun; a pale pane here would put a bright field directly
+     behind a bone-white playing card. */
+  --glass-deep:  #101d5e;   /* the centre light, where the cards land */
+  --glass:       #1b2f86;   /* the common blue of the second order */
+  --glass-dark:  #142469;   /* its partner, alternating */
+  --glass-lit:   #2b49bd;   /* a piece with the sun behind it */
+
+  /* Came: the lead that holds every piece. The heaviest mark in the game and
+     the thing that does the drawing. Near-black, with just enough blue in it
+     to belong to the window rather than sitting on top of it. */
+  --lead:        #080a1e;
+  --lead-soft:   #141a3c;
+
+  /* The frame the window is set into, and the solder. Two flat tones, never
+     a ramp — a facet is a flat plane with a hard edge. */
+  --brass:       #9a6c23;
+  --brass-hi:    #e8b949;
+  --brass-deep:  #4d3310;
+
+  /* Kept: a few places still ask for these by name. They now point at the
+     glass, so nothing is left describing a cloth that no longer exists. */
+  --felt-core:   var(--glass);
+  --felt-mid:    var(--glass);
+  --felt-edge:   var(--glass-deep);
+  --rail:        var(--brass);
+  --rail-hi:     var(--brass-hi);
 
   /* --- text ---------------------------------------------------------------
      Bone, not blue-white. Paper that has been somewhere. */

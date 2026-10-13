@@ -66,10 +66,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 120% 80% at 50% -10%, color-mix(in srgb, var(--entropy-deep) 28%, transparent), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--felt-core) 35%, transparent), transparent 60%),
-    var(--void);
+  /* Flat. This is what shows when the shader does not start, and a pair of
+     soft radial washes behind a game made entirely of flat pieces would be
+     the one surface still describing light on a curved sheet. */
+  background: var(--void);
 }
 
 /* A faint drifting starfield so the void is never flat black. */
@@ -137,7 +137,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .rule {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--line), transparent);
+  background: var(--line-soft);
   border: 0;
   margin: var(--s-4) 0;
 }
@@ -163,9 +163,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   position: relative;
   border: 0;
   border-radius: 2px;
-  background:
-    radial-gradient(110% 80% at 50% -10%, rgba(170, 120, 255, 0.34), transparent 60%),
-    linear-gradient(180deg, #27368f, #141d55);
+  background: var(--glass-dark);
   box-shadow:
     inset 0 0 0 1px var(--plate-rule),
     inset 0 0 0 4px rgba(9, 7, 6, 0.5),
@@ -237,83 +235,101 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* ===========================================================================
    GILT — the display treatment
    ---------------------------------------------------------------------------
-   The one thing this interface was missing, and the reason a bright palette
-   still read as flat and uninspired: a palette is not an art direction. Every
-   title in the game was the display face in flat gold, which is ink. A game
-   with a committed look treats its titles as an *object* — struck metal with a
-   gradient down its face, an ink outline, a hard shadow under it, and a glow
-   coming off it.
+   Gold that has been FIRED INTO GLASS, not gold that has been shaded.
 
-   Four layers, in paint order:
-     1. a vertical gradient down the letterform, pale gold to deep bronze, so
-        the face of each letter is lit at the top and in shadow at the bottom;
-     2. a one-pixel ink outline on all four sides, which is what separates it
-        from whatever it is sitting on;
-     3. a hard offset shadow — the letter standing proud of the surface;
-     4. a soft glow, because in this game gold is a light source.
+   This was a four-stop vertical gradient down the letterform — pale gold at
+   the cap, deep bronze at the baseline — which is how you draw struck metal,
+   and it was the loudest remaining ramp in the game. A window does not have
+   that colour. Silver stain is one flat yellow, and the only reason you can
+   read it against the glass behind it is the black enamel line round every
+   letter.
 
-   The outline is drawn with stacked drop-shadows rather than
-   `-webkit-text-stroke`, which paints the stroke OVER the fill and eats the
-   gradient's lightest values.
+   So: one flat gold, and a heavy black outline doing all the work. Three
+   layers, in paint order:
+     1. the flat fill;
+     2. a two-pixel outline on all eight compass points, which is what makes
+        the title legible on any colour of glass it lands on;
+     3. a soft halo, because in this game light comes through from behind.
+
+   The outline is stacked drop-shadows rather than `-webkit-text-stroke`, which
+   paints the stroke OVER the fill and eats a display face's thin strokes.
    =========================================================================== */
 .hx-gilt,
 .menu-title,
 .pot-amount,
 .showdown-title {
-  background: linear-gradient(177deg,
-    #fff6d4 0%,
-    #ffd957 38%,
-    #e0a521 66%,
-    #9a6708 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: var(--brass-hi);
+  -webkit-text-fill-color: var(--brass-hi);
   filter:
-    drop-shadow(1px 0 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(-1px 0 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 1px 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 -1px 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 3px 0 rgba(8, 5, 22, 0.55))
-    drop-shadow(0 0 18px rgba(255, 196, 70, 0.45));
+    drop-shadow(2px 0 0 var(--lead))
+    drop-shadow(-2px 0 0 var(--lead))
+    drop-shadow(0 2px 0 var(--lead))
+    drop-shadow(0 -2px 0 var(--lead))
+    drop-shadow(1.4px 1.4px 0 var(--lead))
+    drop-shadow(-1.4px 1.4px 0 var(--lead))
+    drop-shadow(1.4px -1.4px 0 var(--lead))
+    drop-shadow(-1.4px -1.4px 0 var(--lead))
+    drop-shadow(0 0 16px rgba(232, 185, 73, 0.4));
 }
 
-/* The same strike in the school's own colour, for a spell's name. */
+/* The same stain in the school's own colour, for a spell's name. */
 .hx-gilt--school {
-  background: linear-gradient(177deg,
-    color-mix(in srgb, var(--school, #ffd23f) 35%, #ffffff) 0%,
-    var(--school, #ffd23f) 46%,
-    color-mix(in srgb, var(--school, #ffd23f) 62%, #1a1040) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: var(--school, #e8b949);
+  -webkit-text-fill-color: var(--school, #e8b949);
   filter:
-    drop-shadow(1px 0 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(-1px 0 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 1px 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 -1px 0 rgba(14, 9, 34, 0.95))
-    drop-shadow(0 3px 0 rgba(8, 5, 22, 0.55))
-    drop-shadow(0 0 20px color-mix(in srgb, var(--school, #ffd23f) 55%, transparent));
+    drop-shadow(2px 0 0 var(--lead))
+    drop-shadow(-2px 0 0 var(--lead))
+    drop-shadow(0 2px 0 var(--lead))
+    drop-shadow(0 -2px 0 var(--lead))
+    drop-shadow(1.4px 1.4px 0 var(--lead))
+    drop-shadow(-1.4px 1.4px 0 var(--lead))
+    drop-shadow(1.4px -1.4px 0 var(--lead))
+    drop-shadow(-1.4px -1.4px 0 var(--lead))
+    drop-shadow(0 0 18px color-mix(in srgb, var(--school, #e8b949) 50%, transparent));
 }
 
+/* ---------------------------------------------------------------------------
+   The plate: one piece of glass in a lead frame.
+
+   It was a chamfered panel filled with a vertical gradient and four radial
+   lights — a top light, a cool bounce low and to one side, and two faint rings
+   — all of which were describing a curved, polished surface catching a lamp.
+   Set next to a window made of flat pieces it was the thing that still looked
+   rendered.
+
+   Now it is built the way every other surface in the game is: one flat fill,
+   and a line round it. The line is heavy — 3px of came — because that is what
+   separates a piece of glass from whatever it is lying on, and in this
+   interface it is doing the job the glow and the blur used to.
+
+   What stays, because none of it is a ramp:
+     - the CHAMFER. Two opposite corners cut flat. Nothing in a browser looks
+       like this by accident, and a cut corner is how a glazier gets a straight
+       piece into a curved frame.
+     - the BRASS HAIRLINE just inside the came — solder.
+     - the REGISTRATION TICKS at the two square corners.
+     - the GRAIN, which is the ripple in old glass and the one texture a flat
+       fill genuinely cannot do on its own.
+     - the BREATHE: a slow halo off the edge. Light behind glass is weather,
+       and it is the only animation on an idle panel.
+   --------------------------------------------------------------------------- */
 .hx-plate {
   --cut: 20px;
-  --plate-rule: rgba(255, 210, 63, 0.52);
-  --plate-fill-a: #27368f;
-  --plate-fill-b: #141d55;
+  --plate-lead: var(--lead);
+  --plate-fill: var(--glass-dark);
+  --plate-stain: rgba(232, 185, 73, 0.5);
 
   position: relative;
   isolation: isolate;
   border: 0;
   border-radius: 0;
 
-  /* The element's own background IS the rule. The fill is laid over it by
-     `::before`, inset by the rule's width and clipped to the same shape, so
-     the line follows the chamfer instead of being sliced off by it — which is
+  /* The element's own background IS the came. The glass is laid over it by
+     `::before`, inset by the came's width and clipped to the same shape, so
+     the lead follows the chamfer instead of being sliced off by it — which is
      what `inset box-shadow` plus `clip-path` does, and why the first version
      had bare diagonal corners. */
-  background: var(--plate-rule);
+  background: var(--plate-lead);
   clip-path: polygon(
     var(--cut) 0,
     100% 0,
@@ -322,14 +338,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     0 100%,
     0 var(--cut)
   );
-  box-shadow: var(--e-4), 0 0 0 0 rgba(255, 210, 63, 0);
+  box-shadow: var(--e-4), 0 0 0 0 rgba(232, 185, 73, 0);
   animation: plate-breathe 6.5s ease-in-out infinite;
 }
 
-/* The glow travels from nothing to a soft gold halo and back. Kept outside the
-   clip-path so it reads as light coming off the plate rather than a border. */
+/* The halo travels from nothing to a soft gold light and back. Kept outside
+   the clip-path so it reads as light coming through the glass rather than as
+   a border. */
 @keyframes plate-breathe {
-  0%, 100% { box-shadow: var(--e-4), 0 0 18px -6px rgba(255, 210, 63, 0.26); }
+  0%, 100% { box-shadow: var(--e-4), 0 0 18px -6px rgba(232, 185, 73, 0.26); }
   50%      { box-shadow: var(--e-4), 0 0 34px -4px rgba(255, 208, 120, 0.40); }
 }
 
@@ -340,49 +357,38 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   box-shadow: var(--e-4), 0 0 24px -5px rgba(255, 208, 120, 0.30);
 }
 
-/* The fill, and with it the second rule of the double line: the gap between
-   this inset and the next is the dark channel a printed plate has. */
+/* The glass itself: one flat colour, and the solder line inside the came. */
 .hx-plate::before {
   content: '';
   position: absolute;
-  inset: 1px;
+  inset: 3px;
   z-index: -1;
   pointer-events: none;
-  background:
-    /* the print mesh every flat panel carries (see ui.css) — here, because
-       this pseudo-element is the plate's fill and must not be displaced */
-    var(--grain),
-    /* one faint ring, off-centre so it never reads as a loading spinner */
-    radial-gradient(circle at 80% 16%, transparent 70px, rgba(240, 196, 101, 0.055) 71px, rgba(240, 196, 101, 0.055) 72px, transparent 73px),
-    radial-gradient(circle at 80% 16%, transparent 104px, rgba(240, 196, 101, 0.03) 105px, transparent 106px),
-    radial-gradient(120% 90% at 50% -10%, rgba(255, 214, 140, 0.30), transparent 62%),
-    /* A second light, low and off to one side, so the fill has a lit corner
-       and a shadowed one instead of reading as a single matte sheet. */
-    radial-gradient(90% 70% at 88% 108%, rgba(90, 140, 255, 0.22), transparent 64%),
-    linear-gradient(177deg, var(--plate-fill-a), var(--plate-fill-b) 72%, #0d1442 100%);
-  box-shadow: inset 0 0 0 4px rgba(9, 7, 6, 0.55), inset 0 0 0 5px rgba(240, 196, 101, 0.14);
+  background: var(--grain), var(--plate-fill);
+  box-shadow: inset 0 0 0 1px var(--plate-stain);
   clip-path: polygon(
-    calc(var(--cut) - 1px) 0,
+    calc(var(--cut) - 3px) 0,
     100% 0,
-    100% calc(100% - var(--cut) + 1px),
-    calc(100% - var(--cut) + 1px) 100%,
+    100% calc(100% - var(--cut) + 3px),
+    calc(100% - var(--cut) + 3px) 100%,
     0 100%,
-    0 calc(var(--cut) - 1px)
+    0 calc(var(--cut) - 3px)
   );
 }
 
 /* Registration marks at the two corners the chamfer leaves square, the way a
-   ritual diagram is squared up. Drawn as gradients so they add no box. */
+   ritual diagram is squared up. Drawn as background slabs so they add no box
+   — these are solid fills at an exact size, not ramps. */
 .hx-plate::after {
   content: '';
   position: absolute;
   inset: 11px;
   pointer-events: none;
   background:
-    linear-gradient(var(--plate-rule), var(--plate-rule)) right top / 14px 1px no-repeat,
-    linear-gradient(var(--plate-rule), var(--plate-rule)) right top / 1px 14px no-repeat,
-    linear-gradient(var(--plate-rule), var(--plate-rule)) left bottom / 14px 1px no-repeat,
-    linear-gradient(var(--plate-rule), var(--plate-rule)) left bottom / 1px 14px no-repeat;
+    linear-gradient(var(--plate-stain), var(--plate-stain)) right top / 14px 1px no-repeat,
+    linear-gradient(var(--plate-stain), var(--plate-stain)) right top / 1px 14px no-repeat,
+    linear-gradient(var(--plate-stain), var(--plate-stain)) left bottom / 14px 1px no-repeat,
+    linear-gradient(var(--plate-stain), var(--plate-stain)) left bottom / 1px 14px no-repeat;
 }
 
 /* A plate small enough that a 20px cut would eat its content. */

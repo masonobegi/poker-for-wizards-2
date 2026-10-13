@@ -74,21 +74,34 @@
   width: 100%;
 }
 
-/* --- felt ----------------------------------------------------------------
-   A lit object in a dark room, built in layers from the cloth up:
+/* --- the table top -------------------------------------------------------
+   One object, one idea: a rose window of leaded glass, laid flat and lit from
+   underneath.
 
-     felt-surface  the dyed wool itself, dark, with almost no light of its own
-     felt-nap      the fibre — a fine noise plate, soft-light, so the weave
-                   catches the lamp instead of the colour looking painted on
-     felt-inlay    the house's mark, printed into the cloth rather than drawn
-                   over it: it takes the lamp like everything else does
-     felt-lamp     the single light source, off-centre on purpose
-     felt-wear     the years — a scuffed band where elbows and chips live
-     felt-rail     the padded leather lip, with a lit top and a shadowed face
+   This replaces a stack of seven layers — a radial-gradient cloth, a fibre
+   plate, two gold rings, a three-stop lamp, a wear map and a sweeping sheen —
+   that between them held about twenty gradients and still read, correctly, as
+   "a blue poker table". The problem was never that there was too little on the
+   surface. It was that every layer described light falling on a smooth sheet,
+   and a smooth sheet lit smoothly is what a renderer makes when nobody has
+   decided what the thing is.
 
-   The order matters. The lamp sits *above* the nap and the inlay so that both
-   are modelled by it, which is the whole difference between a texture and a
-   material.
+   A window decides. Glass comes in pieces; a piece is one flat colour from
+   edge to edge; the only way light changes across a window is by changing to
+   a different piece. So there is not one gradient left on this surface, and
+   there cannot be one. What was doing the shading is now doing the drawing:
+   4px of near-black came around every piece of glass in the window.
+
+   The layers that remain:
+
+     felt-surface  the aperture — an ellipse, a hard dark edge, a shadow under
+                   it. It holds the window; it is not itself a material.
+     felt-arcana   the window (FeltArcana.tsx). This IS the table top.
+     felt-nap      ripple. Old glass is full of it, and it is the one thing a
+                   flat fill genuinely cannot do on its own.
+     felt-dust     motes in the light above the table.
+     felt-rail     the frame the window is set into: flat brass, two tones, a
+                   hard line between them instead of a bevel.
    --------------------------------------------------------------------------- */
 
 .felt {
@@ -103,32 +116,33 @@
   inset: 4%;
   border-radius: 50% / 34%;
   overflow: hidden;
-  /* Darker and flatter than it used to be. The felt no longer lights itself;
-     it is lit, which is why it can have a shadow side at all. */
-  background:
-    radial-gradient(ellipse 78% 70% at var(--lamp-x) var(--lamp-y),
-      var(--felt-mid), var(--felt-edge) 72%, #0c1640 100%);
+  /* Flat. The window covers nearly all of this; what shows past its edge is
+     the dark of the aperture, not a lit sheet. */
+  background: var(--glass-deep);
   box-shadow:
-    inset 0 0 140px rgba(0, 0, 0, 0.82),
-    inset 0 2px 0 rgba(255, 255, 255, 0.035),
-    0 34px 90px rgba(0, 0, 0, 0.66);
+    /* The came continues round the rim: the window's outermost lead. */
+    inset 0 0 0 5px var(--lead),
+    0 30px 80px rgba(0, 0, 0, 0.7);
 }
 
-/* The gold plate drawn on the cloth (FeltArcana.tsx). Sits above the weave and
-   below everything that matters — cards, chips, seats — because the table must
-   never compete with the hand on it. */
+/* The window. Stretched to fill the ellipse — it is drawn to be stretched,
+   and its lead lines are `non-scaling-stroke` so they stay one weight however
+   wide the table gets.
+
+   No `mix-blend-mode`. The old plate was `screen`-blended gold scratched over
+   the cloth, and where it crossed a translucent card slot it showed through
+   from underneath while also lying on top, which is what made the centre of
+   the table look broken. Opaque glass cannot do that. */
 .felt-arcana {
   position: absolute;
-  inset: 4% 2%;
-  width: 96%;
-  height: 92%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  opacity: 0.9;
-  mix-blend-mode: screen;
 }
 
 /* The inscribed band: the display face, small, widely tracked and in small
-   caps — how words are actually cut into a plate rather than typed onto one. */
+   caps — how words are actually fired into glass rather than typed onto it. */
 .felt-arcana__band {
   font-family: var(--font-display);
   font-weight: 600;
@@ -136,161 +150,47 @@
   text-transform: lowercase;
 }
 
-/* The enchantment on the cloth.
+/* Weather behind the window.
  *
- * A slow band of spell-light drifting across the felt, plus a gentle breathe
- * on the whole surface. The table used to be a dead green ellipse that only
- * changed when a card landed on it; this is the cheapest way to make the
- * thing you stare at for a whole run feel alive rather than printed.
- *
- * Kept under the cards (z-index below --z-cards) and at low alpha, because a
- * surface that competes with the hand on it is worse than a still one.
+ * Six of the twelve lights in the first order cycle between two flat values on
+ * three long, offset periods. Nothing fades through a middle colour — it is
+ * one glass, then the other — so this reads as light changing behind the
+ * window rather than as an element animating. It is the whole of the table's
+ * idle life now that the sweeping sheen and the flickering lamp are gone, and
+ * it costs two compositor properties.
  */
-.felt-shimmer {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    linear-gradient(104deg,
-      transparent 32%,
-      rgba(140, 255, 214, 0.10) 46%,
-      rgba(198, 160, 255, 0.13) 54%,
-      transparent 68%);
-  background-size: 260% 100%;
-  mix-blend-mode: screen;
-  opacity: 0.85;
-  animation: felt-sheen 13s linear infinite;
+.rose-lit { animation: rose-weather 19s ease-in-out infinite; }
+.rose-lit--1 { animation-duration: 23s; animation-delay: -7s; }
+.rose-lit--2 { animation-duration: 29s; animation-delay: -13s; }
+
+@keyframes rose-weather {
+  0%, 44%   { filter: none; }
+  58%, 86%  { filter: brightness(1.45); }
+  100%      { filter: none; }
 }
 
-@keyframes felt-sheen {
-  0%   { background-position: 160% 0; }
-  100% { background-position: -60% 0; }
-}
+:root[data-reduced-motion='1'] .rose-lit { animation: none; }
 
-/* The sheen stops where it entered, not mid-sweep: a band frozen across the
-   middle of the felt reads as a rendering artefact, where one parked off the
-   edge reads as nothing at all, which is the correct resting state. */
-:root[data-reduced-motion='1'] .felt-shimmer {
-  animation: none;
-  background-position: 160% 0;
-}
-
-/* The weave. Two plates at different scales so it never reads as one tiling
-   pattern: a fine fibre and a coarse slub. Soft-light keeps it colourless —
-   it modulates the light on the cloth, it does not tint the cloth. */
+/* Ripple.
+ *
+ * The one place a flat fill is genuinely not enough: glass of this kind is
+ * drawn by hand and is never optically flat, so it has a slow waviness that
+ * catches the light. Soft-light keeps it colourless — it modulates the glass,
+ * it does not tint it. Two plates at different scales so it never reads as one
+ * tiling pattern. */
 .felt-nap {
   position: absolute;
   inset: 0;
   background-image: var(--nap), var(--nap);
-  background-size: 220px 220px, 73px 73px;
+  background-size: 300px 300px, 91px 91px;
   mix-blend-mode: soft-light;
-  opacity: 0.55;
+  opacity: 0.4;
   pointer-events: none;
-}
-
-/* The house mark, pressed into the cloth. A double rule, a ring of ticks and
-   a centre line — the flat, symmetrical vocabulary of something stamped by a
-   machine, which is what stops it reading as decoration. */
-.felt-inlay {
-  position: absolute;
-  inset: 11% 9%;
-  border-radius: 50% / 42%;
-  /* Gold drawn ON the cloth, at a weight you can actually see. These rings
-     were set at 0.045-0.11 alpha, which on a dark green felt was invisible
-     and on a sapphire one is the whole point of the table. */
-  border: 1px solid rgba(255, 216, 130, 0.55);
-  box-shadow:
-    inset 0 0 0 1px rgba(10, 20, 70, 0.55),
-    inset 0 0 0 7px transparent,
-    inset 0 0 0 8px rgba(255, 216, 130, 0.30),
-    inset 0 0 26px rgba(255, 200, 100, 0.10),
-    0 0 18px rgba(255, 200, 110, 0.12);
-  pointer-events: none;
-}
-
-/* A second, inner ring, the way an astrological plate has several. Drawn on
-   the same element so it costs no extra box. */
-.felt-inlay::after {
-  content: '';
-  position: absolute;
-  inset: 13% 10%;
-  border-radius: 50% / 42%;
-  border: 1px solid rgba(255, 216, 130, 0.26);
-  box-shadow: inset 0 0 0 4px rgba(255, 216, 130, 0.10);
-  pointer-events: none;
-}
-
-.felt-inlay::before {
-  /* Ticks around the ring, drawn as a masked conic sweep rather than 48
-     elements. */
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(255, 216, 130, 0.42) 0deg 0.45deg,
-    transparent 0.45deg 6deg);
-  -webkit-mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
-  mask: radial-gradient(ellipse closest-side, transparent 98.2%, #000 98.4%);
-}
-
-/* The lamp. Everything above this line is cloth; everything this does is
-   light falling on it. The tight core and the wide spill are separate stops
-   so the falloff is not a single linear ramp — real falloff never is. */
-.felt-lamp {
-  position: absolute;
-  /* Not `inset: -10%`. The spill was drawn on an oversized box and then
-     clipped away by `.felt-surface`'s `overflow: hidden`, so the extra 20%
-     bought nothing visible — it just made an element wider than the viewport,
-     which the playthrough harness flags at every phase and is right to. The
-     ellipse percentages below are scaled by the same 1.2 the box lost, so the
-     pool of light is the size it was. */
-  inset: 0;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse 41% 48% at var(--lamp-x) var(--lamp-y),
-      rgba(var(--lamp-warm), 0.30), rgba(var(--lamp-warm), 0.10) 46%, transparent 68%),
-    radial-gradient(ellipse 86% 94% at var(--lamp-x) var(--lamp-y),
-      rgba(var(--lamp-warm), 0.13), transparent 74%),
-    /* a cool bounce off the far rim, so the shadow side is coloured rather
-       than merely darker — flat shading is most of what read as matte */
-    radial-gradient(ellipse 70% 60% at 86% 86%,
-      rgba(90, 230, 210, 0.10), transparent 70%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  /* Filament flicker. Two-thirds of a percent of brightness, eight seconds
-     long — under the threshold of noticing and over the threshold of the
-     table feeling switched on. */
-  animation: felt-lamp-flicker 8.4s ease-in-out infinite;
-}
-
-@keyframes felt-lamp-flicker {
-  0%, 100% { opacity: 1; }
-  23%      { opacity: 0.955; }
-  41%      { opacity: 1.02; }
-  58%      { opacity: 0.972; }
-  79%      { opacity: 1.008; }
-}
-
-/* Wear. A cloth this old has a paler band where the chips get pushed and a
-   darker one under the rail where nothing ever moves. Both are elliptical and
-   both are off-axis, because symmetrical wear is not wear. */
-.felt-wear {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background:
-    radial-gradient(ellipse 30% 15% at 62% 71%, rgba(210, 205, 180, 0.05), transparent 70%),
-    radial-gradient(ellipse 22% 11% at 34% 66%, rgba(210, 205, 180, 0.035), transparent 72%),
-    radial-gradient(ellipse 60% 36% at 50% 104%, rgba(0, 0, 0, 0.5), transparent 70%),
-    radial-gradient(ellipse 54% 30% at 50% -6%, rgba(0, 0, 0, 0.42), transparent 70%);
+  z-index: 1;
 }
 
 /* The motes' canvas. Screen-blended so a mote can only ever add light, which
-   is what keeps them from showing up as grey specks on the dark side. */
+   is what keeps them from showing up as grey specks on the dark glass. */
 .felt-dust {
   position: absolute;
   inset: 0;
@@ -299,39 +199,32 @@
   mix-blend-mode: screen;
   pointer-events: none;
   opacity: 0.9;
+  z-index: 2;
 }
 
-/* The rail: a padded leather lip, not a stroke. It has a lit top edge on the
-   lamp's side, a shadowed face on the other, and a seam where the leather is
-   stitched down over the cloth. */
+/* The frame the window is set into.
+ *
+ * It was a six-stop brass gradient pretending to be a padded leather lip. A
+ * frame holding glass is made of metal and has facets, and a facet is a flat
+ * plane with a hard edge — so it is two flat tones with a line between them.
+ * The line is the thing that reads as an edge; the ramp never was. */
 .felt-rail {
   position: absolute;
   inset: 0;
   border-radius: 50% / 30%;
-  border: 13px solid transparent;
-  background:
-    linear-gradient(
-      172deg,
-      color-mix(in srgb, var(--rail-hi) 62%, var(--gold-hi)) 0%,
-      var(--rail-hi) 13%,
-      color-mix(in srgb, var(--rail) 60%, var(--rail-hi)) 38%,
-      var(--rail) 66%,
-      #241548 100%) border-box;
-  -webkit-mask:
-    linear-gradient(#000 0 0) padding-box exclude,
-    linear-gradient(#000 0 0);
-  mask:
-    linear-gradient(#000 0 0) padding-box exclude,
-    linear-gradient(#000 0 0);
-  opacity: 0.92;
+  border: 13px solid var(--brass);
   pointer-events: none;
   box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(0, 0, 0, 0.75),
+    /* lit facet inside, shadowed facet outside, came either side of both */
+    inset 0 0 0 1px var(--lead),
+    inset 0 0 0 5px var(--brass-hi),
+    inset 0 0 0 6px var(--lead),
+    0 0 0 1px var(--lead),
     0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
-/* The leather's own grain, and the stitch seam along its inner edge. */
+/* The brass's own hammer marks. Soft-light, so it modulates the metal without
+   tinting it — the same trick as the ripple on the glass. */
 .felt-rail::after {
   content: '';
   position: absolute;
@@ -348,8 +241,9 @@
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
   mix-blend-mode: soft-light;
-  opacity: 0.62;
+  opacity: 0.55;
 }
+
 
 /* --- the deck ------------------------------------------------------------
    Drawn as the *edge* of a stack rather than as a pile of card backs. From a
@@ -383,7 +277,7 @@
   position: absolute;
   inset: 0;
   border-radius: 4px;
-  background: linear-gradient(170deg, #2a2f36, #10161b);
+  background: #141a33;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
   transform: translate(calc(var(--i) * 0.9px), calc(var(--i) * 1.5px));
   opacity: calc(0.45 + var(--i) * 0.1);
@@ -396,7 +290,7 @@
   background:
     repeating-linear-gradient(46deg,
       rgba(212, 162, 74, 0.10) 0 1px, transparent 1px 5px),
-    linear-gradient(155deg, var(--card-back-1), var(--card-back-2));
+    var(--card-back-1);
   box-shadow:
     inset 0 0 0 1px rgba(212, 162, 74, 0.26),
     inset 0 0 0 3px rgba(0, 0, 0, 0.3),
@@ -472,7 +366,7 @@
   gap: 2px var(--s-2);
   padding: 6px 12px 6px 6px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #2f44a8 0%, #1e2c73 62%, #141d52 100%);
+  background: var(--glass);
   border: 1px solid var(--line-soft);
   border-top-color: color-mix(in srgb, var(--line) 70%, var(--gold-deep));
   box-shadow:
@@ -556,7 +450,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(180deg, #fff8e4, var(--gold-deep));
+  background: var(--brass-hi);
   color: #2d1a52;
   font-size: 12px;
   font-weight: 900;
@@ -694,7 +588,9 @@
 .seat-betchip {
   width: 13px; height: 13px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff3cf, var(--gold) 55%, var(--gold-deep));
+  background: var(--brass-hi);
+  box-sizing: border-box;
+  border: 2px solid var(--gold-deep);
   box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 60%, transparent), inset 0 -1px 2px rgba(0, 0, 0, 0.4);
 }
 
@@ -756,7 +652,7 @@
   transition: background var(--t-fast), box-shadow var(--t-fast);
 }
 .mana-pip.is-on {
-  background: radial-gradient(circle at 34% 30%, #d8bbff, var(--entropy) 60%, var(--entropy-deep));
+  background: var(--entropy);
   border-color: transparent;
   box-shadow: 0 0 7px color-mix(in srgb, var(--entropy) 85%, transparent);
 }
@@ -916,11 +812,14 @@
   border-radius: 50%;
   /* Stacked: each chip sits on the one below with only its edge showing. */
   margin-top: -5.5px;
-  background:
-    radial-gradient(ellipse 60% 70% at 50% 35%, color-mix(in srgb, var(--chip-rim) 55%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--chip-rim) 0%, var(--chip-face) 42%, color-mix(in srgb, var(--chip-face) 60%, #000) 100%);
+  /* A chip is two flat colours — a face and a painted rim — and a dark edge.
+     That is how a real one is made; the vertical ramp this replaces was
+     modelling a cylinder catching a lamp. */
+  background: var(--chip-face);
   box-shadow:
-    0 1px 0 color-mix(in srgb, var(--chip-face) 50%, #000),
+    inset 0 0 0 2px var(--chip-rim),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(0, 0, 0, 0.6),
     0 2px 3px rgba(0, 0, 0, 0.45);
 }
 .potchip.is-mid { --chip-face: #7d3438; --chip-rim: #bd6a6c; }
@@ -1048,6 +947,15 @@
  * line of light along its top edge and falls away to nothing at the bottom of
  * the screen — which is also why the action bar needs no border of its own.
  * It is the same piece of wood, further from the light. */
+/* The player's own rail: the frame continuing round the near side of the
+   window.
+
+   It was five stops of brass over two radial lights — a lit crown, a bevel
+   band, a shadow, and candlelight spilling over the edge — which is the honest
+   way to draw a rounded wooden lip and the wrong object entirely. The table is
+   glass in a metal frame now, so this is the frame: flat brass, a second flat
+   facet along the top where the metal turns, and a line of came between them
+   doing the work the bevel ramp used to. */
 .rail {
   position: relative;
   display: grid;
@@ -1055,26 +963,18 @@
   align-items: end;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-4) 0;
-  /* Enchanted wood rather than an unlit plank. These were four browns that
-     bypassed the palette entirely, which is why the whole lower third of the
-     screen stayed black after the tokens went violet. */
-  background:
-    /* candlelight spilling over the rail's near edge */
-    radial-gradient(130% 120% at 50% -14%, rgba(255, 224, 150, 0.26), transparent 58%),
-    /* the sapphire bounce off the cloth, on the far side */
-    radial-gradient(80% 140% at 12% 120%, rgba(70, 120, 255, 0.16), transparent 60%),
-    /* brass: a lit crown, a bright band where the bevel turns, then shadow */
-    linear-gradient(180deg,
-      #d9a84e 0%,
-      #a8762a 14%,
-      #7d5418 34%,
-      #2a2f6e 72%,
-      #141c4a 100%);
+  background: var(--brass);
   z-index: var(--z-ui);
-  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.55);
+  box-shadow:
+    /* the lit facet along the top, and the came that ends it */
+    inset 0 6px 0 var(--brass-hi),
+    inset 0 8px 0 var(--lead),
+    inset 0 -2px 0 var(--lead),
+    0 -16px 40px rgba(0, 0, 0, 0.55);
 }
 
-/* The grain, and the lit lip where the lamp clears the rail. */
+/* Hammer marks in the metal. Soft-light, so it modulates the brass without
+   tinting it. */
 .rail::before {
   content: '';
   position: absolute;
@@ -1082,36 +982,33 @@
   background-image: var(--fibre);
   background-size: 300px 300px;
   mix-blend-mode: soft-light;
-  opacity: 0.5;
+  opacity: 0.45;
   pointer-events: none;
 }
+
+/* A bright bead travelling along the lit facet. Two flat values, not a ramp:
+   it is a highlight sliding along polished metal, and it is the only motion on
+   a strip that takes up a third of the screen. */
 .rail::after {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent,
-    color-mix(in srgb, var(--rail-hi) 85%, var(--gold-hi)) 22%,
-    color-mix(in srgb, var(--rail-hi) 85%, var(--gold-hi)) 58%,
-    transparent);
-  opacity: 0.75;
+  height: 6px;
+  width: 170px;
+  background: var(--gold-hi);
+  opacity: 0.55;
   pointer-events: none;
-  background-size: 220% 100%;
   animation: rail-run 9s linear infinite;
 }
 
-/* Light running along the rail's lit lip. The rail is a third of the screen
-   and was a single matte band; this is what stops it reading as a painted
-   strip under the table. */
 @keyframes rail-run {
-  0%   { background-position: 120% 0; }
-  100% { background-position: -80% 0; }
+  0%   { transform: translateX(-180px); }
+  100% { transform: translateX(100vw); }
 }
 
 :root[data-reduced-motion='1'] .rail::after {
   animation: none;
-  background-position: 20% 0;
+  transform: translateX(22vw);
 }
 
 .rail-me {
@@ -1307,11 +1204,7 @@
   min-height: calc(var(--card-h) * 1.5);
   height: 100%;
   border-radius: var(--r-card);
-  background:
-    var(--grain),
-    linear-gradient(168deg,
-      color-mix(in srgb, var(--school) 5%, var(--card-face)),
-      color-mix(in srgb, var(--school) 9%, var(--card-face-2)));
+  background: var(--grain), color-mix(in srgb, var(--school) 7%, var(--card-face));
   border: 1px solid color-mix(in srgb, var(--school) 55%, #4a3180);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
@@ -1627,9 +1520,10 @@
   display: grid;
   place-items: center;
   padding: var(--s-2) var(--s-4) var(--s-4);
-  /* The same wood as `.rail`, further from the lamp. No border between them:
-     a rule there would cut one object into two panels. */
-  background: linear-gradient(180deg, #231340 0%, #1b0f36 70%, #160c2e 100%);
+  /* The piece of glass the frame is sitting on, flat, with came along the top
+     where it meets the brass. */
+  background: var(--glass-deep);
+  box-shadow: inset 0 2px 0 var(--lead);
   z-index: var(--z-ui);
 }
 .actionbar::before {
@@ -1882,7 +1776,7 @@
 }
 .stack-timerfill {
   height: 100%;
-  background: linear-gradient(90deg, var(--veil), var(--entropy));
+  background: var(--veil);
   transform-origin: left;
   will-change: transform;
   /* Driven by StackOverlay.tsx's custom properties — see ResponseTimer. */
@@ -2485,7 +2379,7 @@
   padding: var(--s-4);
   /* Light: this opens on every cast, and a screen that dims and brightens a
      few times a hand reads as flashing. The card is the focus, not the dark. */
-  background: radial-gradient(ellipse 60% 55% at 50% 46%, rgba(3, 4, 9, 0.34), rgba(3, 4, 9, 0.12) 70%, transparent);
+  background: rgba(3, 4, 9, 0.3);
 }
 /* A resolved spell is only being read: clicks pass through to the table,
    and the card itself dismisses on a click. */

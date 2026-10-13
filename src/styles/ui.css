@@ -136,7 +136,7 @@
   width: 18px; height: 18px;
   margin-top: -7px;
   border-radius: 50%;
-  background: linear-gradient(180deg, var(--gold-hi), var(--gold-deep));
+  background: var(--brass-hi);
   border: 1px solid rgba(0, 0, 0, 0.5);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 12px color-mix(in srgb, var(--gold) 40%, transparent);
   transition: transform var(--t-fast) var(--ease-out);
@@ -282,7 +282,7 @@
   display: grid;
   place-items: center;
   padding: var(--s-5);
-  background: radial-gradient(120% 90% at 50% 40%, rgba(22, 14, 8, 0.72), rgba(6, 4, 3, 0.9));
+  background: rgba(5, 6, 20, 0.84);
 }
 /* The modal is a plate (see base.css). `overflow: auto` and `clip-path` do
    not combine — the clip is applied to the padding box and a scrolled child
