@@ -101,15 +101,30 @@ function sweep(tol) {
   for (const sel of ['.rail-sigils', '.board-cards', '.tbl-sidetabs', '.ab-buttons']) {
     for (const row of document.querySelectorAll(sel)) {
       if (!vis(row)) continue;
-      const shown = [...row.children].filter(vis);
-      const kids = shown.filter(still).map(R);
+      // LAYOUT boxes, not painted ones. `getBoundingClientRect` includes every
+      // transform on the element and inside it, so a sigil whose frame is
+      // mid-pop reports a box 5px taller than its neighbours and the row looks
+      // crooked when the layout is square. `offsetTop/Height` ignore transforms
+      // entirely, which is the right question here: do these line up, not are
+      // they animating.
+      // Out-of-flow children are not in the row. `AnimatePresence` with
+      // `popLayout` absolutely positions a child while it exits, so a card
+      // being burned off the board sits wherever its exit arc has reached —
+      // which reported a gap of -479px between two community cards that were
+      // in fact eleven pixels apart like all the others.
+      const shown = [...row.children]
+        .filter(vis)
+        .filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed');
+      const kids = shown.map((k) => ({
+        top: k.offsetTop, bottom: k.offsetTop + k.offsetHeight,
+        left: k.offsetLeft, right: k.offsetLeft + k.offsetWidth,
+      }));
       if (kids.length < 2) continue;
-      // If a child was dropped for being mid-animation, the gap between the
-      // two either side of it is the hole where it is — not a defect. An
-      // exiting card under `AnimatePresence popLayout` is pulled out of flow
-      // and reported a 314px gap between its neighbours, which is the probe
-      // measuring its own filter.
-      const whole = kids.length === shown.length;
+      // (An exiting card under `AnimatePresence popLayout` is pulled out of
+      // flow, so it is not in `children` and leaves no hole to mis-measure —
+      // which is what reported a 314px gap between two sigils when this read
+      // painted boxes and filtered the transformed ones out.)
+      const whole = true;
       const dt = Math.max(...kids.map((k) => k.top)) - Math.min(...kids.map((k) => k.top));
       const db = Math.max(...kids.map((k) => k.bottom)) - Math.min(...kids.map((k) => k.bottom));
       if (dt > tol || db > tol) {

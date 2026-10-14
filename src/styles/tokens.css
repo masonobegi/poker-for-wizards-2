@@ -97,9 +97,18 @@
      Three tones of one material, exactly as the doc says: base, shadow,
      highlight. The felt is the indigo/purple stage rather than a blue dye,
      because in this palette that is what a lit floor is made of. */
-  --felt-lit:    var(--purple);
-  --felt-core:   var(--indigo);
-  --felt-edge:   var(--night);
+  /* The light is a RING, and the centre is the mid tone.
+  
+     The brightest band used to be the magenta `--purple` in the middle of the
+     table, which is where five bone-white cards land — so the one place on
+     the screen where contrast actually decides whether you can read the board
+     had the least of it, and the card shadows were falling across the hottest
+     colour in the palette. The lit tone is a ring outside the play area now,
+     and it is a lighter indigo rather than a magenta: a floor catching light,
+     not a spotlight pointed at the thing you are trying to read. */
+  --felt-core:   var(--indigo);   /* the centre, under the board */
+  --felt-lit:    #3a2d85;         /* the ring outside it */
+  --felt-edge:   var(--night);    /* turning down into the rail */
   --felt-mid:    var(--felt-core);
   --rail:        var(--wood-dark);
   --rail-hi:     var(--wood-light);
@@ -238,17 +247,22 @@
   --e-2: 0 2px 0 rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.32);
   --e-3: 0 3px 0 rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4);
   --e-4: 0 4px 0 rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.5);
-  /* A card resting on a surface: the hard line directly under it is where it
-     touches, the soft one is how far it is off. Both were too faint to read
-     against a lit brass rail, so a hand of sigils looked printed onto it. */
-  --e-card:
-    0 2px 0 rgba(0, 0, 0, 0.5),
-    0 5px 6px -2px rgba(0, 0, 0, 0.5),
-    0 14px 22px -6px rgba(0, 0, 0, 0.45);
-  --e-lift:
-    0 5px 0 rgba(0, 0, 0, 0.5),
-    0 12px 14px -4px rgba(0, 0, 0, 0.5),
-    0 30px 44px -8px rgba(0, 0, 0, 0.55);
+  /* A card resting on a surface: a flat silhouette, offset, in ink.
+  
+     These were soft translucent shadows — a hard line plus two blurred,
+     semi-transparent falls. On a lit material that is correct. On a floor made
+     of three FLAT tones with hard edges between them it is the one thing that
+     cannot work: a blurred alpha shadow lying across a tone boundary lets the
+     boundary show straight through itself, so the band's own edge runs through
+     the middle of the shadow and the whole thing reads as a smear that belongs
+     to neither tone. Which is exactly what "the card shadows look weirdly
+     lined up with the purple part" is describing.
+     
+     Pixel art has no alpha shadows. It has the shape again, in a darker
+     palette colour, moved a whole number of pixels. Opaque ink cannot reveal
+     what is under it, so it reads the same wherever it falls. */
+  --e-card: 4px 4px 0 var(--ink);
+  --e-lift: 8px 8px 0 var(--ink);
 
   /* --- print ---------------------------------------------------------------
      Texture, so a flat fill is not a dead one. `--grain` is a hairline mesh

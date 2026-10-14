@@ -89,8 +89,15 @@
   bottom: -9%;
   height: 18%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0) 72%);
-  filter: blur(3px);
+  /* A flat ellipse of ink, hard-edged.
+  
+     It was a blurred radial at 72% alpha, which is a soft shadow — and a soft
+     shadow over a floor of flat tones with hard edges picks up the edge
+     underneath it and smears across it. A character's ground shadow in this
+     style is a solid ellipse in a darker palette colour, which is also why it
+     survives being scaled through the deal arc without going muddy. */
+  background: var(--ink);
+  opacity: 0.4;
   pointer-events: none;
   transform-origin: center;
 }
