@@ -35,6 +35,7 @@
     "steam:manifest": "tsx scripts/steam-manifest.mjs",
     "audio": "node test/audio.mjs",
     "responsive": "node test/responsive.mjs",
+    "align": "node test/align.mjs",
     "audio:calibrate": "node scripts/calibrate-audio.mjs",
     "play:packaged": "node test/packaged.mjs",
     "steam:art": "python steam/make_art.py"
@@ -71,7 +72,7 @@
   "build": {
     "appId": "com.hexhold.game",
     "productName": "HEXHOLD",
-    "copyright": "Copyright © 2026 Mason Obegi",
+    "copyright": "Copyright \u00a9 2026 Mason Obegi",
     "directories": {
       "output": "release",
       "buildResources": "electron"

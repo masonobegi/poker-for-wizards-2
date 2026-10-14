@@ -277,13 +277,25 @@
 
   /* --- the lamp ------------------------------------------------------------
      There is one light in this room and it hangs over the table. It is
-     deliberately *not* centred: a light source on the axis of symmetry is the
-     one arrangement that produces no modelling at all, which is why every
-     screen in this game used to look flat. Off-centre, the felt has a bright
-     side and a dark side, cards catch an edge, and the rail has a lit lip and
-     a shadowed one. */
-  --lamp-x: 44%;
-  --lamp-y: 33%;
+     CENTRED, and that is a reversal worth writing down rather than quietly
+     editing. It used to sit at 44%/33%, and the argument for that was sound
+     while the felt was a smooth gradient: a light on the axis of symmetry
+     produces no modelling at all, so an off-centre one gave the cloth a bright
+     side and a dark side.
+
+     It stopped being sound the moment the fill became three hard bands. A soft
+     ramp centred off-axis reads as light; a HARD-EDGED ellipse centred off-axis
+     reads as a drawn shape, and a drawn shape sitting 6% left and 17% high
+     inside a table that is otherwise perfectly symmetric — with a gold inlay
+     ring, a dither ring and a rail all concentric on 50/50 — reads as the one
+     thing it is: somebody failed to centre it. Two near-concentric ellipses
+     with different centres is the most legible misalignment there is.
+
+     The light direction the old value was buying is carried by the rails
+     instead, which are lit along their top edge and fall away below, and by
+     the ink outlines. That is where pixel art puts it. */
+  --lamp-x: 50%;
+  --lamp-y: 50%;
   --lamp-warm: 255, 214, 140;
 
   /* --- motion ------------------------------------------------------------- */

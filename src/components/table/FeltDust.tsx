@@ -27,9 +27,11 @@ const FPS = 24;
 /** The buffer is deliberately coarse — a blurred mote has no detail to lose. */
 const RES = 0.5;
 
-/** Where the lamp hangs, in normalised felt space. Mirrors `--lamp-x/y`. */
-const LAMP_X = 0.44;
-const LAMP_Y = 0.33;
+/** Where the lamp hangs, in normalised felt space. Mirrors `--lamp-x/y`, which
+ *  is centred now — see the note on those tokens for why the off-centre value
+ *  it used to carry stopped being defensible once the felt became hard bands. */
+const LAMP_X = 0.5;
+const LAMP_Y = 0.5;
 
 interface Mote {
   x: number; y: number;
