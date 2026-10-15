@@ -1370,6 +1370,67 @@
   align-self: center;
 }
 
+
+/* ===========================================================================
+   Short windows
+   ---------------------------------------------------------------------------
+   The seats are sized for a table about nine hundred pixels tall. At 1366x768
+   and at the Electron minimum of 1024x680 the felt is 318px, the top seat is
+   144 of it, and the community cards are centred on the cloth — so the seat
+   opposite you has its POD on the middle card slot. Measured at 1024x680: the
+   strip runs 186-290 and the pod runs 132-212.
+
+   This is not a thing a nudge fixes. A seat anchored on an arc cannot move up
+   (its cards already overlap the rail and the header is above that), and the
+   strip cannot shrink enough to help — the board cards would have to be
+   smaller than the ones in your hand before it cleared, and even then it does
+   not. Something has to be smaller at this height, and it should be the SEAT:
+   the board is what the game is about and the opponent's nameplate is not.
+
+   So: the opponent's mana row goes beside their stack instead of under it,
+   the avatar comes down to 32px, and their two face-down cards tuck behind
+   the pod rather than standing above it. Nothing is removed — the pips, the
+   sigil count, the cards and the stack are all still there — the seat is just
+   90px instead of 144, which is what the room allows.
+   =========================================================================== */
+@media (max-height: 790px) {
+  .seat-pod {
+    grid-template-rows: auto;
+    padding: 4px 8px 4px 4px;
+    gap: 0 var(--s-2);
+    min-width: 120px;
+  }
+  /* The avatar spans one row now, not two. */
+  .seat-av { grid-row: auto; }
+  .seat-av .avatar { width: 32px; height: 32px; }
+  .seat-info { grid-row: auto; }
+  .seat-name { font-size: 12px; line-height: var(--lh-xs); }
+  .seat-chips { font-size: var(--fs-xs); line-height: var(--lh-xs); }
+  /* Beside the stack rather than under it. */
+  .seat-meta { grid-column: auto; gap: 4px; }
+
+  /* Tucked behind the pod: you still see the tops of both cards, and the
+     seat stops reaching into the middle of the table. The pull has to beat
+     the cards' own height, not the min-height — two backs at this size are
+     56px, so -22 left 34 of them standing and the seat was still 117px. */
+  .seat-cards {
+    min-height: 0;
+    margin-bottom: -40px;
+    position: relative;
+    z-index: -1;
+  }
+
+  /* The turn ring hangs 46px below the seat, which at this height is the
+     middle of the table. Over the pod instead, and smaller with it. */
+  .seat-timer {
+    top: 50%;
+    bottom: auto;
+    width: 58px;
+    height: 58px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* --- sigil cards -------------------------------------------------------- */
 
 .sigil {
