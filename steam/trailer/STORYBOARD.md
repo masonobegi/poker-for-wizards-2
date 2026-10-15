@@ -1,11 +1,18 @@
 # HEXHOLD trailer: storyboard
 
-Cut 2, 2026-10-11: re-paced so every word on screen can be read on first
-viewing. 81 seconds, 1920x1080 at 60 fps. Every shot is a real hand on the real
-game server, dealt from a stacked deck, with the spells cast through the
-engine. Text cards are short, in the game's own type (Cinzel, gold). The music
-is an original score rendered from code on a 120 BPM grid; the sound effects
-are the game's own synths.
+Cut 3, 2026-10-15: re-recorded on the arcade look. Same edit as cut 2 — the
+pacing was re-timed so every word can be read on first viewing and nothing
+about that changed — but the game underneath it is pixel art now, and so is
+the director's own layer. 81 seconds, 1920x1080 at 60 fps.
+
+Every shot is a real hand on the real game server, dealt from a stacked deck,
+with the spells cast through the engine. Text cards are short, in the game's
+own type: Bungee through three hard bands of gold, orange and red with a
+four-pixel ink outline, which is how the game sets a headline. (Cut 2 set them
+in Cinzel with a four-stop metal ramp and a 26px bloom. Re-recording without
+redrawing that would have put two products in one video, with the old one on
+top.) The music is an original score rendered from code on a 120 BPM grid; the
+sound effects are the game's own synths.
 
 The rule for every beat: a setup the viewer can read, one thing the player
 does, and what it gets them, in words that need no poker. Hand names the game

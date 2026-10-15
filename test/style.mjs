@@ -224,6 +224,22 @@ const probe = () => {
 
 // ---------------------------------------------------------------------------
 
+/*
+ * Every click in this file is bounded.
+ *
+ * Playwright's `click()` waits up to THIRTY SECONDS for an element to become
+ * actionable, and `.catch(() => {})` swallows the timeout rather than the
+ * wait. A play loop that clicks a hundred times past a button which is
+ * visible but covered — a toast over the action bar, a modal mid-transition —
+ * therefore takes fifty minutes and looks exactly like a hang. Three runs of
+ * this harness were killed as "stuck" before anyone looked at its CPU time:
+ * two seconds of it, after five minutes of waiting.
+ *
+ * A click in a play loop is a nudge. If it does not land in a second and a
+ * half, the next iteration will try again anyway.
+ */
+const NUDGE = { timeout: 1500 };
+
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: W, height: H } });
 const page = await ctx.newPage();
@@ -242,21 +258,21 @@ const sweep = async (name) => {
 if (await page.locator('text=/skip/i').first().isVisible().catch(() => false)) {
   await sweep('intro');
   const s = page.locator('button:has-text("Skip")').first();
-  if (await s.isVisible().catch(() => false)) await s.click().catch(() => {});
+  if (await s.isVisible().catch(() => false)) await s.click(NUDGE).catch(() => {});
   await page.waitForTimeout(600);
 }
 await sweep('menu');
 
 const practice = page.locator('button', { hasText: /practice vs bots/i }).first();
 for (let i = 0; i < 60; i++) { if (await practice.isEnabled().catch(() => false)) break; await page.waitForTimeout(250); }
-await practice.click().catch(() => {});
+await practice.click(NUDGE).catch(() => {});
 await page.waitForTimeout(3600);
 await sweep('table');
 
 for (const [label, sel] of [['codex', 'button:has-text("Codex")'], ['settings', 'button:has-text("Settings")'], ['log', 'button:has-text("Log")']]) {
   const b = page.locator(sel).first();
   if (await b.isVisible().catch(() => false)) {
-    await b.click().catch(() => {});
+    await b.click(NUDGE).catch(() => {});
     await sweep(label);
     await page.keyboard.press('Escape').catch(() => {});
     await page.waitForTimeout(400);
@@ -276,9 +292,9 @@ for (let i = 0; i < 110 && !(market && showdown); i++) {
     await sweep('showdown'); showdown = true;
   }
   const done = page.locator('button', { hasText: /^(done|next hand|continue)$/i }).first();
-  if (await done.isVisible().catch(() => false)) { await done.click().catch(() => {}); await page.waitForTimeout(250); continue; }
+  if (await done.isVisible().catch(() => false)) { await done.click(NUDGE).catch(() => {}); await page.waitForTimeout(250); continue; }
   const call = page.locator('.ab-buttons button').filter({ hasText: /^(Check|Call)/ }).first();
-  if (await call.isVisible().catch(() => false)) await call.click().catch(() => {});
+  if (await call.isVisible().catch(() => false)) await call.click(NUDGE).catch(() => {});
   await page.waitForTimeout(340);
 }
 

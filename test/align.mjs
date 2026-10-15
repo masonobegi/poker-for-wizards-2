@@ -221,6 +221,22 @@ function sweep(tol) {
 // Driver
 // ---------------------------------------------------------------------------
 
+/*
+ * Every click in this file is bounded.
+ *
+ * Playwright's `click()` waits up to THIRTY SECONDS for an element to become
+ * actionable, and `.catch(() => {})` swallows the timeout rather than the
+ * wait. A play loop that clicks a hundred times past a button which is
+ * visible but covered — a toast over the action bar, a modal mid-transition —
+ * therefore takes fifty minutes and looks exactly like a hang. Three runs of
+ * this harness were killed as "stuck" before anyone looked at its CPU time:
+ * two seconds of it, after five minutes of waiting.
+ *
+ * A click in a play loop is a nudge. If it does not land in a second and a
+ * half, the next iteration will try again anyway.
+ */
+const NUDGE = { timeout: 1500 };
+
 const browser = await launch();
 let total = 0;
 let soft = 0;
@@ -232,12 +248,12 @@ for (const [W, H] of SIZES) {
   await page.waitForTimeout(1600);
   if (await page.locator('text=/skip/i').first().isVisible().catch(() => false)) {
     const s = page.locator('button:has-text("Skip")').first();
-    if (await s.isVisible().catch(() => false)) await s.click().catch(() => {});
+    if (await s.isVisible().catch(() => false)) await s.click(NUDGE).catch(() => {});
     await page.waitForTimeout(400);
   }
   const practice = page.locator('button', { hasText: /practice vs bots/i }).first();
   for (let i = 0; i < 60; i++) { if (await practice.isEnabled().catch(() => false)) break; await page.waitForTimeout(250); }
-  await practice.click().catch(() => {});
+  await practice.click(NUDGE).catch(() => {});
   await page.waitForTimeout(3200);
 
   const seen = new Map();
@@ -249,9 +265,9 @@ for (const [W, H] of SIZES) {
     for (const [k, v] of Object.entries(bands)) (heights[k] ??= new Set()).add(v);
 
     const done = page.locator('button', { hasText: /^done$/i }).first();
-    if (await done.isVisible().catch(() => false)) { await done.click().catch(() => {}); await page.waitForTimeout(250); continue; }
+    if (await done.isVisible().catch(() => false)) { await done.click(NUDGE).catch(() => {}); await page.waitForTimeout(250); continue; }
     const call = page.locator('.ab-buttons button').filter({ hasText: /^(Check|Call)/ }).first();
-    if (await call.isVisible().catch(() => false)) await call.click().catch(() => {});
+    if (await call.isVisible().catch(() => false)) await call.click(NUDGE).catch(() => {});
     await page.waitForTimeout(380);
   }
   for (const [band, hs] of Object.entries(heights)) {

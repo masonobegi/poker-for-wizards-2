@@ -17,6 +17,22 @@ import path from 'node:path';
 
 const HEADED = process.argv.includes('--headed');
 const OUT = path.resolve('responsive');
+/*
+ * Every click in this file is bounded.
+ *
+ * Playwright's `click()` waits up to THIRTY SECONDS for an element to become
+ * actionable, and `.catch(() => {})` swallows the timeout rather than the
+ * wait. A play loop that clicks a hundred times past a button which is
+ * visible but covered — a toast over the action bar, a modal mid-transition —
+ * therefore takes fifty minutes and looks exactly like a hang. Three runs of
+ * the style harness were killed as "stuck" before anyone looked at the CPU
+ * time: two seconds of it, after five minutes of waiting.
+ *
+ * A click in a play loop is a nudge. If it does not land in a second and a
+ * half, the next iteration will try again anyway.
+ */
+const NUDGE = { timeout: 1500 };
+
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
 // Generous: a resolution needs three completed hands to reach the market
 // (handsPerAnte defaults to 3), and headless rendering at 4K/ultrawide is
@@ -457,12 +473,12 @@ async function skipIntro(page) {
     for (let i = 0; i < 3; i++) {
       const next = page.locator('button:has-text("Next")').first();
       if (await next.isVisible().catch(() => false)) {
-        await next.click().catch(() => {});
+        await next.click(NUDGE).catch(() => {});
         await page.waitForTimeout(150);
       }
     }
     const skip = page.locator('button:has-text("Skip")').first();
-    if (await skip.isVisible().catch(() => false)) await skip.click().catch(() => {});
+    if (await skip.isVisible().catch(() => false)) await skip.click(NUDGE).catch(() => {});
     await page.waitForTimeout(300);
   }
 }
@@ -522,7 +538,7 @@ async function runResolution(browser, res) {
       await ctx.close();
       return { res, fails, notes, seen };
     }
-    await practice.click().catch(() => {});
+    await practice.click(NUDGE).catch(() => {});
     /* Poll, do not guess.
        This was a flat `waitForTimeout(2500)` followed by one visibility check,
        and the table arrives in 0.7s on an idle machine and 2.1s on a busy one
@@ -557,7 +573,7 @@ async function runResolution(browser, res) {
         // Stack response window.
         const letResolve = page.locator('button:has-text("Let it resolve")').first();
         if (await letResolve.isVisible().catch(() => false)) {
-          await letResolve.click().catch(() => {});
+          await letResolve.click(NUDGE).catch(() => {});
           lastAct = Date.now();
           await page.waitForTimeout(200);
           continue;
@@ -568,7 +584,7 @@ async function runResolution(browser, res) {
         // hint cancel button keeps us unstuck if one appears.
         const cancelHint = page.locator('.tbl-targethint button').first();
         if (await cancelHint.isVisible().catch(() => false)) {
-          await cancelHint.click().catch(() => {});
+          await cancelHint.click(NUDGE).catch(() => {});
           await page.waitForTimeout(150);
         }
 
@@ -586,10 +602,10 @@ async function runResolution(browser, res) {
           }
           const buy = page.locator('.shopcard button:not([disabled])').first();
           if (await buy.isVisible().catch(() => false)) {
-            await buy.click().catch(() => {});
+            await buy.click(NUDGE).catch(() => {});
             await page.waitForTimeout(300);
           }
-          await shopDone.click().catch(() => {});
+          await shopDone.click(NUDGE).catch(() => {});
           lastAct = Date.now();
           await page.waitForTimeout(400);
           continue;
@@ -645,8 +661,8 @@ async function runResolution(browser, res) {
           }
 
           const call = page.locator('.ab-buttons button').filter({ hasText: /^(Check|Call)/ }).first();
-          if (await call.isVisible().catch(() => false)) await call.click().catch(() => {});
-          else await fold.click().catch(() => {});
+          if (await call.isVisible().catch(() => false)) await call.click(NUDGE).catch(() => {});
+          else await fold.click(NUDGE).catch(() => {});
           await page.waitForTimeout(250);
           continue;
         }
