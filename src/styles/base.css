@@ -275,11 +275,16 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     drop-shadow(-2px 2px 0 var(--ink))
     drop-shadow(2px -2px 0 var(--ink))
     drop-shadow(-2px -2px 0 var(--ink))
-    drop-shadow(0 4px 0 var(--ink))
-    drop-shadow(2px 0 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
-    drop-shadow(-2px 0 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
-    drop-shadow(0 2px 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
-    drop-shadow(0 -2px 0 color-mix(in srgb, var(--arc-orange) 45%, transparent));
+    drop-shadow(0 4px 0 var(--ink));
+  /* Nine passes, and that is the ceiling.
+  
+     There were thirteen: the bloom this replaced (`0 0 18px` of orange) was
+     converted into a four-direction hard ring like every other glow in the
+     audit, which on THIS element is four more filter passes outside an ink
+     outline that is already eight — on the largest text in the game, redrawn
+     every frame the title breathes. The three gold bands are carrying the
+     colour; an orange ring outside the ink adds nothing you can see and costs
+     a third of the chain. */
 }
 
 /* The skew is on the headlines only. `.hx-gilt` is also on inline numbers —

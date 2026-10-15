@@ -74,6 +74,16 @@ test('every colour in the app is on the palette', async () => {
       for (const m of s.matchAll(/rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*[,)]/g)) {
         bad.push(`${f}:${lineOf(s, m.index)} ${m[0]}... — use color-mix(in srgb, var(--token) N%, transparent)`);
       }
+      /* And the three-digit form. `#fff` and `#000` are not on the fourteen
+         either, and `color-mix(var(--veil) 45%, #fff)` is a ramp toward a
+         colour the palette does not contain. A MASK is exempt: only its alpha
+         is ever sampled, so `linear-gradient(#000 0 0)` is a stencil and not
+         a colour at all. */
+      for (const m of s.matchAll(/#[0-9a-fA-F]{3}\b/g)) {
+        const decl = s.lastIndexOf(';', m.index) + 1;
+        if (/mask/.test(s.slice(decl, m.index))) continue;
+        bad.push(`${f}:${lineOf(s, m.index)} ${m[0]}`);
+      }
     }
   }
   assert.deepEqual(bad, [], `\noff-palette colours:\n${bad.join('\n')}\n`);

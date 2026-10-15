@@ -1502,7 +1502,7 @@
 /* Mana is the mana colour, like the pips it is waiting on. */
 .sigil-lock--mana {
   border-color: color-mix(in srgb, var(--veil) 70%, transparent);
-  color: color-mix(in srgb, var(--veil) 45%, #fff);
+  color: color-mix(in srgb, var(--veil) 45%, var(--bone));
 }
 .sigil.is-justcastable .sigil-frame { animation: sigil-pop 260ms var(--ease-snap); }
 @keyframes sigil-pop {

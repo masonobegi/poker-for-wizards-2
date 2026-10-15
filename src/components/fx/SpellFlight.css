@@ -27,7 +27,7 @@
   font-family: var(--font-display);
   font-size: 20px;
   line-height: 1;
-  color: color-mix(in srgb, var(--fx-school, var(--gold)) 40%, #fff);
+  color: color-mix(in srgb, var(--fx-school, var(--gold)) 40%, var(--bone));
   text-shadow:
     2px 0 0 var(--fx-school, var(--gold)),
     -2px 0 0 var(--fx-school, var(--gold)),
@@ -44,7 +44,7 @@
 }
 
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
-  .fx-spellflight-glyph { color: #fff; }
+  .fx-spellflight-glyph { color: var(--bone); }
 }
 
 .fx-spellflight-tail {

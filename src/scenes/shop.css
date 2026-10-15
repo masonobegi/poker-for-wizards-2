@@ -113,7 +113,7 @@
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 80%, #000);
+  color: color-mix(in srgb, var(--accent) 80%, var(--ink));
   opacity: 0.95;
 }
 
