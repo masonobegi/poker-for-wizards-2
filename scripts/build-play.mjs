@@ -34,7 +34,7 @@ const OUT = join(root, 'release-play');
 const DIR = join(OUT, 'HEXHOLD-play');
 const ZIP = join(OUT, 'HEXHOLD-play.zip');
 
-const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit', cwd: root });
+const run = (cmd, args, cwd = root) => execFileSync(cmd, args, { stdio: 'inherit', cwd });
 
 // --- 1. the client ---------------------------------------------------------
 console.log('building client...');
@@ -125,7 +125,9 @@ WHY NOT AN .EXE
 rmSync(ZIP, { force: true });
 let zipped = false;
 try {
-  run('zip', ['-rq', ZIP, 'HEXHOLD-play']);
+  // from OUT, so the archive has HEXHOLD-play/ at its root and not
+  // release-play/HEXHOLD-play/
+  run('zip', ['-rq', ZIP, 'HEXHOLD-play'], OUT);
   zipped = true;
 } catch {
   console.warn('no `zip` on PATH — the folder is built, the archive is not');

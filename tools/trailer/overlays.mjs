@@ -15,55 +15,117 @@ export const OVERLAY_CSS = `
   #tr-screen { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0;
     pointer-events: none; z-index: 2147483000; overflow: hidden; }
   #tr-world { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 2147482000; }
+
+  /* --- captions --------------------------------------------------------
+     The director's own type, set the way the game sets type: Bungee through
+     three hard bands of gold, orange and red, with an ink outline doing the
+     drawing. This was Cinzel with a four-stop metal ramp and a 26px black
+     bloom, which was right when the game was leaded glass and reads as a
+     different product now that it is pixel art. */
   .tr-cap { position: absolute; left: 0; right: 0; text-align: center; padding: 0 120px; }
   .tr-cap.top { top: 64px; } .tr-cap.bottom { bottom: 78px; } .tr-cap.center { top: 50%; transform: translateY(-50%); }
   .tr-cap.low { top: 66%; }
+  /* A slab behind the words, not a cloud. Hard-edged, so it reads as a card
+     laid on the table rather than as a smudge over it. */
   .tr-cap::before { content: ''; position: absolute; left: 50%; top: 50%; width: 1500px; height: 260px;
-    transform: translate(-50%, -50%); background: radial-gradient(closest-side, rgba(6,5,4,.78), rgba(6,5,4,.5) 55%, rgba(6,5,4,0));
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side,
+      rgba(13, 10, 20, .82) 0 52%, rgba(13, 10, 20, .58) 52% 78%, rgba(13, 10, 20, 0) 78%);
     z-index: -1; animation: tr-in .25s both; }
-  .tr-cap h1 { margin: 0; display: inline-block; font: 900 86px/1.02 Cinzel, Georgia, serif; letter-spacing: .06em;
+  .tr-cap h1 { margin: 0; display: inline-block;
+    font: 400 78px/1.08 Bungee, Cinzel, Georgia, serif; letter-spacing: .06em;
     text-transform: uppercase; padding: 0 .1em;
-    background: linear-gradient(180deg, #fff6dc 0%, #f0d69c 38%, #d4a24a 62%, #8a6420 100%);
+    background: linear-gradient(180deg,
+      var(--arc-gold, #ffd23f) 0 40%,
+      var(--arc-orange, #ff8c1a) 40% 70%,
+      var(--arc-red, #e5261e) 70% 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
-    -webkit-text-stroke: 2px rgba(10,7,3,.85);
-    filter: drop-shadow(0 5px 0 rgba(0,0,0,.75)) drop-shadow(0 0 26px rgba(0,0,0,.8));
-    animation: tr-slam .32s cubic-bezier(.2,1.25,.35,1) both; }
-  .tr-cap.small h1 { font-size: 64px; }
-  .tr-cap.huge h1 { font-size: 150px; letter-spacing: .1em; }
-  .tr-cap p { margin: 14px 0 0; font: 600 30px/1.2 Inter, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase;
-    color: #f1ece0; text-shadow: 0 2px 0 #000, 0 0 18px #000; animation: tr-in .4s .12s both; }
+    -webkit-text-fill-color: transparent;
+    filter:
+      drop-shadow(4px 0 0 var(--ink, #0d0a14)) drop-shadow(-4px 0 0 var(--ink, #0d0a14))
+      drop-shadow(0 4px 0 var(--ink, #0d0a14)) drop-shadow(0 -4px 0 var(--ink, #0d0a14))
+      drop-shadow(4px 4px 0 var(--ink, #0d0a14)) drop-shadow(-4px 4px 0 var(--ink, #0d0a14))
+      drop-shadow(4px -4px 0 var(--ink, #0d0a14)) drop-shadow(-4px -4px 0 var(--ink, #0d0a14))
+      drop-shadow(0 8px 0 var(--ink, #0d0a14));
+    transform: skewX(-4deg);
+    animation: tr-slam .32s cubic-bezier(.34, 1.56, .64, 1) both; }
+  .tr-cap.small h1 { font-size: 58px; }
+  .tr-cap.huge h1 { font-size: 136px; letter-spacing: .1em; }
+  .tr-cap p { margin: 18px 0 0; font: 400 26px/1.3 'Press Start 2P', 'Pixelify Sans', system-ui, sans-serif;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--bone, #f4f1e8);
+    text-shadow: 2px 0 0 var(--ink, #0d0a14), -2px 0 0 var(--ink, #0d0a14),
+                 0 2px 0 var(--ink, #0d0a14), 0 -2px 0 var(--ink, #0d0a14), 0 4px 0 var(--ink, #0d0a14);
+    animation: tr-in .4s .12s both; }
   .tr-cap.out { animation: tr-out .22s both; }
-  @keyframes tr-slam { 0% { transform: scale(1.9); opacity: 0; filter: brightness(3) drop-shadow(0 5px 0 rgba(0,0,0,.75)); }
-    55% { transform: scale(.96); opacity: 1; } 100% { transform: scale(1); } }
+  /* Lands, with the overshoot the game's own slams use (EASE_SNAP). */
+  @keyframes tr-slam { 0% { transform: scale(1.9) skewX(-4deg); opacity: 0; }
+    55% { transform: scale(.96) skewX(-4deg); opacity: 1; } 100% { transform: scale(1) skewX(-4deg); } }
   @keyframes tr-in { from { opacity: 0 } }
   @keyframes tr-out { to { opacity: 0; transform: translateY(-8px) } }
-  .tr-ring { position: fixed; border-radius: 14px; pointer-events: none;
-    box-shadow: 0 0 0 4px #f0d69c, 0 0 0 7px rgba(138,100,32,.9), 0 0 34px 10px rgba(240,214,156,.55), inset 0 0 22px rgba(240,214,156,.35);
-    animation: tr-ring .45s cubic-bezier(.2,1.4,.4,1) both; }
+
+  /* --- the ring that points at a card ----------------------------------
+     Concentric hard rings, like every other halo in the game — this was a
+     34px bloom with a 22px inner glow and a 14px radius. */
+  .tr-ring { position: fixed; border-radius: 4px; pointer-events: none;
+    box-shadow:
+      0 0 0 4px var(--arc-gold, #ffd23f),
+      0 0 0 8px var(--ink, #0d0a14),
+      0 0 0 12px color-mix(in srgb, var(--arc-gold, #ffd23f) 45%, transparent),
+      0 0 0 16px color-mix(in srgb, var(--arc-gold, #ffd23f) 18%, transparent);
+    animation: tr-ring .45s cubic-bezier(.34, 1.56, .64, 1) both; }
   .tr-ring.out { animation: tr-out .25s both; }
   @keyframes tr-ring { 0% { transform: scale(1.6); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
+
+  /* --- the title and end cards ----------------------------------------- */
   .tr-full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: radial-gradient(ellipse at 50% 46%, rgba(26,20,12,.92), rgba(5,4,3,.985) 68%);
-    backdrop-filter: blur(14px); animation: tr-in .18s both; }
-  .tr-full svg { width: 210px; height: 210px; animation: tr-emblem .6s cubic-bezier(.2,1.3,.4,1) both; filter: drop-shadow(0 0 30px rgba(212,162,74,.45)); }
+    /* Three tones of night, hard-stepped. The backdrop-filter blur that used
+       to sit on top of this was the only blur left anywhere in the product. */
+    background: radial-gradient(ellipse at 50% 46%,
+      rgba(43, 34, 102, .94) 0 34%,
+      rgba(20, 16, 43, .97) 34% 66%,
+      rgba(13, 10, 20, .99) 66% 100%);
+    animation: tr-in .18s both; }
+  .tr-full svg { width: 210px; height: 210px; animation: tr-emblem .6s cubic-bezier(.34, 1.56, .64, 1) both;
+    filter: drop-shadow(4px 4px 0 var(--ink, #0d0a14)); }
   @keyframes tr-emblem { 0% { transform: scale(.4) rotate(-30deg); opacity: 0 } 100% { transform: none; opacity: 1 } }
-  .tr-full .word { margin-top: 18px; font: 900 172px/1 Cinzel, Georgia, serif; letter-spacing: .2em; margin-right: -.2em; color: #d4a24a;
-    text-shadow: 0 2px 0 #f0d69c, 0 -2px 0 rgba(0,0,0,.6), 0 7px 0 rgba(0,0,0,.55), 0 9px 2px rgba(0,0,0,.4), 0 0 60px rgba(212,162,74,.35);
-    animation: tr-word .42s .08s cubic-bezier(.2,.9,.3,1.2) both; }
-  @keyframes tr-word { 0% { transform: scale(2.6); opacity: 0; filter: brightness(4) } 60% { transform: scale(.97); opacity: 1 } 100% { transform: scale(1); filter: none } }
-  .tr-full .rule { width: 760px; height: 0; border-top: 2px solid rgba(212,162,74,.55); margin: 34px 0 30px; animation: tr-grow .5s .35s both; }
+  .tr-full .word { margin-top: 18px; font: 400 150px/1 Bungee, Cinzel, Georgia, serif; letter-spacing: .2em; margin-right: -.2em;
+    background: linear-gradient(180deg,
+      var(--arc-gold, #ffd23f) 0 40%,
+      var(--arc-orange, #ff8c1a) 40% 70%,
+      var(--arc-red, #e5261e) 70% 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    filter:
+      drop-shadow(6px 0 0 var(--ink, #0d0a14)) drop-shadow(-6px 0 0 var(--ink, #0d0a14))
+      drop-shadow(0 6px 0 var(--ink, #0d0a14)) drop-shadow(0 -6px 0 var(--ink, #0d0a14))
+      drop-shadow(4px 4px 0 var(--ink, #0d0a14)) drop-shadow(-4px 4px 0 var(--ink, #0d0a14))
+      drop-shadow(0 12px 0 var(--ink, #0d0a14));
+    transform: skewX(-4deg);
+    animation: tr-word .42s .08s cubic-bezier(.34, 1.56, .64, 1) both; }
+  @keyframes tr-word { 0% { transform: scale(2.6) skewX(-4deg); opacity: 0 }
+    60% { transform: scale(.97) skewX(-4deg); opacity: 1 } 100% { transform: scale(1) skewX(-4deg) } }
+  .tr-full .rule { width: 760px; height: 0; border-top: 4px solid var(--arc-gold, #ffd23f); margin: 34px 0 30px; animation: tr-grow .5s .35s both; }
   @keyframes tr-grow { from { transform: scaleX(0) } }
-  .tr-full .line { font: 700 54px/1.15 Cinzel, Georgia, serif; letter-spacing: .1em; color: #f1ece0; text-align: center;
-    text-shadow: 0 3px 0 #000; animation: tr-in .45s both; }
-  .tr-full .cta { margin-top: 46px; padding: 22px 54px; font: 800 46px/1 Inter, system-ui, sans-serif; letter-spacing: .2em;
-    color: #120d06; background: linear-gradient(180deg, #f6e2ae, #d4a24a 60%, #a67c2a); border-radius: 6px;
-    box-shadow: 0 0 0 2px #f0d69c, 0 10px 30px rgba(0,0,0,.6), 0 0 50px rgba(212,162,74,.35); animation: tr-cta .5s cubic-bezier(.2,1.4,.4,1) both; }
+  .tr-full .line { font: 400 44px/1.3 'Pixelify Sans', Inter, system-ui, sans-serif; letter-spacing: .04em;
+    color: var(--bone, #f4f1e8); text-align: center;
+    text-shadow: 0 4px 0 var(--ink, #0d0a14); animation: tr-in .45s both; }
+  .tr-full .cta { margin-top: 46px; padding: 22px 54px;
+    font: 400 38px/1 Bungee, Inter, system-ui, sans-serif; letter-spacing: .14em;
+    color: var(--ink, #0d0a14); background: var(--arc-gold, #ffd23f); border-radius: 0;
+    box-shadow: 0 0 0 4px var(--ink, #0d0a14), 8px 8px 0 var(--ink, #0d0a14);
+    animation: tr-cta .5s cubic-bezier(.34, 1.56, .64, 1) both; }
   @keyframes tr-cta { 0% { transform: scale(.6); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
-  .tr-full .fine { margin-top: 28px; font: 600 33px/1 Inter, system-ui, sans-serif; letter-spacing: .22em; color: #d8cfbd; text-shadow: 0 2px 0 #000; animation: tr-in .5s both; }
-  .tr-flash { position: absolute; inset: 0; background: #fff8e6; animation: tr-flash .22s both; }
+  .tr-full .fine { margin-top: 36px; font: 400 24px/1 'Press Start 2P', 'Pixelify Sans', system-ui, sans-serif; letter-spacing: .12em;
+    color: var(--bone-2, #c2bedb); text-shadow: 0 2px 0 var(--ink, #0d0a14); animation: tr-in .5s both; }
+  /* The impact frame, in the palette's own white. */
+  .tr-flash { position: absolute; inset: 0; background: var(--bone, #f4f1e8); animation: tr-flash .22s both; }
   @keyframes tr-flash { from { opacity: .85 } to { opacity: 0 } }
-  .tr-dim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,.55)); animation: tr-in .3s both; }
+  .tr-dim { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(13, 10, 20, 0) 0 34%, rgba(13, 10, 20, .3) 34% 64%, rgba(13, 10, 20, .6) 64% 100%);
+    animation: tr-in .3s both; }
 `;
+
 
 /** Runs in the page (page.evaluate serialises it): builds both layers and window.__tr. */
 export function installOverlays(cssText) {
@@ -75,7 +137,7 @@ export function installOverlays(cssText) {
   document.documentElement.appendChild(world);
   document.documentElement.appendChild(screen);
   const add = (parent, cls, html) => { const d = document.createElement('div'); d.className = cls; if (html) d.innerHTML = html; parent.appendChild(d); return d; };
-  const EMBLEM = '<svg viewBox="0 0 120 120"><defs><linearGradient id="trgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe6a8"/><stop offset="100%" stop-color="#a67c2a"/></linearGradient></defs>'
+  const EMBLEM = '<svg viewBox="0 0 120 120"><defs><linearGradient id="trgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--arc-gold, #ffd23f)"/><stop offset="100%" stop-color="var(--arc-red, #e5261e)"/></linearGradient></defs>'
     + '<circle cx="60" cy="60" r="54" fill="none" stroke="url(#trgold)" stroke-width="1.2" opacity=".55"/>'
     + '<circle cx="60" cy="60" r="44" fill="none" stroke="url(#trgold)" stroke-width=".7" opacity=".35"/>'
     + '<path d="M60 14 L99 37 L99 83 L60 106 L21 83 L21 37 Z" fill="none" stroke="url(#trgold)" stroke-width="1.6"/>'
