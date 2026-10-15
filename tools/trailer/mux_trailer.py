@@ -139,19 +139,49 @@ def main():
     mix = os.path.join(work, "mix.wav")
     write_wav(mix, mix_audio(recs, length))
 
-    parts = []
+    # ---------------------------------------------------------------- cut --
+    #
+    # One shot at a time, to its own file, and then the concat DEMUXER.
+    #
+    # This used to be a single `filter_complex` that trimmed ten segments out
+    # of two inputs and concatenated them in one pass, which is the obvious
+    # way to write it and cannot run here: the branches take their segments
+    # OUT OF ORDER (the Undo hand is filmed before the Market and cut in after
+    # it), so ffmpeg has to hold every decoded frame between the earliest one
+    # any branch still wants and the latest one any branch has reached. With
+    # one input split six ways and the other four, that is both streams
+    # decoded in memory — 13.7 GB of resident set before the kernel killed it,
+    # after seventy minutes of recording had already been paid for.
+    #
+    # Cutting each shot on its own is O(1) in memory, and the extra encode
+    # pays for itself because each pass only decodes its own frames.
+    seg_dir = os.path.join(work, "segments")
+    os.makedirs(seg_dir, exist_ok=True)
+    segs = []
     for i, n in enumerate(order):
         s = shots[n]
-        parts.append(f"[{s['src']}:v]trim=start_frame={s['start']}:end_frame={s['start'] + s['frames']},setpts=PTS-STARTPTS[v{i}]")
+        seg = os.path.join(seg_dir, "%02d-%s.mov" % (i, n))
+        src = os.path.join(recs[s["src"]], "frames.mp4")
+        run(["ffmpeg", "-y", "-v", "error", "-i", src,
+             "-vf", "trim=start_frame=%d:end_frame=%d,setpts=PTS-STARTPTS"
+                    % (s["start"], s["start"] + s["frames"]),
+             "-an", "-r", str(fps),
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", seg])
+        segs.append(seg)
+
+    listing = os.path.join(seg_dir, "order.txt")
+    with open(listing, "w") as fh:
+        for seg in segs:
+            fh.write("file '%s'\n" % seg.replace("'", "'\\''"))
+
     # A short fade out: the end card's small print is read to the last second.
     fade_out = length - 0.8
-    graph = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(len(order))) +         f"concat=n={len(order)}:v=1:a=0,fade=t=in:st=0:d=0.12,fade=t=out:st={fade_out:.3f}:d=0.8,format=yuv420p[v]"
     master = os.path.join(work, "master.mov")
-    inputs = [a for r in recs for a in ("-i", os.path.join(r, "frames.mp4"))]
-    run(["ffmpeg", "-y", "-v", "error", *inputs, "-i", mix,
-         "-filter_complex", graph, "-map", "[v]", "-map", f"{len(recs)}:a", "-r", str(fps),
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listing, "-i", mix,
+         "-vf", "fade=t=in:st=0:d=0.12,fade=t=out:st=%.3f:d=0.8,format=yuv420p" % fade_out,
+         "-map", "0:v", "-map", "1:a", "-r", str(fps),
          "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-c:a", "pcm_s16le", master])
-    print(f"  cut: {len(order)} shots, {length:.2f}s")
+    print("  cut: %d shots, %.2fs" % (len(order), length))
 
     mp4 = os.path.join(dst, "hexhold-trailer.mp4")
     webm = os.path.join(dst, "hexhold-trailer.webm")
