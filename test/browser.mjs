@@ -28,17 +28,36 @@ function installedChromium(headless) {
         : join(homedir(), '.cache', 'ms-playwright'));
   if (!existsSync(root)) return null;
   const win = process.platform === 'win32';
+  /*
+   * Both layouts, because Playwright changed its directory names and the
+   * machine this runs on may have either. A build from before the rename puts
+   * the binary at `chrome-linux/chrome` and the headless one at
+   * `chrome-linux/headless_shell`; after it they are `chrome-linux64/chrome`
+   * and `chrome-headless-shell-linux64/chrome-headless-shell`.
+   *
+   * This mattered: the fallback only knew the new names, so on a machine with
+   * only the old layout it found nothing, every harness had to be run with an
+   * explicit HEXHOLD_CHROMIUM=..., and the one thing that was NOT run that way
+   * — the trailer recorder, which calls `launch()` from `stage.mjs` — died at
+   * browser launch after rendering forty minutes of music.
+   */
   const kinds = headless
-    ? [['chromium_headless_shell-', win ? 'chrome-headless-shell-win64/chrome-headless-shell.exe' : 'chrome-headless-shell-linux64/chrome-headless-shell']]
+    ? [['chromium_headless_shell-', win
+        ? ['chrome-headless-shell-win64/chrome-headless-shell.exe']
+        : ['chrome-headless-shell-linux64/chrome-headless-shell', 'chrome-linux/headless_shell']]]
     : [];
-  kinds.push(['chromium-', win ? 'chrome-win64/chrome.exe' : 'chrome-linux64/chrome']);
-  for (const [prefix, exe] of kinds) {
+  kinds.push(['chromium-', win
+    ? ['chrome-win64/chrome.exe', 'chrome-win/chrome.exe']
+    : ['chrome-linux64/chrome', 'chrome-linux/chrome']]);
+  for (const [prefix, exes] of kinds) {
     const builds = readdirSync(root)
       .filter((d) => d.startsWith(prefix) && /^\d+$/.test(d.slice(prefix.length)))
       .sort((a, b) => Number(b.slice(prefix.length)) - Number(a.slice(prefix.length)));
     for (const b of builds) {
-      const p = join(root, b, exe);
-      if (existsSync(p)) return p;
+      for (const exe of exes) {
+        const p = join(root, b, exe);
+        if (existsSync(p)) return p;
+      }
     }
   }
   return null;

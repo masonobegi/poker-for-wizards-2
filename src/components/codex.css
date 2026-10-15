@@ -14,7 +14,7 @@
   padding: 3px;
   border-radius: 0;
   clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-  background: rgba(8, 10, 30, 0.5);
+  background: color-mix(in srgb, var(--ink) 50%, transparent);
   border: 2px solid var(--line-soft);
 }
 .codex-tab {
@@ -29,7 +29,7 @@
   transition: background var(--t-fast), color var(--t-fast),
               transform var(--t-fast) var(--ease-out);
 }
-.codex-tab:hover { color: var(--text-2); background: rgba(255, 255, 255, 0.04); }
+.codex-tab:hover { color: var(--text-2); background: color-mix(in srgb, var(--bone) 4%, transparent); }
 .codex-tab:active { transform: scale(0.97); }
 .codex-tab.is-on { color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
 
@@ -76,12 +76,12 @@
   gap: var(--s-3);
   padding: var(--s-3);
   border-radius: var(--r-md);
-  background: rgba(8, 10, 30, 0.4);
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
   border: 2px solid var(--line-soft);
   border-left: 2px solid var(--accent);
   transition: background var(--t-fast), translate var(--t-fast);
 }
-.codex-entry:hover { background: rgba(255, 255, 255, 0.03); }
+.codex-entry:hover { background: color-mix(in srgb, var(--bone) 3%, transparent); }
 @media (hover: hover) and (pointer: fine) {
   /* `translate`, not `transform`: this element is a motion.li on the sigils
      tab, and framer owns its `transform` outright. */

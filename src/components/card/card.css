@@ -168,10 +168,10 @@
   box-shadow:
     0 0 0 2px var(--card-edge),
     var(--e-card),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
-    inset 0 2px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -4px 0 rgba(0, 0, 0, 0.14),
-    inset 0 0 0 4px rgba(0, 0, 0, 0.035);
+    inset 0 0 0 2px color-mix(in srgb, var(--bone) 70%, transparent),
+    inset 0 2px 0 color-mix(in srgb, var(--bone) 55%, transparent),
+    inset 0 -4px 0 color-mix(in srgb, var(--ink) 14%, transparent),
+    inset 0 0 0 4px color-mix(in srgb, var(--ink) 3.5%, transparent);
 }
 
 .hx-card__surface--back {
@@ -179,8 +179,8 @@
   box-shadow:
     0 0 0 2px var(--card-edge),
     var(--e-card),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.06),
-    inset 0 -4px 0 rgba(0, 0, 0, 0.35);
+    inset 0 0 0 2px color-mix(in srgb, var(--bone) 6%, transparent),
+    inset 0 -4px 0 color-mix(in srgb, var(--ink) 35%, transparent);
 }
 
 /* Very low-opacity paper fibre, two crossed grains. Sits under the ink. */
@@ -191,8 +191,8 @@
   opacity: 0.05;
   mix-blend-mode: multiply;
   background-image:
-    repeating-linear-gradient(11deg, rgba(23, 26, 36, 0.7) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(-73deg, rgba(23, 26, 36, 0.5) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(11deg, color-mix(in srgb, var(--night) 70%, transparent) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-73deg, color-mix(in srgb, var(--night) 50%, transparent) 0 1px, transparent 1px 4px);
 }
 
 .hx-card__fx {
@@ -231,11 +231,11 @@
   mix-blend-mode: screen;
   background: linear-gradient(
     100deg,
-    rgba(255, 255, 255, 0) 30%,
-    rgba(255, 246, 214, 0.5) 48%,
-    rgba(255, 255, 255, 0.9) 52%,
-    rgba(255, 246, 214, 0.5) 56%,
-    rgba(255, 255, 255, 0) 74%
+    color-mix(in srgb, var(--bone) 0%, transparent) 30%,
+    color-mix(in srgb, var(--bone) 50%, transparent) 48%,
+    color-mix(in srgb, var(--bone) 90%, transparent) 52%,
+    color-mix(in srgb, var(--bone) 50%, transparent) 56%,
+    color-mix(in srgb, var(--bone) 0%, transparent) 74%
   );
 }
 
@@ -245,7 +245,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bone) 5%, transparent);
   pointer-events: none;
 }
 .hx-card__rim::before,
@@ -321,7 +321,7 @@
 /* Court figures read a hair crisper than a plain pip grid — a whisper of
    engraved depth on the silhouette. */
 .hx-art__svg--court {
-  filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.08));
+  filter: drop-shadow(0 0.5px 0 color-mix(in srgb, var(--ink) 8%, transparent));
 }
 
 /* Court frame + engraving. */
@@ -404,8 +404,8 @@
   opacity: 0.05;
   mix-blend-mode: overlay;
   background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.6) 0 1px, transparent 1px 2px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 2px);
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--bone) 60%, transparent) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--ink) 50%, transparent) 0 1px, transparent 1px 2px);
   background-size: 3px 3px, 3px 3px;
 }
 
@@ -414,7 +414,7 @@
   inset: -20%;
   pointer-events: none;
   mix-blend-mode: overlay;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.22) 50%, transparent 58%);
+  background: linear-gradient(115deg, transparent 42%, color-mix(in srgb, var(--bone) 22%, transparent) 50%, transparent 58%);
   transform: translateX(-55%);
   animation: hx-gleam 7s ease-in-out infinite;
 }
@@ -547,8 +547,8 @@
   opacity: 0.05;
   mix-blend-mode: overlay;
   background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 8px);
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--bone) 50%, transparent) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--bone) 50%, transparent) 0 1px, transparent 1px 8px);
 }
 
 /* Slow rotating ring of glyphs, orbiting just outside the card edge. */
@@ -755,7 +755,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.22), rgba(10, 10, 16, 0.85) 72%);
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--bone) 22%, transparent), color-mix(in srgb, var(--ink) 85%, transparent) 72%);
   box-shadow: 0 0 0 2px var(--mk, var(--gold)), 0 0 0 2px var(--mk, var(--gold)), var(--e-1);
   color: var(--mk, var(--gold));
   cursor: default;
@@ -785,17 +785,17 @@
   color: #14102b;
   filter: none;
   text-shadow:
-    2px 0 0 rgba(255, 255, 255, 0.6),
-    -2px 0 0 rgba(255, 255, 255, 0.6),
-    0 2px 0 rgba(255, 255, 255, 0.6),
-    0 -2px 0 rgba(255, 255, 255, 0.6);
+    2px 0 0 color-mix(in srgb, var(--bone) 60%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--bone) 60%, transparent),
+    0 2px 0 color-mix(in srgb, var(--bone) 60%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--bone) 60%, transparent);
   animation: hx-ring-spin-rev 5s linear infinite;
 }
 
 .hx-mark--blooded { animation: hx-pulse-op 2s ease-in-out infinite; }
 
 .hx-mark--cursed {
-  background: radial-gradient(circle at 35% 30%, rgba(139, 92, 246, 0.4), rgba(8, 4, 16, 0.92) 75%);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--bone-3) 40%, transparent), color-mix(in srgb, var(--ink) 92%, transparent) 75%);
   animation: hx-breathe 3.2s ease-in-out infinite;
 }
 
@@ -827,8 +827,8 @@
   padding: 0.5em 0.65em;
   border-radius: var(--r-sm);
   background: linear-gradient(180deg,
-    rgba(29, 23, 68, 0.98) 0 56%,
-    rgba(20, 16, 43, 0.98) 56% 100%);
+    color-mix(in srgb, var(--night) 98%, transparent) 0 56%,
+    color-mix(in srgb, var(--night) 98%, transparent) 56% 100%);
   border: 2px solid var(--line-soft);
   box-shadow: var(--e-2);
   font-size: clamp(10px, 0.62em, 14px);
@@ -869,7 +869,7 @@
   font-size: clamp(10px, 0.62em, 16px);
   line-height: 1;
   font-weight: 700;
-  background: rgba(10, 13, 36, 0.72);
+  background: color-mix(in srgb, var(--night) 72%, transparent);
   box-shadow: var(--e-1);
 }
 .hx-badge--diverged { color: var(--veil); box-shadow: 0 0 0 2px var(--veil), 0 0 0 2px var(--veil); }
@@ -891,7 +891,7 @@
   border-radius: 50%;
   display: block;
   background: var(--gold-hi);
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 55%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent);
 }
 .hx-mem__count {
@@ -902,7 +902,7 @@
   font-size: clamp(10px, 0.62em, 16px);
   font-weight: 700;
   color: var(--gold-hi);
-  background: rgba(10, 13, 36, 0.55);
+  background: color-mix(in srgb, var(--night) 55%, transparent);
   border: 2px solid color-mix(in srgb, var(--gold) 35%, transparent);
   border-radius: var(--r-pill);
   padding: 0.08em 0.4em;
@@ -1121,10 +1121,10 @@
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--foil) 70%, transparent),
     var(--e-card),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
-    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 2px color-mix(in srgb, var(--bone) 70%, transparent),
+    inset 0 2px 0 color-mix(in srgb, var(--bone) 55%, transparent),
     inset 0 0 0 color-mix(in srgb, var(--foil) 26%, transparent),
-    inset 0 -4px 0 rgba(0, 0, 0, 0.14);
+    inset 0 -4px 0 color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
 /* The sweep. One pass on arrival, one on hover, never a loop. Driven by
@@ -1140,7 +1140,7 @@
   background: linear-gradient(
     108deg,
     transparent 38%,
-    rgba(255, 255, 255, 0.72) 48%,
+    color-mix(in srgb, var(--bone) 72%, transparent) 48%,
     color-mix(in srgb, var(--foil-2) 70%, transparent) 53%,
     transparent 63%);
   background-size: 260% 100%;

@@ -55,7 +55,7 @@
   line-height: 1;
   transition: background var(--t-fast), transform var(--t-fast) var(--ease-out);
 }
-.chat-emote:hover { background: rgba(255, 255, 255, 0.07); }
+.chat-emote:hover { background: color-mix(in srgb, var(--bone) 7%, transparent); }
 /* Touch fires a hover on tap that sticks until the next tap elsewhere, and
    this game ships on a Steam Deck with a touchscreen. The colour half stays
    ungated — a stuck colour is harmless; a stuck transform reads as state. */
@@ -76,7 +76,7 @@
   padding: 8px 12px;
   border-radius: var(--r-sm);
   border: 2px solid var(--line);
-  background: rgba(8, 10, 30, 0.55);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
   color: var(--text);
   font-size: var(--fs-sm);
 }

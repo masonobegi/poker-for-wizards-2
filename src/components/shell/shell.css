@@ -24,7 +24,7 @@
   display: grid;
   place-items: center;
   padding: var(--s-5);
-  background: rgba(3, 4, 9, 0.8);
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
 }
 
 .hh-menu-panel {
@@ -78,8 +78,8 @@
   gap: 8px;
   padding: 8px 14px;
   border-radius: var(--r-pill);
-  background: rgba(10, 13, 36, 0.92);
-  border: 2px solid rgba(244, 87, 111, 0.45);
+  background: color-mix(in srgb, var(--night) 92%, transparent);
+  border: 2px solid color-mix(in srgb, var(--hotpink) 45%, transparent);
   color: var(--bad);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -94,7 +94,7 @@
   display: grid;
   place-items: center;
   padding: var(--s-5);
-  background: rgba(3, 4, 9, 0.82);
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
 }
 
 .hh-conn-panel {
@@ -102,12 +102,12 @@
   padding: var(--s-6);
   border-radius: var(--r-xl);
   background: var(--glass-dark);
-  border: 2px solid rgba(244, 87, 111, 0.35);
+  border: 2px solid color-mix(in srgb, var(--hotpink) 35%, transparent);
   box-shadow:
     var(--e-4),
-    0 0 0 2px rgba(244, 87, 111, 0.12),
-    0 0 0 4px color-mix(in srgb, rgba(244, 87, 111, 0.12) 40%, transparent),
-    0 0 0 8px color-mix(in srgb, rgba(244, 87, 111, 0.12) 16%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--hotpink) 12%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--hotpink) 12%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--hotpink) 12%, transparent) 16%, transparent);
 }
 .hh-conn-panel:focus { outline: none; }
 

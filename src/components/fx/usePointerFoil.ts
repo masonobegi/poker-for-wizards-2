@@ -92,7 +92,7 @@ export function usePointerFoil({
 
   const gx = useTransform(sx, (v: number) => `${(v * 100).toFixed(2)}%`);
   const gy = useTransform(sy, (v: number) => `${(v * 100).toFixed(2)}%`);
-  const sheen = useMotionTemplate`radial-gradient(circle at ${gx} ${gy}, rgba(255,255,255,1), rgba(255,255,255,0) ${spread}%)`;
+  const sheen = useMotionTemplate`radial-gradient(circle at ${gx} ${gy}, var(--bone), transparent ${spread}%)`;
 
   const onPointerMove = useCallback(
     (e: { currentTarget: Element; clientX: number; clientY: number }) => {

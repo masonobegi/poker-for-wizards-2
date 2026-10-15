@@ -61,6 +61,20 @@ test('every colour in the app is on the palette', async () => {
     for (const m of s.matchAll(/#[0-9a-fA-F]{6}\b/g)) {
       if (!PALETTE.has(m[0].toLowerCase())) bad.push(`${f}:${lineOf(s, m.index)} ${m[0]}`);
     }
+    /* The same colours in the other notation.
+       `#f0c465` and `rgba(240, 196, 101, 0.4)` are one off-palette gold, and
+       the first version of this check only knew about the `#` — so it passed
+       a stylesheet carrying 260 of them, including fifty-two whites,
+       forty-four blacks and the whole of the palette before last. A scrim is
+       `--ink` at an alpha and a highlight is `--bone` at one; neither is a
+       number typed into a shadow. `crt.css` is exempt because its aperture
+       grille is three deliberately tinted inks standing in for a phosphor
+       triad. */
+    if (!f.endsWith('crt.css')) {
+      for (const m of s.matchAll(/rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*[,)]/g)) {
+        bad.push(`${f}:${lineOf(s, m.index)} ${m[0]}... — use color-mix(in srgb, var(--token) N%, transparent)`);
+      }
+    }
   }
   assert.deepEqual(bad, [], `\noff-palette colours:\n${bad.join('\n')}\n`);
 });

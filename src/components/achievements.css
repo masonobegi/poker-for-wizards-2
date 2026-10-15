@@ -14,8 +14,8 @@
   border-radius: var(--r-lg);
   /* Two pieces, not a fade. */
   background: linear-gradient(180deg,
-    rgba(29, 23, 68, 0.97) 0 56%,
-    rgba(20, 16, 43, 0.97) 56% 100%);
+    color-mix(in srgb, var(--night) 97%, transparent) 0 56%,
+    color-mix(in srgb, var(--night) 97%, transparent) 56% 100%);
   border: 2px solid var(--gold-deep);
   box-shadow:
     var(--e-4),
@@ -81,7 +81,7 @@
   gap: var(--s-3);
   padding: 8px 12px;
   border-radius: var(--r-md);
-  background: rgba(8, 10, 30, 0.4);
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
   border: 2px solid var(--line-soft);
 }
 .achrow.is-earned {

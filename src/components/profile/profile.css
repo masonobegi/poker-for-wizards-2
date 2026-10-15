@@ -4,7 +4,7 @@
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
-  background: rgba(8, 10, 30, 0.45);
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
   border: 2px solid var(--line-soft);
 }
 
@@ -41,7 +41,7 @@
   flex-wrap: wrap;
   padding: 6px 10px;
   border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--bone) 3%, transparent);
   border: 2px solid transparent;
 }
 .profile-best.is-impossible {

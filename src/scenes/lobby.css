@@ -83,11 +83,11 @@
   gap: var(--s-3);
   padding: 9px 12px;
   border-radius: var(--r-md);
-  background: rgba(8, 10, 30, 0.35);
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
   border: 2px solid var(--line-soft);
   transition: border-color var(--t-fast), background var(--t-fast);
 }
-.lobby-seat.is-ready { border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05); }
+.lobby-seat.is-ready { border-color: color-mix(in srgb, var(--jade) 30%, transparent); background: color-mix(in srgb, var(--jade) 5%, transparent); }
 .lobby-seat.is-empty {
   grid-template-columns: auto 1fr;
   border-style: dashed;
@@ -138,7 +138,7 @@
               background var(--t-fast) var(--ease-out),
               transform var(--t-fast) var(--ease-out);
 }
-.lobby-kick:hover { color: var(--bad); background: rgba(244, 87, 111, 0.12); }
+.lobby-kick:hover { color: var(--bad); background: color-mix(in srgb, var(--hotpink) 12%, transparent); }
 .lobby-kick:active { transform: scale(0.94); }
 
 .lobby-actions {
@@ -200,12 +200,12 @@
    harmless and often useful. */
 @media (hover: hover) and (pointer: fine) {
   .lobby-code:hover { transform: scale(1.03); text-shadow:
-    2px 0 0 rgba(240, 196, 101, 0.6),
-    -2px 0 0 rgba(240, 196, 101, 0.6),
-    0 2px 0 rgba(240, 196, 101, 0.6),
-    0 -2px 0 rgba(240, 196, 101, 0.6),
-    4px 0 0 color-mix(in srgb, rgba(240, 196, 101, 0.6) 45%, transparent),
-    -4px 0 0 color-mix(in srgb, rgba(240, 196, 101, 0.6) 45%, transparent),
-    0 4px 0 color-mix(in srgb, rgba(240, 196, 101, 0.6) 45%, transparent),
-    0 -4px 0 color-mix(in srgb, rgba(240, 196, 101, 0.6) 45%, transparent); }
+    2px 0 0 color-mix(in srgb, var(--wood-light) 60%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--wood-light) 60%, transparent),
+    0 2px 0 color-mix(in srgb, var(--wood-light) 60%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--wood-light) 60%, transparent),
+    4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--wood-light) 60%, transparent) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--wood-light) 60%, transparent) 45%, transparent),
+    0 4px 0 color-mix(in srgb, color-mix(in srgb, var(--wood-light) 60%, transparent) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, color-mix(in srgb, var(--wood-light) 60%, transparent) 45%, transparent); }
 }

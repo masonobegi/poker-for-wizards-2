@@ -76,11 +76,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   inset: -50%;
   pointer-events: none;
   background-image:
-    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.35), transparent),
-    radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.25), transparent),
-    radial-gradient(1.5px 1.5px at 40% 80%, rgba(200, 220, 255, 0.3), transparent),
-    radial-gradient(1px 1px at 85% 20%, rgba(255, 240, 200, 0.28), transparent),
-    radial-gradient(1px 1px at 10% 70%, rgba(255, 255, 255, 0.2), transparent);
+    radial-gradient(1px 1px at 20% 30%, color-mix(in srgb, var(--bone) 35%, transparent), transparent),
+    radial-gradient(1px 1px at 70% 60%, color-mix(in srgb, var(--bone) 25%, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 40% 80%, color-mix(in srgb, var(--bone-2) 30%, transparent), transparent),
+    radial-gradient(1px 1px at 85% 20%, color-mix(in srgb, var(--bone) 28%, transparent), transparent),
+    radial-gradient(1px 1px at 10% 70%, color-mix(in srgb, var(--bone) 20%, transparent), transparent);
   background-size: 480px 480px, 620px 620px, 540px 540px, 700px 700px, 400px 400px;
   opacity: 0.7;
   animation: drift 240s linear infinite;
@@ -162,7 +162,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   /* Same reading as `.hx-plate`, drawn as insets rather than as a pseudo-
      element: a hairline of solder, then came. */
   box-shadow:
-    inset 0 0 0 2px var(--plate-stain, rgba(232, 185, 73, 0.4)),
+    inset 0 0 0 2px var(--plate-stain, color-mix(in srgb, var(--wood-light) 40%, transparent)),
     inset 0 0 0 4px var(--lead),
     var(--e-3);
   clip-path: polygon(
@@ -276,10 +276,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     drop-shadow(2px -2px 0 var(--ink))
     drop-shadow(-2px -2px 0 var(--ink))
     drop-shadow(0 4px 0 var(--ink))
-    drop-shadow(2px 0 0 rgba(255, 140, 26, 0.45))
-    drop-shadow(-2px 0 0 rgba(255, 140, 26, 0.45))
-    drop-shadow(0 2px 0 rgba(255, 140, 26, 0.45))
-    drop-shadow(0 -2px 0 rgba(255, 140, 26, 0.45));
+    drop-shadow(2px 0 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
+    drop-shadow(-2px 0 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
+    drop-shadow(0 2px 0 color-mix(in srgb, var(--arc-orange) 45%, transparent))
+    drop-shadow(0 -2px 0 color-mix(in srgb, var(--arc-orange) 45%, transparent));
 }
 
 /* The skew is on the headlines only. `.hx-gilt` is also on inline numbers —
@@ -335,7 +335,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   --cut: 20px;
   --plate-lead: var(--lead);
   --plate-fill: var(--glass-dark);
-  --plate-stain: rgba(232, 185, 73, 0.5);
+  --plate-stain: color-mix(in srgb, var(--wood-light) 50%, transparent);
 
   position: relative;
   isolation: isolate;
@@ -356,7 +356,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     0 100%,
     0 var(--cut)
   );
-  box-shadow: var(--e-4), 0 0 0 0 rgba(232, 185, 73, 0);
+  box-shadow: var(--e-4), 0 0 0 0 color-mix(in srgb, var(--wood-light) 0%, transparent);
   animation: plate-breathe 6.5s ease-in-out infinite;
 }
 
@@ -366,12 +366,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 @keyframes plate-breathe {
   0%, 100% { box-shadow:
     var(--e-4),
-    0 0 0 2px rgba(232, 185, 73, 0.26),
-    0 0 0 4px color-mix(in srgb, rgba(232, 185, 73, 0.26) 40%, transparent); }
+    0 0 0 2px color-mix(in srgb, var(--wood-light) 26%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--wood-light) 26%, transparent) 40%, transparent); }
   50%      { box-shadow:
     var(--e-4),
-    0 0 0 2px rgba(255, 208, 120, 0.40),
-    0 0 0 4px color-mix(in srgb, rgba(255, 208, 120, 0.40) 40%, transparent); }
+    0 0 0 2px color-mix(in srgb, var(--wood-light) 40%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--wood-light) 40%, transparent) 40%, transparent); }
 }
 
 /* Resting lit, not dark: the halo is part of how a plate reads as enchanted,
@@ -380,26 +380,28 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   animation: none;
   box-shadow:
     var(--e-4),
-    0 0 0 2px rgba(255, 208, 120, 0.30),
-    0 0 0 4px color-mix(in srgb, rgba(255, 208, 120, 0.30) 40%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--wood-light) 30%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--wood-light) 30%, transparent) 40%, transparent);
 }
 
 /* The glass itself: one flat colour, and the solder line inside the came. */
 .hx-plate::before {
   content: '';
   position: absolute;
-  inset: 3px;
+  /* One art pixel of came, not three quarters of one. The chamfer maths
+     below subtracts the same number, so both move together. */
+  inset: 4px;
   z-index: -1;
   pointer-events: none;
   background: var(--grain), var(--plate-fill);
-  box-shadow: inset 0 0 0 2px var(--plate-stain);
+  box-shadow: inset 0 0 0 4px var(--plate-stain);
   clip-path: polygon(
-    calc(var(--cut) - 3px) 0,
+    calc(var(--cut) - 4px) 0,
     100% 0,
-    100% calc(100% - var(--cut) + 3px),
-    calc(100% - var(--cut) + 3px) 100%,
+    100% calc(100% - var(--cut) + 4px),
+    calc(100% - var(--cut) + 4px) 100%,
     0 100%,
-    0 calc(var(--cut) - 3px)
+    0 calc(var(--cut) - 4px)
   );
 }
 

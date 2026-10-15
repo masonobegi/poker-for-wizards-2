@@ -93,8 +93,8 @@
 /* If the runtime noise tile could not be generated, this is still grain-ish. */
 .vfx-grain:not([style*='background-image']) {
   background-image:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--bone) 5%, transparent) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--bone) 4%, transparent) 0 1px, transparent 1px 4px);
 }
 
 /* --- scanlines ------------------------------------------------------------ */
@@ -103,8 +103,8 @@
   opacity: var(--vfx-scanline-opacity, 0.05);
   background: repeating-linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0) 0 2px,
-    rgba(0, 0, 0, 0.55) 2px 3px
+    color-mix(in srgb, var(--ink) 0%, transparent) 0 2px,
+    color-mix(in srgb, var(--ink) 55%, transparent) 2px 3px
   );
   mix-blend-mode: multiply;
   /* Static, for the same reason as the grain above: a second full-viewport
@@ -212,9 +212,9 @@
   background: linear-gradient(
     105deg,
     transparent 38%,
-    var(--shimmer-color, rgba(255, 255, 255, 0.55)) 48%,
-    var(--shimmer-hot, rgba(255, 255, 255, 0.9)) 51%,
-    var(--shimmer-color, rgba(255, 255, 255, 0.55)) 54%,
+    var(--shimmer-color, color-mix(in srgb, var(--bone) 55%, transparent)) 48%,
+    var(--shimmer-hot, color-mix(in srgb, var(--bone) 90%, transparent)) 51%,
+    var(--shimmer-color, color-mix(in srgb, var(--bone) 55%, transparent)) 54%,
     transparent 64%
   );
   mix-blend-mode: screen;

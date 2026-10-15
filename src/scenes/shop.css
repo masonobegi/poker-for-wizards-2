@@ -7,7 +7,7 @@
   padding: var(--s-4);
   /* Warm black, like everything the lamp is not reaching, with enough shape
      in it that the panel is not floating on a flat wash. */
-  background: rgba(5, 6, 20, 0.88);
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
 }
 
 .shop-panel {
@@ -79,8 +79,8 @@
   background: var(--grain), color-mix(in srgb, var(--accent) 7%, var(--card-face));
   border: 2px solid color-mix(in srgb, var(--accent) 55%, #14102b);
   box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.55),
-    inset 0 -4px 0 rgba(0, 0, 0, 0.12),
+    inset 0 0 0 2px color-mix(in srgb, var(--bone) 55%, transparent),
+    inset 0 -4px 0 color-mix(in srgb, var(--ink) 12%, transparent),
     var(--e-card);
   transition: box-shadow var(--t-fast), border-color var(--t-fast), filter var(--t-fast);
 }
@@ -98,7 +98,7 @@
 .shopcard:not(.is-sold):not(.is-locked):hover {
   border-color: var(--accent);
   box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
+    inset 0 0 0 2px color-mix(in srgb, var(--bone) 70%, transparent),
     var(--e-lift),
     0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent),
     0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--accent) 50%, transparent) 40%, transparent);
@@ -170,7 +170,7 @@
   color: #a86a2a;
   text-align: center;
   padding-top: 6px;
-  border-top: 2px dashed rgba(0, 0, 0, 0.18);
+  border-top: 2px dashed color-mix(in srgb, var(--ink) 18%, transparent);
 }
 .shopcard-impossible span { color: var(--accent); font-style: normal; margin-right: 3px; }
 
@@ -206,7 +206,7 @@
 .shop-dot.is-done {
   background: var(--good);
   border-color: var(--good);
-  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jade) 60%, transparent);
 }
 
 @media (max-width: 620px) {
@@ -226,7 +226,7 @@
   padding: var(--s-3) var(--s-4);
   border: 2px dashed var(--line);
   border-radius: var(--r-lg);
-  background: rgba(233, 222, 199, 0.04);
+  background: color-mix(in srgb, var(--bone) 4%, transparent);
 }
 .scribe-strip strong { font-family: var(--font-display); letter-spacing: 0.08em; color: var(--gold); }
 .scribe-strip p { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; }
@@ -239,7 +239,7 @@
   padding: var(--s-4);
   border: 2px solid var(--line);
   border-radius: var(--r-lg);
-  background: rgba(8, 10, 30, 0.45);
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 .scribe-title {
   font-family: var(--font-display);
@@ -257,7 +257,7 @@
   /* 16px keeps a phone from zooming the page on focus. */
   font-size: max(16px, var(--fs-md));
   color: var(--text);
-  background: rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
   border: 2px solid var(--line);
   border-radius: var(--r-md);
 }
@@ -283,7 +283,7 @@
   font-size: var(--fs-sm);
   color: var(--text-2);
   border: 2px solid var(--line-soft);
-  background: rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--ink) 25%, transparent);
   transition: color var(--t-fast), border-color var(--t-fast);
 }
 .scribe-preset:hover { color: var(--text); border-color: var(--line); }

@@ -99,7 +99,7 @@ function TurnTimerBase({ until, total, size = 60, urgentAt = 5, sound = false, c
     >
       <circle
         cx={size / 2} cy={size / 2} r={r}
-        fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="2.5"
+        fill="none" stroke="color-mix(in srgb, var(--bone) 8%, transparent)" strokeWidth="2.5"
       />
       <circle
         // Keyed on the turn so a new clock restarts the CSS animation. This is

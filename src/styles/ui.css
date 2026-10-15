@@ -34,14 +34,14 @@
     border-color var(--t-fast) var(--ease-out),
     background var(--t-fast) var(--ease-out),
     filter var(--t-fast) var(--ease-out);
-  box-shadow: var(--e-1), inset 0 2px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: var(--e-1), inset 0 2px 0 color-mix(in srgb, var(--bone) 6%, transparent);
   overflow: hidden;
 }
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: var(--surface-3);
-  box-shadow: var(--e-2), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: var(--e-2), inset 0 2px 0 color-mix(in srgb, var(--bone) 10%, transparent);
 }
 .btn:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
 .btn:disabled { opacity: 0.4; filter: saturate(0.4); }
@@ -52,7 +52,7 @@
   color: var(--gold-hi);
   box-shadow:
     var(--e-2),
-    inset 0 2px 0 rgba(255, 230, 168, 0.18),
+    inset 0 2px 0 color-mix(in srgb, var(--bone) 18%, transparent),
     0 0 0 2px color-mix(in srgb, var(--gold) 12%, transparent);
 }
 .btn-primary:hover:not(:disabled) {
@@ -61,25 +61,25 @@
     var(--e-3),
     0 0 0 2px color-mix(in srgb, var(--gold) 26%, transparent),
     0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 26%, transparent) 40%, transparent),
-    inset 0 2px 0 rgba(255, 230, 168, 0.28);
+    inset 0 2px 0 color-mix(in srgb, var(--bone) 28%, transparent);
 }
 
-.btn-danger { border-color: rgba(244, 87, 111, 0.4); color: #f4f1e8; }
+.btn-danger { border-color: color-mix(in srgb, var(--hotpink) 40%, transparent); color: #f4f1e8; }
 .btn-danger:hover:not(:disabled) {
   border-color: var(--bad);
   box-shadow:
     var(--e-2),
-    0 0 0 2px rgba(244, 87, 111, 0.28),
-    0 0 0 4px color-mix(in srgb, rgba(244, 87, 111, 0.28) 40%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--hotpink) 28%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--hotpink) 28%, transparent) 40%, transparent);
 }
 
-.btn-good { border-color: rgba(74, 222, 128, 0.35); color: #f4f1e8; }
+.btn-good { border-color: color-mix(in srgb, var(--jade) 35%, transparent); color: #f4f1e8; }
 .btn-good:hover:not(:disabled) {
   border-color: var(--good);
   box-shadow:
     var(--e-2),
-    0 0 0 2px rgba(74, 222, 128, 0.24),
-    0 0 0 4px color-mix(in srgb, rgba(74, 222, 128, 0.24) 40%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--jade) 24%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--jade) 24%, transparent) 40%, transparent);
 }
 
 .btn-ghost {
@@ -90,7 +90,7 @@
 }
 .btn-ghost:hover:not(:disabled) {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--bone) 4%, transparent);
   border-color: var(--line-soft);
   box-shadow: none;
 }
@@ -123,7 +123,7 @@
   padding: 12px 14px;
   border-radius: var(--r-md);
   border: 2px solid var(--line);
-  background: rgba(8, 10, 30, 0.55);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
   color: var(--text);
   transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
 }
@@ -132,7 +132,7 @@
 .input:focus {
   outline: none;
   border-color: var(--gold-deep);
-  background: rgba(8, 10, 30, 0.75);
+  background: color-mix(in srgb, var(--ink) 75%, transparent);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 12%, transparent);
 }
 
@@ -159,7 +159,7 @@
   margin-top: -7px;
   border-radius: 50%;
   background: var(--brass-hi);
-  border: 2px solid rgba(0, 0, 0, 0.5);
+  border: 2px solid color-mix(in srgb, var(--ink) 50%, transparent);
   box-shadow: 0 2px 0 var(--ink), 0 0 0 2px color-mix(in srgb, var(--gold) 40%, transparent);
   transition: transform var(--t-fast) var(--ease-out);
 }
@@ -169,7 +169,7 @@
 .range::-moz-range-track { height: 5px; border-radius: var(--r-pill); background: var(--surface-3); }
 .range::-moz-range-progress { height: 5px; border-radius: var(--r-pill); background: var(--gold); }
 .range::-moz-range-thumb {
-  width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.5);
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--ink) 50%, transparent);
   background: var(--gold);
 }
 
@@ -214,7 +214,7 @@
   padding: 3px 9px;
   border-radius: var(--r-pill);
   border: 2px solid var(--line);
-  background: rgba(8, 10, 30, 0.5);
+  background: color-mix(in srgb, var(--ink) 50%, transparent);
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -223,8 +223,8 @@
 }
 .badge-gold { border-color: var(--gold-deep); color: var(--gold); background: color-mix(in srgb, var(--gold) 8%, transparent); }
 .badge-magic { border-color: color-mix(in srgb, var(--entropy) 40%, transparent); color: var(--entropy); background: color-mix(in srgb, var(--entropy) 8%, transparent); }
-.badge-bad { border-color: rgba(244, 87, 111, 0.4); color: var(--bad); background: rgba(244, 87, 111, 0.08); }
-.badge-good { border-color: rgba(74, 222, 128, 0.35); color: var(--good); background: rgba(74, 222, 128, 0.08); }
+.badge-bad { border-color: color-mix(in srgb, var(--hotpink) 40%, transparent); color: var(--bad); background: color-mix(in srgb, var(--hotpink) 8%, transparent); }
+.badge-good { border-color: color-mix(in srgb, var(--jade) 35%, transparent); color: var(--good); background: color-mix(in srgb, var(--jade) 8%, transparent); }
 
 /* --- chip count --------------------------------------------------------- */
 
@@ -285,15 +285,15 @@
   gap: var(--s-2);
   padding: 10px 18px;
   border-radius: var(--r-pill);
-  background: rgba(10, 13, 36, 0.94);
+  background: color-mix(in srgb, var(--night) 94%, transparent);
   border: 2px solid var(--line);
   box-shadow: var(--e-3);
   font-size: var(--fs-sm);
   font-weight: 600;
 }
-.toast-warn  { border-color: rgba(251, 191, 36, 0.5); color: var(--warn); }
-.toast-error { border-color: rgba(244, 87, 111, 0.5); color: var(--bad); }
-.toast-good  { border-color: rgba(74, 222, 128, 0.5); color: var(--good); }
+.toast-warn  { border-color: color-mix(in srgb, var(--arc-gold) 50%, transparent); color: var(--warn); }
+.toast-error { border-color: color-mix(in srgb, var(--hotpink) 50%, transparent); color: var(--bad); }
+.toast-good  { border-color: color-mix(in srgb, var(--jade) 50%, transparent); color: var(--good); }
 
 /* --- modal -------------------------------------------------------------- */
 
@@ -304,7 +304,7 @@
   display: grid;
   place-items: center;
   padding: var(--s-5);
-  background: rgba(5, 6, 20, 0.84);
+  background: color-mix(in srgb, var(--ink) 84%, transparent);
 }
 /* The modal is a plate (see base.css). `overflow: auto` and `clip-path` do
    not combine — the clip is applied to the padding box and a scrolled child
@@ -335,7 +335,7 @@
 .spin {
   width: 16px; height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid color-mix(in srgb, var(--bone) 18%, transparent);
   border-top-color: var(--gold);
   animation: spin 0.8s linear infinite;
 }
@@ -369,7 +369,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jade) 60%, transparent);
   animation: dotpulse 2s var(--ease-out) infinite;
 }
 .pulse-dot.off { background: var(--bad); }
