@@ -654,7 +654,7 @@ async function runResolution(browser, res) {
             fail('table', await checkRailCollision(page));
             const felt2 = await checkFeltUsage(page);
             if (!felt2.ok) {
-              fail('table', [`felt is ${felt2.pct}% empty below the pot (felt height ${felt2.feltH}px, empty ${felt2.emptyBelow}px) — should be <=42%`]);
+              fail('table', [`felt is ${felt2.pct}% empty below the pot (felt height ${felt2.feltH}px, empty ${felt2.emptyBelow}px) — should be <=32%`]);
             } else {
               note(`felt usage OK (${felt2.pct ?? 0}% empty below pot)`);
             }

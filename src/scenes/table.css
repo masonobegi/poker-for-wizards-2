@@ -913,10 +913,27 @@
   gap: 5px;
   /* Hung off the strip rather than stacked under it, for the same reason:
      the pot's own height changes with the street label and the peek, and it
-     was taking the cards with it. */
+     was taking the cards with it.
+
+     The gap scales with the card, not with a constant, and 0.26 is where two
+     measured constraints meet:
+
+       - at 4K the felt is 1508px tall, and `test/responsive.mjs` fails a
+         table carrying more than 32% of its own height as dead air below the
+         pot. A fixed 24px gap left 32.4%. A gap that does not scale cannot
+         answer that, because the felt is three and a half times taller there
+         and the gap is not.
+       - at 1024x680 — the Electron minimum — the felt is 312px and the strip
+         is 108px of it, so there are 102px below the cards and the pot is 77
+         of them. A gap of 0.42 put the pot's bottom edge SEVEN PIXELS PAST
+         the bottom of the table.
+
+     0.26 gives 21px there (4px of cloth to spare) and 63px at 4K (29.8% dead
+     air). Changing it means re-measuring both ends, not just the one you are
+     looking at. */
   position: absolute;
   left: 50%;
-  top: calc(100% + 24px);
+  top: calc(100% + round(calc(var(--card-h) * 0.26), 4px));
   translate: -50% 0;
   width: max-content;
 }
