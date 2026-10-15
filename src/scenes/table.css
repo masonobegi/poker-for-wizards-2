@@ -1398,7 +1398,11 @@
     grid-template-rows: auto;
     padding: 4px 8px 4px 4px;
     gap: 0 var(--s-2);
-    min-width: 120px;
+    /* WIDER, not narrower. Putting the avatar, the name and the stack on one
+       row needs more width than stacking them did, and 120px truncated every
+       opponent to "Mord…" and "Ashgr…" — a nameplate whose whole job is the
+       name. There is room: the side pods end 60px short of the card strip. */
+    min-width: 152px;
   }
   /* The avatar spans one row now, not two. */
   .seat-av { grid-row: auto; }
@@ -1418,6 +1422,13 @@
     margin-bottom: -40px;
     position: relative;
     z-index: -1;
+  }
+
+  /* The rail hint clears the pot as well as the rail. At this height the
+     felt's lower band is only as tall as the pot is, so the bubble has to
+     sit above it rather than beside it. */
+  .hint-mark--rail {
+    bottom: calc(var(--rail-h) + var(--actionbar-h) + 68px);
   }
 
   /* The turn ring hangs 46px below the seat, which at this height is the
