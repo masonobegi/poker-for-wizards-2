@@ -1,0 +1,36 @@
+# What the image build does not read.
+#
+# Without this, `COPY . .` lifts the host's node_modules into the build —
+# hundreds of megabytes of another platform's binaries, layered straight over
+# the `npm ci` that just ran — along with the trailer stills, the responsive
+# harness's screenshots of every resolution and the packaged builds, none of
+# which any stage opens. The whole context is uploaded before the first
+# instruction runs, so this is the difference between a build that starts and
+# one that spends two minutes not starting.
+#
+# `test/` stays: tsconfig.json includes it, so `tsc -b` needs it to pass.
+.git
+.gitignore
+.dockerignore
+node_modules
+dist
+dist-server
+dist-demo
+dist-server-demo
+dist-electron
+release
+release-demo
+release-play
+steam
+responsive
+recordings
+playthrough
+playthrough-pad
+res-quick
+plans
+tools/trailer/out
+*.db
+*.db.tmp
+*.log
+.env
+.env.*

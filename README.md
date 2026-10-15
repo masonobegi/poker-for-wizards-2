@@ -20,7 +20,7 @@ That starts the authoritative game server on `:3001` and the Vite client on `:51
 ```bash
 npm run build      # production client bundle into dist/
 npm start          # serve the built client + game server from :3001
-npm test           # 292 tests: hand eval, sigils, omens, bots, balance, hexes, the spell reader, DOM mounts, sockets
+npm test           # 381 tests: hand eval, sigils, omens, bots, balance, hexes, the spell reader, DOM mounts, sockets, deploy config
 npm run fun:batch  # 70+ whole solo runs from the player's chair: early busts, impossible hands, run arc (FUN-REVIEW.md)
 npm run play       # plays a full run in a real browser and reports problems
 npm run play:pad   # proves the game is playable on a controller
@@ -50,6 +50,75 @@ docker compose up -d --build
 Players then enter that address under **Online** on the menu. Everything that
 protects a public server — room caps, per-address limits, message rate,
 allowed origins — is set by environment variable in one file, `server/config.ts`.
+
+### Putting it on a URL (Railway)
+
+To play with someone who is not going to run a server, put one on the
+internet. `Dockerfile` and `railway.json` are the whole of the configuration:
+point Railway at this repository, pick a branch, and the first deploy serves
+the game at the domain it hands you. No environment variables, no database, no
+volume, nothing to attach.
+
+```bash
+railway up      # or: New Project -> Deploy from GitHub repo
+```
+
+Six decisions are baked into those two files, and each one is a way this
+otherwise goes wrong:
+
+- **It builds from the `Dockerfile`, not from a builder's guess.** Every tool
+  the build needs — `vite`, `typescript`, `esbuild` — is a devDependency, and
+  a build system that decides on its own to install with
+  `NODE_ENV=production` fails with `vite: not found` at the one moment nobody
+  is watching it. The Dockerfile installs with the lockfile in a stage that
+  has no `NODE_ENV` at all, and sets production only in the runtime stage it
+  ships. What it does is in the repository, where it can be read.
+- **One service, one origin.** The same process owns the game and serves the
+  built client, so the browser talks to the origin it was served from
+  (`src/lib/server.ts`) and there is no CORS to configure. `ALLOWED_ORIGINS`
+  is for the split case only: a client hosted somewhere else, pointed at this
+  server under **Online** on the menu. Leave it empty and cross-origin
+  sockets are refused, which is the right default for a server that is also
+  the website.
+- **It listens on `$PORT`.** The platform decides the port; `server/config.ts`
+  reads it, and `HOST` is already `0.0.0.0`, without which a health check
+  cannot reach a process that is running perfectly.
+- **`RAILWAY_ENVIRONMENT` means production even if `NODE_ENV` does not.** A
+  deploy whose `NODE_ENV` did not survive the build would run with every
+  origin allowed, which is the one default that is worse when it is wrong.
+- **One replica, pinned.** Tables live in this process's memory and nowhere
+  else, so a second instance is not more capacity — it is a second, separate
+  game that half the four-letter codes resolve to and the other half do not.
+  Scaling this horizontally needs a shared room registry first; until then
+  `numReplicas` is 1 on purpose.
+- **`/health` is the health check** (`railway.json`), and it answers with room
+  and player counts, so the deploy's own dashboard shows whether anyone is
+  playing. `/ready` is the other half: it goes 503 when the server is at its
+  room cap, so a platform that can hold traffic back knows the difference
+  between full and dead.
+
+Two things worth knowing once it is up. Table state lives in memory and is
+snapshotted to a file, so a redeploy ends the hands that were live — attach a
+volume and the snapshot follows it automatically, because the server reads
+`RAILWAY_VOLUME_MOUNT_PATH` when nothing else names a path. And the per-address
+limits read `x-forwarded-for`, which is correct behind the platform's proxy
+and the reason one deployment is not capped at twelve sockets in total; a
+server exposed without a proxy in front of it is trusting a header the client
+sends.
+
+`.railwayignore` keeps the trailer stills, the responsive harness's
+screenshots and the packaged builds out of the upload — 130 MB that no build
+step opens.
+
+What has actually been checked, and what has not: the runtime half was staged
+exactly as the image lays it out — the bundled server, the built client beside
+it, `NODE_ENV=production`, `CLIENT_DIR` pointed at it, a volume path in the
+environment — and driven with a real browser. The menu connected in 2.7s, the
+table was up in 3.1s, the hand played, and there were no console errors and no
+failed requests; assets came back `immutable`, the deep link fell through to
+`index.html`, and the snapshot went to the volume. The image itself has not
+been built on this machine, which has no Docker daemon, so the build stage is
+read rather than run.
 
 ### Desktop builds
 

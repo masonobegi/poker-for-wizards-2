@@ -1,0 +1,30 @@
+# What the server does not need to run.
+#
+# Railway uploads the repository as the build context, and this one carries
+# 130 MB of things that are not the game: the trailer and its stills, the
+# responsive harness's screenshots of every resolution, and the packaged
+# playtest build. None of it is read at runtime or at build time, and all of
+# it is paid for on every deploy.
+#
+# `railway up` uploads from the working directory rather than from git, so the
+# first four lines matter there and nowhere else: without them the upload is
+# the repository plus a few hundred megabytes of installed packages and build
+# output that the image rebuilds from source anyway.
+node_modules/
+dist/
+dist-server/
+.git/
+
+steam/
+responsive/
+recordings/
+release/
+release-demo/
+release-play/
+playthrough/
+playthrough-pad/
+res-quick/
+plans/
+tools/trailer/out/
+*.db
+*.db.tmp
