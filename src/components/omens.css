@@ -30,7 +30,7 @@
   gap: 5px;
   padding: 2px 9px 2px 6px;
   border-radius: var(--r-pill);
-  border: 1px solid color-mix(in srgb, var(--entropy) 40%, transparent);
+  border: 2px solid color-mix(in srgb, var(--entropy) 40%, transparent);
   background: color-mix(in srgb, var(--entropy) 10%, transparent);
   color: var(--entropy);
   font-size: 12px;
@@ -49,25 +49,33 @@
 }
 .omen.is-open {
   transform: translateY(-1px);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--entropy) 35%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--entropy) 35%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy) 35%, transparent) 40%, transparent);
 }
 @media (hover: hover) and (pointer: fine) {
   .omen:hover {
     transform: translateY(-1px);
-    box-shadow: 0 0 18px rgba(185, 140, 255, 0.35);
+    box-shadow:
+    0 0 0 2px rgba(185, 140, 255, 0.35),
+    0 0 0 5px color-mix(in srgb, rgba(185, 140, 255, 0.35) 40%, transparent);
   }
 }
 
 .omen-glyph {
   font-size: 13px;
   line-height: 1;
-  filter: drop-shadow(0 0 6px currentColor);
+  filter:
+    drop-shadow(2px 0 0 currentColor)
+    drop-shadow(-2px 0 0 currentColor)
+    drop-shadow(0 2px 0 currentColor)
+    drop-shadow(0 -2px 0 currentColor);
 }
 .omen-name { text-transform: uppercase; }
 .omen-rank {
   padding-left: 5px;
   margin-left: 1px;
-  border-left: 1px solid color-mix(in srgb, var(--entropy) 35%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--entropy) 35%, transparent);
   color: var(--bad);
 }
 
@@ -81,7 +89,7 @@
   padding: 11px 13px;
   border-radius: var(--r-md);
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--entropy) 45%, transparent);
+  border: 2px solid color-mix(in srgb, var(--entropy) 45%, transparent);
   box-shadow: var(--e-4);
   pointer-events: none;
   text-align: left;
@@ -97,7 +105,7 @@
 .omen-impossible {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px dashed var(--line-soft);
+  border-top: 2px dashed var(--line-soft);
   font-style: italic;
   color: var(--text-4) !important;
 }

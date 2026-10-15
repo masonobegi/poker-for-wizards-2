@@ -22,8 +22,8 @@
   pointer-events: none;
   white-space: nowrap;
   padding: 3px 12px 2px;
-  border: 3px solid var(--stamp);
-  border-radius: 6px;
+  border: 4px solid var(--stamp);
+  border-radius: 4px;
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 900;
@@ -34,8 +34,9 @@
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9);
   box-shadow:
     0 0 0 2px rgba(0, 0, 0, 0.65),
-    0 6px 18px rgba(0, 0, 0, 0.55),
-    0 0 22px color-mix(in srgb, var(--stamp) 40%, transparent);
+    var(--e-card),
+    0 0 0 2px color-mix(in srgb, var(--stamp) 40%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--stamp) 40%, transparent) 40%, transparent);
 }
 .hx-stamp.is-bad { --stamp: var(--bad); }
 .hx-stamp.is-ice { --stamp: var(--veil); }
@@ -83,9 +84,15 @@
   letter-spacing: 0.04em;
   color: var(--gold-hi);
   text-shadow:
-    0 2px 0 #140f08,
-    0 0 3px #140f08,
-    0 0 16px color-mix(in srgb, var(--gold) 65%, transparent);
+    0 2px 0 #0d0a14,
+    2px 0 0 #0d0a14,
+    -2px 0 0 #0d0a14,
+    0 2px 0 #0d0a14,
+    0 -2px 0 #0d0a14,
+    2px 0 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 65%, transparent);
 }
 
 /* --- the cut-in banner (BannerLayer.tsx) ------------------------------------ */
@@ -128,7 +135,9 @@
     inset 0 -4px 0 color-mix(in srgb, var(--banner-color) 80%, white),
     inset 0 -7px 0 rgba(0, 0, 0, 0.8),
     inset 0 -8px 0 color-mix(in srgb, var(--gold) 70%, transparent),
-    0 0 60px rgba(0, 0, 0, 0.55);
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 0 5px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
 }
 
 /* Speed lines running along the band while it holds. One tile of horizontal
@@ -173,9 +182,15 @@
   /* A hard ink drop under the glow: arcade lettering sits on the band
      instead of floating in it. */
   text-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.9),
-    0 0 40px var(--banner-color),
-    0 6px 30px rgba(0, 0, 0, 0.8);
+    0 4px 0 var(--ink),
+    2px 0 0 var(--banner-color),
+    -2px 0 0 var(--banner-color),
+    0 2px 0 var(--banner-color),
+    0 -2px 0 var(--banner-color),
+    4px 0 0 color-mix(in srgb, var(--banner-color) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, var(--banner-color) 45%, transparent),
+    0 4px 0 color-mix(in srgb, var(--banner-color) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, var(--banner-color) 45%, transparent);
 }
 .hx-banner__sub {
   margin: 12px 0 0;
@@ -202,7 +217,7 @@
   background: rgba(5, 6, 12, 0.94);
   border-top: 2px solid var(--gold);
   border-bottom: 2px solid var(--gold);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 0 var(--ink);
 }
 
 /* Reduced motion: the band holds still. The streaks stay (they are part of

@@ -15,12 +15,12 @@
   border-radius: 0;
   clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
   background: rgba(8, 10, 30, 0.5);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
 }
 .codex-tab {
   flex: 1;
   padding: 8px 10px;
-  border-radius: 2px;
+  border-radius: 0;
   font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -38,7 +38,7 @@
   --chip: var(--text-3);
   padding: 5px 12px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-3);
@@ -54,7 +54,9 @@
   border-color: var(--chip);
   color: var(--chip);
   background: color-mix(in srgb, var(--chip) 12%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--chip) 25%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--chip) 25%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--chip) 25%, transparent) 40%, transparent);
 }
 
 .codex-motto {
@@ -75,7 +77,7 @@
   padding: var(--s-3);
   border-radius: var(--r-md);
   background: rgba(8, 10, 30, 0.4);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   border-left: 2px solid var(--accent);
   transition: background var(--t-fast), translate var(--t-fast);
 }
@@ -91,7 +93,11 @@
   place-items: center;
   font-size: 24px;
   color: var(--accent);
-  filter: drop-shadow(0 0 10px var(--accent));
+  filter:
+    drop-shadow(2px 0 0 var(--accent))
+    drop-shadow(-2px 0 0 var(--accent))
+    drop-shadow(0 2px 0 var(--accent))
+    drop-shadow(0 -2px 0 var(--accent));
 }
 
 .codex-body { display: grid; gap: 5px; min-width: 0; }
@@ -121,7 +127,7 @@
   color: var(--text-4);
   font-style: italic;
   padding-top: 3px;
-  border-top: 1px dashed var(--line-soft);
+  border-top: 2px dashed var(--line-soft);
 }
 .codex-impossible span { color: var(--accent); font-style: normal; margin-right: 4px; }
 
@@ -129,7 +135,7 @@
   padding: var(--s-3);
   border-radius: var(--r-md);
   background: color-mix(in srgb, var(--gold) 6%, transparent);
-  border: 1px dashed var(--gold-deep);
+  border: 2px dashed var(--gold-deep);
   font-size: var(--fs-xs);
   line-height: 1.6;
   color: var(--text-3);
@@ -154,5 +160,5 @@
   font-style: italic;
   color: var(--gold) !important;
   padding-top: var(--s-2);
-  border-top: 1px solid var(--line-soft);
+  border-top: 2px solid var(--line-soft);
 }

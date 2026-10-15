@@ -5,7 +5,7 @@
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
   background: rgba(8, 10, 30, 0.45);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
 }
 
 .profile-row {
@@ -21,7 +21,11 @@
   color: var(--text);
   line-height: 1;
 }
-.profile-value.is-good { color: var(--gold); text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 40%, transparent); }
+.profile-value.is-good { color: var(--gold); text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 40%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 40%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 40%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 40%, transparent); }
 .profile-label {
   font-size: 12px;
   letter-spacing: 0.16em;
@@ -38,12 +42,14 @@
   padding: 6px 10px;
   border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid transparent;
+  border: 2px solid transparent;
 }
 .profile-best.is-impossible {
   border-color: var(--gold-deep);
   background: color-mix(in srgb, var(--gold) 8%, transparent);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--gold) 18%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 18%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 18%, transparent) 40%, transparent);
 }
 .profile-bestlabel {
   font-size: 12px;
@@ -82,12 +88,14 @@
   color: var(--gold);
   opacity: 0.7;
   cursor: help;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 40%, transparent));
+  filter:
+;
   transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-snap);
 }
 .profile-glyph.is-omen {
   color: var(--entropy);
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--entropy) 50%, transparent));
+  filter:
+;
 }
 
 /* Touch fires a hover on tap that sticks until the next tap elsewhere, and

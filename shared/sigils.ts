@@ -20,12 +20,12 @@ export interface SchoolDef {
 }
 
 export const SCHOOLS: Record<School, SchoolDef> = {
-  entropy: { id: 'entropy', name: 'Entropy', hue: 280, accent: '#b98cff', glow: '#7c3aed', motto: 'Nothing is decided until it is seen.' },
-  veil:    { id: 'veil',    name: 'Veil',    hue: 205, accent: '#6ec8ff', glow: '#0ea5e9', motto: 'Truth is a per-observer quantity.' },
-  chronos: { id: 'chronos', name: 'Chronos', hue: 38,  accent: '#ffc861', glow: '#f59e0b', motto: 'The river has run before.' },
-  bind:    { id: 'bind',    name: 'Bind',    hue: 168, accent: '#5eead4', glow: '#14b8a6', motto: 'Two cards, one fate.' },
-  ruin:    { id: 'ruin',    name: 'Ruin',    hue: 352, accent: '#ff7a8a', glow: '#e11d48', motto: 'Some cards should not have existed.' },
-  weave:   { id: 'weave',   name: 'Weave',   hue: 96,  accent: '#a8e063', glow: '#65a30d', motto: 'The deck remembers what you write on it.' },
+  entropy: { id: 'entropy', name: 'Entropy', hue: 280, accent: '#ff4fa3', glow: '#5b2a86', motto: 'Nothing is decided until it is seen.' },
+  veil:    { id: 'veil',    name: 'Veil',    hue: 205, accent: '#00e5ff', glow: '#1fa3a3', motto: 'Truth is a per-observer quantity.' },
+  chronos: { id: 'chronos', name: 'Chronos', hue: 38,  accent: '#ffd23f', glow: '#a86a2a', motto: 'The river has run before.' },
+  bind:    { id: 'bind',    name: 'Bind',    hue: 168, accent: '#1fa3a3', glow: '#2b2266', motto: 'Two cards, one fate.' },
+  ruin:    { id: 'ruin',    name: 'Ruin',    hue: 352, accent: '#e5261e', glow: '#c2185b', motto: 'Some cards should not have existed.' },
+  weave:   { id: 'weave',   name: 'Weave',   hue: 96,  accent: '#4ee08a', glow: '#1fa3a3', motto: 'The deck remembers what you write on it.' },
 };
 
 /** When a sigil may legally be cast. */
@@ -669,9 +669,9 @@ export const STACK_SIGILS = new Set(
 export const RARITY_WEIGHT: Record<Rarity, number> = { common: 10, rare: 4, mythic: 1 };
 
 export const RARITY_COLOR: Record<Rarity, string> = {
-  common: '#93a3b8',
-  rare: '#6ec8ff',
-  mythic: '#ffb347',
+  common: '#9f9ac4',
+  rare: '#00e5ff',
+  mythic: '#ff8c1a',
 };
 
 /** An instance of a sigil sitting in someone's hand. */

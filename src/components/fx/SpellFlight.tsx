@@ -144,7 +144,7 @@ function FlightOrb({ flight }: { flight: Flight }) {
   const dx = flight.toX - flight.fromX;
   const dy = flight.toY - flight.fromY;
   const arc = -Math.min(140, Math.hypot(dx, dy) * 0.3 + 40);
-  const color = SCHOOL_COLOR[flight.school] ?? '#f0c465';
+  const color = SCHOOL_COLOR[flight.school] ?? '#ffd23f';
 
   useEffect(() => {
     const t = window.setTimeout(() => despawn(flight.id), 520);

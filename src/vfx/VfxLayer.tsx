@@ -95,7 +95,7 @@ class VfxEngine {
   private shakeActive = false;
 
   private flashAmp = 0;
-  private flashColor = '#ffffff';
+  private flashColor = '#f4f1e8';
   private flashApplied = -1;
   private lastFlashAt = -Infinity;
 
@@ -436,7 +436,7 @@ class VfxEngine {
     this.burst('rewindRipple', at);
     this.chromatic(340);
     this.slowmo(0.55, 620);
-    this.flash('#6ee7ff', 0.12);
+    this.flash('#00e5ff', 0.12);
   }
 
   confetti(at?: Vec2): void {

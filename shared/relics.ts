@@ -564,9 +564,9 @@ export const hasRule = (relicIds: string[], rule: RuleId): boolean =>
 export const isCreed = (id: string): boolean => !!RELIC_BY_ID[id]?.coven;
 
 export const RELIC_RARITY_COLOR: Record<RelicRarity, string> = {
-  common: '#93a3b8',
-  rare: '#6ec8ff',
-  mythic: '#ffb347',
+  common: '#9f9ac4',
+  rare: '#00e5ff',
+  mythic: '#ff8c1a',
 };
 
 /** Collapse a player's relics into one set of rule mods. */

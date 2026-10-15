@@ -68,14 +68,14 @@
   display: flex;
   gap: 6px;
   padding: var(--s-3);
-  border-top: 1px solid var(--line-soft);
+  border-top: 2px solid var(--line-soft);
 }
 .chat-input {
   flex: 1;
   min-width: 0;
   padding: 8px 12px;
   border-radius: var(--r-sm);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   background: rgba(8, 10, 30, 0.55);
   color: var(--text);
   font-size: var(--fs-sm);
@@ -86,7 +86,7 @@
 .chat-send {
   width: 34px;
   border-radius: var(--r-sm);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   color: var(--text-3);
   font-size: 16px;
   transition: color var(--t-fast) var(--ease-out),

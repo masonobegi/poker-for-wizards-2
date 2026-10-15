@@ -21,7 +21,7 @@
      It used to open a purple-lit surface over a bottle-green table under a
      brass lamp — the one screen the player is sent to every three hands, in
      a colour that appeared nowhere else in the game. */
-  --plate-fill: #101c52;
+  --plate-fill: #1d1744;
 }
 
 .shop-head {
@@ -53,7 +53,7 @@
   color: var(--text-4);
   padding: 4px 12px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
 }
 
 /* The market deals five items; auto-fit wrapped them 4 + 1 and left a hole.
@@ -74,10 +74,10 @@
   padding: var(--s-4) var(--s-3) var(--s-3);
   border-radius: var(--r-lg);
   /* Printed on the same bone stock as a sigil in hand and a playing card on
-     the felt, in one ink. `#101427` was the last hard-coded blue-black left
+     the felt, in one ink. `#14102b` was the last hard-coded blue-black left
      in the game. */
   background: var(--grain), color-mix(in srgb, var(--accent) 7%, var(--card-face));
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, #2b2519);
+  border: 2px solid color-mix(in srgb, var(--accent) 55%, #14102b);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
     inset 0 -2px 4px rgba(0, 0, 0, 0.12),
@@ -100,7 +100,8 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.7),
     var(--e-lift),
-    0 0 30px color-mix(in srgb, var(--accent) 50%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--accent) 50%, transparent) 40%, transparent);
 }
 .shopcard.is-sold { opacity: 0.35; filter: grayscale(0.85); }
 .shopcard.is-locked { filter: grayscale(0.8) brightness(0.62) contrast(0.95); }
@@ -157,7 +158,7 @@
 .shopcard-text {
   font-size: 12px;
   line-height: 1.5;
-  color: #4a443a;
+  color: #0d0a14;
   text-align: center;
   min-height: 46px;
 }
@@ -166,10 +167,10 @@
   font-size: 12px;
   line-height: 1.45;
   font-style: italic;
-  color: #6c6355;
+  color: #a86a2a;
   text-align: center;
   padding-top: 6px;
-  border-top: 1px dashed rgba(0, 0, 0, 0.18);
+  border-top: 2px dashed rgba(0, 0, 0, 0.18);
 }
 .shopcard-impossible span { color: var(--accent); font-style: normal; margin-right: 3px; }
 
@@ -179,7 +180,7 @@
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #6c6355;
+  color: #a86a2a;
 }
 
 .shop-foot {
@@ -188,7 +189,7 @@
   justify-content: space-between;
   gap: var(--s-4);
   padding-top: var(--s-3);
-  border-top: 1px solid var(--line-soft);
+  border-top: 2px solid var(--line-soft);
   flex-wrap: wrap;
 }
 
@@ -197,7 +198,7 @@
   width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--surface-3);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   transition: background var(--t-base) var(--ease-out),
               border-color var(--t-base) var(--ease-out),
               box-shadow var(--t-base) var(--ease-out);
@@ -205,7 +206,7 @@
 .shop-dot.is-done {
   background: var(--good);
   border-color: var(--good);
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.6);
 }
 
 @media (max-width: 620px) {
@@ -223,7 +224,7 @@
   align-items: center;
   gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
-  border: 1px dashed var(--line);
+  border: 2px dashed var(--line);
   border-radius: var(--r-lg);
   background: rgba(233, 222, 199, 0.04);
 }
@@ -236,7 +237,7 @@
   display: grid;
   gap: var(--s-3);
   padding: var(--s-4);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--r-lg);
   background: rgba(8, 10, 30, 0.45);
 }
@@ -257,7 +258,7 @@
   font-size: max(16px, var(--fs-md));
   color: var(--text);
   background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--r-md);
 }
 .scribe-input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -268,7 +269,7 @@
   border-radius: var(--r-pill);
   font-size: var(--fs-sm);
   color: var(--text);
-  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 .scribe-cost { font-size: var(--fs-sm); color: var(--text-2); }
@@ -281,7 +282,7 @@
   border-radius: var(--r-sm);
   font-size: var(--fs-sm);
   color: var(--text-2);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   background: rgba(0, 0, 0, 0.25);
   transition: color var(--t-fast), border-color var(--t-fast);
 }

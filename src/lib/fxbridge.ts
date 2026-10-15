@@ -106,7 +106,7 @@ export function installFxBridge(): () => void {
         const potPt = centerOf(elementForPot());
         if (potPt) burstAt('chipsToPot', seatEl, { amount: e.amount, target: potPt });
         else burstAt('chips', seatEl, { amount: e.amount });
-        if (e.allIn) { shake(shakePx(0.42), 280); vignette('#f4576f', 900); }
+        if (e.allIn) { shake(shakePx(0.42), 280); vignette('#e5261e', 900); }
         break;
       }
 
@@ -119,7 +119,7 @@ export function installFxBridge(): () => void {
       }
 
       case 'cast': {
-        const colour = SCHOOL_COLOR[e.school] ?? '#b98cff';
+        const colour = SCHOOL_COLOR[e.school] ?? '#ff4fa3';
         const ids = e.targetIds ?? [];
         const at = ids.length
           ? (centerOf(elementForCard(ids[0])) ?? screenCentre())
@@ -140,7 +140,7 @@ export function installFxBridge(): () => void {
       }
 
       case 'counter':
-        flash('#6ec8ff', 0.55);
+        flash('#00e5ff', 0.55);
         shake(shakePx(0.62), 260);
         chromatic(280);
         break;
@@ -178,7 +178,7 @@ export function installFxBridge(): () => void {
         break;
 
       case 'seal':
-        flash('#6ec8ff', 0.35);
+        flash('#00e5ff', 0.35);
         shake(shakePx(0.36), 220);
         break;
 
@@ -203,7 +203,7 @@ export function installFxBridge(): () => void {
         if (e.impossible) {
           burst('impossible', seatPt ?? screenCentre());
           shake(shakePx(1), 700);
-          flash('#f0c465', 0.6);
+          flash('#ffd23f', 0.6);
           chromatic(420);
           slowmo(0.42, 900);
           confetti(seatPt);
@@ -218,7 +218,7 @@ export function installFxBridge(): () => void {
       case 'eliminate':
         burstAt('eliminate', elementForSeat(e.playerId));
         shake(shakePx(0.4), 320);
-        vignette('#f4576f', 1400);
+        vignette('#e5261e', 1400);
         break;
 
       case 'relic':

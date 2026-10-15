@@ -39,7 +39,7 @@ function FeltArcanaBase() {
       {/* `non-scaling-stroke` so the line stays a hairline however wide the
           table is stretched — a scaled stroke comes out thin at the sides and
           fat at the top, which is how a drawn-on line gives itself away. */}
-      <g fill="none" stroke="#e8c06a" vectorEffect="non-scaling-stroke">
+      <g fill="none" stroke="#e8b064" vectorEffect="non-scaling-stroke">
         <ellipse cx="500" cy="300" rx="408" ry="232" strokeWidth="1.6" opacity="0.26" />
         <ellipse cx="500" cy="300" rx="398" ry="225" strokeWidth="0.8" opacity="0.14" />
       </g>

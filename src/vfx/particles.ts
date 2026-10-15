@@ -187,7 +187,7 @@ function rand(min: number, max: number): number {
 }
 
 function pick(list: string[]): string {
-  return list.length === 0 ? '#ffffff' : list[(Math.random() * list.length) | 0];
+  return list.length === 0 ? '#f4f1e8' : list[(Math.random() * list.length) | 0];
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -256,12 +256,12 @@ export function refreshPalette(): void {
 }
 
 const SCHOOL_FALLBACK: Record<School, [string, string, string]> = {
-  entropy: ['#b98cff', '#5b21b6', '#e9dcff'],
-  veil: ['#6ec8ff', '#0369a1', '#d8f1ff'],
-  chronos: ['#ffc861', '#b45309', '#ffeec4'],
-  bind: ['#5eead4', '#0f766e', '#d4fff6'],
-  ruin: ['#ff7a8a', '#9f1239', '#ffdbe0'],
-  weave: ['#a8e063', '#4d7c0f', '#e8ffc4'],
+  entropy: ['#ff4fa3', '#5b2a86', '#f4f1e8'],
+  veil: ['#00e5ff', '#1fa3a3', '#f4f1e8'],
+  chronos: ['#ffd23f', '#a86a2a', '#f4f1e8'],
+  bind: ['#1fa3a3', '#2b2266', '#f4f1e8'],
+  ruin: ['#e5261e', '#c2185b', '#f4f1e8'],
+  weave: ['#4ee08a', '#1fa3a3', '#f4f1e8'],
 };
 
 /** Accent, deep and highlight for a school, read from tokens where possible. */
@@ -279,7 +279,7 @@ export function schoolColors(school: School): string[] {
   return out;
 }
 
-const gold = (): string => token('--gold', '#f0c465');
+const gold = (): string => token('--gold', '#ffd23f');
 /**
  * The colours a chip is, as opposed to the colour money is.
  *
@@ -289,9 +289,9 @@ const gold = (): string => token('--gold', '#f0c465');
  * brass; these are the same three, so a chip in the air and a chip on the
  * felt are recognisably the same object.
  */
-const chipClay = (): string[] => ['#6e828c', '#3d4a52', '#bd6a6c', '#7d3438', '#f0c465', '#a67c2a'];
-const goldHi = (): string => token('--gold-hi', '#ffe6a8');
-const goldDeep = (): string => token('--gold-deep', '#a67c2a');
+const chipClay = (): string[] => ['#9f9ac4', '#2b2266', '#ff4fa3', '#c2185b', '#ffd23f', '#a86a2a'];
+const goldHi = (): string => token('--gold-hi', '#f4f1e8');
+const goldDeep = (): string => token('--gold-deep', '#a86a2a');
 
 /* ==========================================================================
    ParticleSystem
@@ -332,7 +332,7 @@ export class ParticleSystem {
     return {
       x: 0, y: 0, vx: 0, vy: 0,
       life: 0, maxLife: 1,
-      size: 1, color: '#ffffff', shape: 'dot',
+      size: 1, color: '#f4f1e8', shape: 'dot',
       rot: 0, vrot: 0,
       gravity: 0, drag: 0, glow: 0,
       glyph: undefined, fade: 'linear',
@@ -771,7 +771,7 @@ export interface PresetOptions {
 
 export type PresetFn = (at: Vec2, opts?: PresetOptions) => EmitSpec[];
 
-const WHITE = '#ffffff';
+const WHITE = '#f4f1e8';
 
 function paletteFor(opts: PresetOptions | undefined, fallback: string[]): string[] {
   if (opts?.colors && opts.colors.length > 0) return opts.colors;
@@ -848,7 +848,7 @@ export const PRESETS = {
 
   /* ---- collapse: shards fall inward, then one white flash ---- */
   collapse: (at, opts) => {
-    const col = paletteFor(opts, [schoolColors('veil')[0], '#d8f1ff', WHITE]);
+    const col = paletteFor(opts, [schoolColors('veil')[0], '#f4f1e8', WHITE]);
     const k = s(opts);
     const focus = opts?.target ?? at;
     return [
@@ -970,7 +970,7 @@ export const PRESETS = {
   /* ---- burn: flickering embers over dark smoke ---- */
   burn: (at, opts) => {
     const col = paletteFor(opts, [
-      schoolColors('ruin')[0], '#ff9a3c', gold(), '#ffd76e',
+      schoolColors('ruin')[0], '#ff8c1a', gold(), '#ffd23f',
     ]);
     const k = s(opts);
     const up = -Math.PI / 2;
@@ -998,7 +998,7 @@ export const PRESETS = {
         area: [12, 8],
         life: [0.9, 1.6],
         size: [9, 20],
-        colors: ['#1a1526', '#241b33', '#120e1c'],
+        colors: ['#14102b', '#1d1744', '#100c20'],
         shape: 'dot',
         gravity: -26,
         drag: 1.7,
@@ -1014,7 +1014,7 @@ export const PRESETS = {
         speed: [120 * k, 250 * k],
         life: [0.22, 0.4],
         size: [1, 2],
-        colors: ['#ffd76e', WHITE],
+        colors: ['#ffd23f', WHITE],
         shape: 'spark',
         drag: 3.4,
         glow: 1,
@@ -1350,7 +1350,7 @@ export const PRESETS = {
         area: [16, 5],
         life: [0.18, 0.36],
         size: [1.4, 3.6],
-        colors: paletteFor(opts, ['#2b4a3e', '#1b3229', '#6d6552', '#8d8471']),
+        colors: paletteFor(opts, ['#1d1744', '#14102b', '#a86a2a', '#c98a3e']),
         shape: 'dot',
         drag: 5.2,
         gravity: 40,
@@ -1363,7 +1363,7 @@ export const PRESETS = {
   /* ---- rewindRipple: concentric rings with a chromatic split ---- */
   rewindRipple: (at, opts) => {
     const k = s(opts);
-    const cyan = '#6ee7ff';
+    const cyan = '#00e5ff';
     const rose = schoolColors('ruin')[0];
     const out: EmitSpec[] = [];
     for (let w = 0; w < 3; w++) {
@@ -1405,7 +1405,7 @@ export const PRESETS = {
           speed: [0, 0],
           life: [life, life],
           size: [14 * k, 14 * k],
-          colors: [token('--chronos', '#ffc861')],
+          colors: [token('--chronos', '#ffd23f')],
           shape: 'ring',
           grow,
           glow: 1,
@@ -1422,7 +1422,7 @@ export const PRESETS = {
       radius: [70 * k, 140 * k],
       life: [0.45, 0.7],
       size: [1.2, 2.6],
-      colors: [token('--chronos', '#ffc861'), cyan, WHITE],
+      colors: [token('--chronos', '#ffd23f'), cyan, WHITE],
       shape: 'spark',
       target: at,
       attraction: 420,
@@ -1437,7 +1437,7 @@ export const PRESETS = {
     const vw = typeof window === 'undefined' ? 1280 : window.innerWidth;
     const vh = typeof window === 'undefined' ? 720 : window.innerHeight;
     const col = paletteFor(opts, [
-      token('--silver', '#cfd8ee'),
+      token('--silver', '#c2bedb'),
       gold(),
       schoolColors('veil')[0],
     ]);
@@ -1463,7 +1463,7 @@ export const PRESETS = {
   /* ---- eliminate: dark ash falling off the table ---- */
   eliminate: (at, opts) => {
     const k = s(opts);
-    const col = paletteFor(opts, ['#20182e', '#2c2340', '#3a2b44', schoolColors('ruin')[1]]);
+    const col = paletteFor(opts, ['#14102b', '#1d1744', '#1d1744', schoolColors('ruin')[1]]);
     return [
       {
         origin: at,

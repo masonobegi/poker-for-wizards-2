@@ -34,8 +34,12 @@
   padding: var(--s-6);
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 80px color-mix(in srgb, var(--entropy-deep) 25%, transparent);
+  border: 2px solid var(--line);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px color-mix(in srgb, var(--entropy-deep) 25%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
 }
 .hh-menu-panel:focus { outline: none; }
 
@@ -75,7 +79,7 @@
   padding: 8px 14px;
   border-radius: var(--r-pill);
   background: rgba(10, 13, 36, 0.92);
-  border: 1px solid rgba(244, 87, 111, 0.45);
+  border: 2px solid rgba(244, 87, 111, 0.45);
   color: var(--bad);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -98,8 +102,12 @@
   padding: var(--s-6);
   border-radius: var(--r-xl);
   background: var(--glass-dark);
-  border: 1px solid rgba(244, 87, 111, 0.35);
-  box-shadow: var(--e-4), 0 0 80px rgba(244, 87, 111, 0.12);
+  border: 2px solid rgba(244, 87, 111, 0.35);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px rgba(244, 87, 111, 0.12),
+    0 0 0 5px color-mix(in srgb, rgba(244, 87, 111, 0.12) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, rgba(244, 87, 111, 0.12) 16%, transparent);
 }
 .hh-conn-panel:focus { outline: none; }
 
@@ -130,12 +138,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 2px solid var(--line-soft);
 }
 
 .hh-tab {
   padding: 9px 15px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   border-bottom: none;
   border-radius: var(--r-md) var(--r-md) 0 0;
   background: transparent;
@@ -168,7 +176,7 @@
 
 .hh-segmented {
   display: inline-flex;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--r-pill);
   overflow: hidden;
   width: fit-content;
@@ -179,7 +187,7 @@
   cursor: pointer;
 }
 .hh-segmented-option:not(:last-child) .hh-segmented-label {
-  border-right: 1px solid var(--line);
+  border-right: 2px solid var(--line);
 }
 
 .hh-segmented-input {
@@ -227,7 +235,7 @@
   justify-content: space-between;
   gap: var(--s-3);
   padding: 9px 0;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 2px solid var(--line-soft);
 }
 .hh-shortcut-row:last-child { border-bottom: none; }
 
@@ -237,7 +245,7 @@
   justify-content: center;
   padding: 4px 8px;
   border-radius: var(--r-sm);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   background: var(--surface-2);
   box-shadow: var(--e-1);
   font-family: var(--font-mono);

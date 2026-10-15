@@ -37,7 +37,7 @@
 
 .vfx-flash {
   opacity: 0;
-  background: var(--vfx-flash-color, #ffffff);
+  background: var(--vfx-flash-color, #f4f1e8);
   mix-blend-mode: screen;
 }
 
@@ -54,8 +54,8 @@
     radial-gradient(
       120% 92% at 50% 50%,
       transparent 42%,
-      color-mix(in srgb, var(--vfx-vignette-color, #ff7a8a) 55%, transparent) 88%,
-      var(--vfx-vignette-color, #ff7a8a) 122%
+      color-mix(in srgb, var(--vfx-vignette-color, #e5261e) 55%, transparent) 88%,
+      var(--vfx-vignette-color, #e5261e) 122%
     );
   mix-blend-mode: screen;
 }
@@ -66,7 +66,7 @@
     background: radial-gradient(
       120% 92% at 50% 50%,
       transparent 44%,
-      var(--vfx-vignette-color, #ff7a8a) 118%
+      var(--vfx-vignette-color, #e5261e) 118%
     );
   }
 }
@@ -164,23 +164,23 @@
   border-radius: inherit;
   background: radial-gradient(
     closest-side,
-    var(--aura-color, #f0c465) 0%,
-    color-mix(in srgb, var(--aura-color, #f0c465) 45%, transparent) 55%,
-    transparent 100%
+    color-mix(in srgb, var(--aura-color, var(--arc-gold)) 70%, transparent) 0 38%,
+    color-mix(in srgb, var(--aura-color, var(--arc-gold)) 34%, transparent) 38% 66%,
+    color-mix(in srgb, var(--aura-color, var(--arc-gold)) 13%, transparent) 66% 88%,
+    transparent 88%
   );
-  filter: blur(calc(var(--aura-glow, 18px) * 0.55));
   opacity: var(--aura-intensity, 0.55);
   pointer-events: none;
 }
 
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
   .vfx-aura::before {
-    background: radial-gradient(closest-side, var(--aura-color, #f0c465) 0%, transparent 72%);
+    background: radial-gradient(closest-side, var(--aura-color, #ffd23f) 0%, transparent 72%);
   }
 }
 
 .vfx-aura[data-shape='circle']::before { border-radius: 50%; }
-.vfx-aura[data-shape='pill']::before { border-radius: var(--r-pill, 999px); }
+.vfx-aura[data-shape='pill']::before { border-radius: var(--r-pill, 0); }
 .vfx-aura[data-shape='rounded']::before { border-radius: var(--r-md, 12px); }
 
 /* The hint belongs on the variant that actually animates — every non-pulsing
@@ -266,8 +266,11 @@
   font-family: var(--font-display, serif);
   font-size: var(--rune-size, 13px);
   line-height: 1;
-  color: var(--runes-color, #b98cff);
-  text-shadow: 0 0 calc(var(--rune-size, 13px) * 0.7) var(--runes-color, #b98cff);
+  color: var(--runes-color, #ff4fa3);
+  /* An outline, not a bloom — the rune-size-relative blur this replaces was
+     the only glow in the game that could not be expressed as rings. */
+  --halo: var(--runes-color, var(--entropy));
+  text-shadow: var(--halo-text);
   opacity: var(--runes-opacity, 0.82);
   /* Counter-rotate at the orbit's rate so glyphs stay upright. */
   animation:
@@ -312,7 +315,7 @@
   width: var(--pulse-size, 46px);
   height: var(--pulse-size, 46px);
   margin: calc(var(--pulse-size, 46px) * -0.5) 0 0 calc(var(--pulse-size, 46px) * -0.5);
-  border: var(--pulse-width, 2px) solid var(--pulse-color, #5eead4);
+  border: var(--pulse-width, 2px) solid var(--pulse-color, #1fa3a3);
   border-radius: 50%;
   opacity: 0;
   animation: vfx-pulse-ring var(--pulse-speed, 2.2s) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) infinite;

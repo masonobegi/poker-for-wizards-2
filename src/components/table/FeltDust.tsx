@@ -112,7 +112,7 @@ export default function FeltDust() {
         if (a <= 0.004) continue;
 
         ctx.globalAlpha = a;
-        ctx.fillStyle = '#e8d6ae';
+        ctx.fillStyle = '#e8b064';
         ctx.beginPath();
         ctx.arc(m.x * w, m.y * h, m.r, 0, Math.PI * 2);
         ctx.fill();

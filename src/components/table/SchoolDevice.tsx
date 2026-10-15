@@ -178,9 +178,9 @@ function Device({ id }: { id: DeviceId }): JSX.Element {
               starts reading as a field of dashes, which is what the first
               version of this did. */}
           <path d="M20 18.3v3.4M44 18.3v3.4M32 30.3v3.4M20 42.3v3.4M44 42.3v3.4"
-            stroke="var(--sigil-paper, #efe8d8)" strokeWidth="3.2" />
+            stroke="var(--sigil-paper, #f4f1e8)" strokeWidth="3.2" />
           <path d="M30.3 20h3.4M30.3 44h3.4M18.3 32h3.4M42.3 32h3.4"
-            stroke="var(--sigil-paper, #efe8d8)" strokeWidth="3.2" />
+            stroke="var(--sigil-paper, #f4f1e8)" strokeWidth="3.2" />
         </g>
       );
   }

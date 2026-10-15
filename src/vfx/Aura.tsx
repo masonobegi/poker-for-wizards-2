@@ -83,7 +83,7 @@ export function Aura({
   style,
   children,
 }: AuraProps): JSX.Element {
-  const resolved = resolveColor(color, token('--gold', '#f0c465'));
+  const resolved = resolveColor(color, token('--gold', '#ffd23f'));
   const vars: CSSVars = {
     ...style,
     '--aura-color': resolved,
@@ -207,7 +207,7 @@ export function Runes({
     for (let i = 0; i < n; i++) out.push(pool[Math.floor(Math.random() * pool.length)] ?? '✦');
     return out;
   }, [n, pool]);
-  const resolved = resolveColor(color, token('--entropy', '#b98cff'));
+  const resolved = resolveColor(color, token('--entropy', '#ff4fa3'));
 
   const ringVars: CSSVars = {
     '--runes-speed': `${speed}s`,
@@ -285,7 +285,7 @@ export function Pulse({
   style,
   children,
 }: PulseProps): JSX.Element {
-  const resolved = resolveColor(color, token('--bind', '#5eead4'));
+  const resolved = resolveColor(color, token('--bind', '#1fa3a3'));
   const vars: CSSVars = {
     '--pulse-color': resolved,
     '--pulse-size': `${size}px`,

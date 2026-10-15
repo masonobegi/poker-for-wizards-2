@@ -29,8 +29,18 @@
   line-height: 1;
   color: color-mix(in srgb, var(--fx-school, var(--gold)) 40%, #fff);
   text-shadow:
-    0 0 10px var(--fx-school, var(--gold)),
-    0 0 22px var(--fx-school, var(--gold));
+    2px 0 0 var(--fx-school, var(--gold)),
+    -2px 0 0 var(--fx-school, var(--gold)),
+    0 2px 0 var(--fx-school, var(--gold)),
+    0 -2px 0 var(--fx-school, var(--gold)),
+    2px 0 0 var(--fx-school, var(--gold)),
+    -2px 0 0 var(--fx-school, var(--gold)),
+    0 2px 0 var(--fx-school, var(--gold)),
+    0 -2px 0 var(--fx-school, var(--gold)),
+    4px 0 0 color-mix(in srgb, var(--fx-school, var(--gold)) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, var(--fx-school, var(--gold)) 45%, transparent),
+    0 4px 0 color-mix(in srgb, var(--fx-school, var(--gold)) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, var(--fx-school, var(--gold)) 45%, transparent);
 }
 
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
@@ -41,8 +51,10 @@
   position: absolute;
   inset: -60% ;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--fx-school, var(--gold)) 55%, transparent), transparent 72%);
-  filter: blur(2px);
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--fx-school, var(--gold)) 50%, transparent) 0 46%,
+    color-mix(in srgb, var(--fx-school, var(--gold)) 22%, transparent) 46% 72%,
+    transparent 72%);
 }
 
 /* One condition. `videoPrefs.ts` folds the OS preference and the in-game

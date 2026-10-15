@@ -32,8 +32,8 @@ import { memo } from 'react';
 
 /** The six school inks, doubled so twelve seats never repeat an accent. */
 const INKS = [
-  '#9a7fc9', '#5f8fb5', '#c79541', '#4f9a8c', '#b04a4f', '#7f9a4c',
-  '#8a6fbd', '#527f9f', '#b8863a', '#448578', '#9c4045', '#6f8942',
+  '#5b2a86', '#00e5ff', '#ffd23f', '#1fa3a3', '#e5261e', '#4ee08a',
+  '#ff4fa3', '#9f9ac4', '#c98a3e', '#c2185b', '#ff8c1a', '#a86a2a',
 ];
 
 /**
@@ -58,10 +58,10 @@ const MARKS = [
   'M5.5 38.6 8 44H3Zm0 2.4L4.4 43h2.2Z',             // hollow triangle
 ];
 
-const INK = '#17161a';
-const INK_2 = '#3a3730';
-const PAPER = '#e7dfcc';
-const PAPER_2 = '#cfc4ab';
+const INK = '#0d0a14';
+const INK_2 = '#14102b';
+const PAPER = '#f4f1e8';
+const PAPER_2 = '#c2bedb';
 
 /**
  * The headgear, by archetype. Each returns paths drawn over the shared head,
@@ -75,7 +75,7 @@ function Hat({ n, ink }: { n: number; ink: string }): JSX.Element {
         <>
           <path d="M24 3c-10 0-16 8-16 19 0 5 1 9 3 13h26c2-4 3-8 3-13C40 11 34 3 24 3Z" fill={INK} />
           <path d="M31 5c4 3 6 9 6 17 0 5-1 9-3 13h3c2-4 3-8 3-13 0-9-4-15-9-17Z" fill={INK_2} opacity=".55" />
-          <ellipse cx="24" cy="23" rx="7.4" ry="9" fill="#08070a" />
+          <ellipse cx="24" cy="23" rx="7.4" ry="9" fill="#0d0a14" />
         </>
       );
     case 1: // horned helm — the horns sweep up and in, so they stay on the plate
@@ -149,9 +149,9 @@ function Hat({ n, ink }: { n: number; ink: string }): JSX.Element {
         <>
           <path d="M24 6c-8.4 0-13.6 6-13.6 14 0 5 2 8.4 4 10.4V35h19.2v-4.6c2-2 4-5.4 4-10.4 0-8-5.2-14-13.6-14Z" fill={PAPER} />
           <path d="M24 6c-8.4 0-13.6 6-13.6 14 0 5 2 8.4 4 10.4V35h4V30c-2-2-4-5.4-4-10.4 0-6.6 3.6-12 9.6-13.6Z" fill={PAPER_2} opacity=".7" />
-          <ellipse cx="18.4" cy="20.6" rx="3.6" ry="4.2" fill="#0b0a0c" />
-          <ellipse cx="29.6" cy="20.6" rx="3.6" ry="4.2" fill="#0b0a0c" />
-          <path d="M22.6 26.4h2.8l-1.4 3.6Z" fill="#0b0a0c" />
+          <ellipse cx="18.4" cy="20.6" rx="3.6" ry="4.2" fill="#0d0a14" />
+          <ellipse cx="29.6" cy="20.6" rx="3.6" ry="4.2" fill="#0d0a14" />
+          <path d="M22.6 26.4h2.8l-1.4 3.6Z" fill="#0d0a14" />
           <path d="M18 33h12v2H18Zm2.6-1.4v3.4M24 31.6V35m3.4-3.4V35" stroke={INK} strokeWidth=".7" opacity=".65" />
         </>
       );
@@ -261,24 +261,24 @@ function AvatarBase({ seed, size = 40, bot, dim, className = '' }: AvatarProps) 
         {/* the brass rule around the plate */}
         <path
           d="M6 1h36a5 5 0 0 1 5 5v36a5 5 0 0 1-5 5H6a5 5 0 0 1-5-5V6a5 5 0 0 1 5-5Z"
-          fill="none" stroke="#8a6420" strokeWidth="1.6"
+          fill="none" stroke="#a86a2a" strokeWidth="1.6"
         />
         <path
           d="M6 1h36a5 5 0 0 1 5 5v36a5 5 0 0 1-5 5H6a5 5 0 0 1-5-5V6a5 5 0 0 1 5-5Z"
-          fill="none" stroke="#d4a24a" strokeWidth=".7" opacity=".85"
+          fill="none" stroke="#c98a3e" strokeWidth=".7" opacity=".85"
         />
 
         {bot ? (
           <g>
-            <path d="M32 33h16v9a5 5 0 0 1-5 5h-11Z" fill="#17161a" />
-            <path d="M32 33h16v9a5 5 0 0 1-5 5h-11Z" fill="none" stroke="#8a6420" strokeWidth="1" />
+            <path d="M32 33h16v9a5 5 0 0 1-5 5h-11Z" fill="#0d0a14" />
+            <path d="M32 33h16v9a5 5 0 0 1-5 5h-11Z" fill="none" stroke="#a86a2a" strokeWidth="1" />
             {/* `base.css` pins every `<text>` in an avatar to ten user units
                 so this stays legible; `textLength` is what keeps ten units of
                 type inside a sixteen-unit tab. */}
             <text
-              x="40.5" y="43.6" textAnchor="middle" fill="#d4a24a"
+              x="40.5" y="43.6" textAnchor="middle" fill="#ffd23f"
               textLength="11" lengthAdjust="spacingAndGlyphs"
-              fontFamily="ui-monospace, monospace" fontWeight="700"
+              fontFamily="'Press Start 2P', ui-monospace, monospace" fontWeight="700"
             >
               AI
             </text>

@@ -217,12 +217,12 @@ export function SoundTest() {
 // ---------------------------------------------------------------------------
 
 const ink = {
-  bg: '#0a0c16',
+  bg: '#0d0a14',
   panel: '#12142280',
   border: '#f0c46533',
-  text: '#e8e6f0',
-  dim: '#9a97ad',
-  gold: '#f0c465',
+  text: '#f4f1e8',
+  dim: '#9f9ac4',
+  gold: '#ffd23f',
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -296,7 +296,7 @@ const styles: Record<string, CSSProperties> = {
   },
   btnFlash: {
     background: ink.gold,
-    color: '#161016',
+    color: '#0d0a14',
     borderColor: ink.gold,
     transform: 'scale(0.96)',
   },

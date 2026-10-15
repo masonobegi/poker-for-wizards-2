@@ -33,7 +33,14 @@
 .hx-card-slot {
   --hx-w: calc(var(--card-w, 78px) * var(--cs, 1));
   --hx-h: calc(var(--card-h, 112px) * var(--cs, 1));
-  --hx-r: calc(var(--r-card, 9px) * var(--cs, 1));
+  /* The corner does NOT scale with the card.
+     It used to be `--r-card * --cs`, which gave a different radius at every
+     card size in the game — 3.12px in the showdown list, 4.44px in the hand,
+     6px on the menu, 8.16px on the board, 9.53px mid-deal. Four of those are
+     fractions of a pixel and all five are a different shape, so one object
+     had five silhouettes depending on where you were looking at it. One art
+     pixel, everywhere. */
+  --hx-r: var(--r-card, 4px);
   --hx-idx-ratio: 0.145;
 
   position: relative;
@@ -111,8 +118,12 @@
   bottom: -14%;
   height: 30%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 70%);
-  filter: blur(7px);
+  /* An opaque ellipse of ink, not a blurred gradient. See `.hx-card__shadow`:
+     a translucent soft shadow lying across the felt's hard tone boundary lets
+     the boundary show through itself, and the shadow reads as a smear
+     belonging to neither tone. */
+  background: var(--ink);
+  opacity: 0.38;
   pointer-events: none;
   transform-origin: center;
 }
@@ -145,7 +156,7 @@
 .hx-card__surface {
   position: absolute;
   inset: 0;
-  border-radius: var(--hx-r, 9px);
+  border-radius: var(--hx-r, 4px);
   overflow: hidden;
 }
 
@@ -247,10 +258,10 @@
   transition: opacity var(--t-base, 260ms) var(--ease-out, ease);
 }
 .hx-card__rim::before {
-  box-shadow: 0 0 0 1.5px var(--gold), 0 0 0.9em color-mix(in srgb, var(--gold) 55%, transparent);
+  box-shadow: 0 0 0 1.5px var(--gold), 0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent);
 }
 .hx-card__rim::after {
-  box-shadow: 0 0 0 1.5px var(--bind), 0 0 0.9em color-mix(in srgb, var(--bind) 55%, transparent);
+  box-shadow: 0 0 0 1.5px var(--bind), 0 0 0 2px color-mix(in srgb, var(--bind) 55%, transparent);
 }
 
 /* ---------------------------------------------------------------------------
@@ -319,23 +330,23 @@
    read as a court card from across the felt. */
 .hx-art__frame {
   fill: none;
-  stroke: #c8972e;
+  stroke: #c98a3e;
   stroke-width: 1.9;
   opacity: 0.95;
 }
 .hx-art__frame-2 {
   fill: none;
-  stroke: #f0cf7a;
+  stroke: #ffd23f;
   stroke-width: 0.9;
   opacity: 0.75;
 }
 
 /* The elemental ink of each court, scoped to the medallion. The corner indices
    and the number pips are untouched and stay red/black. */
-.hx-art[data-suit='S'] .hx-art__court { color: #4b3a86; }
-.hx-art[data-suit='H'] .hx-art__court { color: #c02a3c; }
-.hx-art[data-suit='C'] .hx-art__court { color: #2f6b3c; }
-.hx-art[data-suit='D'] .hx-art__court { color: #1f5aa8; }
+.hx-art[data-suit='S'] .hx-art__court { color: #3a2d85; }
+.hx-art[data-suit='H'] .hx-art__court { color: #c21e18; }
+.hx-art[data-suit='C'] .hx-art__court { color: #1fa3a3; }
+.hx-art[data-suit='D'] .hx-art__court { color: #2b2266; }
 /* Engraving texture in the medallion. Kept very faint: at 0.14 the rows read
    straight through the court figures' robes and the cards looked like they
    were drawn on lined paper. */
@@ -361,7 +372,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: var(--hx-r, 9px);
+  border-radius: var(--hx-r, 4px);
   background: var(--card-back-1);
 }
 .hx-back--muted { filter: saturate(0.5) brightness(0.62); }
@@ -369,7 +380,7 @@
    matching glint so the metal reads as one consistent surface. */
 .hx-back--sheen .hx-back__ring,
 .hx-back--sheen .hx-back__star {
-  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--gold) 25%, transparent));
+  filter: ;
 }
 
 .hx-back__svg { width: 100%; height: 100%; display: block; }
@@ -440,10 +451,13 @@
   animation: hx-q-phase 3.6s ease-in-out infinite; /* keep in sync with Q_PHASE in Card.tsx */
 }
 @keyframes hx-q-phase {
-  0% { opacity: 0.85; filter: blur(0px); }
-  35% { opacity: 0.2; filter: blur(0.5px); }
-  65% { opacity: 0.2; filter: blur(0.5px); }
-  100% { opacity: 0.85; filter: blur(0px); }
+  /* Opacity alone. The half-pixel blur this had at the trough was trying to
+     soften the phase and could only do it by resampling the card's own
+     artwork off the pixel grid. */
+  0% { opacity: 0.85; }
+  35% { opacity: 0.2; }
+  65% { opacity: 0.2; }
+  100% { opacity: 0.85; }
 }
 
 /* Two independently-drifting diagonal gratings = a genuinely shifting
@@ -510,13 +524,15 @@
   width: 55%;
   aspect-ratio: 1;
   border-radius: 50%;
-  filter: blur(14px);
-  opacity: 0.55;
+  /* Hard discs. `screen` at 0.55 is what makes three overlapping circles read
+     as interference; the 14px blur was only smoothing the overlaps into
+     colours that are not in the palette. */
+  opacity: 0.4;
   mix-blend-mode: screen;
 }
-.hx-field__blob--a { top: -10%; left: -10%; background: radial-gradient(circle, var(--entropy), transparent 70%); animation: hx-blob-a 9s ease-in-out infinite; }
-.hx-field__blob--b { bottom: -14%; right: -8%; background: radial-gradient(circle, var(--veil), transparent 70%); opacity: 0.45; animation: hx-blob-b 11s ease-in-out infinite; }
-.hx-field__blob--c { top: 30%; left: 24%; width: 40%; background: radial-gradient(circle, var(--gold), transparent 70%); opacity: 0.3; animation: hx-blob-c 13s ease-in-out infinite; }
+.hx-field__blob--a { top: -10%; left: -10%; background: radial-gradient(circle, var(--entropy) 0 36%, color-mix(in srgb, var(--entropy) 48%, transparent) 36% 58%, color-mix(in srgb, var(--entropy) 18%, transparent) 58% 74%, transparent 74%); animation: hx-blob-a 9s ease-in-out infinite; }
+.hx-field__blob--b { bottom: -14%; right: -8%; background: radial-gradient(circle, var(--veil) 0 36%, color-mix(in srgb, var(--veil) 48%, transparent) 36% 58%, color-mix(in srgb, var(--veil) 18%, transparent) 58% 74%, transparent 74%); opacity: 0.45; animation: hx-blob-b 11s ease-in-out infinite; }
+.hx-field__blob--c { top: 30%; left: 24%; width: 40%; background: radial-gradient(circle, var(--gold) 0 36%, color-mix(in srgb, var(--gold) 48%, transparent) 36% 58%, color-mix(in srgb, var(--gold) 18%, transparent) 58% 74%, transparent 74%); opacity: 0.3; animation: hx-blob-c 13s ease-in-out infinite; }
 @keyframes hx-blob-a { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(8%, 10%); } }
 @keyframes hx-blob-b { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-8%, -10%); } }
 @keyframes hx-blob-c { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-6%, 8%) scale(1.1); } }
@@ -547,7 +563,7 @@
   font-size: 12px;
   font-family: var(--font-display);
   fill: var(--entropy);
-  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--entropy) 70%, transparent));
+  filter: ;
 }
 .hx-qring__spin { transform-origin: 50px 50px; animation: hx-ring-spin 22s linear infinite; }
 
@@ -564,15 +580,21 @@
   justify-content: center;
   gap: 0.15em;
   color: var(--gold-hi);
-  text-shadow: 0 0 0.5em color-mix(in srgb, var(--gold) 65%, transparent);
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 65%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 65%, transparent);
 }
 .hx-veil__sigil {
   position: absolute;
   width: 62%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 35%, transparent), color-mix(in srgb, var(--gold) 5%, transparent) 60%, transparent 72%);
-  filter: blur(1px);
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--gold) 32%, transparent) 0 44%,
+    color-mix(in srgb, var(--gold) 12%, transparent) 44% 68%,
+    transparent 68%);
   pointer-events: none;
 }
 .hx-veil__rank {
@@ -677,7 +699,7 @@
 .hx-fx--wild {
   position: absolute;
   inset: -4%;
-  border-radius: calc(var(--hx-r, 9px) * 1.25);
+  border-radius: var(--hx-r, 4px);
   pointer-events: none;
   padding: 2px;
   opacity: 0.85;
@@ -697,9 +719,9 @@
 .hx-fx--echo {
   position: absolute;
   inset: -4%;
-  border-radius: calc(var(--hx-r, 9px) * 1.15);
+  border-radius: calc(var(--hx-r, 4px) * 1.15);
   pointer-events: none;
-  border: 1.5px solid var(--weave);
+  border: 2px solid var(--weave);
   opacity: 0;
   animation: hx-echo-ripple 2.4s ease-out infinite;
 }
@@ -734,14 +756,18 @@
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.22), rgba(10, 10, 16, 0.85) 72%);
-  box-shadow: 0 0 0 1px var(--mk, var(--gold)), 0 0 0.45em -0.05em var(--mk, var(--gold)), var(--e-1);
+  box-shadow: 0 0 0 1px var(--mk, var(--gold)), 0 0 0 2px var(--mk, var(--gold)), var(--e-1);
   color: var(--mk, var(--gold));
   cursor: default;
 }
 .hx-mark__glyph {
   font-size: clamp(10px, 0.85em, 20px);
   line-height: 1;
-  filter: drop-shadow(0 0 0.15em var(--mk, transparent));
+  filter:
+    drop-shadow(2px 0 0 var(--mk, transparent))
+    drop-shadow(-2px 0 0 var(--mk, transparent))
+    drop-shadow(0 2px 0 var(--mk, transparent))
+    drop-shadow(0 -2px 0 var(--mk, transparent));
 }
 
 .hx-mark--wild {
@@ -756,9 +782,13 @@
 }
 .hx-mark--wild .hx-mark__glyph {
   display: inline-block;
-  color: #171a24;
+  color: #14102b;
   filter: none;
-  text-shadow: 0 0 0.2em rgba(255, 255, 255, 0.6);
+  text-shadow:
+    2px 0 0 rgba(255, 255, 255, 0.6),
+    -2px 0 0 rgba(255, 255, 255, 0.6),
+    0 2px 0 rgba(255, 255, 255, 0.6),
+    0 -2px 0 rgba(255, 255, 255, 0.6);
   animation: hx-ring-spin-rev 5s linear infinite;
 }
 
@@ -780,7 +810,7 @@
   position: absolute;
   inset: -0.2em;
   border-radius: 50%;
-  border: 1px solid var(--mk, var(--gold));
+  border: 2px solid var(--mk, var(--gold));
   animation: hx-echo-ripple 2.2s ease-out infinite;
 }
 
@@ -796,8 +826,10 @@
   max-width: 13em;
   padding: 0.5em 0.65em;
   border-radius: var(--r-sm);
-  background: linear-gradient(180deg, rgba(23, 28, 53, 0.98), rgba(11, 14, 27, 0.98));
-  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg,
+    rgba(29, 23, 68, 0.98) 0 56%,
+    rgba(20, 16, 43, 0.98) 56% 100%);
+  border: 2px solid var(--line-soft);
   box-shadow: var(--e-2);
   font-size: clamp(10px, 0.62em, 14px);
   line-height: 1.35;
@@ -840,8 +872,8 @@
   background: rgba(10, 13, 36, 0.72);
   box-shadow: var(--e-1);
 }
-.hx-badge--diverged { color: var(--veil); box-shadow: 0 0 0 1px var(--veil), 0 0 0.5em -0.1em var(--veil); }
-.hx-badge--entangled { color: var(--bind); box-shadow: 0 0 0 1px var(--bind), 0 0 0.5em -0.1em var(--bind); }
+.hx-badge--diverged { color: var(--veil); box-shadow: 0 0 0 1px var(--veil), 0 0 0 2px var(--veil); }
+.hx-badge--entangled { color: var(--bind); box-shadow: 0 0 0 1px var(--bind), 0 0 0 2px var(--bind); }
 
 .hx-mem {
   position: absolute;
@@ -860,7 +892,7 @@
   display: block;
   background: var(--gold-hi);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
-  box-shadow: 0 0 0.35em color-mix(in srgb, var(--gold) 70%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent);
 }
 .hx-mem__count {
   display: flex;
@@ -871,7 +903,7 @@
   font-weight: 700;
   color: var(--gold-hi);
   background: rgba(10, 13, 36, 0.55);
-  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  border: 2px solid color-mix(in srgb, var(--gold) 35%, transparent);
   border-radius: var(--r-pill);
   padding: 0.08em 0.4em;
 }
@@ -898,8 +930,8 @@
 .is-winning .hx-card__surface {
   box-shadow:
     0 0 0 2px var(--gold),
-    0 0 1.4em color-mix(in srgb, var(--gold) 70%, transparent),
-    0 0.5em 1.4em rgba(0, 0, 0, 0.5);
+    0 0 0 5px color-mix(in srgb, var(--gold) 34%, transparent),
+    var(--e-lift);
 }
 .is-used .hx-card__lift { transform: translateY(calc(var(--hx-h, 112px) * -0.045)); }
 
@@ -1050,18 +1082,18 @@
    --------------------------------------------------------------------------- */
 
 .has-mark .hx-card__surface--face {
-  --foil: #ffd76e;
-  --foil-2: #7ee8fa;
+  --foil: #ffd23f;
+  --foil-2: #00e5ff;
 }
-.has-wild     .hx-card__surface--face { --foil: #ffd76e; --foil-2: #ffb03c; }
-.has-prism    .hx-card__surface--face { --foil: #7ee8fa; --foil-2: #b98cff; }
-.has-blooded  .hx-card__surface--face { --foil: #ff6b81; --foil-2: #ffb0a0; }
-.has-leaden   .hx-card__surface--face { --foil: #9aa4b2; --foil-2: #6b7382; }
-.has-mirrored .hx-card__surface--face { --foil: #c4a7ff; --foil-2: #7ee8fa; }
-.has-bound    .hx-card__surface--face { --foil: #5eead4; --foil-2: #34d399; }
-.has-cursed   .hx-card__surface--face { --foil: #8b5cf6; --foil-2: #4c1d95; }
-.has-burning  .hx-card__surface--face { --foil: #ff9a3c; --foil-2: #ff5e3a; }
-.has-echo     .hx-card__surface--face { --foil: #a3e635; --foil-2: #65a30d; }
+.has-wild     .hx-card__surface--face { --foil: #ffd23f; --foil-2: #ff8c1a; }
+.has-prism    .hx-card__surface--face { --foil: #00e5ff; --foil-2: #ff4fa3; }
+.has-blooded  .hx-card__surface--face { --foil: #e5261e; --foil-2: #ff4fa3; }
+.has-leaden   .hx-card__surface--face { --foil: #9f9ac4; --foil-2: #2b2266; }
+.has-mirrored .hx-card__surface--face { --foil: #f4f1e8; --foil-2: #00e5ff; }
+.has-bound    .hx-card__surface--face { --foil: #1fa3a3; --foil-2: #4ee08a; }
+.has-cursed   .hx-card__surface--face { --foil: #5b2a86; --foil-2: #2b2266; }
+.has-burning  .hx-card__surface--face { --foil: #ff8c1a; --foil-2: #e5261e; }
+.has-echo     .hx-card__surface--face { --foil: #4ee08a; --foil-2: #1fa3a3; }
 
 /* The wash. Multiply-free and low alpha so the pips and the court art stay
    exactly as legible as they were — rule three of the fx layer applies here

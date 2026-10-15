@@ -47,6 +47,6 @@
 /* While a character is still cycling it sits in the table's gold rather than
    the surrounding ink, so the line visibly resolves from the left. */
 .hx-decode__live.is-scrambling {
-  color: var(--gold, #f0c465);
+  color: var(--gold, #ffd23f);
   opacity: 0.85;
 }

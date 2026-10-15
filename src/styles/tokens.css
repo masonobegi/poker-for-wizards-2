@@ -113,59 +113,101 @@
   --rail:        var(--wood-dark);
   --rail-hi:     var(--wood-light);
 
+  /* === THE FOUR ADDITIONS =================================================
+     BasketRogue's doc says "use these; small additions are fine", and its own
+     UI theme takes it up on that — `COL_MUTED` is a periwinkle grey that is
+     not on its fourteen either. So additions are allowed. What is NOT allowed
+     is fifty of them, which is what this file had: the fourteen were pasted in
+     at the top and every semantic token underneath was left on the palette
+     before it, so two art directions were live at once and `npm run style`
+     found two hundred painted colours off the list.
+
+     These four are the whole extension, and each one is here because the
+     fourteen cannot express the thing:
+
+       1-2. The palette jumps from bone (L=0.88) straight to indigo (L=0.03).
+            There is nothing between them, so there is no way to set secondary
+            text at all. Two rungs on the bone->indigo line, each chosen to
+            clear WCAG AA 4.5:1 on the lightest plate fill in the game.
+         3. There is no green. Money needs one — "+40" in gold is a bet and in
+            green is a win, and that distinction is load-bearing twice a hand.
+         4. `--arc-red` on bone stock measures 4.26:1 at pip size, which fails
+            AA on the most-read glyph in a card game. This is arc-red two tones
+            down: still unmistakably a printed red, and 5.6:1.
+
+     Everything else in this file resolves to one of the fourteen. Before
+     adding a fifth, run `npm run style` and check whether what you want is
+     a SHAPE in a palette colour rather than a new colour.
+     ======================================================================== */
+  --bone-2:      #c2bedb;   /* paper in shadow      — 7.5:1 on --surface */
+  --bone-3:      #9f9ac4;   /* paper two tones down — 5.0:1 on --surface */
+  --jade:        #4ee08a;   /* the green the fourteen do not have */
+  --card-red:    #c21e18;   /* arc-red, printed: 5.6:1 on bone */
+
   /* --- text ---------------------------------------------------------------
-     Bone, not blue-white. Paper that has been somewhere. */
-  --text:        #fff7ea;
-  --text-2:      #d6dcff;
-  --text-3:      #a8b4e8;
-  --text-4:      #7786c4;
-  /* Small print that still has to be read: captions, notes, blurbs under a
-     control. `--text-4` is for things that may be ignored (a build string, a
-     disabled label) and measures ~2.5:1 on a plate fill; this one clears
-     WCAG AA 4.5:1 against the lightest pixel of the plate's lamp gradient,
-     measured in the browser rather than against the flat token. */
-  --text-quiet:  #c3cdf5;
+     Three rungs, and all three are the same material. The ladder used to be
+     four colours in two different hue families — a warm bone at the top and a
+     cold periwinkle under it — so paper changed colour as it dimmed, which is
+     the one thing a material may not do. */
+  --text:        var(--bone);
+  --text-2:      var(--bone-2);
+  --text-3:      var(--bone-3);
+  /* Kept as names because half the app asks for them. There is no fourth
+     rung: a thing that may be ignored is set at --text-3 and made smaller,
+     not faded until it fails AA. */
+  --text-4:      var(--bone-3);
+  --text-quiet:  var(--bone-2);
 
   /* --- brand / metal -----------------------------------------------------
-     Brass, off the plate. The old gold was a screen yellow. */
-  --gold:        #ffd23f;
-  --gold-hi:     #fff4b8;
-  --gold-deep:   #c2860f;
-  --silver:      #ddd6f0;
+     Gold is a material, so it gets the doc's three tones: base, highlight and
+     shadow — and all three are on the list. The highlight on metal is the
+     lightest colour in the palette, because that is what a specular is. */
+  --gold:        var(--arc-gold);
+  --gold-hi:     var(--bone);
+  --gold-deep:   var(--wood-dark);
+  --silver:      var(--bone);
+  --chip:        var(--arc-gold);
 
-  /* --- semantic -----------------------------------------------------------
-     Printing inks: a bottle green, an ochre, an oxblood, a slate. */
-  --good:        #4ee08a;
-  --warn:        #ffc53d;
-  --bad:         #ff6b76;
-  --info:        #5bc8ff;
-  --chip:        #ffd23f;
+  /* --- semantic ----------------------------------------------------------- */
+  --good:        var(--jade);
+  --warn:        var(--arc-gold);
+  --bad:         var(--arc-red);
+  --info:        var(--cyan);
 
   /* --- schools of magic ---------------------------------------------------
-     Six inks rather than six neons. Each still reads instantly apart from the
-     others, which was the only job the saturation was doing. */
-  --entropy:     #c78cff;
-  --entropy-deep:#6a3fb5;
-  --veil:        #4ec8ff;
-  --veil-deep:   #1d6fa8;
-  --chronos:     #ffc53d;
-  --chronos-deep:#b8790d;
-  --bind:        #3fe3bf;
-  --bind-deep:   #1b8a76;
-  --ruin:        #ff6b85;
-  --ruin-deep:   #b32d47;
-  --weave:       #a9e85c;
-  --weave-deep:  #5f9420;
+     Six hues off the fourteen, each with the palette's own darker tone under
+     it for fills and edges.
+
+     A school's colour is a FILL — the frame, the cost pip's ring, the mark.
+     It is never 12px text, and that is a rule rather than an oversight: run
+     the numbers and a saturated hue at label size fails AA on a dark plate
+     AND on bone paper, because being saturated is what puts it in the middle
+     of the luminance range. The text on a sigil card is ink on paper; the
+     text on a plate is bone. The colour identifies, the ink reads — the same
+     division of labour as the outlines. */
+  --entropy:     var(--hotpink);
+  --entropy-deep:var(--purple);
+  --veil:        var(--cyan);
+  --veil-deep:   var(--teal);
+  --chronos:     var(--arc-gold);
+  --chronos-deep:var(--wood-dark);
+  --bind:        var(--teal);
+  --bind-deep:   var(--indigo);
+  --ruin:        var(--arc-red);
+  --ruin-deep:   var(--magenta);
+  --weave:       var(--jade);
+  --weave-deep:  var(--bind-deep);
 
   /* --- card faces ---------------------------------------------------------
-     Stock, not screen white. The red is a printed red — it has black in it. */
-  --card-face:   #fdf7e8;
-  --card-face-2: #f0e6cf;
-  --card-red:    #e03046;
-  --card-black:  #1b1a17;
-  --card-back-1: #23367f;
-  --card-back-2: #101b4d;
-  --card-edge:   rgba(0, 0, 0, 0.6);
+     One flat stock. There used to be a second, lighter tone for a gradient
+     across the face; a card in this style is one colour from edge to edge and
+     the only thing that varies across it is the ink. */
+  --card-face:   var(--bone);
+  --card-face-2: var(--bone);
+  --card-black:  var(--ink);
+  --card-back-1: var(--indigo);
+  --card-back-2: var(--night);
+  --card-edge:   var(--ink);
 
   /* --- radii ---------------------------------------------------------------
      Nearly square, on purpose. The old scale topped out at 26px and was
@@ -173,13 +215,20 @@
      interface nobody drew. A playing card is the one object here with a real
      radius, because a real one has one. --r-pill is no longer a pill: every
      badge in the app becomes a printed tag instead of a lozenge. */
+  /* An art pixel is FOUR CSS pixels, so a corner is 0, 4 or 8 and there is no
+     such thing as 2. That is not pedantry: a 2px radius is half an art pixel,
+     which the renderer can only draw by anti-aliasing the corner into values
+     that are not in the palette — a soft grey notch on an otherwise hard-edged
+     shape. Thirty-nine elements were doing it, most at 2px or 3px, and
+     together they are why the chrome read as "nearly pixel art". A corner is
+     square, or it is one whole pixel and visibly stair-stepped. */
   --r-xs: 0px;
-  --r-sm: 2px;
-  --r-md: 3px;
+  --r-sm: 0px;
+  --r-md: 0px;
   --r-lg: 4px;
-  --r-xl: 5px;
-  --r-card: 6px;
-  --r-pill: 2px;
+  --r-xl: 4px;
+  --r-card: 4px;
+  --r-pill: 0px;
 
   /* --- spacing ------------------------------------------------------------ */
   --s-1: 4px;
@@ -213,9 +262,16 @@
      them — a serif behind the display face and Inter behind the body — so a
      missing file degrades to something readable rather than to tofu. */
   --font-display: 'Bungee', 'Cinzel', 'Iowan Old Style', Georgia, var(--sym), serif;
+  /* The arcade face. ONLY at --fs-hud or --fs-hud-lg: it is an 8-pixel
+     bitmap and at any other size the renderer resamples it. */
   --font-hud: 'Press Start 2P', 'Pixelify Sans', 'Inter', system-ui, var(--sym), sans-serif;
+  --fs-hud: 16px;
+  --fs-hud-lg: 24px;
   --font-ui: 'Pixelify Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, var(--sym), sans-serif;
-  --font-mono: 'Press Start 2P', 'JetBrains Mono', ui-monospace, Menlo, var(--sym), monospace;
+  /* Inline numbers and small print — a stack, a cost, a keycap. These are
+     set at 12-13px, which is half the size the arcade face is drawn at, so
+     they get the pixel SANS and keep their figures aligned. */
+  --font-mono: 'Pixelify Sans', 'JetBrains Mono', ui-monospace, Menlo, var(--sym), monospace;
 
   /* --- leading --------------------------------------------------------------
      Integer line boxes, in multiples of four, so a box whose height comes from
@@ -243,10 +299,14 @@
      Each one leads with a hard offset — the edge of a thing lying on a
      surface — before any diffusion. Purely diffuse shadows read as glow, and
      glow is reserved. */
-  --e-1: 0 1px 0 rgba(0, 0, 0, 0.55);
-  --e-2: 0 2px 0 rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.32);
-  --e-3: 0 3px 0 rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4);
-  --e-4: 0 4px 0 rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.5);
+  /* Light comes from the top left, so every shadow in the game falls down and
+     to the RIGHT by a whole number of art pixels, in opaque ink. The ladder is
+     a DISTANCE, not a softness: a thing further off the surface is further
+     from its own silhouette, and that is the only depth cue this style has. */
+  --e-1: 0 4px 0 var(--ink);
+  --e-2: 4px 4px 0 var(--ink);
+  --e-3: 8px 8px 0 var(--ink);
+  --e-4: 12px 12px 0 var(--ink);
   /* A card resting on a surface: a flat silhouette, offset, in ink.
   
      These were soft translucent shadows — a hard line plus two blurred,
@@ -263,6 +323,37 @@
      what is under it, so it reads the same wherever it falls. */
   --e-card: 4px 4px 0 var(--ink);
   --e-lift: 8px 8px 0 var(--ink);
+
+  /* --- the halo ------------------------------------------------------------
+     Neon, drawn rather than bloomed.
+
+     "Glow means magic" is still the rule, and sixty-seven things in the game
+     were obeying it with a Gaussian `0 0 26px` — which is the one way light is
+     NEVER rendered in pixel art, because a blur's falloff is a ramp through
+     every value between the tint and the background and the palette contains
+     none of them. An arcade cabinet's neon is drawn as concentric HARD RINGS
+     of decreasing alpha, two or three of them. That is all this is.
+
+     A site sets `--halo` to its own colour and picks a strength. The rings are
+     `0 0 0 Npx`, i.e. spread with no blur, so they follow the element's own
+     border-radius — a square thing gets a square halo and a pip gets a round
+     one, which a blur could never do.
+
+     `--halo-text` is the same idea where there is no box to ring: four
+     one-art-pixel offsets, which is how a sprite gets an outline. */
+  --halo: var(--arc-gold);
+  --halo-1:
+    0 0 0 2px color-mix(in srgb, var(--halo) 55%, transparent);
+  --halo-2:
+    0 0 0 2px color-mix(in srgb, var(--halo) 62%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--halo) 26%, transparent);
+  --halo-3:
+    0 0 0 2px color-mix(in srgb, var(--halo) 72%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--halo) 34%, transparent),
+    0 0 0 9px color-mix(in srgb, var(--halo) 14%, transparent);
+  --halo-text:
+    2px 0 0 var(--halo), -2px 0 0 var(--halo),
+    0 2px 0 var(--halo), 0 -2px 0 var(--halo);
 
   /* --- print ---------------------------------------------------------------
      Texture, so a flat fill is not a dead one. `--grain` is a hairline mesh

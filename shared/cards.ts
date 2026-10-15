@@ -71,15 +71,15 @@ export interface MarkDef {
 }
 
 export const MARKS: Record<MarkId, MarkDef> = {
-  wild:     { id: 'wild',     name: 'Wild',     glyph: '✶', color: '#ffd76e', blurb: 'Counts as any rank and any suit.' },
-  prism:    { id: 'prism',    name: 'Prism',    glyph: '◈', color: '#7ee8fa', blurb: 'Counts as any suit.' },
-  blooded:  { id: 'blooded',  name: 'Blooded',  glyph: '✚', color: '#ff6b81', blurb: 'Scores one rank higher.' },
-  leaden:   { id: 'leaden',   name: 'Leaden',   glyph: '▼', color: '#9aa4b2', blurb: 'Scores one rank lower.' },
-  mirrored: { id: 'mirrored', name: 'Mirrored', glyph: '⧉', color: '#c4a7ff', blurb: 'On the board, copies the card to its left.' },
-  cursed:   { id: 'cursed',   name: 'Cursed',   glyph: '☠', color: '#8b5cf6', blurb: 'Its holder ranks one category lower.' },
-  burning:  { id: 'burning',  name: 'Burning',  glyph: '🜂', color: '#ff9a3c', blurb: 'Burns away at the end of the street.' },
-  bound:    { id: 'bound',    name: 'Bound',    glyph: '∞', color: '#5eead4', blurb: 'Entangled — changing one changes both.' },
-  echo:     { id: 'echo',     name: 'Echo',     glyph: '◉', color: '#a3e635', blurb: 'Scores +1 rank for every pot it has won.' },
+  wild:     { id: 'wild',     name: 'Wild',     glyph: '✶', color: '#ffd23f', blurb: 'Counts as any rank and any suit.' },
+  prism:    { id: 'prism',    name: 'Prism',    glyph: '◈', color: '#00e5ff', blurb: 'Counts as any suit.' },
+  blooded:  { id: 'blooded',  name: 'Blooded',  glyph: '✚', color: '#e5261e', blurb: 'Scores one rank higher.' },
+  leaden:   { id: 'leaden',   name: 'Leaden',   glyph: '▼', color: '#9f9ac4', blurb: 'Scores one rank lower.' },
+  mirrored: { id: 'mirrored', name: 'Mirrored', glyph: '⧉', color: '#f4f1e8', blurb: 'On the board, copies the card to its left.' },
+  cursed:   { id: 'cursed',   name: 'Cursed',   glyph: '☠', color: '#5b2a86', blurb: 'Its holder ranks one category lower.' },
+  burning:  { id: 'burning',  name: 'Burning',  glyph: '🜂', color: '#ff8c1a', blurb: 'Burns away at the end of the street.' },
+  bound:    { id: 'bound',    name: 'Bound',    glyph: '∞', color: '#1fa3a3', blurb: 'Entangled — changing one changes both.' },
+  echo:     { id: 'echo',     name: 'Echo',     glyph: '◉', color: '#4ee08a', blurb: 'Scores +1 rank for every pot it has won.' },
 };
 
 /**

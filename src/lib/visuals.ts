@@ -94,10 +94,10 @@ export const confetti = (at?: Point | null): void =>
   call('confetti', at ?? undefined);
 
 export const SCHOOL_COLOR: Record<string, string> = {
-  entropy: '#b98cff',
-  veil: '#6ec8ff',
-  chronos: '#ffc861',
-  bind: '#5eead4',
-  ruin: '#ff7a8a',
-  weave: '#a8e063',
+  entropy: '#ff4fa3',
+  veil: '#00e5ff',
+  chronos: '#ffd23f',
+  bind: '#1fa3a3',
+  ruin: '#e5261e',
+  weave: '#4ee08a',
 };

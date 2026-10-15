@@ -80,7 +80,7 @@ export default function GameOver({ view }: { view: TableView }) {
     const t = window.setTimeout(() => {
       const at = centerOf(elementForSeat(winnerId ?? '')) ?? undefined;
       confetti(at);
-      flash('#f0c465', 0.35);
+      flash('#ffd23f', 0.35);
     }, 420);
     return () => window.clearTimeout(t);
   }, [winnerId, reduced, bannerDone]);

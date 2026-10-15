@@ -1286,7 +1286,7 @@ export class Engine {
     this.fx.push({ t: 'banner', text: def.name.toUpperCase(), sub: 'A new rule, permanently', tone: 'impossible' });
     this.fx.push({ t: 'sfx', name: 'seal' });
     this.fx.push({ t: 'shake', power: 0.6 });
-    this.fx.push({ t: 'flash', color: '#b98cff', power: 0.45 });
+    this.fx.push({ t: 'flash', color: '#ff4fa3', power: 0.45 });
   }
 
   /**

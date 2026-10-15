@@ -34,7 +34,8 @@
 .menu-brand { display: grid; justify-items: center; gap: var(--s-2); text-align: center; }
 
 .menu-sigil {
-  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--gold) 35%, transparent));
+  filter:
+;
   animation: sigilbreathe 7s var(--ease-both) infinite;
 }
 /* Rests at full scale and opacity rather than mid-breath. */
@@ -59,12 +60,10 @@
   font-weight: 900;
   letter-spacing: 0.2em;
   margin-right: -0.2em;
-  color: var(--gold);
-  text-shadow:
-    0 1px 0 var(--gold-hi),
-    0 -1px 0 rgba(0, 0, 0, 0.6),
-    0 3px 0 rgba(0, 0, 0, 0.55),
-    0 4px 1px rgba(0, 0, 0, 0.4);
+  /* No colour and no text-shadow here: `.menu-title` is one of the
+     `.hx-gilt` selectors in base.css, so its fill is transparent and the
+     three gold bands show through the letterforms. A text-shadow under a
+     transparent fill paints nothing — these four lines were dead. */
 }
 
 .menu-tag {
@@ -132,7 +131,7 @@
   gap: var(--s-2);
   margin-top: var(--s-2);
   padding-top: var(--s-3);
-  border-top: 1px solid var(--line-soft);
+  border-top: 2px solid var(--line-soft);
 }
 
 .menu-links {
@@ -140,7 +139,7 @@
   justify-content: center;
   gap: var(--s-2);
   flex-wrap: wrap;
-  border-top: 1px solid var(--line-soft);
+  border-top: 2px solid var(--line-soft);
   padding-top: var(--s-3);
 }
 
@@ -164,7 +163,9 @@
 .menu-bgcard {
   position: absolute;
   opacity: 0.2;
-  filter: blur(1.6px) saturate(0.5) brightness(0.8);
+  /* Pushed back with value and saturation, which is how pixel art does
+     distance. The 1.6px blur was resampling a card's own pixels. */
+  filter: saturate(0.45) brightness(0.72);
   transform-origin: 50% 50%;
   /* The resting pose, pinned. Each card carries its own `--rot`, and that
      rotation only existed inside the keyframe — so switching the animation
@@ -204,7 +205,6 @@
   opacity: 0.09;
   font-weight: 400;
   line-height: 1;
-  filter: blur(0.4px);
   animation-name: glyphdrift;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
@@ -258,7 +258,7 @@
      can draw and these are the first seven decisions in the game. */
   border-radius: 0;
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   background: rgba(10, 12, 24, 0.55);
   color: var(--text-2);
   font: 600 12px/1 var(--font-ui);
@@ -324,7 +324,7 @@
   gap: var(--s-3);
   margin-top: var(--s-3);
   padding: var(--s-3);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   border-radius: var(--r-md);
   background: rgba(8, 10, 30, 0.4);
 }
@@ -344,7 +344,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 2px;
   padding: 2px;
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   border-radius: var(--r-sm);
   background: rgba(0, 0, 0, 0.3);
 }

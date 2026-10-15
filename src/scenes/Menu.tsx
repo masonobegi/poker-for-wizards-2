@@ -257,8 +257,8 @@ export default function Menu() {
             <svg viewBox="0 0 120 120" width="88" height="88">
               <defs>
                 <linearGradient id="brandgold" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ffe6a8" />
-                  <stop offset="100%" stopColor="#a67c2a" />
+                  <stop offset="0%" stopColor="#f4f1e8" />
+                  <stop offset="100%" stopColor="#a86a2a" />
                 </linearGradient>
               </defs>
               <circle cx="60" cy="60" r="54" fill="none" stroke="url(#brandgold)" strokeWidth="1.2" opacity=".55" />

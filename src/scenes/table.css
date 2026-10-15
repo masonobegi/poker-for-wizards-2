@@ -52,7 +52,13 @@
 }
 
 .tbl-ante { display: flex; align-items: baseline; gap: var(--s-3); }
-.tbl-blinds { font-size: var(--fs-sm); color: var(--chip); font-weight: 700; }
+.tbl-blinds {
+  font-family: var(--font-hud);
+  font-size: var(--fs-hud);
+  line-height: var(--lh-md);
+  color: var(--chip);
+  font-weight: 700;
+}
 .tbl-antesub {
   font-size: 12px;
   letter-spacing: 0.16em;
@@ -61,7 +67,7 @@
 }
 
 /* Hex I's buy-back (shared/hexes.ts): quiet, but there while it can be spent. */
-.tbl-phylactery { color: var(--violet, #c4a7ff); opacity: 0.85; }
+.tbl-phylactery { color: var(--entropy); opacity: 0.85; }
 
 /* --- main --------------------------------------------------------------- */
 
@@ -156,7 +162,10 @@
   inset: 0;
   translate: 0 var(--edge);
   border-radius: inherit;
-  background: linear-gradient(180deg, #2a1c07 0%, #140d04 55%, #0a0703 100%);
+  background: linear-gradient(180deg,
+    var(--wood-dark) 0 18%,
+    #5c3a16 18% 58%,
+    var(--ink) 58% 100%);
   box-shadow: inset 0 -2px 0 rgba(255, 210, 130, 0.14);
   z-index: -2;
 }
@@ -169,9 +178,8 @@
   inset: 4% -2% -6% -2%;
   translate: 0 calc(var(--edge) * 1.6);
   border-radius: 50% / 40%;
-  background: #000;
+  background: var(--ink);
   opacity: 0.55;
-  filter: blur(26px);
   z-index: -3;
 }
 
@@ -348,7 +356,10 @@
   inset: 0;
   border-radius: 4px;
   /* The cut edges of the cards under the top one — paper, not a dark slab. */
-  background: linear-gradient(170deg, #cdbfa4, #6d6552);
+  background: linear-gradient(170deg,
+    var(--wood-light) 0 34%,
+    var(--wood) 34% 68%,
+    var(--wood-dark) 68% 100%);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
   transform: translate(calc(var(--i) * 0.9px), calc(var(--i) * 1.5px));
   opacity: calc(0.45 + var(--i) * 0.1);
@@ -361,12 +372,17 @@
   background:
     repeating-linear-gradient(46deg,
       rgba(212, 162, 74, 0.10) 0 1px, transparent 1px 5px),
-    linear-gradient(152deg, var(--card-back-1), var(--card-back-2));
+    /* Two pieces, not a fade. This was `linear-gradient(152deg, a, b)`,
+       which is a ramp through every value between indigo and night — the
+       one thing the palette forbids — and it was on the back of the deck,
+       which is on screen for the whole game. */
+    linear-gradient(152deg,
+      var(--card-back-1) 0 52%,
+      var(--card-back-2) 52% 100%);
   box-shadow:
     inset 0 0 0 1px rgba(212, 162, 74, 0.26),
     inset 0 0 0 3px rgba(0, 0, 0, 0.3),
-    0 2px 0 rgba(0, 0, 0, 0.5),
-    0 7px 14px rgba(0, 0, 0, 0.5);
+    var(--e-card);
   transform-origin: 50% 90%;
 }
 
@@ -380,8 +396,8 @@
   height: calc(var(--card-w) * 0.3);
   transform: translateX(-50%);
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
-  filter: blur(4px);
+  background: var(--ink);
+  opacity: 0.45;
 }
 
 .deck-label {
@@ -436,17 +452,16 @@
   align-items: center;
   gap: 2px var(--s-2);
   padding: 6px 12px 6px 6px;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--indigo);
   /* The outline, and then the frame inside it. Props in this style are drawn
      with a hard ink line all the way round and a lit edge just inside — not
      with a hairline that takes its colour from whatever it is sitting on. */
-  border: 3px solid var(--ink);
+  border: 4px solid var(--ink);
   box-shadow:
     inset 0 0 0 1px var(--purple),
     inset 0 2px 0 rgba(255, 255, 255, 0.07),
-    0 3px 0 var(--ink),
-    0 10px 18px rgba(13, 10, 20, 0.6);
+    var(--e-card);
   min-width: 132px;
   transition: transform var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
@@ -461,28 +476,38 @@
   bottom: -7px;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 72%);
-  filter: blur(4px);
+  background: var(--ink);
+  opacity: 0.45;
   z-index: -1;
   pointer-events: none;
 }
 .seat.is-acting .seat-pod {
   border-color: var(--gold-deep);
-  box-shadow: var(--e-3), 0 0 26px color-mix(in srgb, var(--gold) 30%, transparent);
+  box-shadow:
+    var(--e-3),
+    0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
 }
 /* The glow is static; a pseudo-element's opacity does the pulsing. Animating
    `box-shadow` means re-rasterising a 60px blur every frame — never a
    composite — and `targetpulse` below ran five of them at once. */
 .seat.is-winner .seat-pod {
   border-color: var(--gold);
-  box-shadow: var(--e-3), 0 0 40px color-mix(in srgb, var(--gold) 55%, transparent);
+  box-shadow:
+    var(--e-3),
+    0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 16%, transparent);
 }
 .seat.is-winner .seat-pod::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: 0 0 60px rgba(240, 196, 101, 0.8);
+  box-shadow:
+    0 0 0 2px rgba(240, 196, 101, 0.8),
+    0 0 0 5px color-mix(in srgb, rgba(240, 196, 101, 0.8) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, rgba(240, 196, 101, 0.8) 16%, transparent);
   opacity: 0;
   pointer-events: none;
   animation: winpulse 1.4s var(--ease-both) infinite;
@@ -497,14 +522,21 @@
 .seat.is-targetable { cursor: pointer; }
 .seat.is-targetable .seat-pod {
   border-color: var(--veil);
-  box-shadow: 0 0 0 2px rgba(110, 200, 255, 0.28), 0 0 30px rgba(110, 200, 255, 0.4);
+  box-shadow:
+    0 0 0 2px rgba(110, 200, 255, 0.28),
+    0 0 0 2px rgba(110, 200, 255, 0.4),
+    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.4) 40%, transparent);
 }
 .seat.is-targetable .seat-pod::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: 0 0 0 5px rgba(110, 200, 255, 0.16), 0 0 40px rgba(110, 200, 255, 0.55);
+  box-shadow:
+    0 0 0 5px rgba(110, 200, 255, 0.16),
+    0 0 0 2px rgba(110, 200, 255, 0.55),
+    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.55) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, rgba(110, 200, 255, 0.55) 16%, transparent);
   opacity: 0;
   pointer-events: none;
   animation: targetpulse 1.1s var(--ease-both) infinite;
@@ -525,10 +557,12 @@
   place-items: center;
   border-radius: 50%;
   background: var(--brass-hi);
-  color: #2d1a52;
+  /* Ink on brass. It was #0d0a14 — a violet on a light tan, which measured
+     1.10:1 and was the single least readable glyph in the game. */
+  color: var(--ink);
   font-size: 12px;
   font-weight: 900;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 0 var(--ink);
 }
 
 .seat-info { display: grid; min-width: 0; }
@@ -566,7 +600,11 @@
 /* --- turn timer (shared by Seat's opponent ring and ActionBar's own) ---- */
 
 .fx-turntimer-fill {
-  filter: drop-shadow(0 0 6px var(--gold));
+  filter:
+    drop-shadow(2px 0 0 var(--gold))
+    drop-shadow(-2px 0 0 var(--gold))
+    drop-shadow(0 2px 0 var(--gold))
+    drop-shadow(0 -2px 0 var(--gold));
   transition: stroke var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out);
 }
 
@@ -595,8 +633,16 @@
 }
 /* transform/opacity/filter only — never touches the ring's own positioning transform. */
 @keyframes turntimer-glow {
-  0%, 100% { filter: drop-shadow(0 0 6px var(--bad)); opacity: 1; }
-  50%      { filter: drop-shadow(0 0 15px var(--bad)); opacity: 0.7; }
+  0%, 100% { filter:
+   drop-shadow(2px 0 0 var(--bad))
+   drop-shadow(-2px 0 0 var(--bad))
+   drop-shadow(0 2px 0 var(--bad))
+   drop-shadow(0 -2px 0 var(--bad)); opacity: 1; }
+  50%      { filter:
+   drop-shadow(2px 0 0 var(--bad))
+   drop-shadow(-2px 0 0 var(--bad))
+   drop-shadow(0 2px 0 var(--bad))
+   drop-shadow(0 -2px 0 var(--bad)); opacity: 0.7; }
 }
 /* Both pulse rings resolve to a steady glow rather than nothing: the base
    state of each ::after is opacity:0, so stopping the animation without
@@ -612,7 +658,11 @@
   /* The pulse goes; the drain stays. A countdown is information, and a static
      ring that reads "no time left" is worse than one that moves. */
   animation: turntimer-drain var(--turn-ms, 0ms) linear forwards;
-  filter: drop-shadow(0 0 9px var(--bad));
+  filter:
+    drop-shadow(2px 0 0 var(--bad))
+    drop-shadow(-2px 0 0 var(--bad))
+    drop-shadow(0 2px 0 var(--bad))
+    drop-shadow(0 -2px 0 var(--bad));
 }
 
 .seat-relics {
@@ -629,7 +679,8 @@
   font-size: 13px;
   color: var(--gold);
   opacity: 0.85;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 50%, transparent));
+  filter:
+;
   cursor: help;
 }
 
@@ -637,7 +688,11 @@
 .seat-flag, .rail-flag {
   font-size: 12px;
   color: var(--veil);
-  filter: drop-shadow(0 0 5px currentColor);
+  filter:
+    drop-shadow(2px 0 0 currentColor)
+    drop-shadow(-2px 0 0 currentColor)
+    drop-shadow(0 2px 0 currentColor)
+    drop-shadow(0 -2px 0 currentColor);
   cursor: help;
 }
 .seat-flag.is-bad, .rail-flag.is-bad { color: var(--bad); }
@@ -653,7 +708,7 @@
   padding: 3px 10px 3px 5px;
   border-radius: var(--r-pill);
   background: rgba(8, 10, 30, 0.92);
-  border: 1px solid var(--gold-deep);
+  border: 2px solid var(--gold-deep);
   font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--chip);
@@ -666,7 +721,9 @@
   background: var(--brass-hi);
   box-sizing: border-box;
   border: 2px solid var(--gold-deep);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 60%, transparent), inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 60%, transparent),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .seat-action {
@@ -681,8 +738,8 @@
   color: var(--text-4);
   white-space: nowrap;
 }
-.seat-action.is-fold { color: var(--bad); }
-.seat-action.is-check { color: var(--text-3); }
+.seat-action.is-fold { color: var(--bone-3); opacity: 0.9; }
+.seat-action.is-check { color: var(--bone-2); }
 .seat-action.is-allin { color: var(--warn); }
 
 .seat-emote {
@@ -690,7 +747,7 @@
   right: -10px;
   top: -6px;
   font-size: 26px;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(2px 2px 0 var(--ink));
   pointer-events: none;
 }
 
@@ -702,7 +759,7 @@
   padding: 3px 12px;
   border-radius: var(--r-pill);
   background: rgba(8, 10, 30, 0.95);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -713,7 +770,9 @@
 .seat-result.is-impossible {
   border-color: var(--gold);
   color: var(--gold);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--gold) 50%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 50%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 50%, transparent) 40%, transparent);
 }
 
 /* --- mana --------------------------------------------------------------- */
@@ -723,13 +782,13 @@
   width: 6px; height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.07);
   transition: background var(--t-fast), box-shadow var(--t-fast);
 }
 .mana-pip.is-on {
   background: var(--entropy);
   border-color: transparent;
-  box-shadow: 0 0 7px color-mix(in srgb, var(--entropy) 85%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--entropy) 85%, transparent);
 }
 .mana.is-compact .mana-pip { width: 5px; height: 5px; }
 .mana-more { font-size: 12px; color: var(--text-4); margin-left: 2px; }
@@ -803,7 +862,7 @@
   padding: 2px 10px;
   border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--entropy) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--entropy) 40%, transparent);
+  border: 2px solid color-mix(in srgb, var(--entropy) 40%, transparent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -853,8 +912,8 @@
      boundary running visibly through it, and the five of them read as five
      different colours. A drawn position on a floor is one colour. */
   border: 2px solid var(--ink);
-  border-radius: 2px;
-  background: #241d55;
+  border-radius: 0;
+  background: #2b2266;
   box-shadow: inset 0 0 0 1px #3a2d85;
 }
 
@@ -871,11 +930,10 @@
   align-items: center;
   gap: var(--s-2);
   padding: 6px 20px;
-  border-radius: var(--r-pill);
   background: var(--ink);
-  border: 3px solid var(--arc-gold);
-  border-radius: 2px;
-  box-shadow: 0 3px 0 rgba(13, 10, 20, 0.8), 0 8px 16px rgba(13, 10, 20, 0.5);
+  border: 4px solid var(--arc-gold);
+  border-radius: 0;
+  box-shadow: var(--e-card);
 }
 
 /* --- the pile ------------------------------------------------------------
@@ -890,7 +948,7 @@
   justify-content: center;
   gap: 6px;
   min-height: 16px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(2px 2px 0 var(--ink));
 }
 .potchips-stack {
   display: flex;
@@ -903,8 +961,8 @@
    real set is moulded in, which also happen to be the three the rest of the
    game already prints in. */
 .potchip {
-  --chip-face: #3d4a52;
-  --chip-rim: #6e828c;
+  --chip-face: #2b2266;
+  --chip-rim: #9f9ac4;
   display: block;
   width: 38px;
   height: 12px;
@@ -918,11 +976,10 @@
   box-shadow:
     inset 0 0 0 2px var(--chip-rim),
     inset 0 0 0 3px rgba(0, 0, 0, 0.55),
-    0 1px 0 rgba(0, 0, 0, 0.6),
-    0 2px 3px rgba(0, 0, 0, 0.45);
+    0 2px 0 var(--ink);
 }
-.potchip.is-mid { --chip-face: #7d3438; --chip-rim: #bd6a6c; }
-.potchip.is-high { --chip-face: #a67c2a; --chip-rim: #f0c465; }
+.potchip.is-mid { --chip-face: #c2185b; --chip-rim: #ff4fa3; }
+.potchip.is-high { --chip-face: #a86a2a; --chip-rim: #ffd23f; }
 .pot-label {
   font-family: var(--font-display);
   font-size: 12px;
@@ -942,7 +999,7 @@
 .pot-side {
   font-size: 12px;
   color: var(--text-4);
-  border-left: 1px solid var(--line);
+  border-left: 2px solid var(--line);
   padding-left: var(--s-2);
   cursor: help;
 }
@@ -980,7 +1037,7 @@
   padding: 3px;
   border-radius: var(--r-md);
   background: rgba(8, 10, 30, 0.5);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
 }
 .tbl-sidetab {
   flex: 1;
@@ -1016,7 +1073,7 @@
 .log {
   overflow-y: auto;
   padding: var(--s-3);
-  background: #0c1234;
+  background: #14102b;
   box-shadow:
     inset 0 10px 14px -10px rgba(0, 0, 0, 0.9),
     inset 0 -8px 12px -10px rgba(0, 0, 0, 0.6),
@@ -1115,7 +1172,7 @@
        where the rail overhangs the apron below it */
     inset 0 1px 0 rgba(255, 240, 200, 0.55),
     inset 0 -1px 0 rgba(0, 0, 0, 0.75),
-    0 -18px 44px rgba(0, 0, 0, 0.6);
+    0 -4px 0 var(--ink);
 }
 
 /* Hammer marks in the metal. Soft-light, so it modulates the brass without
@@ -1199,7 +1256,8 @@
   display: inline-block;
   font-size: 15px;
   color: var(--gold);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 55%, transparent));
+  filter:
+;
   cursor: help;
 }
 
@@ -1256,7 +1314,11 @@
 }
 .rail-read-name.is-impossible {
   color: var(--gold);
-  text-shadow: 0 0 18px color-mix(in srgb, var(--gold) 55%, transparent);
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 55%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 55%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 55%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 55%, transparent);
 }
 
 .rail-sigils {
@@ -1357,10 +1419,10 @@
      than its own contents, so nothing on the face of a card is ever clipped.*/
   min-height: round(calc(var(--card-h) * 1.5), 2px);
   height: 100%;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--school) 9%, var(--bone));
+  border-radius: 0;
+  background: var(--bone);
   /* Ink outline, then the school's own colour as the lit inner edge. */
-  border: 3px solid var(--ink);
+  border: 4px solid var(--ink);
   box-shadow:
     inset 0 0 0 2px var(--school),
     var(--e-card);
@@ -1382,14 +1444,16 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
     var(--e-card),
-    0 0 16px color-mix(in srgb, var(--school) 32%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--school) 32%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 32%, transparent) 40%, transparent);
 }
 .sigil.is-castable:hover .sigil-frame {
   border-color: var(--school);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.7),
     var(--e-lift),
-    0 0 30px color-mix(in srgb, var(--school) 55%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--school) 55%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 55%, transparent) 40%, transparent);
 }
 /* Blocked by a rule (wrong street, responses only): the card is still there,
    it is just out of the light. Short of mana is a lighter shade of the same —
@@ -1414,7 +1478,7 @@
   padding: 3px 4px;
   border-radius: var(--r-xs);
   background: rgba(10, 13, 36, 0.9);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
@@ -1460,7 +1524,10 @@
 }
 .sigil.is-selected .sigil-frame {
   border-color: var(--gold);
-  box-shadow: 0 0 0 2px var(--gold), 0 0 32px color-mix(in srgb, var(--gold) 60%, transparent);
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 0 2px color-mix(in srgb, var(--gold) 60%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 40%, transparent);
 }
 
 .sigil-head { display: flex; align-items: center; justify-content: space-between; }
@@ -1470,19 +1537,23 @@
   width: 19px; height: 19px;
   border-radius: 50%;
   /* Struck in the school's ink, not lit from inside it. */
-  background: var(--school);
-  color: var(--card-face);
+  background: var(--ink);
+  color: var(--bone);
   font-size: 12px;
   font-weight: 800;
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px var(--school);
 }
 .sigil-school {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--school) 80%, #000);
-  opacity: 0.95;
+  /* Ink, with the school's colour carried by the glyph beside it. A saturated
+     hue at label size cannot pass AA on bone paper OR on a dark plate — see
+     the note next to `--entropy` in tokens.css — and the 80%-toward-black
+     mix this replaces was a ramp between two colours on top of that. */
+  color: var(--ink);
+  opacity: 0.72;
   /* At the 1024x680 minimum window the card is ~74px of usable width and the
      tracking pushes "BIND" past it, so it rendered as "BIN". Drop the tracking
      rather than the letter. */
@@ -1592,7 +1663,7 @@
 .sigil-text {
   font-size: 12px;
   line-height: 1.4;
-  color: #4a443a;
+  color: #0d0a14;
   flex: 0 0 auto;
 }
 
@@ -1606,8 +1677,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #3a2566); }
-.sigil-timing { color: color-mix(in srgb, var(--info) 70%, #3a2566); }
+.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #2b2266); }
+.sigil-timing { color: color-mix(in srgb, var(--info) 70%, #2b2266); }
 
 .sigil-discard {
   position: absolute;
@@ -1615,7 +1686,7 @@
   width: 20px; height: 20px;
   border-radius: 50%;
   background: rgba(8, 10, 30, 0.95);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   color: var(--text-4);
   font-size: 12px;
   opacity: 0;
@@ -1638,7 +1709,7 @@
   padding: 11px 13px;
   border-radius: var(--r-md);
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--school) 45%, var(--line));
+  border: 2px solid color-mix(in srgb, var(--school) 45%, var(--line));
   box-shadow: var(--e-4);
   opacity: 0;
   pointer-events: none;
@@ -1659,7 +1730,7 @@
 .sigil-impossible {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px dashed var(--line-soft);
+  border-top: 2px dashed var(--line-soft);
   font-style: italic;
   color: var(--text-4) !important;
 }
@@ -1690,7 +1761,7 @@
   /* The piece of glass the frame is sitting on, flat, with came along the top
      where it meets the brass. */
   /* The apron under the rail: in shadow, and taking the rail's. */
-  background: #120c22;
+  background: #100c20;
   box-shadow: inset 0 14px 22px -12px rgba(0, 0, 0, 0.85);
   z-index: var(--z-ui);
 }
@@ -1736,26 +1807,26 @@
 .ab-confirm {
   justify-self: center;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: 0;
   font-size: var(--fs-sm);
   color: var(--gold);
   background: rgba(240, 196, 101, 0.1);
-  border: 1px solid rgba(240, 196, 101, 0.35);
+  border: 2px solid rgba(240, 196, 101, 0.35);
 }
 .ab-confirm kbd {
   font-family: var(--font-mono);
   padding: 1px 5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  background: var(--ink);
 }
 .ab-buttons .btn { min-width: 132px; }
 .ab-buttons kbd {
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-4);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--bone-2);
   margin-left: 2px;
 }
 
@@ -1799,8 +1870,8 @@
    rather than a transparent row inside one. */
 .ab-raisewrap > .ab-raise {
   background: var(--indigo);
-  border: 3px solid var(--ink);
-  box-shadow: 0 4px 0 var(--ink), 0 14px 26px rgba(13, 10, 20, 0.6);
+  border: 4px solid var(--ink);
+  box-shadow: var(--e-lift);
   padding: var(--s-3);
 }
 .ab-raisewrap.is-open {
@@ -1818,7 +1889,7 @@
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
   background: rgba(8, 10, 30, 0.6);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   overflow: hidden;
   min-height: 0;   /* a 0fr row only collapses if its item can shrink */
 }
@@ -1829,7 +1900,7 @@
 .ab-preset {
   padding: 4px 14px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--text-3);
@@ -1867,15 +1938,22 @@
   padding: 9px 9px 9px 16px;
   border-radius: var(--r-pill);
   background: rgba(10, 13, 36, 0.96);
-  border: 1px solid var(--veil);
-  box-shadow: var(--e-3), 0 0 32px rgba(110, 200, 255, 0.35);
+  border: 2px solid var(--veil);
+  box-shadow:
+    var(--e-3),
+    0 0 0 2px rgba(110, 200, 255, 0.35),
+    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.35) 40%, transparent);
   font-size: var(--fs-sm);
   font-weight: 600;
 }
 .tbl-targetglyph {
   font-size: 18px;
   color: var(--veil);
-  filter: drop-shadow(0 0 8px var(--veil));
+  filter:
+    drop-shadow(2px 0 0 var(--veil))
+    drop-shadow(-2px 0 0 var(--veil))
+    drop-shadow(0 2px 0 var(--veil))
+    drop-shadow(0 -2px 0 var(--veil));
 }
 
 /* --- stack -------------------------------------------------------------- */
@@ -1919,8 +1997,12 @@
   padding: var(--s-5);
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 70px color-mix(in srgb, var(--entropy-deep) 25%, transparent);
+  border: 2px solid var(--line);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px color-mix(in srgb, var(--entropy-deep) 25%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
 }
 
 .stack-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
@@ -1936,19 +2018,25 @@
   padding: 9px 12px;
   border-radius: var(--r-md);
   background: rgba(8, 10, 30, 0.5);
-  border: 1px solid var(--line-soft);
-  border-left: 3px solid var(--school);
+  border: 2px solid var(--line-soft);
+  border-left: 4px solid var(--school);
 }
 .stack-item.is-top {
   background: color-mix(in srgb, var(--school) 10%, rgba(8, 10, 30, 0.5));
-  box-shadow: 0 0 20px color-mix(in srgb, var(--school) 30%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--school) 30%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent);
 }
 /* Opacity and the strike-through only. The punch itself is a framer animation
    in StackOverlay.tsx — a keyframe here would fight it for `transform` and
    restart from zero whenever a second entry was countered mid-flight. */
 .stack-item.is-countered .stack-body strong { text-decoration: line-through; }
 
-.stack-glyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
+.stack-glyph { font-size: 20px; color: var(--school); filter:
+   drop-shadow(2px 0 0 var(--school))
+   drop-shadow(-2px 0 0 var(--school))
+   drop-shadow(0 2px 0 var(--school))
+   drop-shadow(0 -2px 0 var(--school)); }
 .stack-body { display: grid; }
 /* Integer leading throughout the panel, so its own height is a whole number
    and the flex centring that places it cannot land it on a half pixel. */
@@ -2005,7 +2093,7 @@
   gap: var(--s-3);
   padding: 10px 13px;
   border-radius: var(--r-md);
-  border: 1px solid color-mix(in srgb, var(--school) 40%, transparent);
+  border: 2px solid color-mix(in srgb, var(--school) 40%, transparent);
   background: rgba(8, 10, 30, 0.5);
   text-align: left;
   transition: border-color var(--t-fast) var(--ease-out),
@@ -2013,7 +2101,11 @@
               transform var(--t-fast) var(--ease-out);
 }
 .stack-option:active { transform: translateX(3px) scale(0.98); }
-.stack-optglyph { font-size: 20px; color: var(--school); filter: drop-shadow(0 0 8px var(--school)); }
+.stack-optglyph { font-size: 20px; color: var(--school); filter:
+   drop-shadow(2px 0 0 var(--school))
+   drop-shadow(-2px 0 0 var(--school))
+   drop-shadow(0 2px 0 var(--school))
+   drop-shadow(0 -2px 0 var(--school)); }
 .stack-option strong { display: block; font-size: var(--fs-sm); }
 .stack-option em {
   display: block;
@@ -2029,7 +2121,7 @@
   width: 21px; height: 21px;
   border-radius: 50%;
   background: var(--entropy-deep);
-  color: #eadcff;
+  color: #f4f1e8;
   font-size: 12px;
   font-weight: 800;
 }
@@ -2068,15 +2160,23 @@
   padding: var(--s-5);
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--school) 45%, var(--line));
-  box-shadow: var(--e-4), 0 0 60px color-mix(in srgb, var(--school) 30%, transparent);
+  border: 2px solid color-mix(in srgb, var(--school) 45%, var(--line));
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px color-mix(in srgb, var(--school) 30%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 16%, transparent);
 }
 
 .prompt-head { display: grid; grid-template-columns: auto 1fr; gap: var(--s-3); align-items: start; }
 .prompt-glyph {
   font-size: 34px;
   color: var(--school);
-  filter: drop-shadow(0 0 14px var(--school));
+  filter:
+    drop-shadow(2px 0 0 var(--school))
+    drop-shadow(-2px 0 0 var(--school))
+    drop-shadow(0 2px 0 var(--school))
+    drop-shadow(0 -2px 0 var(--school));
   line-height: 1;
 }
 .prompt-head h3 { font-size: var(--fs-lg); color: var(--text); }
@@ -2095,7 +2195,7 @@
 .prompt-rank {
   aspect-ratio: 3 / 4;
   border-radius: var(--r-sm);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   background: var(--card-face);
   color: var(--card-black);
   font-family: var(--font-display);
@@ -2111,7 +2211,7 @@
 .prompt-suit {
   aspect-ratio: 1;
   border-radius: var(--r-md);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   background: var(--card-face);
   color: var(--card-black);
   font-size: 34px;
@@ -2129,7 +2229,7 @@
   gap: 2px var(--s-3);
   padding: 10px 13px;
   border-radius: var(--r-md);
-  border: 1px solid color-mix(in srgb, var(--mark) 35%, transparent);
+  border: 2px solid color-mix(in srgb, var(--mark) 35%, transparent);
   background: rgba(8, 10, 30, 0.5);
   text-align: left;
   transition: border-color var(--t-fast) var(--ease-out),
@@ -2140,7 +2240,11 @@
   grid-row: span 2;
   font-size: 22px;
   color: var(--mark);
-  filter: drop-shadow(0 0 9px var(--mark));
+  filter:
+    drop-shadow(2px 0 0 var(--mark))
+    drop-shadow(-2px 0 0 var(--mark))
+    drop-shadow(0 2px 0 var(--mark))
+    drop-shadow(0 -2px 0 var(--mark));
   align-self: center;
 }
 .prompt-mark strong { font-size: var(--fs-sm); }
@@ -2151,7 +2255,7 @@
   font-style: italic;
   color: var(--text-4);
   padding-top: var(--s-2);
-  border-top: 1px dashed var(--line-soft);
+  border-top: 2px dashed var(--line-soft);
 }
 .prompt-impossible span { color: var(--school); font-style: normal; margin-right: 5px; }
 
@@ -2253,13 +2357,21 @@
   padding: var(--s-3) var(--s-4) var(--s-4);
   border-radius: var(--r-xl);
   background: var(--bg);
-  border: 1px solid var(--line);
-  box-shadow: var(--e-4), 0 0 48px rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--line);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 0 5px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
   min-height: 0;
 }
 .showdown.is-impossible .showdown-inner {
   border-color: var(--gold-deep);
-  box-shadow: var(--e-4), 0 0 64px color-mix(in srgb, var(--gold) 22%, transparent);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
 }
 
 .showdown-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
@@ -2270,7 +2382,7 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--gold);
-  text-shadow: 0 0 20px var(--gold);
+  text-shadow: 2px 0 0 var(--gold), -2px 0 0 var(--gold), 0 2px 0 var(--gold), 0 -2px 0 var(--gold);
 }
 
 /* The name of the hand — the largest thing on the table, on purpose. */
@@ -2281,7 +2393,16 @@
   line-height: 1.15;
   text-transform: uppercase;
   color: var(--gold);
-  text-shadow: 0 0 30px color-mix(in srgb, var(--gold) 45%, transparent), 0 2px 0 rgba(0, 0, 0, 0.6);
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 45%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 45%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 45%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 45%, transparent),
+    4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 45%, transparent) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 45%, transparent) 45%, transparent),
+    0 4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 45%, transparent) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 45%, transparent) 45%, transparent),
+    0 2px 0 rgba(0, 0, 0, 0.6);
   /* Long names ("Straight Flush, King high") must not wrap to a second line
      and push the cards out of the panel. */
   overflow: hidden;
@@ -2289,8 +2410,20 @@
   white-space: nowrap;
 }
 .showdown.is-impossible .showdown-title {
-  color: #ffe9b0;
-  text-shadow: 0 0 44px color-mix(in srgb, var(--gold) 80%, transparent), 0 0 14px rgba(255, 233, 176, 0.6);
+  color: #f4f1e8;
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 80%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 80%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 80%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 80%, transparent),
+    4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 80%, transparent) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 80%, transparent) 45%, transparent),
+    0 4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 80%, transparent) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 80%, transparent) 45%, transparent),
+    2px 0 0 rgba(255, 233, 176, 0.6),
+    -2px 0 0 rgba(255, 233, 176, 0.6),
+    0 2px 0 rgba(255, 233, 176, 0.6),
+    0 -2px 0 rgba(255, 233, 176, 0.6);
 }
 
 .showdown-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; min-height: 0; }
@@ -2301,12 +2434,14 @@
   gap: var(--s-3);
   padding: 2px 12px;
   border-radius: var(--r-md);
-  border: 1px solid var(--gold-deep);
+  border: 2px solid var(--gold-deep);
   background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 .showdown-row.is-impossible {
   border-color: var(--gold);
-  box-shadow: 0 0 26px color-mix(in srgb, var(--gold) 30%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
 }
 
 .showdown-who { display: grid; gap: 1px; min-width: 0; }
@@ -2375,14 +2510,26 @@
   padding: var(--s-6);
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid var(--gold-deep);
-  box-shadow: var(--e-4), 0 0 90px color-mix(in srgb, var(--gold) 22%, transparent);
+  border: 2px solid var(--gold-deep);
+  box-shadow:
+    var(--e-4),
+    0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent),
+    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
+    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
 }
 .gameover-winner { display: grid; justify-items: center; gap: 4px; text-align: center; }
 .gameover-winner h2 {
   font-size: var(--fs-2xl);
   color: var(--gold);
-  text-shadow: 0 0 34px color-mix(in srgb, var(--gold) 60%, transparent);
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--gold) 60%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--gold) 60%, transparent),
+    0 2px 0 color-mix(in srgb, var(--gold) 60%, transparent),
+    0 -2px 0 color-mix(in srgb, var(--gold) 60%, transparent),
+    4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 45%, transparent),
+    -4px 0 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 45%, transparent),
+    0 4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 45%, transparent),
+    0 -4px 0 color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 45%, transparent);
 }
 .gameover-winner p { font-size: var(--fs-sm); color: var(--text-3); }
 
@@ -2397,7 +2544,7 @@
   justify-items: center;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-lg);
-  border: 1px solid var(--line-soft);
+  border: 2px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.022);
 }
 .gameover-runstats {
@@ -2443,7 +2590,7 @@
   font-size: var(--fs-xs);
   color: var(--text-2);
   background: color-mix(in srgb, var(--entropy) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--entropy) 32%, transparent);
+  border: 2px solid color-mix(in srgb, var(--entropy) 32%, transparent);
 }
 .gameover-relicrow li {
   background: color-mix(in srgb, var(--gold) 10%, transparent);
@@ -2502,7 +2649,10 @@
   .prompt-rank:hover {
     transform: translateY(-4px) scale(1.06);
     border-color: var(--gold);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 22px rgba(240, 196, 101, 0.4);
+    box-shadow:
+    var(--e-card),
+    0 0 0 2px rgba(240, 196, 101, 0.4),
+    0 0 0 5px color-mix(in srgb, rgba(240, 196, 101, 0.4) 40%, transparent);
   }
   .prompt-suit:hover { transform: translateY(-4px) scale(1.06); border-color: var(--gold); }
   .prompt-mark:hover { border-color: var(--mark); transform: translateX(3px); }
@@ -2543,7 +2693,7 @@
   font-size: 12px;
   color: var(--school, var(--text-3));
   background: rgba(8, 10, 20, 0.92);
-  border: 1px solid color-mix(in srgb, var(--school, var(--line-soft)) 55%, transparent);
+  border: 2px solid color-mix(in srgb, var(--school, var(--line-soft)) 55%, transparent);
   z-index: var(--z-ui);
 }
 
@@ -2559,7 +2709,7 @@
   font-weight: 500;
   font-size: clamp(12px, calc(var(--card-h) * 0.085), 13px);
   line-height: 1.25;
-  color: #2a3a5c;
+  color: #2b2266;
   transform: rotate(-1.2deg);
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -2611,8 +2761,8 @@
   gap: var(--s-5);
   padding: var(--s-4) var(--s-5);
   border-radius: var(--r-lg);
-  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
-  border-left: 5px solid var(--school);
+  border: 2px solid color-mix(in srgb, var(--school) 55%, transparent);
+  border-left: 4px solid var(--school);
   background: color-mix(in srgb, var(--school) 9%, rgba(8, 10, 30, 0.55));
 }
 .stack-feature__glyph {
@@ -2676,7 +2826,7 @@
 .sigil-text {
   font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px);
   line-height: 1.35;
-  color: #3a352c;
+  color: #5c3a16;
 }
 .sigil-name--written { font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px); }
 .sigil-school { font-size: clamp(12px, calc(var(--card-h) * 0.085), 13px); }
