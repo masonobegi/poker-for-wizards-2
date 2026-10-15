@@ -55,13 +55,21 @@ allowed origins — is set by environment variable in one file, `server/config.t
 
 To play with someone who is not going to run a server, put one on the
 internet. `Dockerfile` and `railway.json` are the whole of the configuration:
-point Railway at this repository, pick a branch, and the first deploy serves
-the game at the domain it hands you. No environment variables, no database, no
-volume, nothing to attach.
+point Railway at this repository, pick the branch holding those two files
+(`railway`, until it is merged), and the first deploy serves the game at the
+domain it hands you. No environment variables, no database, no volume, nothing
+to attach.
 
 ```bash
 railway up      # or: New Project -> Deploy from GitHub repo
 ```
+
+One manual step, and it is the one that leaves people looking at a healthy
+deploy with nothing to click: a new service has no public address until you
+ask for one, under **Settings -> Networking -> Generate Domain**. That URL is
+the game. Anyone who opens it gets the menu, "Practice vs Bots" works
+immediately, and a table hosted there has a four-letter code that works from
+any other browser.
 
 Six decisions are baked into those two files, and each one is a way this
 otherwise goes wrong:
