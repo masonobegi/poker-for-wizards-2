@@ -108,10 +108,15 @@
   color: var(--text-quiet);
 }
 
+/* An error is the one message that must be readable the moment it appears,
+   and `--bad` is arc-red: 4.32:1 at 13px on the panel, which is under AA.
+   Orange carries the same "something is wrong" at 7.9:1 — and the red stays
+   where it can afford to be red, on fills and marks rather than on sentences.
+   Same rule as the sigil cards and the spell log. */
 .menu-error {
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--bad);
+  color: var(--arc-orange);
   text-align: center;
 }
 

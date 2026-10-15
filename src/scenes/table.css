@@ -1109,7 +1109,11 @@
   border-left: 2px solid transparent;
 }
 .log-line.is-bet { color: var(--text-2); }
-.log-line.is-magic { color: var(--accent); border-left-color: var(--accent); }
+/* The school colours the RULE down the left edge, not the sentence. A spell
+   line takes its school's hue, and at 12px a saturated hue on a dark plate
+   cannot pass AA — "Quill casts Burn." measured 3.68:1 in Ruin's red. Same
+   rule as the sigil cards: the colour identifies, the ink reads. */
+.log-line.is-magic { color: var(--text-2); border-left-color: var(--accent); }
 .log-line.is-impossible {
   color: var(--gold);
   border-left-color: var(--gold);
@@ -1820,7 +1824,10 @@
 .sigil:hover .sigil-tip,
 .sigil:focus-visible .sigil-tip,
 .sigil:focus-within .sigil-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
-.sigil-tip strong { display: block; font-size: var(--fs-sm); color: var(--school); margin-bottom: 4px; }
+/* Bone, not the school. 13px of Veil cyan on the tip's plate is 4.48:1 — two
+   hundredths under AA, which is still under it. The tip already carries the
+   school on its edge. */
+.sigil-tip strong { display: block; font-size: var(--fs-sm); color: var(--text); margin-bottom: 4px; }
 .sigil-tip p { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-2); }
 .sigil-impossible {
   margin-top: 6px;
