@@ -14,6 +14,7 @@ dist-server/
 dist-demo/
 dist-server-demo/
 release-demo/
+release-play/
 electron/icon.png
 electron/icon@512.png
 hexhold*.db

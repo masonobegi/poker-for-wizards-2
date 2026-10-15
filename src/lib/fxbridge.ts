@@ -9,7 +9,7 @@ import { onFx } from '@/store/net';
 import { playSfx, setMusic, duckMusic } from '@/lib/sound';
 import {
   SCHOOL_COLOR, burst, burstAt, centerOf, chromatic, confetti,
-  elementForCard, elementForRelic, elementForSeat, flash, shake, slowmo, timeRipple, vignette,
+  elementForCard, elementForRelic, elementForSeat, flash, hitstop, shake, slowmo, timeRipple, vignette,
 } from '@/lib/visuals';
 import { punch } from '@/components/fx/arcade';
 
@@ -140,6 +140,10 @@ export function installFxBridge(): () => void {
       }
 
       case 'counter':
+        // A counterspell is this game's signature beat — the thing it is
+        // named for. Short freeze: the screen catches, then the flash and the
+        // shake arrive on the far side of it rather than inside it.
+        hitstop(70);
         flash('#00e5ff', 0.55);
         shake(shakePx(0.62), 260);
         chromatic(280);
@@ -201,6 +205,10 @@ export function installFxBridge(): () => void {
         const seatEl = elementForSeat(e.playerId);
         const seatPt = centerOf(seatEl);
         if (e.impossible) {
+          // The biggest moment in the game gets the longest freeze in it: the
+          // screen stops dead on the hand, and the shake and the slow-mo both
+          // start from the far side of the stop rather than through it.
+          hitstop(130);
           burst('impossible', seatPt ?? screenCentre());
           shake(shakePx(1), 700);
           flash('#ffd23f', 0.6);
@@ -208,6 +216,9 @@ export function installFxBridge(): () => void {
           slowmo(0.42, 900);
           confetti(seatPt);
         } else {
+          // An ordinary pot still lands. Half the dose — this happens every
+          // hand, and a freeze you notice every thirty seconds is a stutter.
+          hitstop(60);
           const potPt = centerOf(elementForPot());
           if (potPt && seatPt) burst('potCollect', potPt, { target: seatPt });
           else burstAt('chips', seatEl, { amount: e.amount });
@@ -216,6 +227,7 @@ export function installFxBridge(): () => void {
       }
 
       case 'eliminate':
+        hitstop(90);
         burstAt('eliminate', elementForSeat(e.playerId));
         shake(shakePx(0.4), 320);
         vignette('#e5261e', 1400);

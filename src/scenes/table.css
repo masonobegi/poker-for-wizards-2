@@ -1326,7 +1326,7 @@
      it needs, the tallest card in the hand sets the row height, and every
      other card matches it — which is also how a hand of cards should look. */
   align-items: stretch;
-  gap: 7px;
+  gap: 8px;
   /* `overflow-y: visible` here is a lie the spec will not honour: when one
      axis is not `visible`, the other computes to `auto`. So this row clipped
      vertically despite asking not to, and a hovered sigil — which lifts 14px
@@ -1375,7 +1375,18 @@
      
      The floor is the width the longest brief needs; the ceiling stops two
      sigils on an ultrawide from becoming posters. */
-  flex: 1 1 auto;
+  /* `1 1 0`, not `1 1 auto`.
+  
+     With an `auto` basis every tile starts at its own CONTENT width and the
+     spare room is shared out on top of that, so a sigil with a long brief
+     ends up wider than one with a short brief: measured at 1280x800 the four
+     cards in a hand were 204.4, 204.7, 184.7 and 209.6 pixels. A hand of
+     cards is a row of identical rectangles — that is most of what makes it
+     read as a hand — and four rectangles that are nearly but not quite the
+     same size is the exact failure mode this whole audit is about. A zero
+     basis shares the row out equally and the floor below still protects the
+     longest brief. */
+  flex: 1 1 0;
   min-width: round(calc(var(--card-w) * 2.3), 4px);
   max-width: round(calc(var(--card-w) * 3.4), 4px);
   cursor: default;

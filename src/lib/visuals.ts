@@ -13,6 +13,7 @@ interface VfxApi {
   chromatic(ms: number): void;
   timeRipple(at: Point): void;
   slowmo(scale: number, ms: number): void;
+  hitstop(ms: number): void;
   confetti(at?: Point): void;
   setRoot(el: HTMLElement | null): void;
 }
@@ -88,6 +89,8 @@ export const vignette = (color: string, ms: number): void => call('vignette', co
 export const chromatic = (ms: number): void => call('chromatic', ms);
 export const timeRipple = (at: Point): void => call('timeRipple', at);
 export const slowmo = (scale: number, ms: number): void => call('slowmo', scale, ms);
+/** Hold the screen still at the moment of impact. ~100ms; see timescale.ts. */
+export const hitstop = (ms: number): void => call('hitstop', ms);
 // Callers usually have a `centerOf()` result, which is nullable; accept that
 // rather than making every call site coalesce.
 export const confetti = (at?: Point | null): void =>

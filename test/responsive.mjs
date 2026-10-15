@@ -523,9 +523,21 @@ async function runResolution(browser, res) {
       return { res, fails, notes, seen };
     }
     await practice.click().catch(() => {});
-    await page.waitForTimeout(2500);
-
-    const felt = await page.locator('.felt').first().isVisible().catch(() => false);
+    /* Poll, do not guess.
+       This was a flat `waitForTimeout(2500)` followed by one visibility check,
+       and the table arrives in 0.7s on an idle machine and 2.1s on a busy one
+       — so the budget was being spent down to its last few hundred
+       milliseconds and the harness failed at all seven resolutions with a
+       message that reads like a client bug ("practice mode did not reach a
+       table") when what had actually happened was that the dev server had
+       wedged. A check whose failure message points at the wrong component
+       costs more than the bug it found. */
+    let felt = false;
+    for (let i = 0; i < 60; i++) {
+      felt = await page.locator('.felt').first().isVisible().catch(() => false);
+      if (felt) break;
+      await page.waitForTimeout(150);
+    }
     if (!felt) {
       fail('table', ['the felt never appeared — practice mode did not reach a table']);
       await ctx.close();

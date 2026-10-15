@@ -12,6 +12,8 @@
    =========================================================================== */
 
 import { useEffect, useRef, useState } from 'react';
+import { motionPrefs } from '@/components/fx/arcade';
+import { TimeScale } from './timescale';
 import { createPortal } from 'react-dom';
 import {
   ParticleSystem,
@@ -106,10 +108,8 @@ class VfxEngine {
   private vigT = 0;
   private vigOn = false;
 
-  private slowT = 0;
-  private slowDur = 0;
-  private slowFrom = 1;
-  private slowApplied = 1;
+  /** Game time. Ticked with real frame time; see `timescale.ts`. */
+  private readonly time = new TimeScale();
 
   constructor() {
     for (let i = 0; i < SHAKE_SLOTS; i++) {
@@ -397,37 +397,39 @@ class VfxEngine {
     att.splitB?.setAttribute('dx', `-${v}`);
   }
 
-  /* ----------------------------------------------------------- slow-mo -- */
+  /* -------------------------------------------------------------- time -- */
 
+  /**
+   * Slow motion.
+   *
+   * This used to be three fields and a ramp that computed a number, rounded
+   * it, stored it in a private, and stopped. Nothing read it. `fxbridge` has
+   * been firing `slowmo(0.42, 900)` on every impossible hand and the screen
+   * has never once slowed down. It drives the page's animations now — see
+   * `timescale.ts` for why that is the Web Animations API and not a custom
+   * property on <html>.
+   */
   slowmo(scale: number, ms: number): void {
-    const s = clamp(scale, 0.05, 4);
-    this.slowFrom = s;
-    this.slowDur = Math.max(0.001, ms / 1000);
-    this.slowT = 0;
-    this.applySlow(s);
-  }
-
-  private tickSlowmo(dt: number): void {
-    if (this.slowApplied === 1 && this.slowT >= this.slowDur) return;
-    this.slowT += dt;
-    const p = this.slowT / this.slowDur;
-    if (p >= 1) { this.applySlow(1); return; }
-    const e = 1 - (1 - p) * (1 - p) * (1 - p); // ease-out cubic back to normal
-    this.applySlow(this.slowFrom + (1 - this.slowFrom) * e);
+    if (motionPrefs().reduced) return;
+    this.time.slowmo(scale, ms);
   }
 
   /**
-   * The ramp still runs, so `vfx.slowmo()` keeps its shape and its callers
-   * (`fxbridge.ts` fires it on an impossible hand). It no longer publishes
-   * `--vfx-time-scale` on <html>: nothing in the app ever read that property —
-   * the usage documented in README.md was never written — and writing it per
-   * frame on the document root is the broadest style invalidation available.
+   * Hit-stop: the screen holds still for a moment at the point of impact.
    *
-   * If a consumer is ever added, read it in one place rather than inheriting
-   * it to the whole document.
+   * The one piece of BasketRogue's motion language the app did not have.
+   * ~0.1s is the whole effect — long enough that a hit reads as a hit, short
+   * enough that nobody calls it a frame drop. Nothing waits on it: it is a
+   * playback rate, so the game, the server and every pending timer carry on.
    */
-  private applySlow(v: number): void {
-    this.slowApplied = Math.round(v * 1000) / 1000;
+  hitstop(ms: number): void {
+    if (motionPrefs().reduced) return;
+    this.time.hitstop(ms);
+  }
+
+  /** The current multiplier on game time. 1 unless something is bending it. */
+  get timeScale(): number {
+    return this.time.value;
   }
 
   /* ------------------------------------------------------- compositions -- */
@@ -449,12 +451,27 @@ class VfxEngine {
 
   /* --------------------------------------------------------------- loop -- */
 
+  /**
+   * `dt` is always REAL frame time.
+   *
+   * The shake is the one thing here that lives in GAME time: a freeze-frame
+   * in which the camera is still shaking is not a freeze-frame. Everything
+   * else — the flash's fade, the vignette, the chromatic split and the clock
+   * that ends the bend itself — runs in real time, because a timer that
+   * scales itself can never reach its own deadline.
+   */
   tick(dt: number): void {
-    this.tickShake(dt);
+    this.time.tick(dt);
+    this.tickShake(dt * this.time.value);
     this.tickFlash(dt);
     this.tickVignette(dt);
     this.tickChromatic(dt);
-    this.tickSlowmo(dt);
+  }
+
+  /** Put time back. Called when the layer unmounts, so a bend cannot outlive
+   *  the thing that caused it. */
+  releaseTime(): void {
+    this.time.reset();
   }
 }
 
@@ -491,10 +508,10 @@ export interface VfxController {
   chromatic(ms?: number): void;
   /** The full rewind package: rings, split, slow-mo, a cold flash. */
   timeRipple(at: Vec2): void;
-  /** Run a slow-mo ramp back to 1 over `ms`. Currently has no consumer — see
-   *  the note on `applySlow`. Kept because `fxbridge` composes it into the
-   *  impossible-hand sequence. */
+  /** Slow the whole page to `scale`, then ease back to 1 over `ms`. */
   slowmo(scale: number, ms: number): void;
+  /** Hold the screen still for `ms` — the impact frame. ~100ms is the dose. */
+  hitstop(ms: number): void;
   /** Celebration. Defaults to raining from the top of the viewport. */
   confetti(at?: Vec2): void;
   /** The element shake and chromatic aberration are applied to. */
@@ -516,6 +533,7 @@ export const vfx: VfxController = {
   chromatic: (ms) => { engine.chromatic(ms); },
   timeRipple: (at) => { engine.timeRipple(at); },
   slowmo: (scale, ms) => { engine.slowmo(scale, ms); },
+  hitstop: (ms) => { engine.hitstop(ms); },
   confetti: (at) => { engine.confetti(at); },
   setRoot: (el) => { engine.setRoot(el); },
   clear: () => { engine.clear(); },
@@ -642,6 +660,9 @@ export function VfxLayer({
       last = now;
 
       engine.tick(dt);
+      // Particles live in GAME time, so a hit-stop stops the sparks too — a
+      // freeze-frame with the embers still flying is not a freeze-frame.
+      const gdt = dt * engine.timeScale;
 
       if (dustRef.current) {
         dustClock -= dt;
@@ -651,7 +672,7 @@ export function VfxLayer({
         }
       }
 
-      system.update(dt);
+      system.update(gdt);
       system.render();
     };
     raf = requestAnimationFrame(frame);
@@ -677,6 +698,7 @@ export function VfxLayer({
       window.removeEventListener('orientationchange', onResize);
       document.removeEventListener('visibilitychange', onVisibility);
       ro?.disconnect();
+      engine.releaseTime();
       engine.detach();
       system.dispose();
     };
