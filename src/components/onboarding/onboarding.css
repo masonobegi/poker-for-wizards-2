@@ -170,7 +170,7 @@
   box-shadow:
     var(--e-2),
     0 0 0 2px color-mix(in srgb, var(--school) 20%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 20%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--school) 20%, transparent) 40%, transparent);
 }
 .intro-sigil__head { display: flex; align-items: center; justify-content: space-between; }
 .intro-sigil__cost {
@@ -295,7 +295,7 @@
   box-shadow:
     var(--e-3),
     0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent);
   pointer-events: auto;
 }
 
@@ -320,16 +320,17 @@
 /* `.hints-layer` already sits above z-stack and z-modal (it's on z-toast), so
    these only need to place each hint near the real UI it's talking about. */
 
-/* The rail is taller than --rail-h once sigils are in it, so anchoring to that
-   token put this bubble straight on top of the cards it is pointing at. Clear
-   the whole rail and the action bar instead. */
-.hint-mark--rail { bottom: calc(var(--rail-h) + 130px); }
+/* Clear of the rail and the action bar, both of which now publish their own
+   height — this used to be `--rail-h + 130px` against a `--rail-h` that had
+   been a stale 132px constant since the table was recomposed, so the hint
+   landed inside the rail and covered the two sigil cards it was about. */
+.hint-mark--rail { bottom: calc(var(--rail-h) + var(--actionbar-h) + 12px); }
 
 /* Near the top, like the response-window overlay it's commenting on. */
 .hint-mark--stack { top: 64px; border-color: var(--veil); box-shadow:
     var(--e-3),
     0 0 0 2px rgba(110, 200, 255, 0.28),
-    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.28) 40%, transparent); }
+    0 0 0 4px color-mix(in srgb, rgba(110, 200, 255, 0.28) 40%, transparent); }
 
 /* Just under the top edge of the full-screen shop overlay. */
 .hint-mark--shop { top: 18px; }

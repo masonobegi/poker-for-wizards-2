@@ -51,14 +51,14 @@
   transform: translateY(-1px);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--entropy) 35%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy) 35%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--entropy) 35%, transparent) 40%, transparent);
 }
 @media (hover: hover) and (pointer: fine) {
   .omen:hover {
     transform: translateY(-1px);
     box-shadow:
     0 0 0 2px rgba(185, 140, 255, 0.35),
-    0 0 0 5px color-mix(in srgb, rgba(185, 140, 255, 0.35) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(185, 140, 255, 0.35) 40%, transparent);
   }
 }
 

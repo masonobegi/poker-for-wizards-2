@@ -32,7 +32,7 @@
   /* The rule is a shadow, not a border: a 1px `border-bottom` inside a
      border-box height leaves a 71px content box, and a 32px button centred in
      71px starts at y=19.5. */
-  box-shadow: inset 0 -1px 0 var(--line-soft);
+  box-shadow: inset 0 -2px 0 var(--line-soft);
   background: var(--abyss);
   z-index: var(--z-ui);
 }
@@ -203,15 +203,15 @@
       var(--felt-lit) 40% 70%,
       var(--felt-edge) 70% 100%);
   box-shadow:
-    /* The cloth is set DOWN inside the rail, so the far side of the rail
+    /* The cloth is set DOWN inside the rail,
+    so the far side of the rail
        throws a hard band of shadow onto it and the near side catches a thin
        bounce. This pair is what makes the cloth read as the bottom of a well
        rather than as a fill inside a ring. */
-    inset 0 13px 34px -16px rgba(0, 0, 0, 0.7),
-    inset 0 -9px 22px -16px rgba(0, 0, 0, 0.45),
-    inset 0 -1px 0 rgba(120, 150, 255, 0.09),
-    inset 0 0 120px rgba(0, 0, 0, 0.46),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    inset 0 4px 0 rgba(0, 0, 0, 0.7),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.45),
+    inset 0 -2px 0 rgba(120, 150, 255, 0.09),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.6);
 }
 
 /* The inlay. Under everything that matters, above the cloth. */
@@ -276,7 +276,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50% / 30%;
-  border: 13px solid transparent;
+  border: 12px solid transparent;
   /* Aged brass, lit from above and behind the player: the far side of the ring
      takes the lamp almost square on and the near side is turning away from it.
      The jump at 52% is the crown of the moulding — a hard edge where the
@@ -295,9 +295,7 @@
     linear-gradient(#000 0 0) padding-box exclude,
     linear-gradient(#000 0 0);
   pointer-events: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.75);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(0, 0, 0, 0.75);
 }
 
 /* The brass's own hammer marks. Soft-light, so it modulates the metal without
@@ -305,9 +303,9 @@
 .felt-rail::after {
   content: '';
   position: absolute;
-  inset: -13px;
+  inset: -12px;
   border-radius: inherit;
-  border: 13px solid transparent;
+  border: 12px solid transparent;
   background-image: var(--fibre);
   background-size: 300px 300px;
   background-clip: border-box;
@@ -345,8 +343,8 @@
 
 .deck-stack {
   position: relative;
-  width: round(calc(var(--card-w) * 0.62), 2px);
-  height: round(calc(var(--card-h) * 0.62), 2px);
+  width: round(calc(var(--card-w) * 0.62), 4px);
+  height: round(calc(var(--card-h) * 0.62), 4px);
 }
 
 /* The cut edges. Each is a sliver offset down and right of the one above, so
@@ -355,14 +353,13 @@
   position: absolute;
   inset: 0;
   border-radius: 4px;
-  /* The cut edges of the cards under the top one — paper, not a dark slab. */
-  background: linear-gradient(170deg,
-    var(--wood-light) 0 34%,
-    var(--wood) 34% 68%,
-    var(--wood-dark) 68% 100%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
-  transform: translate(calc(var(--i) * 0.9px), calc(var(--i) * 1.5px));
-  opacity: calc(0.45 + var(--i) * 0.1);
+  /* The cut edges of the cards under the top one — paper, not a dark slab,
+     and each one outlined so you can count them. The offsets were 0.9px and
+     1.5px, which put five edges inside four pixels on fractional positions:
+     the renderer had no choice but to average them into a single shape. */
+  background: var(--wood);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  transform: translate(calc(var(--i) * 2px), calc(var(--i) * 2px));
 }
 
 .deck-top {
@@ -370,8 +367,9 @@
   inset: 0;
   border-radius: 4px;
   background:
-    repeating-linear-gradient(46deg,
-      rgba(212, 162, 74, 0.10) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg,
+      color-mix(in srgb, var(--arc-gold) 42%, transparent) 0 2px,
+      transparent 2px 8px),
     /* Two pieces, not a fade. This was `linear-gradient(152deg, a, b)`,
        which is a ramp through every value between indigo and night — the
        one thing the palette forbids — and it was on the back of the deck,
@@ -380,8 +378,8 @@
       var(--card-back-1) 0 52%,
       var(--card-back-2) 52% 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(212, 162, 74, 0.26),
-    inset 0 0 0 3px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 2px var(--ink),
+    inset 0 0 0 4px color-mix(in srgb, var(--arc-gold) 55%, transparent),
     var(--e-card);
   transform-origin: 50% 90%;
 }
@@ -407,7 +405,7 @@
   font-size: 12px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--bone-2);
   opacity: 0.65;
 }
 
@@ -459,7 +457,7 @@
      with a hairline that takes its colour from whatever it is sitting on. */
   border: 4px solid var(--ink);
   box-shadow:
-    inset 0 0 0 1px var(--purple),
+    inset 0 0 0 2px var(--purple),
     inset 0 2px 0 rgba(255, 255, 255, 0.07),
     var(--e-card);
   min-width: 132px;
@@ -486,7 +484,7 @@
   box-shadow:
     var(--e-3),
     0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
 }
 /* The glow is static; a pseudo-element's opacity does the pulsing. Animating
    `box-shadow` means re-rasterising a 60px blur every frame — never a
@@ -496,8 +494,8 @@
   box-shadow:
     var(--e-3),
     0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold) 55%, transparent) 16%, transparent);
 }
 .seat.is-winner .seat-pod::after {
   content: '';
@@ -506,8 +504,8 @@
   border-radius: inherit;
   box-shadow:
     0 0 0 2px rgba(240, 196, 101, 0.8),
-    0 0 0 5px color-mix(in srgb, rgba(240, 196, 101, 0.8) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, rgba(240, 196, 101, 0.8) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(240, 196, 101, 0.8) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, rgba(240, 196, 101, 0.8) 16%, transparent);
   opacity: 0;
   pointer-events: none;
   animation: winpulse 1.4s var(--ease-both) infinite;
@@ -525,7 +523,7 @@
   box-shadow:
     0 0 0 2px rgba(110, 200, 255, 0.28),
     0 0 0 2px rgba(110, 200, 255, 0.4),
-    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.4) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(110, 200, 255, 0.4) 40%, transparent);
 }
 .seat.is-targetable .seat-pod::after {
   content: '';
@@ -533,10 +531,10 @@
   inset: 0;
   border-radius: inherit;
   box-shadow:
-    0 0 0 5px rgba(110, 200, 255, 0.16),
+    0 0 0 4px rgba(110, 200, 255, 0.16),
     0 0 0 2px rgba(110, 200, 255, 0.55),
-    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.55) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, rgba(110, 200, 255, 0.55) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(110, 200, 255, 0.55) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, rgba(110, 200, 255, 0.55) 16%, transparent);
   opacity: 0;
   pointer-events: none;
   animation: targetpulse 1.1s var(--ease-both) infinite;
@@ -723,7 +721,7 @@
   border: 2px solid var(--gold-deep);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--gold) 60%, transparent),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+    inset 0 -4px 0 rgba(0, 0, 0, 0.4);
 }
 
 .seat-action {
@@ -772,7 +770,7 @@
   color: var(--gold);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--gold) 50%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 50%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 50%, transparent) 40%, transparent);
 }
 
 /* --- mana --------------------------------------------------------------- */
@@ -799,10 +797,9 @@
 .board {
   position: absolute;
   left: 50%;
-  /* Sits below the seat arc, leaving the felt's lower band clear for the
-     showdown panel. 62%, because at 60% the top-centre seat's pod still hung
-     4px into the strip at 1280x800. */
-  top: 62%;
+  /* Dead centre, and it is the CARD STRIP that is centred rather than the
+     column the strip used to sit in — see the note above this rule. */
+  top: 50%;
   /* At the shortest supported window the felt is only ~334px tall and a seat
      is 176px of that, so the seat opposite you and the board are competing
      for the same band and the seat wins by about 30px. The lower band is
@@ -810,9 +807,6 @@
      outside the felt entirely (`bottom: 250px`, see `.showdown`), so there is
      nothing down there to protect. Give the board the room. */
   transform: translate(-50%, -50%);
-  display: grid;
-  justify-items: center;
-  gap: var(--s-3);
   z-index: var(--z-cards);
   width: max-content;
   /* 76%, not 92%. Seven community cards at this size is 682px, and at 92% of
@@ -824,32 +818,18 @@
   --board-scale: 1.36;
 }
 
-/* At the minimum window the seat arc and the board collide — see the note in
-   `.board` above. Placed after that rule rather than before it, because these
-   have equal specificity and source order is the whole difference between a
-   fix and a no-op. */
-/* The same collision, one band up. The 720px rule below was written for the
-   minimum window and misses the two resolutions that matter most: at 1280x800
-   (Steam Deck) and 1366x768 the top-centre seat's pod ends at y=250 and the
-   board's box starts at 237, so the pod hangs 13px into it. Measured, not
-   guessed — test/responsive.mjs reports it as "seat ... overlaps the board" at
-   both and passed everywhere else.
-   
-   This block comes FIRST so the 720px rule after it still wins at the minimum
-   window, where 72% is right; equal specificity makes source order the whole
-   difference. */
-@media (max-height: 820px) {
-  .board { top: 65%; }
-}
+/* There is no height at which the strip is not centred.
 
-/* 78%, not 72%. Measured at 1024x680 — the Electron minimum window — the
-   top-centre seat's pod runs to y=218 and the board's box started at 204, so
-   it hung 14px into it and `test/responsive.mjs` reported the overlap. There
-   is room below to give: the showdown panel is anchored to the TOP of the felt
-   now rather than 250px off its bottom, so the lower band is free. */
-@media (max-height: 720px) {
-  .board { top: 78%; }
-}
+   Two media rules used to live here, pushing the board down to 65% and then
+   78% of the felt so the top-centre seat's pod would clear `.board`'s box —
+   and that box used to start 32px above the first card, because the modifier
+   band was inside the column. The box is the strip itself now, so the
+   collision they were written for cannot happen: measured at 1280x800 the top
+   seat's lowest pixel is y=216 and a centred strip starts at y=228.
+
+   If a seat ever does reach the strip at some window, the seat moves. The
+   five community cards are what the whole table is arranged around and they
+   sit in the middle of it. */
 
 .board-mods {
   display: flex;
@@ -857,6 +837,14 @@
   flex-wrap: wrap;
   justify-content: center;
   min-height: 20px;
+  /* Out of the column: a board-wide mark landing used to push the five cards
+     down the table by its own height. Under the strip, where it is next to
+     the pot it is modifying rather than on top of the seat above. */
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  translate: -50% 0;
+  width: 100%;
 }
 .board-mod {
   padding: 2px 10px;
@@ -894,8 +882,8 @@
    the real cards sit in, and a hex ghost echoing the card back. */
 .board-slot {
   position: relative;
-  width: round(calc(var(--card-w) * var(--board-scale, 1)), 2px);
-  height: round(calc(var(--card-h) * var(--board-scale, 1)), 2px);
+  width: round(calc(var(--card-w) * var(--board-scale, 1)), 4px);
+  height: round(calc(var(--card-h) * var(--board-scale, 1)), 4px);
   border-radius: var(--r-card);
   /* A shadow on the cloth, not a box drawn on it.
   
@@ -914,7 +902,7 @@
   border: 2px solid var(--ink);
   border-radius: 0;
   background: #2b2266;
-  box-shadow: inset 0 0 0 1px #3a2d85;
+  box-shadow: inset 0 0 0 2px #3a2d85;
 }
 
 .board-pot {
@@ -923,6 +911,14 @@
   flex-direction: column;
   align-items: center;
   gap: 5px;
+  /* Hung off the strip rather than stacked under it, for the same reason:
+     the pot's own height changes with the street label and the peek, and it
+     was taking the cards with it. */
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 24px);
+  translate: -50% 0;
+  width: max-content;
 }
 
 .pot {
@@ -975,7 +971,7 @@
   background: var(--chip-face);
   box-shadow:
     inset 0 0 0 2px var(--chip-rim),
-    inset 0 0 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 4px rgba(0, 0, 0, 0.55),
     0 2px 0 var(--ink);
 }
 .potchip.is-mid { --chip-face: #c2185b; --chip-rim: #ff4fa3; }
@@ -1075,9 +1071,9 @@
   padding: var(--s-3);
   background: #14102b;
   box-shadow:
-    inset 0 10px 14px -10px rgba(0, 0, 0, 0.9),
-    inset 0 -8px 12px -10px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 4px 0 rgba(0, 0, 0, 0.9),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.6),
+    inset 0 2px 0 rgba(0, 0, 0, 0.6),
     inset 0 2px 0 rgba(130, 160, 255, 0.07);
   display: grid;
   gap: 4px;
@@ -1148,7 +1144,7 @@
      so a rail that is 186.48px tall puts every seat, the board, the deck and
      the pot, all of which are positioned as a percentage of the felt, on a
      fraction of a pixel. One number here lands the whole table on the grid. */
-  height: round(calc(var(--card-h) * 1.78 + 24px), 4px);
+  height: var(--rail-h);
   /* The same metal as the frame around the cloth, seen from underneath and
      falling away from the lamp. A flat slab of brass at this size — a third of
      the screen — reads as mustard; what makes it metal is that the top edge
@@ -1168,10 +1164,11 @@
     var(--night) 78% 100%);
   z-index: var(--z-ui);
   box-shadow:
-    /* a hairline of light along the very top edge, and the dark underside
+    /* a hairline of light along the very top edge,
+    and the dark underside
        where the rail overhangs the apron below it */
-    inset 0 1px 0 rgba(255, 240, 200, 0.55),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.75),
+    inset 0 2px 0 rgba(255, 240, 200, 0.55),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.75),
     0 -4px 0 var(--ink);
 }
 
@@ -1379,8 +1376,8 @@
      The floor is the width the longest brief needs; the ceiling stops two
      sigils on an ultrawide from becoming posters. */
   flex: 1 1 auto;
-  min-width: round(calc(var(--card-w) * 2.3), 2px);
-  max-width: round(calc(var(--card-w) * 3.4), 2px);
+  min-width: round(calc(var(--card-w) * 2.3), 4px);
+  max-width: round(calc(var(--card-w) * 3.4), 4px);
   cursor: default;
   transform-origin: bottom center;
 }
@@ -1417,15 +1414,13 @@
      words) from looking stunted, and `height: 100%` makes it fill whatever the
      tallest card in the hand asked for. Nothing here is ever sized smaller
      than its own contents, so nothing on the face of a card is ever clipped.*/
-  min-height: round(calc(var(--card-h) * 1.5), 2px);
+  min-height: round(calc(var(--card-h) * 1.5), 4px);
   height: 100%;
   border-radius: 0;
   background: var(--bone);
   /* Ink outline, then the school's own colour as the lit inner edge. */
   border: 4px solid var(--ink);
-  box-shadow:
-    inset 0 0 0 2px var(--school),
-    var(--e-card);
+  box-shadow: inset 0 0 0 2px var(--school), var(--e-card);
   overflow: hidden;
   transition: box-shadow var(--t-fast), border-color var(--t-fast), filter var(--t-fast);
 }
@@ -1442,18 +1437,18 @@
 }
 .sigil.is-castable .sigil-frame {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55),
     var(--e-card),
     0 0 0 2px color-mix(in srgb, var(--school) 32%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 32%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--school) 32%, transparent) 40%, transparent);
 }
 .sigil.is-castable:hover .sigil-frame {
   border-color: var(--school);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
     var(--e-lift),
     0 0 0 2px color-mix(in srgb, var(--school) 55%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 55%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--school) 55%, transparent) 40%, transparent);
 }
 /* Blocked by a rule (wrong street, responses only): the card is still there,
    it is just out of the light. Short of mana is a lighter shade of the same —
@@ -1527,7 +1522,7 @@
   box-shadow:
     0 0 0 2px var(--gold),
     0 0 0 2px color-mix(in srgb, var(--gold) 60%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, transparent) 40%, transparent);
 }
 
 .sigil-head { display: flex; align-items: center; justify-content: space-between; }
@@ -1754,7 +1749,7 @@
      buttons went thirty pixels below the bottom of the screen at every
      resolution, which `test/responsive.mjs` caught at 1440p and 4K. 104 is
      the taller state rounded up to the art-pixel grid. */
-  min-height: 104px;
+  min-height: var(--actionbar-h);
   display: grid;
   place-items: center;
   padding: var(--s-2) var(--s-4);
@@ -1762,7 +1757,7 @@
      where it meets the brass. */
   /* The apron under the rail: in shadow, and taking the rail's. */
   background: #100c20;
-  box-shadow: inset 0 14px 22px -12px rgba(0, 0, 0, 0.85);
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.85);
   z-index: var(--z-ui);
 }
 .actionbar::before {
@@ -1942,7 +1937,7 @@
   box-shadow:
     var(--e-3),
     0 0 0 2px rgba(110, 200, 255, 0.35),
-    0 0 0 5px color-mix(in srgb, rgba(110, 200, 255, 0.35) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(110, 200, 255, 0.35) 40%, transparent);
   font-size: var(--fs-sm);
   font-weight: 600;
 }
@@ -2001,8 +1996,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--entropy-deep) 25%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
 }
 
 .stack-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
@@ -2025,7 +2020,7 @@
   background: color-mix(in srgb, var(--school) 10%, rgba(8, 10, 30, 0.5));
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--school) 30%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent);
 }
 /* Opacity and the strike-through only. The punch itself is a framer animation
    in StackOverlay.tsx — a keyframe here would fight it for `transform` and
@@ -2118,10 +2113,13 @@
 .stack-optcost {
   display: grid;
   place-items: center;
-  width: 21px; height: 21px;
+  width: 20px; height: 20px;
   border-radius: 50%;
-  background: var(--entropy-deep);
-  color: #f4f1e8;
+  /* The same pip as `.sigil-cost`: a hole punched in the card, ringed in the
+     school's own colour. It was Entropy's shadow tone on every school. */
+  background: var(--ink);
+  color: var(--bone);
+  box-shadow: 0 0 0 2px var(--school, var(--arc-gold));
   font-size: 12px;
   font-weight: 800;
 }
@@ -2164,8 +2162,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--school) 30%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--school) 30%, transparent) 16%, transparent);
 }
 
 .prompt-head { display: grid; grid-template-columns: auto 1fr; gap: var(--s-3); align-items: start; }
@@ -2361,8 +2359,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px rgba(0, 0, 0, 0.55),
-    0 0 0 5px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
   min-height: 0;
 }
 .showdown.is-impossible .showdown-inner {
@@ -2370,8 +2368,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
 }
 
 .showdown-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
@@ -2441,7 +2439,7 @@
   border-color: var(--gold);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
 }
 
 .showdown-who { display: grid; gap: 1px; min-width: 0; }
@@ -2514,8 +2512,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold) 22%, transparent) 16%, transparent);
 }
 .gameover-winner { display: grid; justify-items: center; gap: 4px; text-align: center; }
 .gameover-winner h2 {
@@ -2652,7 +2650,7 @@
     box-shadow:
     var(--e-card),
     0 0 0 2px rgba(240, 196, 101, 0.4),
-    0 0 0 5px color-mix(in srgb, rgba(240, 196, 101, 0.4) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(240, 196, 101, 0.4) 40%, transparent);
   }
   .prompt-suit:hover { transform: translateY(-4px) scale(1.06); border-color: var(--gold); }
   .prompt-mark:hover { border-color: var(--mark); transform: translateX(3px); }
@@ -2820,13 +2818,13 @@
    text was 10px on a tile about one and a half playing cards tall. The tile is
    now larger and every line on it scales with the card size, so it grows on a
    big screen instead of staying fixed at the size that fits a Steam Deck. */
-.rail-sigils { min-height: round(calc(var(--card-h) * 1.78), 2px); }
-.sigil-frame { min-height: round(calc(var(--card-h) * 1.78), 2px); padding: 10px 10px 8px; }
+.rail-sigils { min-height: round(calc(var(--card-h) * 1.78), 4px); }
+.sigil-frame { min-height: round(calc(var(--card-h) * 1.78), 4px); padding: 10px 10px 8px; }
 .sigil-name { font-size: clamp(12px, calc(var(--card-h) * 0.12), 18px); }
 .sigil-text {
   font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px);
   line-height: 1.35;
-  color: #5c3a16;
+  color: var(--ink);
 }
 .sigil-name--written { font-size: clamp(12px, calc(var(--card-h) * 0.1), 15px); }
 .sigil-school { font-size: clamp(12px, calc(var(--card-h) * 0.085), 13px); }

@@ -105,6 +105,62 @@ test('no shadow has a blur radius', async () => {
   assert.deepEqual(bad, [], `\nblurred shadows (use --e-card / --halo-*):\n${bad.join('\n')}\n`);
 });
 
+/**
+ * Every edge is a whole number of pixels.
+ *
+ * The outlines went onto the grid first and the INNER edges did not, because
+ * they are written as `inset` box-shadows rather than as borders: seventeen
+ * `inset 0 0 0 1px` rings and fourteen one-pixel bevels, which is the lit
+ * edge just inside the ink line — the single most-repeated mark in this
+ * style, drawn at a quarter of a pixel everywhere it appeared.
+ *
+ * `crt.css` is exempt. It is a sheet of glass in front of the game rather
+ * than a thing drawn in it, and a real tube's vignette is soft because an
+ * actual lens is.
+ */
+test('every edge and offset is a whole number of pixels', async () => {
+  const files = (await walk('src', ['.css'])).filter((f) => !f.endsWith('crt.css'));
+  const ok = new Set([0, 2, 4, 8, 12, 16]);
+  const bad: string[] = [];
+  for (const f of files) {
+    const s = strip(readFileSync(f, 'utf8'));
+    for (const m of s.matchAll(/box-shadow\s*:\s*([^;}]+)/g)) {
+      for (const part of splitTop(m[1])) {
+        const masked = part.replace(/\b(?:rgba?|hsla?|color-mix|color|var|calc)\([^()]*(?:\([^()]*\)[^()]*)*\)/g, ' C ');
+        for (const n of masked.matchAll(/(?<![\w.#-])(-?\d[\d.]*)px/g)) {
+          if (!ok.has(Math.abs(Number(n[1])))) {
+            bad.push(`${f}:${lineOf(s, m.index)} ${n[1]}px in ${part.trim().slice(0, 44)}`);
+          }
+        }
+      }
+    }
+    for (const m of s.matchAll(/border(?:-(?:top|right|bottom|left))?(?:-width)?\s*:\s*([\d.]+)px/g)) {
+      if (!ok.has(Number(m[1]))) bad.push(`${f}:${lineOf(s, m.index)} ${m[1]}px border`);
+    }
+  }
+  assert.deepEqual(bad, [], `\nedges off the pixel grid:\n${bad.join('\n')}\n`);
+});
+
+/**
+ * Anything snapped to a grid is snapped to THE grid.
+ *
+ * `round(<expr>, 2px)` looks like it is doing the right thing and is doing
+ * half of it: the board slot, the sigil frame and the rail's minimum height
+ * were all landing on even pixels rather than on art pixels, which is the
+ * grid every other box, the scanlines and the dither all share.
+ */
+test('every round() snaps to the art pixel', async () => {
+  const files = await walk('src', ['.css']);
+  const bad: string[] = [];
+  for (const f of files) {
+    const s = strip(readFileSync(f, 'utf8'));
+    for (const m of s.matchAll(/round\([^()]*(?:\([^()]*\)[^()]*)*,\s*([\d.]+)px\s*\)/g)) {
+      if (Number(m[1]) !== 4) bad.push(`${f}:${lineOf(s, m.index)} round(..., ${m[1]}px)`);
+    }
+  }
+  assert.deepEqual(bad, [], `\nsnapped to the wrong grid:\n${bad.join('\n')}\n`);
+});
+
 /** One art pixel is 4 CSS px, so a corner is 0, 4, 8 or 16 — never 2. */
 test('every corner is on the art-pixel grid', async () => {
   const files = await walk('src', ['.css']);

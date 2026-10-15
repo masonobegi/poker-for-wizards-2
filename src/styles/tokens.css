@@ -346,11 +346,11 @@
     0 0 0 2px color-mix(in srgb, var(--halo) 55%, transparent);
   --halo-2:
     0 0 0 2px color-mix(in srgb, var(--halo) 62%, transparent),
-    0 0 0 5px color-mix(in srgb, var(--halo) 26%, transparent);
+    0 0 0 4px color-mix(in srgb, var(--halo) 26%, transparent);
   --halo-3:
     0 0 0 2px color-mix(in srgb, var(--halo) 72%, transparent),
-    0 0 0 5px color-mix(in srgb, var(--halo) 34%, transparent),
-    0 0 0 9px color-mix(in srgb, var(--halo) 14%, transparent);
+    0 0 0 4px color-mix(in srgb, var(--halo) 34%, transparent),
+    0 0 0 8px color-mix(in srgb, var(--halo) 14%, transparent);
   --halo-text:
     2px 0 0 var(--halo), -2px 0 0 var(--halo),
     0 2px 0 var(--halo), 0 -2px 0 var(--halo);
@@ -447,7 +447,12 @@
      ratio's own fraction. */
   --card-h: calc(var(--card-w) * 112 / 78);
   --card-h: round(calc(var(--card-w) * 112 / 78), 4px);
-  --rail-h: 132px;
+  /* The rail and the action bar are the two bands under the felt, and
+     everything positioned relative to them has to agree about how tall they
+     are. These are the numbers; `table.css` sets them and nothing else
+     guesses. */
+  --rail-h: round(calc(var(--card-h) * 1.78 + 24px), 4px);
+  --actionbar-h: 104px;
   --z-felt: 1;
   --z-cards: 20;
   --z-chips: 30;

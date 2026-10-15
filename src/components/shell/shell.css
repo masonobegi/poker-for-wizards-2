@@ -38,8 +38,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--entropy-deep) 25%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--entropy-deep) 25%, transparent) 16%, transparent);
 }
 .hh-menu-panel:focus { outline: none; }
 
@@ -106,8 +106,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px rgba(244, 87, 111, 0.12),
-    0 0 0 5px color-mix(in srgb, rgba(244, 87, 111, 0.12) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, rgba(244, 87, 111, 0.12) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(244, 87, 111, 0.12) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, rgba(244, 87, 111, 0.12) 16%, transparent);
 }
 .hh-conn-panel:focus { outline: none; }
 

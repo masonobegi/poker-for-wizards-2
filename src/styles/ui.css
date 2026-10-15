@@ -34,14 +34,14 @@
     border-color var(--t-fast) var(--ease-out),
     background var(--t-fast) var(--ease-out),
     filter var(--t-fast) var(--ease-out);
-  box-shadow: var(--e-1), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: var(--e-1), inset 0 2px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: var(--surface-3);
-  box-shadow: var(--e-2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: var(--e-2), inset 0 2px 0 rgba(255, 255, 255, 0.1);
 }
 .btn:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
 .btn:disabled { opacity: 0.4; filter: saturate(0.4); }
@@ -50,15 +50,18 @@
   border-color: var(--gold-deep);
   background: var(--surface-2);
   color: var(--gold-hi);
-  box-shadow: var(--e-2), inset 0 1px 0 rgba(255, 230, 168, 0.18), 0 0 0 1px color-mix(in srgb, var(--gold) 12%, transparent);
+  box-shadow:
+    var(--e-2),
+    inset 0 2px 0 rgba(255, 230, 168, 0.18),
+    0 0 0 2px color-mix(in srgb, var(--gold) 12%, transparent);
 }
 .btn-primary:hover:not(:disabled) {
   border-color: var(--gold);
   box-shadow:
     var(--e-3),
     0 0 0 2px color-mix(in srgb, var(--gold) 26%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 26%, transparent) 40%, transparent),
-    inset 0 1px 0 rgba(255, 230, 168, 0.28);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 26%, transparent) 40%, transparent),
+    inset 0 2px 0 rgba(255, 230, 168, 0.28);
 }
 
 .btn-danger { border-color: rgba(244, 87, 111, 0.4); color: #f4f1e8; }
@@ -67,7 +70,7 @@
   box-shadow:
     var(--e-2),
     0 0 0 2px rgba(244, 87, 111, 0.28),
-    0 0 0 5px color-mix(in srgb, rgba(244, 87, 111, 0.28) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(244, 87, 111, 0.28) 40%, transparent);
 }
 
 .btn-good { border-color: rgba(74, 222, 128, 0.35); color: #f4f1e8; }
@@ -76,7 +79,7 @@
   box-shadow:
     var(--e-2),
     0 0 0 2px rgba(74, 222, 128, 0.24),
-    0 0 0 5px color-mix(in srgb, rgba(74, 222, 128, 0.24) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(74, 222, 128, 0.24) 40%, transparent);
 }
 
 .btn-ghost {
@@ -130,7 +133,7 @@
   outline: none;
   border-color: var(--gold-deep);
   background: rgba(8, 10, 30, 0.75);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 12%, transparent);
 }
 
 .input-code {
@@ -157,9 +160,7 @@
   border-radius: 50%;
   background: var(--brass-hi);
   border: 2px solid rgba(0, 0, 0, 0.5);
-  box-shadow:
-    0 2px 0 var(--ink),
-    0 0 0 2px color-mix(in srgb, var(--gold) 40%, transparent);
+  box-shadow: 0 2px 0 var(--ink), 0 0 0 2px color-mix(in srgb, var(--gold) 40%, transparent);
   transition: transform var(--t-fast) var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {

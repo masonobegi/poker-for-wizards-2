@@ -56,7 +56,7 @@
   background: color-mix(in srgb, var(--chip) 12%, transparent);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--chip) 25%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--chip) 25%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--chip) 25%, transparent) 40%, transparent);
 }
 
 .codex-motto {

@@ -36,7 +36,7 @@
     0 0 0 2px rgba(0, 0, 0, 0.65),
     var(--e-card),
     0 0 0 2px color-mix(in srgb, var(--stamp) 40%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--stamp) 40%, transparent) 40%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--stamp) 40%, transparent) 40%, transparent);
 }
 .hx-stamp.is-bad { --stamp: var(--bad); }
 .hx-stamp.is-ice { --stamp: var(--veil); }
@@ -127,17 +127,17 @@
       color-mix(in srgb, var(--banner-color) 18%, rgba(8, 7, 14, 0.94)) 50%,
       color-mix(in srgb, var(--banner-color) 10%, rgba(5, 6, 12, 0.9)));
   box-shadow:
-    inset 0 3px 0 rgba(0, 0, 0, 0.8),
+    inset 0 4px 0 rgba(0, 0, 0, 0.8),
     inset 0 4px 0 color-mix(in srgb, var(--banner-color) 80%, white),
-    inset 0 7px 0 rgba(0, 0, 0, 0.8),
+    inset 0 8px 0 rgba(0, 0, 0, 0.8),
     inset 0 8px 0 color-mix(in srgb, var(--gold) 70%, transparent),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.8),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.8),
     inset 0 -4px 0 color-mix(in srgb, var(--banner-color) 80%, white),
-    inset 0 -7px 0 rgba(0, 0, 0, 0.8),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.8),
     inset 0 -8px 0 color-mix(in srgb, var(--gold) 70%, transparent),
     0 0 0 2px rgba(0, 0, 0, 0.55),
-    0 0 0 5px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, rgba(0, 0, 0, 0.55) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, rgba(0, 0, 0, 0.55) 16%, transparent);
 }
 
 /* Speed lines running along the band while it holds. One tile of horizontal

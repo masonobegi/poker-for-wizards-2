@@ -20,8 +20,8 @@
   box-shadow:
     var(--e-4),
     0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent),
-    0 0 0 5px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent),
-    0 0 0 9px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 16%, transparent);
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent),
+    0 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 16%, transparent);
   pointer-events: none;
 }
 
