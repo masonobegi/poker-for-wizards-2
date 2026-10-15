@@ -2690,6 +2690,44 @@
 
 /* The coven badge on a seat: the same public information as a relic, so it
    sits at the same size and in the same corner. */
+/* The marks, as one box: coven, relics, status flags. */
+.seat-marks {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+/*
+ * The seat opposite you.
+ *
+ * Everything a seat hangs BELOW itself — its marks and its bet — is directly
+ * over the community cards once the card strip is centred on the cloth, which
+ * is where it belongs. Measured at 1280x800: the strip starts at y=228, the
+ * top seat's coven mark reached 235 and its bet chip sat at 256-283, which is
+ * the middle community card.
+ *
+ * There is no room to move the seat instead. It is anchored at its centre on
+ * an arc whose top is already high enough that its two cards overlap the rail;
+ * another twenty pixels up and they are off the top of the screen, which is
+ * the exact failure the arc constants were measured against in the first
+ * place. So the furniture goes either side of the pod, where the felt is
+ * empty: marks to the left, bet to the right, both on the pod's own band.
+ */
+.tbl-seatslot[data-seat-pos='top'] .seat-marks {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  translate: -8px -50%;
+  justify-items: end;
+}
+.tbl-seatslot[data-seat-pos='top'] .seat-bet {
+  left: 100%;
+  right: auto;
+  bottom: auto;
+  top: 50%;
+  translate: 8px -50%;
+}
+
 .seat-coven {
   position: absolute;
   top: -6px;

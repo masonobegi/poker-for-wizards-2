@@ -43,15 +43,35 @@ const ARC_TOP = 46;
 const ARC_RY = 28;
 const ARC_RX = 39;
 
-function arcPosition(i: number, n: number): { left: string; top: string } {
-  if (n === 1) return { left: '50%', top: `${ARC_TOP - ARC_RY}%` };
+/**
+ * Where a seat is, as well as where it sits.
+ *
+ * The seat OPPOSITE you has the community cards directly underneath it, and
+ * everything a seat hangs below itself — its coven mark, its relics, its
+ * flags, its bet — lands on them. That was invisible while the board sat at
+ * 62% of the felt and became a bet chip on the middle community card the
+ * moment the board was centred on the cloth, which is where it belongs. So
+ * the seat has to know it is the top one, and `table.css` puts its furniture
+ * either side of the pod instead of under it.
+ */
+function arcPosition(i: number, n: number): { left: string; top: string; pos: 'left' | 'top' | 'right' } {
+  if (n === 1) return { left: '50%', top: `${ARC_TOP - ARC_RY}%`, pos: 'top' };
   const spread = n <= 3 ? 130 : n === 4 ? 156 : 176;
   const start = 180 + (180 - spread) / 2;
   const angle = (start + (spread * i) / (n - 1)) * (Math.PI / 180);
+  const dx = Math.cos(angle);
   return {
-    left: `${50 + Math.cos(angle) * ARC_RX}%`,
+    left: `${50 + dx * ARC_RX}%`,
     top: `${ARC_TOP + Math.sin(angle) * ARC_RY}%`,
+    // A quarter of the arc's width either side of centre counts as "top":
+    // that is the band in which a seat is over the card strip.
+    pos: dx < -0.25 ? 'left' : dx > 0.25 ? 'right' : 'top',
   };
+}
+
+/** The placement, without the `pos` that goes on the element as data. */
+function seatStyle(a: { left: string; top: string }): { left: string; top: string } {
+  return { left: a.left, top: a.top };
 }
 
 /**
@@ -260,7 +280,8 @@ export default function GameTable() {
             <div
               key={p.id}
               className="tbl-seatslot"
-              style={arcPosition(i, opponents.length)}
+              data-seat-pos={arcPosition(i, opponents.length).pos}
+              style={seatStyle(arcPosition(i, opponents.length))}
             >
               <Seat
                 player={p}

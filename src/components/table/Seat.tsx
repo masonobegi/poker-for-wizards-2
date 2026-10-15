@@ -112,9 +112,11 @@ function SeatBase({
         </div>
       </div>
 
-      {/* The coven sits with the relics because it is the same kind of
-          information: public, permanent for the run, and worth knowing before
-          you decide what they are representing. */}
+      {/* The coven, the relics and the status flags in one box.
+          They were three siblings hanging under the pod; the seat opposite
+          you has the community cards under it, so they are moved together by
+          `[data-seat-pos='top']` in table.css and that needs one element. */}
+      <div className="seat-marks">
       {p.coven && p.coven !== DEFAULT_COVEN ? (
         <Tooltip body={<><strong>{covenOf(p.coven).name}</strong><br />{covenOf(p.coven).style}{creedOf(covenOf(p.coven)) ? <><br /><em>{RELIC_BY_ID[creedOf(covenOf(p.coven))!]?.name}:</em> {RELIC_BY_ID[creedOf(covenOf(p.coven))!]?.text}</> : null}</>}>
           <span className="seat-coven" style={{ ['--school' as string]: SCHOOLS[covenOf(p.coven).school].accent }}>
@@ -141,6 +143,7 @@ function SeatBase({
         {p.warded ? <Tooltip body="Warded — their cards cannot be targeted"><span className="seat-flag">☾</span></Tooltip> : null}
         {p.severed ? <Tooltip body="Severed — no mana this hand"><span className="seat-flag is-bad">⨯</span></Tooltip> : null}
         {p.hexed > 0 ? <Tooltip body={`Hexed ×${p.hexed} — scores lower`}><span className="seat-flag is-bad">☠</span></Tooltip> : null}
+      </div>
       </div>
 
       <AnimatePresence>
