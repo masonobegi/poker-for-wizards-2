@@ -284,7 +284,11 @@ for (const [label, sel] of [['codex', 'button:has-text("Codex")'], ['settings', 
    has never had a style pass at all. */
 let market = false;
 let showdown = false;
-for (let i = 0; i < 110 && !(market && showdown); i++) {
+/* 260, not 110. The market opens between antes — "MARKET IN 2 HANDS" on the
+   header — and two hands of four-handed poker is more clicks than a hundred
+   and ten at this cadence. The screen with the least style attention in the
+   game was the one the audit kept not reaching. */
+for (let i = 0; i < 260 && !(market && showdown); i++) {
   if (!market && await page.locator('.market, .shop').first().isVisible().catch(() => false)) {
     await sweep('market'); market = true;
   }

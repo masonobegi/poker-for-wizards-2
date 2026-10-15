@@ -278,7 +278,13 @@ function AvatarBase({ seed, size = 40, bot, dim, className = '' }: AvatarProps) 
             <text
               x="40.5" y="43.6" textAnchor="middle" fill="#ffd23f"
               textLength="11" lengthAdjust="spacingAndGlyphs"
-              fontFamily="'Press Start 2P', ui-monospace, monospace" fontWeight="700"
+              /* Pixelify Sans, not the arcade face. `base.css` pins every
+                 <text> in an avatar to ten user units, which lands at 12px —
+                 and Press Start 2P is an 8-pixel bitmap that is only sharp at
+                 a multiple of eight. The rule is in tokens.css next to
+                 --font-hud; this is the one place it is reached through an
+                 SVG attribute rather than a stylesheet. */
+              fontFamily="'Pixelify Sans', ui-monospace, monospace" fontWeight="700"
             >
               AI
             </text>

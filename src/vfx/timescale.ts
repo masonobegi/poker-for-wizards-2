@@ -54,6 +54,19 @@ function animations(): Animation[] {
 }
 
 /**
+ * What each animation's rate was before this file touched it.
+ *
+ * Restoring to a flat 1 is wrong and the wrongness is invisible until it
+ * isn't: framer-motion reverses an animation by running it at a NEGATIVE
+ * rate, and a few of the game's own effects idle at a rate that is not one.
+ * Freeze the page while one of those is mid-reverse, put everything back at
+ * 1, and that animation finishes playing forwards — once, silently, on the
+ * one frame somebody happened to be watching. A WeakMap, so an animation that
+ * is collected takes its entry with it.
+ */
+const priorRate = new WeakMap<Animation, number>();
+
+/**
  * Sets the playback rate of every live animation on the page.
  *
  * Skips anything already finished or idle — setting a rate on a finished
@@ -62,10 +75,20 @@ function animations(): Animation[] {
  */
 export function setPagePlaybackRate(rate: number): void {
   const list = animations();
+  const restoring = rate === 1;
   for (let i = 0; i < list.length; i++) {
     const a = list[i];
     try {
       if (a.playState === 'finished' || a.playState === 'idle') continue;
+      if (restoring) {
+        const was = priorRate.get(a);
+        priorRate.delete(a);
+        // An animation we never bent keeps whatever rate it has.
+        if (was === undefined) continue;
+        if (a.playbackRate !== was) a.playbackRate = was;
+        continue;
+      }
+      if (!priorRate.has(a)) priorRate.set(a, a.playbackRate);
       if (a.playbackRate !== rate) a.playbackRate = rate;
     } catch {
       /* one animation's problem is not the page's */
