@@ -17,6 +17,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Pixelify Sans draws its "fi" and "fl" ligatures as one pixel glyph that
+     reads as a capital A: the menu's first lines said "the Arst hand deals
+     itself" and "Three bots All the table". optimizeLegibility turns common
+     ligatures on, so they are turned off here, for every face (fun round 5). */
+  font-variant-ligatures: no-common-ligatures;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;

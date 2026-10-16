@@ -160,3 +160,15 @@ test('nothing replaces the fill of a `.hx-plate`', async () => {
  * above — which catch the class of CSS bug that is genuinely invisible until
  * it ships — stay.
  */
+
+test('the page turns common ligatures off, so Pixelify Sans spells "first" with an f and an i', () => {
+  // Pixelify Sans draws "fi" and "fl" as a ligature that reads as "A" ("the
+  // Arst hand", "Three bots All the table": fun round 5, FUN-REVIEW.md), and
+  // `text-rendering: optimizeLegibility` on the body turns ligatures on.
+  const base = code(readFileSync(join('src', 'styles', 'base.css'), 'utf8'));
+  const body = /(^|\})\s*body\s*\{([^}]*)\}/.exec(base)?.[2] ?? '';
+  assert.match(body, /font-variant-ligatures:\s*no-common-ligatures/);
+  // And nothing turns them back on for the UI's long-text face.
+  const all = readFileSync(join('src', 'styles', 'tokens.css'), 'utf8');
+  assert.doesNotMatch(code(all), /font-variant-ligatures:\s*(normal|common-ligatures)/);
+});
