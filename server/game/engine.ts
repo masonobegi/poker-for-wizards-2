@@ -64,6 +64,23 @@ const SOLO_MARKET_MAX_MS = PAUSE_MAX_MS;
 const BOTS_AFTER_DONE_MS = 4000;
 
 /**
+ * Once the player at a solo table has folded, the rest of the hand is the
+ * bots': they act at the quick pace they already use to answer a spell, and
+ * the result is held long enough to turn the cards over and read the winner,
+ * not as long as a pot the player was in. An impossible hand keeps its full
+ * ceremony whoever made it.
+ *
+ * Measured from the player's chair (FUN-REVIEW.md, round 5): a run spent
+ * about 22 seconds watching bots finish hands the player had folded, and
+ * another stretch reading showdowns it had no stake in. A poker player who
+ * has folded wants the next hand (fast-fold is the most played online format
+ * for exactly that reason). Off (false) restores the old pace exactly.
+ */
+export const FAST_AFTER_FOLD = true;
+/** The share of a showdown's reading time a folded player sits through. */
+const FOLDED_READ = 0.5;
+
+/**
  * How much the blinds climb per ante step.
  *
  * At 1.6 the big blind went 200, 300, 500, 800, 1300, 2100, 3350, 5350, and
@@ -232,6 +249,16 @@ export class Engine {
    */
   get solo(): boolean {
     return this.table.players.filter((p) => !p.isBot).length === 1;
+  }
+
+  /**
+   * A solo table whose player has folded this hand: nothing is left for them
+   * to decide before the next deal (FAST_AFTER_FOLD).
+   */
+  private spectating(): boolean {
+    if (!FAST_AFTER_FOLD || !this.solo) return false;
+    const human = this.table.players.find((p) => !p.isBot);
+    return !!human && human.folded && !human.eliminated;
   }
 
   /** At least one human sat down, and every one of them is out. */
@@ -649,7 +676,7 @@ export class Engine {
     });
 
     if (p.isBot) {
-      const think = thinkTime(this.rng, { fast: resume, actors: live(t).length, speed: t.config.speed });
+      const think = thinkTime(this.rng, { fast: resume || this.spectating(), actors: live(t).length, speed: t.config.speed });
       this.botClock.set(p.id, Date.now() + think);
     } else if (!resume) this.fx.push({ t: 'sfx', name: 'your_turn' });
 
@@ -952,7 +979,10 @@ export class Engine {
     );
     const decodeMs = longestName > 0 ? 430 + longestName * 42 : 0;
 
-    const scaled = revealMs + Math.round((readMs + ceremony) * tempo.hold);
+    // A player who folded reads the winner, not the whole table; the
+    // impossible hands keep their ceremony (FAST_AFTER_FOLD).
+    const read = this.spectating() ? readMs * FOLDED_READ : readMs;
+    const scaled = revealMs + Math.round((read + ceremony) * tempo.hold);
     const floor = Math.max(revealMs, decodeMs) + 450;
     return Math.min(9000, Math.max(floor, scaled));
   }
