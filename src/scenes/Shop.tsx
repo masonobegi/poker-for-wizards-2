@@ -44,6 +44,10 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
   const page = shop.items.find((i) => i.kind === 'scribe');
   const pageUsed = page ? shop.sold.includes(page.uid) : true;
   const wares = shop.items.filter((i) => i.kind !== 'scribe');
+  const gone = shop.gone ?? [];
+  // Two relics on the shelf are a choice (RELIC_OFFERS, server/game/shop.ts):
+  // buying one takes the other away, so say so while both are there.
+  const relicChoice = wares.filter((i) => i.kind === 'relic' && !shop.sold.includes(i.uid) && !gone.includes(i.uid)).length > 1;
 
   return (
     <motion.div
@@ -82,6 +86,8 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
                 item={item}
                 index={i}
                 sold={shop.sold.includes(item.uid)}
+                gone={gone.includes(item.uid)}
+                choice={relicChoice && item.kind === 'relic'}
                 affordable={me.shards >= item.price}
                 owned={item.kind === 'relic' && me.relics.includes(item.id)}
                 onBuy={() => buy(item.uid)}
@@ -153,26 +159,31 @@ const ShopCard = forwardRef<HTMLElement, {
   item: ShopItem;
   index: number;
   sold: boolean;
+  /** Withdrawn: the player bought the other relic on the shelf. */
+  gone?: boolean;
+  /** One of two relics on the shelf, and both are still there. */
+  choice?: boolean;
   affordable: boolean;
   owned: boolean;
   onBuy: () => void;
-}>(function ShopCard({ item, index, sold, affordable, owned, onBuy }, ref) {
+}>(function ShopCard({ item, index, sold, gone = false, choice = false, affordable, owned, onBuy }, ref) {
   const finePointer = useFinePointer();
   const reduced = useReducedMotionPref();
   const info = describe(item);
-  const locked = sold || !affordable || owned;
+  const locked = sold || gone || !affordable || owned;
 
   // The buy lands before the card greys out: BOUGHT slams onto the card at
   // full brightness, and only then does it dim to sold. Dimming on the same
   // frame put the stamp at 35% opacity, in greyscale, on the one beat that is
   // the player's payoff. A card that was already sold when the Market opened
   // starts dim.
-  const [dim, setDim] = useState(sold);
+  const [dim, setDim] = useState(sold || gone);
   useEffect(() => {
-    if (!sold) { setDim(false); return; }
+    if (!sold && !gone) { setDim(false); return; }
+    // A withdrawn relic dims on the same beat as the one bought beside it.
     const t = window.setTimeout(() => setDim(true), reduced ? 0 : SOLD_DIM_MS);
     return () => window.clearTimeout(t);
-  }, [sold, reduced]);
+  }, [sold, gone, reduced]);
 
   return (
     <motion.article
@@ -187,7 +198,7 @@ const ShopCard = forwardRef<HTMLElement, {
         : { ...SPRING_SOFT, delay: Math.min(index * 0.06, 0.3) }}
       whileHover={locked || !finePointer || reduced ? undefined : { y: -8, scale: 1.03 }}
     >
-      <span className="shopcard-kind">{info.kind}</span>
+      <span className="shopcard-kind">{choice ? `${info.kind} · pick one` : info.kind}</span>
       <div className="shopcard-art">
         <SchoolDevice school={info.device} className="shopcard-device" />
         <span className="shopcard-glyph">
@@ -207,6 +218,8 @@ const ShopCard = forwardRef<HTMLElement, {
       <footer className="shopcard-foot">
         {sold ? (
           <span className="shopcard-sold">Sold</span>
+        ) : gone ? (
+          <span className="shopcard-sold" title="You took the other relic">Gone</span>
         ) : owned ? (
           <span className="shopcard-sold">Owned</span>
         ) : (

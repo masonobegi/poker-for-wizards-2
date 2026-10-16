@@ -985,7 +985,7 @@ export function decideScribe(
   // can afford comes first; the page gets what is left. Writing before the
   // relic cost measured runs more than the written sigil ever won back.
   const relicFirst = shop.items.some((i) => i.kind === 'relic' && !shop.sold.includes(i.uid)
-    && i.price <= p.shards && !p.relics.includes(i.id));
+    && !shop.gone?.includes(i.uid) && i.price <= p.shards && !p.relics.includes(i.id));
   if (relicFirst && botScribe.relicFirst) return null;
   const roster = rosterFor(t, p);
   const scored = (botScribe.drafts?.(t, p) ?? draftsFor(t, p))
@@ -1024,7 +1024,7 @@ export function decideShop(t: Table, p: Player, rng: Rng): string | null {
   // done and a solo Market sat open after the player pressed Done.
   const roomForSigil = p.sigils.length < sigilHandSize(p);
   const affordable = shop.items.filter(
-    (i) => i.kind !== 'scribe' && !shop.sold.includes(i.uid) && i.price <= p.shards
+    (i) => i.kind !== 'scribe' && !shop.sold.includes(i.uid) && !shop.gone?.includes(i.uid) && i.price <= p.shards
       && (i.kind !== 'sigil' || roomForSigil)
       && (i.kind !== 'relic' || !p.relics.includes(i.id)),
   );

@@ -647,6 +647,13 @@ function relicReport(rs: RunReport[]): void {
   const offers = withOffers.reduce((a, r) => a + r.offers!.length, 0);
   const buys = withOffers.reduce((a, r) => a + r.offers!.filter((o) => o.bought).length, 0);
   console.log(`    offered ${offers} (${(offers / withOffers.length).toFixed(1)} a run), bought ${buys} (${Math.round((buys / Math.max(1, offers)) * 100)}%); a greedy buyer, so this is affordability, not appeal`);
+  // Per Market visit (one a run per ante; the harness never rerolls): how
+  // often a relic was bought, and how often the shelf put two relics the
+  // player could afford side by side, which is a choice between relics.
+  const visits = withOffers.flatMap((r) => [...new Set(r.offers!.map((o) => o.ante))]
+    .map((a) => r.offers!.filter((o) => o.ante === a)));
+  const choiceVisits = visits.filter((v) => v.filter((o) => o.price <= o.shards).length >= 2).length;
+  console.log(`    Market visits ${visits.length}: a relic bought at ${Math.round(visits.filter((v) => v.some((o) => o.bought)).length / Math.max(1, visits.length) * 100)}% · two affordable relics side by side at ${Math.round(choiceVisits / Math.max(1, visits.length) * 100)}% (${(choiceVisits / withOffers.length).toFixed(1)} a run)`);
   const boughtIds = withOffers.flatMap((r) => r.offers!.filter((o) => o.bought).map((o) => o.relic));
   const boughtKinds = { number: 0, information: 0, rule: 0 };
   for (const id of boughtIds) { const d = RELIC_BY_ID[id]; if (d) boughtKinds[relicKind(d)]++; }

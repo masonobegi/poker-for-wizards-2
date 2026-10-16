@@ -52,6 +52,25 @@ function rollSigilItem(rng: Rng): ShopItem {
   return { kind: 'sigil', id: def.id, uid: nanoid(8), price: def.price };
 }
 
+/*
+ * Relics on the shelf a visit. Buying one takes the rest off the shelf.
+ *
+ * The shelf used to hold one relic, so the only relic decision a Market asked
+ * was "buy it or not", and the buy rate was 81%: in practice the build was
+ * whatever turned up. Choosing between relics is the decision a roguelite is
+ * played for (Slay the Spire's boss relics, Balatro's packs), and the
+ * genre's shop complaints are "the shop didn't offer what my build needs"
+ * (fun round 5 in FUN-REVIEW.md has the sources).
+ *
+ * Two, and only one of them, so the choice is between relics and the shards
+ * are not: a shelf where both could be bought would spend on relics the
+ * shards that buy rites and blank pages, the two purchases the game is named
+ * for. Two relics take the place of one sigil, so a visit still shows five
+ * wares (the 1280x800 grid is five wide). 1 puts back the old shelf exactly,
+ * the same draws in the same order.
+ */
+export const RELIC_OFFERS = 2;
+
 function rollRelicItem(rng: Rng, owned: string[]): ShopItem | null {
   const pool = RELICS.filter((r) => !owned.includes(r.id));
   if (pool.length === 0) return null;
@@ -87,9 +106,16 @@ function rollRiteItem(t: Table, rng: Rng): ShopItem | null {
 export function rollShop(t: Table, p: Player, rng: Rng, rerolls = 0): ShopState {
   const items: ShopItem[] = [];
 
-  items.push(rollSigilItem(rng), rollSigilItem(rng));
-  const relic = rollRelicItem(rng, p.relics);
-  if (relic) items.push(relic);
+  const relics = Math.max(1, RELIC_OFFERS);
+  for (let i = 0; i < Math.max(0, 3 - relics); i++) items.push(rollSigilItem(rng));
+  // Two different relics: the second is drawn as if the first were owned.
+  const shelved: string[] = [];
+  for (let i = 0; i < relics; i++) {
+    const relic = rollRelicItem(rng, [...p.relics, ...shelved]);
+    if (!relic || relic.kind !== 'relic') break;
+    shelved.push(relic.id);
+    items.push(relic);
+  }
   const rite = rollRiteItem(t, rng);
   if (rite) items.push(rite);
   if (rng.chance(0.4)) {
@@ -122,6 +148,7 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
   const item = shop.items.find((i) => i.uid === uid);
   if (!item) return { ok: false, error: 'No such item' };
   if (shop.sold.includes(uid)) return { ok: false, error: 'Already sold' };
+  if (shop.gone?.includes(uid)) return { ok: false, error: 'You took the other relic' };
   if (p.shards < item.price) return { ok: false, error: 'Not enough shards' };
 
   switch (item.kind) {
@@ -136,6 +163,9 @@ export function buy(t: Table, p: Player, uid: string, rng: Rng): BuyResult {
       if (p.relics.includes(item.id)) return { ok: false, error: 'You already own it' };
       p.relics.push(item.id);
       refreshMaxMana(p, t);
+      // The shelf held a choice: the relics left on it go.
+      const others = shop.items.filter((i) => i.kind === 'relic' && i.uid !== uid && !shop.sold.includes(i.uid));
+      if (others.length) shop.gone = [...(shop.gone ?? []), ...others.map((i) => i.uid)];
       break;
     }
     case 'rite': {

@@ -22,6 +22,9 @@ import { mock, test } from 'node:test';
 
 import { Engine } from '../server/game/engine';
 import { DEFAULT_CONFIG } from '../shared/types';
+import { RELIC_OFFERS, buy, reroll, rollShop } from '../server/game/shop';
+import { decideShop } from '../server/game/bots';
+import { Rng } from '../shared/rng';
 
 const STEP_MS = 120;
 /** Generous for "seconds": the repair closes within BOTS_AFTER_DONE_MS (4s). */
@@ -97,4 +100,91 @@ test('a solo Market closes within seconds of Done, in natural games', () => {
     console.warn = warn;
     mock.timers.reset();
   }
+});
+
+// ---------------------------------------------------------------------------
+// The relic shelf (fun round 5): two relics, and buying one takes the other.
+// ---------------------------------------------------------------------------
+
+
+function shelfTable(seed: string) {
+  const e = new Engine('SHLF', 'host', { ...DEFAULT_CONFIG, seed }, () => {}, () => {});
+  e.addPlayer('host', 'Hero');
+  for (let i = 0; i < 3; i++) e.addBot();
+  e.start();
+  e.dispose();
+  const t = e.table;
+  const hero = t.players.find((p) => !p.isBot)!;
+  return { t, hero };
+}
+
+test('the Market shelves RELIC_OFFERS different relics, none owned, and still five wares', () => {
+  assert.ok(RELIC_OFFERS >= 1);
+  for (let n = 0; n < 40; n++) {
+    const { t, hero } = shelfTable(`shelf-${n}`);
+    const shop = rollShop(t, hero, new Rng(`shelf-${n}`));
+    const relics = shop.items.filter((i) => i.kind === 'relic');
+    assert.equal(relics.length, RELIC_OFFERS, `seed ${n}`);
+    const ids = relics.map((i) => (i.kind === 'relic' ? i.id : ''));
+    assert.equal(new Set(ids).size, ids.length, `seed ${n}: the same relic twice`);
+    for (const id of ids) assert.ok(!hero.relics.includes(id), `seed ${n}: offered a relic already owned`);
+    assert.equal(shop.items.filter((i) => i.kind !== 'scribe').length, 5, `seed ${n}: the grid is five wide`);
+  }
+});
+
+test('buying one relic takes the other off the shelf, and charges for one', () => {
+  if (RELIC_OFFERS < 2) return;
+  const { t, hero } = shelfTable('shelf-buy');
+  const shop = rollShop(t, hero, new Rng('shelf-buy'));
+  t.shop.set(hero.id, shop);
+  hero.shards = 999;
+  const [a, b] = shop.items.filter((i) => i.kind === 'relic');
+  assert.ok(a && b && a.kind === 'relic' && b.kind === 'relic');
+  const before = hero.relics.length;
+  assert.ok(buy(t, hero, a.uid, new Rng('x')).ok);
+  assert.deepEqual(shop.gone, [b.uid]);
+  assert.equal(hero.shards, 999 - a.price);
+  const second = buy(t, hero, b.uid, new Rng('x'));
+  assert.equal(second.ok, false);
+  assert.match(second.error ?? '', /other relic/);
+  assert.equal(hero.relics.length, before + 1);
+  assert.ok(hero.relics.includes(a.id) && !hero.relics.includes(b.id));
+  // Everything else on the shelf is still for sale.
+  const sigil = shop.items.find((i) => i.kind === 'sigil');
+  if (sigil) assert.ok(!shop.gone?.includes(sigil.uid));
+});
+
+test('a bot never reaches for the relic it left, and writes once the relic is bought', () => {
+  if (RELIC_OFFERS < 2) return;
+  for (let n = 0; n < 20; n++) {
+    const { t } = shelfTable(`shelf-bot-${n}`);
+    const bot = t.players.find((p) => p.isBot)!;
+    const shop = rollShop(t, bot, new Rng(`shelf-bot-${n}`));
+    t.shop.set(bot.id, shop);
+    bot.shards = 999;
+    const first = decideShop(t, bot, new Rng('b'));
+    const firstItem = shop.items.find((i) => i.uid === first);
+    assert.equal(firstItem?.kind, 'relic', `seed ${n}: a rich bot takes a relic first`);
+    assert.ok(buy(t, bot, first!, new Rng('b')).ok);
+    for (let k = 0; k < 6; k++) {
+      const next = decideShop(t, bot, new Rng(`b${k}`));
+      if (!next) break;
+      assert.ok(!shop.gone?.includes(next), `seed ${n}: chose a withdrawn relic`);
+      if (!buy(t, bot, next, new Rng('b')).ok) break;
+    }
+  }
+});
+
+test('a reroll puts a fresh choice on the shelf', () => {
+  if (RELIC_OFFERS < 2) return;
+  const { t, hero } = shelfTable('shelf-reroll');
+  const shop = rollShop(t, hero, new Rng('shelf-reroll'));
+  t.shop.set(hero.id, shop);
+  hero.shards = 999;
+  const a = shop.items.find((i) => i.kind === 'relic')!;
+  assert.ok(buy(t, hero, a.uid, new Rng('r')).ok);
+  assert.ok(reroll(t, hero, new Rng('r')).ok);
+  const next = t.shop.get(hero.id)!;
+  assert.equal(next.gone, undefined);
+  assert.equal(next.items.filter((i) => i.kind === 'relic').length, RELIC_OFFERS);
 });

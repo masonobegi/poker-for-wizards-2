@@ -304,6 +304,12 @@ export interface ShopState {
   items: ShopItem[];
   /** Items already bought this visit, by uid. */
   sold: string[];
+  /**
+   * Relics taken off the shelf because the player bought the other one
+   * (`RELIC_OFFERS` in server/game/shop.ts: the shelf holds a choice, not a
+   * pair). Absent on a shelf where nothing has been withdrawn.
+   */
+  gone?: string[];
   rerollCost: number;
   closesAt: number;
 }
