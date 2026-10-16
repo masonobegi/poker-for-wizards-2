@@ -1,9 +1,10 @@
 # HEXHOLD: fun and sellable review (2026-10-10)
 
-> **Round 4 (end of this file) is the current state:** fun 8/10 on the
-> locked rubric, at its threshold (7.5, was 7.1): twelve number relics
-> became rules, every coven has a creed, four defects fixed, and what a
-> human playtest has to confirm. Round 3 is above it.
+> **Round 5 (end of this file) is the current state:** fun 8/10 on the
+> locked rubric, 7.6 with one point of margin (this morning's build re-scored
+> 7.5: the art pass lifted presentation to 7, a font bug cost "says what
+> happened" a point). Two relics on the Market's shelf (take one), bots that
+> finish a folded hand quickly, the font bug fixed. Rounds 3 and 4 are above it.
 
 Branch `steam-ready-2026-10-09`. Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN_BRIEF.md`.
 Grounded in the market research (`market/poker-for-wizards-2.md`), the three
@@ -830,3 +831,283 @@ seen). A human playtest decides whether it stays an 8.
 play on the store page until Steam invites exist; commissioned capsule art).
 The store page's "45 relics" stays true. Windows full game and demo rebuilt
 on this code; the Linux build and its smoke test are pending (WSL is down).
+
+---
+
+# Round 5 (2026-10-16): re-measure from today's build, then one more round
+
+Brief: the caller's round-5 brief, with `FUN3_BRIEF.md`'s honesty rule
+("it has to earn the 8, and if it can't, fine, but no lying or moving the
+goalposts or adding shitty mechanics"). Branch `fun5-2026-10-16`, from `main`
+at 5f48e22. Raw batch summaries: `plans/fun-round5-data/` (each names its
+commit and command).
+
+## The rubric, unchanged
+
+The same eight criteria, word for word, each out of 10; the total is the
+mean rounded half up, and an 8 needs 7.5. Nothing below redefines one.
+
+## The honest baseline: what moved between round 4 and today
+
+Round 4 was scored on b7702e7. Since then 55 commits reached `main`, all
+from other sessions: the basketball cut-ins (plan 030), the COUNTERED stamp,
+a committed pixel-arcade art direction (14 colours, a 4px art pixel, no blur,
+three faces), hit-stop and slow motion, a brighter mix, table layout fixes
+and the trailer's third cut. A few touched `shared/` and `server/` for display
+(sigil card lines, the resolved stack the COUNTERED stamp reads).
+
+- **Criteria 1-7, gameplay: nothing moved.** `npm run fun:batch -- 280 0` on
+  5f48e22 reproduces round 4's after column to the digit: 93 of 280 won, 1% /
+  3% / 83%, an impossible hand in 61% of runs and one of your own in 32%,
+  1.43 a run, 9.2 real choices a minute, the biggest pot in the last three
+  hands in 50%.
+- **Criterion 8 moved up.** Round 4's 6 rested on "clean CSS and SVG,
+  synthesised sound, no illustrated assets". Today there is a committed art
+  direction, drawn court cards, and juice (cut-ins, stamps, relic punches,
+  pot pops, count-ups, hit-stop). To keep my own hope out of it, a separate
+  reviewer was given the criterion's words, the evidence behind the 6, the
+  comparables (Balatro, Poker Quest, Luck be a Landlord, Apokerlypse) and
+  screenshots then and now, and asked for a number without being told one:
+  **7, "only just"**. What holds it at 7: the opponents are silhouettes, the
+  table is a flat ellipse, the sound is still synthesised and unheard, and
+  the capsules are generated. Round 3 put an artist's pass at 2 points; this
+  is about half of one.
+- **Criterion 5 moved down.** The same reviewer found what the style audit
+  (0 findings) could not: the arcade look's body face, Pixelify Sans, draws
+  `fi` and `fl` as one glyph that reads as a capital A, and the body's
+  `text-rendering: optimizeLegibility` turns that ligature on. The menu's
+  first lines read "Three bots All the table and the Arst hand deals itself";
+  about 23 of 174 sigil, relic and omen texts with a lowercase flop, flush or
+  five read "Aop", "Aush", "Ave". A game whose rules text misspells its own
+  street names is not saying what happened, so the baseline scores criterion 5
+  one point under round 4.
+
+| # | Criterion | Round 4 | Today, before (5f48e22) |
+|---|---|---|---|
+| 1 | The run shows itself before it can end | 8 | 8 |
+| 2 | The namesake shows up | 8 | 8 |
+| 3 | The run arc builds | 7 | 7 |
+| 4 | Covens play differently and deliver their pitch | 7 | 7 |
+| 5 | Little dead time, and the game says what happened | 7 | 6 |
+| 6 | The special things show in the first 10 minutes | 9 | 9 |
+| 7 | Builds have depth; relics are more than numbers | 8 | 8 |
+| 8 | Presentation: art and feel | 6 | 7 |
+| | **Mean** | **7.5 (8)** | **7.5 (8)** |
+
+## Where the gap to a solid 8 was, with evidence
+
+Round 4 named the thin spots: criterion 7's build variety ("the Market still
+offers one relic a visit"), criterion 4's feel (only a playtest can say), and
+criterion 8 (an artist). Today adds criterion 5's broken text. What the
+genre's reviewers say, from Steam reviews and discussions read for this round
+(quotes through a summariser, 10-20 reviews a game, so directional):
+
+- **A shop that does not offer what the build needs is the recurring shop
+  complaint**, not the slot count: Apokerlypse ("needs more options in the
+  store... more repeats of items",
+  [reviews](https://steamcommunity.com/app/3481020/reviews/?browsefilter=mostrecent&filterLanguage=english)),
+  Poker Quest's fans ("not every run has shop inventory that will fill the
+  exact need",
+  [reviews](https://steamcommunity.com/app/1184820/positivereviews/?browsefilter=toprated&filterLanguage=english)),
+  Balatro's negatives ("5-15 rerolls... nothing but unusable garbage",
+  [reviews](https://steamcommunity.com/app/2379780/negativereviews/?browsefilter=toprated&filterLanguage=english)).
+  HEXHOLD's Market showed one relic a visit, bought 81% of the time.
+- **Slow pace and watching the AI recur, at medium strength**: Balatro
+  players call 1x "positively glacial"
+  ([thread](https://steamcommunity.com/app/2379780/discussions/0/6426156954538745672)),
+  Slay the Spire added a fast mode on request
+  ([thread](https://steamcommunity.com/app/646570/discussions/0/2549465882935485677)),
+  Poker Night 2 is punished for its waits. HEXHOLD has a Speed setting, but at
+  the default a run spent 20 s of 7.8 minutes watching bots finish hands the
+  player had already folded.
+- **Unexplained losses read as cheating** against AI opponents (Apokerlypse,
+  Poker Night, Dungeons & Degenerate Gamblers). A rules text that misspells
+  "flop" is that failure in miniature.
+
+## What changed, each reversible
+
+1. **Two relics on the shelf; buying one takes the other** (`RELIC_OFFERS = 2`
+   in `server/game/shop.ts`; 1 puts back the old shelf with the same draws).
+   Two different relics take the place of one sigil, so a visit still shows
+   five wares; the card says "Relic · pick one" while both are there and
+   "Gone" on the one left behind; the first-Market hint says so. Why a player
+   of the genre wants it: choosing between relics is the decision a roguelite
+   build is made of, and "the shop didn't have what my build needed" is the
+   genre's shop complaint. Why take-one rather than buy-both: a shelf where
+   both could be bought would spend on relics the shards that buy rites and
+   blank pages, the two purchases the game is named for. Bots get the same
+   shelf and never reach for a withdrawn relic. Tests: `test/market.test.ts`
+   (composition over 40 seeds, the withdrawal and its price, bots, a reroll's
+   fresh pair).
+2. **Once you fold at a solo table, the bots finish the hand quickly**
+   (`FAST_AFTER_FOLD` in `server/game/engine.ts`). They act at the pace they
+   already use to answer a spell (140-340 ms, was 300-920), and a showdown you
+   folded out of holds half its reading time after the reveal; an impossible
+   hand keeps its full ceremony. Why: a poker player who has folded wants the
+   next hand, which is why fast-fold is the most played online format. Tests:
+   `test/fastfold.test.ts`.
+3. **Ligatures off** (`src/styles/base.css`): "first", "flop" and "flush" are
+   spelled with their letters again. Test: `test/css.test.ts`.
+4. **The showdown panel's board row is laid out flat.** It was fanned at
+   0.24, and the five corner indices crowded each other in the one row that
+   exists so a reader can check what scored.
+
+## Measured, before and after
+
+Same seeds, adept bots, Hex I: seeds 0-279 and a second set, 280-419. At 280
+runs a difference under about 4 points is noise; per coven (40 runs) about 10.
+
+| Aggressive player | before 0-279 | after 0-279 | before 280-419 | after 280-419 |
+|---|---|---|---|---|
+| run over before the first Market | 1% | 1% | 1% | 1% |
+| run over before ante 3 | 3% | 5% | 4% | 1% |
+| survived 3 antes | 83% | 80% | 84% | 84% |
+| an impossible hand in the run | 61% | 64% | 60% | 63% |
+| ... one of your own | 32% | **37%** | 34% | **39%** |
+| impossible hands a run | 1.43 | 1.50 | 1.51 | 1.69 |
+| runs won | 93 | 91 | 50 | 50 |
+| your stack at ante 7 | 22 bb | 21 bb | 23 bb | 21 bb |
+| biggest pot in the last 3 hands | 50% | 49% | 50% | 41% |
+| real choices a minute | 9.2 | 9.5 | 9.1 | 9.3 |
+| first Market | 96 s | 92 s | 91 s | 87 s |
+| pages written a run | 1.2 | 0.9 | 1.2 | 1.0 |
+
+**The fold change on its own** (seeds 0-139, the shelf off): the same 140
+runs to the hand, because the change swaps one random draw for another of the
+same count. Only the clock moved: a run 7.8 to 7.6 minutes, watching bots
+finish a folded hand 20 s to 11 s, showdowns 76 s to 73 s, the first Market
+96 s to 92 s, real choices a minute 9.2 to 9.4.
+
+**The relic shelf.**
+
+| | before | after (0-279) | after (280-419) |
+|---|---|---|---|
+| a real choice: two affordable relics side by side | never | 69% of visits, 3.3 a run | 67%, 3.3 a run |
+| a relic bought, per Market visit | 81% | 91% | 91% |
+| a bought relic's rule visibly fired | 54% | 60% | 59% (before 51%) |
+| distinct relics bought, of 45 | 39 | 41 | 39 (before 38) |
+| spread of purchases (of 5.49 bits) | 4.96 | 5.09 | 5.08 (before 4.97) |
+| overlap between two runs' relics | 0.10 | 0.09 | 0.10 (before 0.10) |
+| a run owning a new mythic (Lodestone, Twice-Told, Usurper) | 4 of 280 | 7 of 280 | |
+
+- One of your own impossible hands rose 5 points in both seed sets. The
+  rares that open them are bought more: the Prism Lens 56 times (41), the
+  Gilded Thumb 34 (17), Unsettled 34 (14), Bloodline 33 (19).
+- **What the harness cannot tell you about the choice.** The player's chair
+  runs the bots' shopping code, which takes the dearest relic it can afford.
+  So purchases skew to rares (the Keepsake, a cheap common, was bought 18
+  times, was 51), and with a relic affordable more often the blank page is
+  written less (1.2 to 0.9 a run, 1.0 on the second set). A person chooses by
+  build; these figures are a floor for variety and a warning for the page.
+- **Watch: the Unaligned.** They won 12 to 6 of 40 runs on the first set and
+  7 to 5 of 20 on the second (19 to 11 of 60). No other coven moved outside
+  noise and the total held (143 to 141). The cause is not identified.
+- **Cautious player** (seeds 0-139; before is round 4's published figure, the
+  same game code): run over before the first Market 0% and 0%, before ante 3
+  4% and 2%, survived 3 antes 82% and 85%, an impossible hand 67% and 63%,
+  one of your own 37% and 34%.
+- **The demo** (3 antes, seeds 0-139): the wishlist screen 73% to 74%, an
+  impossible hand inside the demo **29% to 36%** (yours 10% to 14%), 4.3
+  minutes both.
+- **Browser harnesses on the new build:** `npm run responsive` passes at all
+  7 resolutions with the Market and showdown reached; `test/style.mjs` in
+  style; `test/align.mjs` square; `test/demo.mjs` all checks pass. `npm test`:
+  382 pass (375 before this round, seven new), typecheck clean. One run
+  under a second suite running beside it had one failure that four clean
+  runs did not repeat.
+
+## Re-scored with the same rubric
+
+| # | Criterion | Before | After | Why |
+|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 8 | 8 | Flat: over before ante 3 3% to 5% on one seed set and 4% to 1% on the other; survived 3 antes 83/80 and 84/84. |
+| 2 | The namesake shows up | 8 | 8 | Seen in 64% and 63% of runs (61, 60), one of your own 37% and 39% (32, 34): up in both sets. Not 9: about two runs in three still never make one of their own. |
+| 3 | The run arc builds | 7 | 7 | Nothing here aimed at it. Biggest pot in the last three hands 49% and 41% (50, 50), 21 bb at ante 7 (22, 23): flat to slightly worse. |
+| 4 | Covens play differently and deliver their pitch | 7 | 7 | Unchanged in substance. The Twinned still lead own impossible hands (50%, tied with the Long Now on the first set); the Unmoored still lose their stack first; the Unaligned's wins fell. The covens' showdowns sit further apart (0.09 to 0.14, 0.12 to 0.17), but nothing aimed at that, so it is not credited. |
+| 5 | Little dead time, and the game says what happened | 6 | 7 | The rules text spells its own words again, which puts back round 4's 7. Dead time: a folded hand's bots take half as long, 12 s a run on identical outcomes, and choices a minute 9.2 to 9.5. Not 8: 36% of a run is still not the player's decision, most of it showdowns, which are the payoff. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | First Market 92 s (96); an impossible hand inside the demo 36% (29%). Not 10: still a minority of demo runs. |
+| 7 | Builds have depth; relics are more than numbers | 8 | 8 | Round 4's three reasons for not 9: the Market's one relic (answered: a real choice 3.3 times a run); build variety did not move (moved a little: spread +0.12 bits on both sets, distinct +1 to +2, overlap flat); the mythics barely show (still: 7 runs of 280). One answered, one barely, one not, measured by a buyer that cannot choose by build: a sturdier 8, not a 9. |
+| 8 | Presentation: art and feel | 7 | 7 | The two defects the reviewer named that code could fix are fixed (the ligature, the crowded showdown board). Its other condition for a secure 7 is not code: nobody has listened to the audio. |
+| | **Mean** | **7.5 (8)** | **7.6 (8)** | 61 points; an 8 needs 60. |
+
+## Was the 8 earned?
+
+**Yes, with one point of margin: more than round 4 had, less than I would
+call solid.** Against round 4's card the net change is criterion 8, up one
+for the art pass other sessions shipped, scored by a reviewer who was not
+told a number. This round's own work kept that point from being cancelled
+(the ligature bug had cost criterion 5 a point) and made two thin spots
+sturdier: the Market now offers the relic choice round 4 named as missing,
+and the dead time moved, if only by 12 seconds a run. Nothing was added that
+is not a fix to the core loop or a widening of the shelf the game already had.
+
+What would take it back: one criterion dropping one point leaves 7.5, still
+an 8 at the threshold; two leave 7.4, a 7. The two most likely to drop are
+criterion 4 (if playtesters do not notice the creeds) and criterion 8 (the
+reviewer's 7 was "only just").
+
+What would make it solid, none of it code:
+1. **A human playtest** (the December Steam Playtest). It decides criterion 4
+   (do people notice and like the creeds?), the relic shelf (is "pick one"
+   read as a choice or as a loss?), and whether the Unaligned's fall is real.
+2. **Commissioned art**: opponent portraits, coven art and the capsules. The
+   reviewer's bar for an 8 on criterion 8 is "a real sprite layer, expressive
+   opponents, distinct court cards" and artist-made key art.
+3. **One listening pass** with headphones on the packaged build, the other
+   half of a secure 7 on criterion 8.
+
+## Decisions made 2026-10-16
+
+Each is one constant.
+
+1. **Two relics, take one** (`RELIC_OFFERS`). Buy-both was rejected without a
+   build: the harness's buyer already writes fewer pages when one more relic
+   is affordable, and buy-both would make that worse.
+2. **Fast after a fold** (`FAST_AFTER_FOLD`, with `FOLDED_READ` 0.5). Solo
+   tables only; a table with two humans keeps every pause.
+3. **Ligatures off for every face.** Not a switch: no face in the game needs
+   them.
+
+Not decided here, as before: the name's trademark clearance, anything that
+spends money, Steam networking.
+
+## Three simulated Steam reviews (after round 5)
+
+**The impatient refunder** · 1.1 hrs · Recommended
+
+> I folded a lot in my first run and the bots just got on with it, so I was
+> back in a hand in a couple of seconds instead of watching three AIs think.
+> At the first Market there were two relics and a note that I could take one;
+> I took the one that makes Prism cards fully wild for me, and an hour later
+> that was my whole build. The phylactery caught my first bust. Typed "hex the
+> chip leader" into the blank page. Keeping it.
+
+**The genre veteran** · 15 hrs · Recommended
+
+> Round four's Market showed one relic, so you bought it. Now it is two and
+> you choose, which is the decision this genre is played for: Stepping Stones
+> or the Sanctum, the Blood Price or the cheap common and a Wild rite. I still
+> never saw Twice-Told at a price I could pay, and the covens play differently
+> inside a hand more than at showdown. The arcade look is clean and the
+> cut-ins land; it is not Balatro's CRT, and the opponents are silhouettes.
+> $9.99, yes. $14.99 after real art.
+
+**The Deck player** · 9 hrs · Recommended
+
+> The Market's two relics both fit on the Deck's screen with "pick one" on
+> them, and the one you leave goes grey with "Gone" under it, so there is no
+> guessing. Folding gets you to the next hand fast. The text reads properly
+> now; an earlier build said "the Arst hand" on the menu. Typing in the
+> Scribe on a pad is still the clumsy bit.
+
+## Verdict, round 5
+
+**Fun: 8/10 on the locked rubric (7.6; this morning's build re-scored 7.5,
+round 4 published 7.5), earned with one point of margin.** Every number is
+from simulated players and one blind reviewer; a human playtest decides
+whether it holds.
+
+**Sellable at $9.99: yes**, on the same conditions as before (no online play
+on the store page until Steam invites exist; commissioned capsule art). One
+new condition: `steam/screenshots/` predate the arcade look and must be
+recaptured before the store page goes up, or the page shows a different game.

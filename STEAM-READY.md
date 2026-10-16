@@ -15,6 +15,13 @@ were then the same commit.)
 | Linux full | built in WSL Ubuntu-24.04 at `~/hexhold-main/release/linux-unpacked` (+ AppImage, tar.gz); copied to `release/linux-unpacked` | packaged 21/21, quit 6/6 |
 | Linux demo | `~/hexhold-main/release-demo/linux-unpacked` in WSL; copied to `release-demo/linux-unpacked` | packaged 22/22, quit 6/6 |
 
+**2026-10-16, fun round 5:** `main` is now 55 commits past `60c3e84` (the
+arcade art direction, cut-ins, hit-stop) plus round 5 (two relics on the
+Market's shelf, quick bots after a fold, the ligature fix; `FUN-REVIEW.md`).
+The four builds in the table above predate all of it: rebuild before anyone
+plays or uploads them. `steam/screenshots/` also predate the arcade look and
+must be recaptured (`node test/packaged.mjs 200 --shots`, then pick six).
+
 `~/hexhold-main` is a clean WSL clone of `main` (`npm ci`, Node 24.12,
 Electron 44.4.3), built with `npm run package:linux` and
 `npm run package:demo:linux`. Upload the Linux depot from there: the WSL

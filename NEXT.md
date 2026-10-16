@@ -1,24 +1,43 @@
-# NEXT: HEXHOLD after fun round 4 (2026-10-10)
+# NEXT: HEXHOLD after fun round 5 (2026-10-16)
 
-Brief: `masonobegi_webpage/ops/session-2026-10-09/CONTINUE_BRIEF.md` (with
-`FUN_BRIEF.md` and `FIX_BRIEF.md` beside it). Branch `steam-ready-2026-10-09`,
-this worktree. HEXHOLD ships first: Coming Soon by 20 Nov 2026, Next Fest
-demo 22 Feb 2027, release 8 Apr 2027.
+HEXHOLD ships first: Coming Soon by 20 Nov 2026, Next Fest demo 22 Feb 2027,
+release 8 Apr 2027. `main` is the line every build comes from;
+`steam-ready-2026-10-09` is kept equal to it.
 
 ## State
 
-- **Code-side 100% (24 of 24)**: `STEAM-READY.md`. **Fun 8/10 on the locked
-  rubric, at its threshold (7.5; round 3 was 7.1)**, sellable at $9.99 as a
-  solo roguelite: `FUN-REVIEW.md`, round 4 (end of the file).
-- Round 4 is merged to `main`. Windows full game (`release/`) and demo
-  (`release-demo/`) rebuilt on round 4's code. Packaged smoke
-  (`npm run play:packaged`): every check passed on the rerun, then the
-  harness could not delete its temp profile (a Windows file lock, removed
-  by hand); the first run, under a 10-process batch load, timed out on
-  Quit. `node test/quit.mjs` 9/9. Demo in a headless browser
-  (`node test/demo.mjs`): all checks pass (its bust check now reads both
-  lines a phylactery run shows; it crashed on the second one before). **Linux (WSL) build and its
-  smoke test: pending, WSL is down.** `npm test` all passing, tsc clean.
+- **Fun 8/10 on the locked rubric, 7.6 with one point of margin**
+  (`FUN-REVIEW.md`, round 5 at the end). This morning's build re-scored 7.5:
+  the art pass between rounds lifted presentation to 7, and a font bug from
+  the same pass (Pixelify Sans drew "fi"/"fl" as "A": "the Arst hand", "Aop")
+  cost "says what happened" a point until it was fixed. Sellable at $9.99 as a
+  solo roguelite. Code-side 100%: `STEAM-READY.md`.
+- Round 5 changed: two relics on the Market's shelf, take one
+  (`RELIC_OFFERS`, `server/game/shop.ts`); bots finish a hand quickly once a
+  solo player has folded (`FAST_AFTER_FOLD`, `server/game/engine.ts`);
+  ligatures off (`src/styles/base.css`); the showdown board row laid flat.
+  Measured on seeds 0-279 and 280-419 (`plans/fun-round5-data/`): one of your
+  own impossible hands +5 points in both sets, a real relic choice 3.3 times a
+  run, 12 s less dead time a run on identical outcomes, the demo's impossible
+  hands 29% to 36%. Costs: pages written 1.2 to 0.9 a run (the harness's
+  dearest-first buyer), and the Unaligned's wins fell (19 to 11 of 60).
+- `npm test` 382 pass, typecheck clean; `npm run responsive` 7/7,
+  `test/style.mjs`, `test/align.mjs` and `test/demo.mjs` pass on the new build.
+
+## Next steps, in order
+
+1. Mason: a closed playtest with real people (the December Steam Playtest).
+   It decides whether the 8 holds: the creeds' feel, whether "pick one" reads
+   as a choice or a loss, and whether the Unaligned's fall is real.
+2. Mason: commissioned art (opponent portraits, coven art, capsules) and one
+   listening pass with headphones. Presentation is a 7 "only just".
+3. Recapture `steam/screenshots/` from the current build
+   (`npm run package:win && node test/packaged.mjs 200 --shots`, then pick
+   six into `steam/screenshots/`): the committed ones predate the arcade look.
+4. Watch list from round 5: the Unaligned's win rate; the Unmoored's first
+   ante (33% lose their stack, caught by the phylactery); mythics are rarely
+   affordable (7 runs of 280 own a new one).
+5. Steam lobbies before the store page says PvP or Multiplayer.
 
 ## Done on 2026-10-11: the basketball cut-ins, ported
 
@@ -106,7 +125,7 @@ and the Second River barely fire; the three new mythics are rarely
 affordable; covens' showdowns are no more distinct (the creeds act inside
 the hand).
 
-## Next steps, in order
+## Next steps after round 4 (kept for history)
 
 1. Mason: play the demo once (`release-demo/win-unpacked/HEXHOLD Demo.exe`),
    `FULL_GAME_APP_ID` once Steamworks issues it, and a closed playtest with

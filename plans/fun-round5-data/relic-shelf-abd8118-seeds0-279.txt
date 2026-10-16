@@ -1,0 +1,144 @@
+# Commit abd8118 (two relics on the shelf, take one; RELIC_OFFERS = 2), npm run fun:batch -- 280 0
+
+════ HEXHOLD from the player's chair · 280 solo runs · adept bots · Hex 1 · adept player ════
+  won 91/280 · avg 16.1 hands · 7.6 min · final ante 5.7
+  first moment worth telling a friend: median 4s (you cast a sigil 271, a counterspell 7, you countered 2)
+  first Market: median 97s
+  impossible hand seen: 64% of runs · yours 37% · first at ante 3.0 (median)
+  impossible hand by ante 2: 22% · by ante 3: 36% · by ante 4: 45% · per run 1.50
+  ante-1 busts: 2 · you bet or raised in the hand 2 · you only called/checked 0 · facing an all-in 1 · lost to Full House 2
+  run over before the first Market 1% · before ante 3 5% · survived 3 antes 80%
+  busted (caught or not) before the first Market 14% · before ante 3 25% · phylactery caught 70 (at ante 1: 40) · of those, reached ante 3 55, saw a Market 68, won 21
+  a spell card covers the table: full 29% of the run, 25% of your turns · brief 17% of the run, 8% of your turns · off 8% of the run, 0% of your turns · auto (first 7 runs) 23% of the run, 17% of your turns
+  DIFFICULTY (bust hazard by ante: busted here / reached)
+    ante  1  reached 280  bust   1%  your stack 100bb  pot  84.8bb (16,957)  all-ins/hand 0.42  casts/hand 6.2  impossible 4
+    ante  2  reached 277  bust   4%  your stack  80bb  pot  67.7bb (20,323)  all-ins/hand 0.60  casts/hand 5.0  impossible 66
+    ante  3  reached 261  bust  16%  your stack  66bb  pot  49.1bb (19,651)  all-ins/hand 0.63  casts/hand 3.9  impossible 75
+    ante  4  reached 214  bust  14%  your stack  54bb  pot  36.6bb (20,121)  all-ins/hand 0.56  casts/hand 3.2  impossible 53
+    ante  5  reached 174  bust  14%  your stack  44bb  pot  23.4bb (18,137)  all-ins/hand 0.49  casts/hand 2.5  impossible 47
+    ante  6  reached 140  bust  18%  your stack  29bb  pot  15.8bb (19,070)  all-ins/hand 0.58  casts/hand 2.0  impossible 49
+    ante  7  reached  96  bust  20%  your stack  21bb  pot  11.0bb (21,040)  all-ins/hand 0.55  casts/hand 1.9  impossible 39
+    ante  8  reached  70  bust  19%  your stack  15bb  pot   8.6bb (26,025)  all-ins/hand 0.52  casts/hand 1.5  impossible 29
+    ante  9  reached  40  bust  20%  your stack  10bb  pot   7.2bb (31,062)  all-ins/hand 0.45  casts/hand 1.2  impossible 23
+    ante 10  reached  23  bust  26%  your stack   8bb  pot   4.3bb (35,522)  all-ins/hand 0.28  casts/hand 0.9  impossible 8
+    ante 11  reached  12  bust  33%  your stack   7bb  pot   4.5bb (32,852)  all-ins/hand 0.51  casts/hand 1.0  impossible 5
+    ante 12  reached   8  bust  13%  your stack   6bb  pot   3.4bb (27,209)  all-ins/hand 0.40  casts/hand 0.6  impossible 1
+    ante 13  reached   5  bust  20%  your stack   2bb  pot   2.5bb (28,054)  all-ins/hand 0.40  casts/hand 0.5  impossible 2
+    ante 14  reached   4  bust  75%  your stack   1bb  pot   2.9bb (46,421)  all-ins/hand 0.67  casts/hand 0.3  impossible 4
+    ante 15  reached   1  bust   0%  your stack   1bb  pot   1.4bb (30,733)  all-ins/hand 0.00  casts/hand 0.0  impossible 1
+    ante 16  reached   1  bust   0%  your stack   0bb  pot   1.1bb (35,233)  all-ins/hand 0.00  casts/hand 0.0  impossible 4
+    ante 17  reached   1  bust   0%  your stack   0bb  pot   1.3bb (57,000)  all-ins/hand 0.00  casts/hand 0.0  impossible 3
+    ante 18  reached   1  bust   0%  your stack   0bb  pot   1.2bb (72,800)  all-ins/hand 0.00  casts/hand 0.0  impossible 5
+    ante 19  reached   1  bust   0%  your stack   1bb  pot   0.7bb (58,400)  all-ins/hand 0.00  casts/hand 0.0  impossible 1
+  server stalls: ticks over 100ms 1.01% · over 500ms 2006 in 280 runs · worst tick per run median 785ms, max 3549ms · engine wall time per run 16s
+  RUN ARC
+    biggest pot lands at 73% of the run on average; in the last 3 hands in 49% of runs
+  WHERE THE PLAYER'S TIME GOES
+    your turn                      155s   34%
+    market: you shopping            96s   21%
+    showdown and payout             75s   16%
+    watching bots bet               43s    9%
+    your response window            35s    8%
+    deal, streets, banners          27s    6%
+    watching bots bet (folded)      18s    4%
+    watching spells                  6s    1%
+    watching spells (folded)         3s    1%
+  DECISIONS (per run)
+    bets 37.0 (facing a bet 24.8, free 12.2) · turns with a castable sigil 28.0 · casts 17.3
+    response windows holding an answer 13.1 · answered 1.8 · markets 4.7 · buys 6.0 · pages written 0.9
+    real choices per minute 9.3
+  BUILDS (by coven)
+    The Unaligned    runs 40  won 6  ante 5.8  impossible 57%  bought creed_last_word 40, ladder 13, thin_veil 12
+    The Unmoored     runs 40  won 17  ante 4.3  impossible 48%  bought creed_many_futures 40, stepping_stones 9, the_engraver 8
+    The Quiet        runs 40  won 10  ante 6.0  impossible 65%  bought creed_tells 40, sanctum 14, broken_compass 12
+    The Long Now     runs 40  won 11  ante 6.2  impossible 73%  bought creed_foreknown 40, sanctum 10, grave_interest 10
+    The Twinned      runs 40  won 16  ante 6.2  impossible 75%  bought creed_kin 40, smeared_ink 11, thin_veil 10
+    The Ashen        runs 40  won 10  ante 5.6  impossible 55%  bought creed_salt 40, sanctum 10, ouroboros 10
+    The Loom         runs 40  won 21  ante 6.1  impossible 73%  bought creed_signature 40, prism_lens 14, smeared_ink 11
+  RELICS (the Market's shelf; coven relics and creeds are counted where owned)
+    the shelf: 45 relics, 32 change a rule, 6 give information, 7 are a number
+    offered 2658 (9.5 a run), bought 1214 (46%); a greedy buyer, so this is affordability, not appeal
+    Market visits 1329: a relic bought at 91% · two affordable relics side by side at 69% (3.3 a run)
+    bought, by kind: rule 901, information 159, number 154 · distinct bought 41 of 45
+    spread of purchases: 5.09 bits of 5.49 possible
+    a run's bought relics that change a rule: 3.01 of 3.67 · runs owning at least one rule relic beyond the coven's 96%
+    runs where a bought relic's rule visibly fired: 60%
+    relic                       kind         offered  bought  owned-runs  fires/run  won
+    Thin Veil (coven)            information      93      53          93       0.00   33
+    Heirloom (coven)             rule             77      43          83       3.89   33
+    Grave Interest (coven)       number           89      30          72       0.00   21
+    The Ladder                   rule            106      66          66       0.55   19
+    Leyline (coven)              number           85      26          65       0.00   23
+    Smeared Ink                  rule             90      61          61       1.52   31
+    Deep Pockets (coven)         number           86      19          60       0.00   27
+    Unstable Isotope (coven)     rule             34      19          59       0.00   24
+    The Prism Lens               rule             93      56          57       0.95   26
+    The Sanctum                  rule             90      57          56       0.00   21
+    Broken Compass               rule             91      48          48       1.90   21
+    Gilt Edge                    rule            102      44          44       0.00   17
+    The Second River             rule            106      42          42       0.00   15
+    The Last Word (creed)        rule              0       0          40       2.27    6
+    Many Futures (creed)         rule              0       0          40      14.85   17
+    Tells (creed)                rule              0       0          40       9.10   10
+    Foreknown (creed)            rule              0       0          40       7.53   11
+    Kin (creed)                  rule              0       0          40       0.75   16
+    Salt (creed)                 rule              0       0          40       1.35   10
+    Signature (creed)            rule              0       0          40       2.05   21
+    Stepping Stones              rule            103      39          39       0.67   15
+    Cheap Tricks                 number           60      37          37       0.00   15
+    The Blood Price              rule             59      38          37       1.73   12
+    The Engraver                 rule             53      35          36       2.08   12
+    Gilded Thumb                 rule             57      34          35       0.00   15
+    Unsettled                    rule             57      34          34       0.00   17
+    The Collector                number           59      33          34       0.00    6
+    Twin Suns                    rule             56      33          33       0.00   18
+    Bloodline                    rule             55      33          33       0.00   11
+    Crown of Thieves             rule             60      33          32       1.59   17
+    Crooked Ladder               rule             56      30          30       0.40   15
+    Mirror Shard                 information      53      30          30       0.00   16
+    Ouroboros                    rule            101      28          29       0.17    9
+    The Magpie                   rule             49      28          28       0.29    9
+    The Ledger                   information      50      26          26       0.00    9
+    Cold Read                    information      47      26          25       0.00   11
+    Pauper’s Stone               rule            104      25          25       0.00    7
+    The Informant                information      48      23          24       0.00   11
+    Vow of Silence               rule             49      23          23       4.17    7
+    Third Hand                   rule             40      19          19       0.00   12
+    The Keepsake                 rule             93      18          17       9.18    5
+    Moneylender                  number           16       8           8       0.00    4
+    Wild Inheritance             rule             29       7           8       0.00    3
+    The Usurper                  rule             16       4           4       0.00    2
+    The Lodestone                rule             22       2           3       7.33    3
+    Crowned                      rule             18       2           2       0.00    0
+    Apotheosis                   rule             16       0           1       0.00    1
+    The Impossible               number           18       1           1       0.00    1
+    The Archive                  information      19       1           1       0.00    0
+    Reversal                     rule             22       0           0       0.00    0
+    Twice-Told                   rule             15       0           0       0.00    0
+    The Long Game                rule             16       0           0       0.00    0
+  COVEN FEEL (per coven: the hands you made at showdown, your casts by school, rules fired a run)
+    The Unaligned    won 6/40 · ante 5.8 · showdowns 5.5/run · own impossible 33% · first bust at ante 1 18% · rules fired 5.1/run (its creed 2.3)
+      made: flush 24%, full+ 23%, two pair/trips 20%, pair 13%, impossible 9%, straight 9%, high card 2%
+      cast: veil 32%, chronos 16%, bind 15%, ruin 14%, entropy 13%, weave 11%
+    The Unmoored     won 17/40 · ante 4.3 · showdowns 6.5/run · own impossible 33% · first bust at ante 1 33% · rules fired 17.3/run (its creed 14.8)
+      made: full+ 31%, two pair/trips 27%, flush 12%, pair 12%, straight 11%, impossible 6%, high card 2%
+      cast: entropy 36%, veil 19%, chronos 13%, bind 11%, weave 10%, ruin 10%
+    The Quiet        won 10/40 · ante 6.0 · showdowns 4.8/run · own impossible 30% · first bust at ante 1 8% · rules fired 13.9/run (its creed 9.1)
+      made: full+ 26%, flush 21%, two pair/trips 21%, impossible 12%, pair 11%, straight 7%, high card 2%
+      cast: veil 45%, entropy 13%, ruin 12%, chronos 12%, weave 10%, bind 8%
+    The Long Now     won 11/40 · ante 6.2 · showdowns 6.3/run · own impossible 50% · first bust at ante 1 10% · rules fired 12.1/run (its creed 7.5)
+      made: full+ 29%, impossible 19%, two pair/trips 18%, flush 14%, pair 11%, straight 6%, high card 4%
+      cast: chronos 42%, veil 17%, weave 11%, ruin 11%, bind 10%, entropy 9%
+    The Twinned      won 16/40 · ante 6.2 · showdowns 6.1/run · own impossible 50% · first bust at ante 1 8% · rules fired 10.1/run (its creed 0.8)
+      made: full+ 25%, two pair/trips 21%, impossible 17%, flush 14%, pair 14%, straight 7%, high card 2%
+      cast: bind 40%, veil 18%, chronos 13%, ruin 11%, entropy 9%, weave 9%
+    The Ashen        won 10/40 · ante 5.6 · showdowns 4.5/run · own impossible 23% · first bust at ante 1 5% · rules fired 3.2/run (its creed 1.4)
+      made: pair 21%, full+ 21%, flush 20%, two pair/trips 20%, high card 7%, impossible 6%, straight 4%
+      cast: ruin 38%, veil 18%, chronos 13%, bind 12%, weave 11%, entropy 9%
+    The Loom         won 21/40 · ante 6.1 · showdowns 5.8/run · own impossible 43% · first bust at ante 1 20% · rules fired 5.5/run (its creed 2.0)
+      made: full+ 30%, two pair/trips 16%, impossible 14%, pair 13%, flush 13%, straight 12%, high card 2%
+      cast: weave 38%, veil 18%, chronos 16%, ruin 10%, entropy 10%, bind 8%
+    covens apart (mean total variation distance between two covens): hands made 0.14 · schools cast 0.28
+    relic-set overlap between runs (Jaccard) 0.09 · distinct relics owned across runs 49
+    omens seen across runs 41 · most common the_gilded 206, the_twinned 96, blurred 44, sealed_court 41
+  280 runs in 937s · parts in the session scratchpad
