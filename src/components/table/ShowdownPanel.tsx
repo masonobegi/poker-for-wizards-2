@@ -81,7 +81,11 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
             <CardRow
               views={view.board}
               size="xs"
-              overlap={0.24}
+              // Apart, not fanned: the row exists so a reader can check the
+              // ranks that scored, and at 0.24 the corner indices of five xs
+              // cards crowded each other (fun round 5). The panel is 660px
+              // wide and the row needed under half of it either way.
+              overlap={0}
               highlightIds={allWinningIds}
               highlight="winning"
               restHighlight="dimmed"
