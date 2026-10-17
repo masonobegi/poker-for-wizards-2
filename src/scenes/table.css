@@ -1913,18 +1913,32 @@
   text-transform: uppercase;
 }
 .sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #2b2266); }
+/* The one line that says the corner button is not decoration. */
+.sigil-unmake {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 2px dashed var(--line-soft);
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+}
 .sigil-timing { color: color-mix(in srgb, var(--info) 70%, #2b2266); }
 
+/* In the header, in the card. Absolutely positioned at the corner it stuck
+   out past the row's clip box on every hover; hover-only, it was invisible
+   until you found it by accident. */
 .sigil-discard {
-  position: absolute;
-  top: -7px; right: -7px;
-  width: 20px; height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  margin-left: 4px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--ink) 95%, transparent);
   border: 2px solid var(--line);
-  color: var(--text-4);
+  color: var(--text-3);
   font-size: 12px;
-  opacity: 0;
+  line-height: 1;
+  opacity: 0.6;
   transition: opacity var(--t-fast) var(--ease-out),
               color var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
@@ -1932,6 +1946,7 @@
   z-index: 2;
 }
 .sigil:hover .sigil-discard { opacity: 1; }
+.sigil-discard:focus-visible { opacity: 1; outline: 2px solid var(--gold); outline-offset: 2px; }
 .sigil-discard:hover { color: var(--bad); border-color: var(--bad); }
 .sigil-discard:active { transform: scale(0.94); }
 
