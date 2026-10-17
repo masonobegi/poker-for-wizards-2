@@ -242,6 +242,7 @@ function describe(view: CardView, back: boolean, cloud: Face[]): string {
 
   if (view.diverged) bits.push('divergent — the table sees another card');
   if (view.entangled) bits.push('entangled');
+  if (view.amber) bits.push('set in amber — nothing can change it');
   if (view.memory > 0) bits.push(`${view.memory} pot${view.memory === 1 ? '' : 's'} won`);
   for (const m of view.marks) bits.push(MARKS[m].name);
   return bits.join('. ');
@@ -337,6 +338,7 @@ function CardBase({
     interactive ? 'is-interactive' : '',
     view.diverged ? 'is-diverged' : '',
     view.entangled ? 'is-entangled' : '',
+    view.amber ? 'is-amber' : '',
     // Every mark gets a hook. card.css turns these into the foil that makes a
     // marked card read as precious from across the table — the payoff of the
     // whole Weave school, which until now looked like an ordinary card with a
@@ -567,6 +569,19 @@ function CardBase({
                 {view.entangled && (
                   <span className="hx-badge hx-badge--entangled" role="img" aria-label="Entangled">
                     ∞
+                  </span>
+                )}
+                {/* Amber was invisible: the rule existed, the card wearing it
+                    did not say so, and a player cannot plan around a card
+                    they cannot point at. */}
+                {view.amber && (
+                  <span
+                    className="hx-badge hx-badge--amber"
+                    role="img"
+                    aria-label="Set in amber — nothing can burn, collapse, steal or rewrite this card"
+                    title="Set in amber — nothing can burn, collapse, steal or rewrite this card"
+                  >
+                    ⬡
                   </span>
                 )}
               </span>

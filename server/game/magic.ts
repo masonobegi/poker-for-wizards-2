@@ -174,13 +174,32 @@ export function bindInscribedPairs(t: Table): void {
 // fine; only the draw bag is the curated set. See shared/sigils.ts POOL_IDS.
 const DRAFT_POOL = POOL;
 
-export function randomSigil(rng: Rng, weights = true, school?: SigilDef['school']): SigilInstance {
-  const bag: SigilDef[] = [];
-  for (const d of DRAFT_POOL) {
-    if (school && d.school !== school) continue;
-    const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
-    for (let i = 0; i < n; i++) bag.push(d);
-  }
+/**
+ * One sigil out of the bag.
+ *
+ * `avoid` is what the player already holds. With thirteen sigils in the pool
+ * a plain weighted draw deals a four-card hand with two of the same card
+ * often enough to be the first thing you notice, and two identical cards
+ * read as a smaller game than one of each — which is exactly the impression
+ * the cut has to avoid making. Preferring a card they do not hold is not a
+ * guarantee (a hand can outlast the pool of a school, and the bag falls back
+ * rather than failing), it just stops the common case looking thin.
+ */
+export function randomSigil(
+  rng: Rng, weights = true, school?: SigilDef['school'], avoid?: readonly string[],
+): SigilInstance {
+  const build = (skip: ReadonlySet<string>): SigilDef[] => {
+    const bag: SigilDef[] = [];
+    for (const d of DRAFT_POOL) {
+      if (school && d.school !== school) continue;
+      if (skip.has(d.id)) continue;
+      const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
+      for (let i = 0; i < n; i++) bag.push(d);
+    }
+    return bag;
+  };
+  const fresh = avoid && avoid.length ? build(new Set(avoid)) : [];
+  const bag = fresh.length ? fresh : build(new Set());
   return { uid: nanoid(8), defId: rng.pick(bag).id };
 }
 
@@ -997,7 +1016,9 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
 
     case 'second_wind': {
       let drawn = 0;
-      for (let i = 0; i < 2; i++) if (giveSigil(t, caster, randomSigil(rng))) drawn++;
+      for (let i = 0; i < 2; i++) {
+        if (giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)))) drawn++;
+      }
       note(
         drawn ? `${caster.name} draws ${drawn === 2 ? 'two sigils' : 'a sigil'}.` : 'Their hand is already full.',
         drawn ? 'magic' : 'warn',
@@ -1240,10 +1261,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
           return !!c && c.faces.some((f) => f.rank === rank);
         }));
       if (held) {
-        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng));
+        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is right. Two sigils.`, 'impossible');
       } else {
-        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng));
+        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng, true, undefined, p.sigils.map((s) => s.defId)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is wrong. Everybody else draws.`, 'warn');
       }
       break;

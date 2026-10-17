@@ -87,6 +87,15 @@ export interface SigilDef {
   unstoppable?: boolean;
   /** Bot willingness to fire it, 0..1 — crude but keeps bots from misplaying. */
   botBias?: number;
+  /**
+   * What each pick means, for a sigil that asks for more than one card.
+   *
+   * "Choose two cards (0/2)" does not say which of the two is the one being
+   * copied and which is the one being overwritten, and deciding that is the
+   * whole of Mirror. A player asked to be given the choice; the choice was
+   * always theirs, the prompt just never said so.
+   */
+  pick?: readonly string[];
 }
 
 export const SIGILS: SigilDef[] = [
@@ -212,6 +221,7 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'entangle', name: 'Entangle', school: 'bind', glyph: '∞', cost: 3,
     timing: ['any'], target: 'two_cards', rarity: 'rare', price: 9, botBias: 0.5,
+    pick: ['choose the first card to bind', 'choose the card to bind it to'],
     text: 'Bind two cards. From now on, whatever happens to one happens to the other — including being replaced, collapsed, or destroyed.',
     brief: 'Bind two cards. What happens to one happens to both.',
     impossible: 'Action at a distance between two pieces of card stock.',
@@ -219,6 +229,7 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'mirror', name: 'Mirror', school: 'bind', glyph: '⧉', cost: 2,
     timing: ['flop', 'turn', 'river'], target: 'two_cards', rarity: 'common', price: 5, botBias: 0.6,
+    pick: ['choose the card to copy', 'choose the card that becomes a copy of it'],
     text: 'Pick two community cards. The second becomes an exact duplicate of the first. The deck now holds two of the same card, legally.',
     brief: 'One community card becomes a copy of another.',
     impossible: 'Two identical cards in one fifty-two card deck.',

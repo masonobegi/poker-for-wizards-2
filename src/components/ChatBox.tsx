@@ -84,6 +84,12 @@ export default function ChatBox({ className = '', compact }: {
           &rarr;
         </button>
       </form>
+      {/* Where the keys go. F, C and A are the table's shortcuts and they
+          listen to the window, so a sentence typed outside this box plays
+          your hand for you. */}
+      <p className="chat-hint">
+        <kbd>T</kbd> to talk · <kbd>Enter</kbd> to send
+      </p>
     </section>
   );
 }

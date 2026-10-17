@@ -477,7 +477,10 @@ export class Engine {
       const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
-          giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
+          // Prefer a card they are not already holding: see randomSigil.
+          giveSigil(t, p, randomSigil(
+            this.rng, true, i === 0 && leans ? lean! : undefined, p.sigils.map((s) => s.defId),
+          ));
         }
       }
       // The Unaligned's creed: a hand never starts without an answer. The

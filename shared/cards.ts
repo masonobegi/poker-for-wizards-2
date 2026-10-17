@@ -209,6 +209,15 @@ export interface CardView {
   suit?: Suit;
   marks: MarkId[];
   memory: number;
+  /**
+   * Set in amber: nothing may burn, collapse, replace or rewrite it.
+   *
+   * It lived only on the entity, so the client never heard about it — which
+   * made The Amber Age an omen that announced itself once and then protected
+   * a card nobody could point at. "I don't know which card is not touchable"
+   * is not a UI nit; it is the rule failing to be a rule.
+   */
+  amber?: boolean;
   /** True when this viewer's reading differs from the table's reading. */
   diverged?: boolean;
   entangled?: boolean;
@@ -240,6 +249,7 @@ export function viewCard(card: CardEntity, opts: ViewOptions): CardView {
     face: null,
     marks: marksFor(card, viewerId),
     memory: card.memory,
+    amber: card.amber ? true : undefined,
     entangled: card.entangledWith ? true : undefined,
     origin: card.origin,
   };

@@ -210,8 +210,11 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
                   <h3 className="stack-feature__name hx-gilt--school">{words ? `“${words}”` : lead.sigilName}</h3>
                   <p className="stack-feature__text">{leadDef.text}</p>
                   <p className="stack-feature__state">
+                    {/* "Chronos · resolves first" names a school and a fact
+                        and explains neither. The rule is one short sentence
+                        and it is the rule the whole magic layer turns on. */}
                     {lead.countered ? 'Countered — it never happened.'
-                      : live ? `${leadSchool.name} · resolves first`
+                      : live ? 'Resolves first — the last sigil cast is the first to land.'
                         : 'Resolved'}
                   </p>
                 </div>

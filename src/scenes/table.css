@@ -634,7 +634,9 @@
   min-width: 24px;
   padding: 0 4px;
   border-radius: 0;
-  font-size: 10px;
+  /* 12px is the floor for text that is not on a card face — below it the
+     responsive harness calls it unreadable, and it is right. */
+  font-size: 12px;
   background: var(--bone-2);
 }
 .seat-button.is-bb { background: var(--gold); }
@@ -651,8 +653,10 @@
   color: var(--ink);
   border: 2px solid var(--ink);
   font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  /* The arcade face is only ever set at a multiple of 8 (test/arcade.style),
+     and 8px is under the readability floor, so 16px it is. */
+  font-size: 16px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow: var(--e-1);
@@ -671,7 +675,7 @@
   background: var(--bone-2);
   color: var(--ink);
   border: 2px solid var(--ink);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
   vertical-align: middle;
 }
@@ -1156,6 +1160,17 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--s-2);
   min-height: 0;
+}
+
+/* The key that gets you into the message line, on the tab that opens it. */
+.tbl-sidekey {
+  margin-left: 4px;
+  padding: 0 3px;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  font-size: 12px;
+  color: var(--text-4);
+  font-family: inherit;
 }
 
 .tbl-sidetabs {
@@ -2162,7 +2177,7 @@
   background: color-mix(in srgb, var(--gold) 12%, transparent);
 }
 .ab-presetlabel { font-size: var(--fs-xs); }
-.ab-presetvalue { font-size: 10px; opacity: 0.8; }
+.ab-presetvalue { font-size: 12px; opacity: 0.8; }
 
 .ab-idle {
   font-size: var(--fs-sm);

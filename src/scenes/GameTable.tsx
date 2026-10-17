@@ -150,6 +150,34 @@ export default function GameTable() {
   // Any phase change invalidates a half-finished target selection.
   useEffect(() => { setTargeting(null); }, [view?.phase, view?.handNumber]);
 
+  /**
+   * T opens Talk and puts the cursor in it.
+   *
+   * Typing at this table was hard for a new player and the reason is the
+   * action shortcuts: F folds, C calls, A goes all in, and they listen to the
+   * window. Start typing a sentence without having clicked into the chat box
+   * first and the first word plays your hand for you. Every multiplayer game
+   * solves this the same way — one key takes you to the message line — and
+   * the hint under the box says which key it is.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key.toLowerCase() !== 't' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+      setSide('chat');
+      setLogOpen(true);
+      // After the tab has switched and the input exists.
+      window.setTimeout(() => {
+        const input = document.querySelector<HTMLInputElement>('.chat-input');
+        input?.focus();
+      }, 30);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const beginCast = useCallback((uid: string) => {
     const inst = me?.sigils?.find((s) => s.uid === uid);
     const def = inst ? defOf(inst) : undefined;
@@ -211,7 +239,7 @@ export default function GameTable() {
         className={`tbl-sidetab ${side === 'chat' ? 'is-on' : ''}`}
         onClick={() => setSide('chat')}
       >
-        Talk
+        Talk <kbd className="tbl-sidekey">T</kbd>
       </button>
     </div>
   );
@@ -361,7 +389,7 @@ export default function GameTable() {
               {targeting.def.name} &mdash;{' '}
               {playerTargetMode ? 'choose an opponent'
                 : targeting.def.target === 'two_cards'
-                  ? `choose two cards (${targeting.picked.length}/2)`
+                  ? `${targeting.def.pick?.[targeting.picked.length] ?? 'choose two cards'} (${Math.min(2, targeting.picked.length + 1)} of 2)`
                   : targeting.def.target === 'own_card' ? 'choose one of your cards'
                     : targeting.def.target === 'board_card' ? 'choose a community card'
                       : 'choose a card in play'}
