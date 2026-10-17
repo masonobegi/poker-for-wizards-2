@@ -165,6 +165,52 @@ export class Engine {
     this.onDeadline = null;
   }
 
+  /**
+   * The street transition a cast interrupted, if one did.
+   *
+   * A street is dealt and then waits a beat before its betting round opens.
+   * In that beat the street exists but its round does not: `actedThisStreet`
+   * still holds the PREVIOUS street's actors, and nobody's bet has been swept
+   * into the pot, so `roundComplete()` reads true for a round that never
+   * started. Anyone may cast into that beat — a response does not wait its
+   * turn — and `cast()` kills the pending timer, because a sigil cast on
+   * someone's turn has to stop that turn's clock.
+   *
+   * The result was two streets for one cast: the turn was bet, the river
+   * arrived with no betting round at all, and a Burning turn card made the
+   * river look like a second turn. So the beat is remembered rather than
+   * guessed at — whatever was scheduled runs when the stack settles, and
+   * nothing else does.
+   *
+   * It is stamped with the hand and street it was armed in, which is what
+   * makes it safe to leave lying around: an owed beat can only be claimed at
+   * the exact point it was armed for. A timer cancelled by anything else —
+   * a showdown, a new hand, the Market — can never resurrect it.
+   */
+  private interrupted: { go: () => void; hand: number; phase: Phase } | null = null;
+
+  /** Schedule a transition that survives a cast landing inside its beat. */
+  private beat(ms: number, go: () => void): void {
+    const owed = { go, hand: this.table.handNumber, phase: this.table.phase };
+    this.interrupted = owed;
+    this.wait(ms, () => {
+      if (this.interrupted === owed) this.interrupted = null;
+      go();
+    });
+  }
+
+  /** The transition still owed at this exact point of this exact hand. */
+  private owedBeat(): (() => void) | null {
+    const owed = this.interrupted;
+    if (!owed) return null;
+    const t = this.table;
+    if (owed.hand !== t.handNumber || owed.phase !== t.phase) {
+      this.interrupted = null;
+      return null;
+    }
+    return owed.go;
+  }
+
   // -------------------------------------------------------------------- seats
 
   addPlayer(id: string, name: string, isBot = false): Player | null {
@@ -825,7 +871,7 @@ export class Engine {
     t.phase = next;
     this.dealStreet(next);
     this.flush();
-    this.wait(320, () => this.beginStreet());
+    this.beat(320, () => this.beginStreet());
   }
 
   /** Everyone is committed; deal the remaining board with a beat between cards. */
@@ -848,9 +894,9 @@ export class Engine {
       t.phase = next;
       this.dealStreet(next);
       this.flush();
-      this.wait(750, step);
+      this.beat(750, step);
     };
-    this.wait(600, step);
+    this.beat(600, step);
   }
 
   private toShowdown(): void {
@@ -1534,7 +1580,9 @@ export class Engine {
     const r = castSigil(this.ctx(), p, uid, targets);
     if (!r.ok) { this.flush(); return r; }
 
-    // Casting freezes the betting clock until the stack settles.
+    // Casting freezes the betting clock until the stack settles. A street
+    // transition waiting out its beat is frozen, not cancelled: `interrupted`
+    // outlives the timer and `settleStack` owes it.
     if (wasIdle) t.actingUntil = null;
     this.clearWait();
 
@@ -1570,6 +1618,9 @@ export class Engine {
   private settleStack(): void {
     const t = this.table;
     if (!t.stack) return;
+    // The street transition the cast interrupted, if this is still the point
+    // it was armed for. See `interrupted`.
+    const owed = this.owedBeat();
     this.clearWait();
     resolveStack(this.ctx());
     this.flush();
@@ -1584,6 +1635,10 @@ export class Engine {
         return;
       }
       if (live(t).length <= 1) { this.toShowdown(); return; }
+      // The interrupted beat first: between a street being dealt and its
+      // round opening, `roundComplete()` is answering about the street
+      // before this one.
+      if (owed) { this.interrupted = null; owed(); return; }
       if (this.roundComplete()) { this.standDown(); this.advanceStreet(); return; }
       if (t.actingId) { this.startActionClock(true); return; }
       this.advanceStreet();
