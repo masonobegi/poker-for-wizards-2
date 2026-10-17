@@ -50,10 +50,10 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
 
   const pot = view.pot;
   const presets = useMemo(() => {
-    const raw: Array<{ label: string; value: number }> = [
-      { label: '⅓', value: view.currentBet + Math.round(pot / 3) },
-      { label: '½', value: view.currentBet + Math.round(pot / 2) },
-      { label: 'Pot', value: view.currentBet + pot },
+    const raw: Array<{ label: string; title: string; value: number }> = [
+      { label: '⅓ pot', title: 'A third of the pot', value: view.currentBet + Math.round(pot / 3) },
+      { label: '½ pot', title: 'Half the pot', value: view.currentBet + Math.round(pot / 2) },
+      { label: 'Pot', title: 'The whole pot', value: view.currentBet + pot },
     ];
     return raw
       .map((p) => ({ ...p, value: Math.min(maxTotal, Math.max(minRaise, p.value)) }))
@@ -119,12 +119,26 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
   const waiting = !view.yourTurn && !me.folded && !me.eliminated
     && ['preflop', 'flop', 'turn', 'river'].includes(view.phase);
 
+  // "Waiting for the table…" is true and useless. Naming the player means a
+  // table of three bots stops looking like a table that has frozen.
+  const actor = view.players.find((p) => p.id === view.actingId);
+  const waitingFor = actor && !actor.isYou ? `Waiting for ${actor.name}…` : 'Waiting for the table…';
+
   return (
     <div className="actionbar">
       {yourTurn ? (
-        <div className="ab-clock" aria-hidden>
+        <div className="ab-clock">
           <TurnTimer until={view.actingUntil} total={view.config.actionSeconds} size={40} sound />
-          <span className="ab-clocklabel">your turn</span>
+          {/* It said "your turn" in 10px lower case beside a dial. Two people
+              played a run and both lost track of whose turn it was, so this
+              is now the loudest thing on the bar, and it says what it costs
+              to stay in as well as that it is your go. */}
+          <span className="ab-clocklabel" role="status">Your turn</span>
+          <span className="ab-clockline mono">
+            {view.toCall > 0
+              ? <><b>{view.toCall.toLocaleString()}</b> to call</>
+              : 'checking is free'}
+          </span>
         </div>
       ) : null}
 
@@ -151,6 +165,16 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                     <span className="eyebrow">{isBet ? 'Bet' : 'Raise to'}</span>
                     <span className="ab-amount mono">{amount.toLocaleString()}</span>
                   </div>
+                  {/* "Raise 5,050" is two different numbers depending on who
+                      is reading it: the total you are raising TO, or the chips
+                      leaving your stack. A new player read it as the second
+                      one and shoved. Both are printed now, every time. */}
+                  <p className="ab-raisecost">
+                    <span className="mono">{Math.max(0, amount - me.bet).toLocaleString()}</span> from your stack
+                    {' · '}
+                    <span className="mono">{Math.max(0, me.chips - (amount - me.bet)).toLocaleString()}</span> left
+                    {view.currentBet > 0 ? <> · <span className="mono">{view.currentBet.toLocaleString()}</span> to beat</> : null}
+                  </p>
                   <Range
                     min={minRaise}
                     max={maxTotal}
@@ -166,15 +190,22 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                         key={p.label}
                         className={`ab-preset ${amount === p.value ? 'is-on' : ''}`}
                         onClick={() => { setAmount(p.value); playSfx('ui_hover'); }}
+                        title={`${p.title}: raise to ${p.value.toLocaleString()}`}
                       >
-                        {p.label}
+                        {/* A row of ⅓ ½ Pot with no numbers on it asks the
+                            player to do the arithmetic the buttons exist to
+                            save them. */}
+                        <span className="ab-presetlabel">{p.label}</span>
+                        <span className="ab-presetvalue mono">{p.value.toLocaleString()}</span>
                       </button>
                     ))}
                     <button
                       className={`ab-preset ${amount === maxTotal ? 'is-on' : ''}`}
                       onClick={() => { setAmount(maxTotal); playSfx('ui_hover'); }}
+                      title={`All in: ${maxTotal.toLocaleString()}`}
                     >
-                      Max
+                      <span className="ab-presetlabel">All in</span>
+                      <span className="ab-presetvalue mono">{maxTotal.toLocaleString()}</span>
                     </button>
                   </div>
               </div>
@@ -209,7 +240,9 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
                     tone="primary" size="lg"
                     onClick={() => send(() => act({ kind: isBet ? 'bet' : 'raise', amount }))}
                   >
-                    {amount >= maxTotal ? 'All In' : `${isBet ? 'Bet' : 'Raise'} ${amount.toLocaleString()}`}
+                    {amount >= maxTotal
+                      ? `All in ${maxTotal.toLocaleString()}`
+                      : `${isBet ? 'Bet' : 'Raise to'} ${amount.toLocaleString()}`}
                   </Button>
                 ) : (
                   <Button tone="primary" size="lg" onClick={() => setRaising(true)}>
@@ -240,8 +273,7 @@ function ActionBarBase({ view, me, blocked }: ActionBarProps) {
               : me.folded ? 'You folded this hand'
                 : view.stack ? 'A sigil is resolving…'
                   : blocked ? 'Choose a target'
-                    : waiting ? 'Waiting for the table…'
-                      : ''}
+                    : waiting ? waitingFor : ''}
           </motion.div>
         )}
       </AnimatePresence>

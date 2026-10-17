@@ -191,6 +191,25 @@ export interface PlayerView {
   hexed: number;
   blinded: boolean;
   lastAction?: Player['lastAction'];
+  /**
+   * Dealer, small blind, big blind — or nothing, which is most seats at a
+   * full table. Read straight off the hand rather than worked out from the
+   * seat ring, so heads-up (where the button posts the small blind) and a
+   * table with a hole in it are both right.
+   */
+  pos: 'dealer' | 'sb' | 'bb' | null;
+  /**
+   * Where mana and sigils come from, for this seat, right now.
+   *
+   * "I could not work out how to get mana or cards" was the first thing a
+   * new player said. Both numbers are the engine's — mana regenerates
+   * `1 + relics + omens` at the top of every street, hands draw
+   * `2 + relics + omens` sigils and hold `4 + relics` — and all three move
+   * during a run, so the client cannot print a constant and be honest.
+   */
+  manaRegen: number;
+  sigilDraw: number;
+  sigilMax: number;
   isYou: boolean;
   ready: boolean;
   shopDone: boolean;
@@ -534,6 +553,17 @@ export interface Table {
   echoTimeline: Timeline | null;
 
   dealerSeat: number;
+  /**
+   * Who posted the blinds this hand.
+   *
+   * Derivable from `dealerSeat` and the seating — and it was being derived,
+   * in the client, wrongly: heads up the button IS the small blind, and an
+   * eliminated seat between two players shifts everything along. Nobody
+   * could tell what position they were in, which in poker is most of what
+   * you are deciding on. `postBlinds` knows; it says so here.
+   */
+  sbId: string | null;
+  bbId: string | null;
   actingId: string | null;
   actingUntil: number | null;
   /** Seat index that closes the current betting round. */

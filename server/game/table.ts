@@ -54,6 +54,8 @@ export function createTable(code: string, hostId: string, config: Partial<RoomCo
     burnedSlots: [],
     echoTimeline: null,
     dealerSeat: 0,
+    sbId: null,
+    bbId: null,
     actingId: null,
     actingUntil: null,
     lastAggressorId: null,
@@ -279,6 +281,20 @@ export function refreshMaxMana(p: Player, t: Table): void {
 
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
+
+/**
+ * Mana back at the top of each street, for this player, under these omens.
+ * Mirrors `Engine.beginStreet` — the one in the engine is the truth, this is
+ * what the rail prints so a player can see where mana comes from at all.
+ */
+export const manaRegenFor = (p: Player, t: Table): number => Math.max(0,
+  1 + relicNumber(p.relics, (r) => r.mana?.regen)
+    + omenNumber(t.omens, (o) => o.mana?.regen));
+
+/** Sigils drawn at the start of a hand. Mirrors `Engine.beginHand`. */
+export const sigilDrawFor = (p: Player, t: Table): number => Math.max(0,
+  2 + relicNumber(p.relics, (r) => r.sigils?.drawPerHand)
+    + omenNumber(t.omens, (o) => o.sigilDraw));
 
 export function manaCost(p: Player, def: SigilDef, t?: Table): number {
   const delta = relicNumber(p.relics, (r) => r.sigils?.costDelta)
@@ -569,6 +585,13 @@ export function viewFor(t: Table, viewerId: string): TableView {
       id: p.id,
       name: p.name,
       seat: p.seat,
+      pos: p.seat === t.dealerSeat ? 'dealer'
+        : t.sbId === p.id ? 'sb'
+          : t.bbId === p.id ? 'bb'
+            : null,
+      manaRegen: manaRegenFor(p, t),
+      sigilDraw: sigilDrawFor(p, t),
+      sigilMax: sigilHandSize(p),
       avatar: p.avatar,
       isBot: p.isBot,
       connected: p.connected,

@@ -33,8 +33,19 @@ function SeatBase({
 }: SeatProps) {
   const emote = useGame((s) => s.emotes[p.id]);
   const acting = view.actingId === p.id;
-  const isDealer = view.dealerSeat === p.seat;
   const winner = p.result && p.result.won > 0;
+
+  // Position, in the words a poker player already has for it. Two people
+  // played a run and could not tell whose turn it was or where they were
+  // sitting, which in Hold'em is most of the decision: the button acts last,
+  // the big blind acts first after the flop and is already in for a blind.
+  // A lone "D" on one seat does not say any of that.
+  const POS: Record<'dealer' | 'sb' | 'bb', { short: string; name: string; why: string }> = {
+    dealer: { short: 'D', name: 'Dealer button', why: 'Acts last on every street after the flop.' },
+    sb: { short: 'SB', name: 'Small blind', why: `Posted ${view.sb.toLocaleString()} before the cards. Acts first after the flop.` },
+    bb: { short: 'BB', name: 'Big blind', why: `Posted ${view.bb.toLocaleString()} before the cards. Acts last before the flop.` },
+  };
+  const pos = p.pos ? POS[p.pos] : null;
 
   const state = p.eliminated ? 'out'
     : p.folded ? 'folded'
@@ -71,6 +82,9 @@ function SeatBase({
       onKeyDown={targetable ? (e) => { if (e.key === 'Enter') handleTarget(); } : undefined}
     >
       {acting ? <TurnTimer className="seat-timer" until={view.actingUntil} total={view.config.actionSeconds} /> : null}
+      {/* A gold ring reads as "this seat is special" and nothing more. The
+          word is what says the table is waiting on them. */}
+      {acting && !p.isYou ? <span className="seat-turn">to act</span> : null}
 
       <div className="seat-cards" ref={cardsRef}>
         <CardRow
@@ -92,7 +106,11 @@ function SeatBase({
       <div className="seat-pod">
         <div className="seat-av">
           <Avatar seed={p.avatar} size={40} bot={p.isBot} dim={p.folded || p.eliminated} />
-          {isDealer ? <span className="seat-button" title="Dealer">D</span> : null}
+          {pos ? (
+            <Tooltip body={<><strong>{pos.name}</strong><br />{pos.why}</>}>
+              <span className={`seat-button is-${p.pos}`}>{pos.short}</span>
+            </Tooltip>
+          ) : null}
         </div>
 
         <div className="seat-info">

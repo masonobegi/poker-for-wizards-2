@@ -349,6 +349,8 @@ test('one press of F never folds a free check, and one press of A never shoves',
     yourTurn: true, currentBet: 0, minRaise: 200, bb: 200, pot: 300, phase: 'flop',
     handNumber: 1, toCall: 0, actingUntil: Date.now() + 30_000,
     config: { actionSeconds: 30 }, stack: null,
+    // The bar names whoever the table is waiting on when it is not you.
+    players: [], actingId: null,
   };
   const me = { bet: 0, chips: 5000, folded: false, eliminated: false } as never;
   const host = dom.window.document.createElement('div');
@@ -419,6 +421,7 @@ test('holding F or A is one press: key repeat never confirms the guard', async (
     yourTurn: true, currentBet: 0, minRaise: 200, bb: 200, pot: 300, phase: 'flop',
     handNumber: 1, toCall: 0, actingUntil: Date.now() + 30_000,
     config: { actionSeconds: 30 }, stack: null, canCheck: true,
+    players: [], actingId: null,
   };
   const me = { bet: 0, chips: 5000, folded: false, eliminated: false } as never;
   const host = dom.window.document.createElement('div');

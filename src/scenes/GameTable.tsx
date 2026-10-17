@@ -298,7 +298,7 @@ export default function GameTable() {
           {/* The deck is the origin every dealt card now flies from, so it
               lives inside the felt and moves with it. `cut` replays the
               top-card lift on each new street and each new hand. */}
-          <Deck cut={view.handNumber * 8 + view.board.length} />
+          <Deck cut={view.handNumber * 8 + view.board.length} view={view} />
 
           <Board
             view={view}

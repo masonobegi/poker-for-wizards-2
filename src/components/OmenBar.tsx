@@ -77,10 +77,12 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                   onBlur={() => setOpen((v) => (v === o.id ? null : v))}
                   onClick={() => setOpen((v) => (v === o.id ? null : o.id))}
                   aria-expanded={showing}
+                  title={`${def.name} — ${def.text}`}
                 >
                   <span className="omen-glyph" aria-hidden><Mark kind="omen" id={def.id} fallback={def.glyph} /></span>
                   <span className="omen-name">{def.name}</span>
                   {o.rank ? <span className="omen-rank">{RANK_NAME[o.rank]}s</span> : null}
+                  <span className="omen-ask" aria-hidden>?</span>
                 </button>
 
                 <AnimatePresence>
@@ -94,6 +96,7 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                       transition={ENTER}
                     >
                       <strong>{def.name}</strong>
+                      <p className="omen-what">A rule added to this table at ante {o.ante}. It never comes off.</p>
                       <p>
                         {def.text}
                         {o.rank ? ` The rank is ${RANK_NAME[o.rank]}s.` : ''}
@@ -101,7 +104,7 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                       <p className="omen-impossible">
                         <Mark kind="ui" id="impossible" /> {def.impossible}
                       </p>
-                      <span className="omen-since">Arrived at ante {o.ante}</span>
+                      <span className="omen-since">Every omen so far is in force at once</span>
                     </motion.div>
                   ) : null}
                 </AnimatePresence>

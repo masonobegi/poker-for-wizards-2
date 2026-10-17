@@ -619,6 +619,11 @@ export class Engine {
     const bbPlayer = nextSeat(t, sbPlayer.seat, (p) => !p.eliminated && !p.sittingOut && p.id !== sbPlayer.id)
       ?? seats.find((p) => p.id !== sbPlayer.id) ?? seats[0];
 
+    // Published, so every seat can say what position it is in without the
+    // client re-deriving it. See Table.sbId.
+    t.sbId = sbPlayer.id;
+    t.bbId = bbPlayer.id;
+
     this.commit(sbPlayer, Math.min(t.sb, sbPlayer.chips));
     this.commit(bbPlayer, Math.min(t.bb, bbPlayer.chips));
     t.currentBet = t.bb;
