@@ -1108,6 +1108,8 @@ from simulated players and one blind reviewer; a human playtest decides
 whether it holds.
 
 **Sellable at $9.99: yes**, on the same conditions as before (no online play
-on the store page until Steam invites exist; commissioned capsule art). One
-new condition: `steam/screenshots/` predate the arcade look and must be
-recaptured before the store page goes up, or the page shows a different game.
+on the store page until Steam invites exist; commissioned capsule art). The
+store screenshots predated the arcade look, so the page would have shown a
+different game; they were recaptured from the rebuilt packaged build this
+round (`steam/screenshots/`). The generated capsules still use the older
+look's frames until the commissioned art replaces them.

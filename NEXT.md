@@ -31,9 +31,10 @@ release 8 Apr 2027. `main` is the line every build comes from;
    as a choice or a loss, and whether the Unaligned's fall is real.
 2. Mason: commissioned art (opponent portraits, coven art, capsules) and one
    listening pass with headphones. Presentation is a 7 "only just".
-3. Recapture `steam/screenshots/` from the current build
-   (`npm run package:win && node test/packaged.mjs 200 --shots`, then pick
-   six into `steam/screenshots/`): the committed ones predate the arcade look.
+3. Rebuild the Linux full game and demo in WSL (`scripts/linux-smoke.sh`
+   after): the Windows builds were rebuilt from `26f0fa0` on 2026-10-16, the
+   Linux ones predate the arcade look. The store screenshots were recaptured;
+   the generated capsules were not (commissioned art replaces them).
 4. Watch list from round 5: the Unaligned's win rate; the Unmoored's first
    ante (33% lose their stack, caught by the phylactery); mythics are rarely
    affordable (7 runs of 280 own a new one).

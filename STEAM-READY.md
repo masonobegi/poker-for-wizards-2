@@ -6,21 +6,28 @@ and everything below. (2026-10-12: this branch was fast-forwarded to `main`
 at `60c3e84`, the animation layer and the COUNTERED fix included, so the two
 were then the same commit.)
 
-**Current builds (2026-10-12, all four from `60c3e84`):**
+**Current builds: Windows full and demo from `26f0fa0` (2026-10-16, see the note under the table); Linux full and demo from `60c3e84` (2026-10-12):**
 
 | Build | Where | Smoke |
 | --- | --- | --- |
-| Windows full | `release/win-unpacked` (+ `HEXHOLD Setup 0.9.0.exe`, `HEXHOLD-0.9.0-win.zip`) | packaged 21/21, quit 9/9 |
-| Windows demo | `release-demo/win-unpacked` (+ `HEXHOLD Demo Setup 0.9.0.exe`, `HEXHOLD Demo-0.9.0-win.zip`) | packaged 22/22, quit 9/9, `test/demo.mjs` all pass |
+| Windows full | `release/win-unpacked` (+ `HEXHOLD Setup 0.9.0.exe`, `HEXHOLD-0.9.0-win.zip`) | 2026-10-16: packaged checks all pass (rerun), quit 9/9 |
+| Windows demo | `release-demo/win-unpacked` (+ `HEXHOLD Demo Setup 0.9.0.exe`, `HEXHOLD Demo-0.9.0-win.zip`) | 2026-10-16: packaged checks all pass (rerun), `test/demo.mjs` all pass |
 | Linux full | built in WSL Ubuntu-24.04 at `~/hexhold-main/release/linux-unpacked` (+ AppImage, tar.gz); copied to `release/linux-unpacked` | packaged 21/21, quit 6/6 |
 | Linux demo | `~/hexhold-main/release-demo/linux-unpacked` in WSL; copied to `release-demo/linux-unpacked` | packaged 22/22, quit 6/6 |
 
-**2026-10-16, fun round 5:** `main` is now 55 commits past `60c3e84` (the
-arcade art direction, cut-ins, hit-stop) plus round 5 (two relics on the
-Market's shelf, quick bots after a fold, the ligature fix; `FUN-REVIEW.md`).
-The four builds in the table above predate all of it: rebuild before anyone
-plays or uploads them. `steam/screenshots/` also predate the arcade look and
-must be recaptured (`node test/packaged.mjs 200 --shots`, then pick six).
+**2026-10-16, fun round 5:** the two Windows builds were rebuilt from `main`
+at `26f0fa0` (the arcade look and round 5: two relics on the Market's shelf,
+quick bots after a fold, the ligature fix; `FUN-REVIEW.md`), in this
+worktree's `release/win-unpacked` and `release-demo/win-unpacked`. Packaged
+smoke, full game: every check passed on a quiet machine (then the harness's
+known temp-profile EPERM on cleanup); the first run, beside the demo's
+packaging, failed the harness's own 15 s wait on Quit. Demo: every check
+passed on the rerun; the first run failed the same Quit wait. `node
+test/quit.mjs` on the full build: 9 of 9 quits with every process gone
+within 3 s, slowest 1.7 s, so the Quit flake is the harness's wait, not the
+game (worth one look before the demo ships). **The Linux builds in the table
+above were not rebuilt** (they predate the arcade look); rebuild them in WSL
+before uploading. `steam/screenshots/` were recaptured from the new build.
 
 `~/hexhold-main` is a clean WSL clone of `main` (`npm ci`, Node 24.12,
 Electron 44.4.3), built with `npm run package:linux` and
