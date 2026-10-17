@@ -316,11 +316,51 @@ export const OMENS: OmenDef[] = [
   },
 ];
 
+/**
+ * The omens actually in the game.
+ *
+ * Forty-one were written and the set had the disease that large sets get:
+ * six of them said "sigils cost one more mana" in six different wordings,
+ * three dealt a sixth community card, two merged the suits, two loosened
+ * straights. From the player's chair that is not variety, it is a wall of
+ * pink chips that all mean something slightly different, and two people
+ * playing the hosted build could not tell you what a single one of them did.
+ *
+ * Nine stay. Each one changes a rule you can see from the felt, no two of
+ * them change the same rule, and the spread keeps the escalation the omens
+ * were for: the rules bend at ante two, the deck starts lying at three, and
+ * by five the game has stopped pretending.
+ *
+ * The rest stay defined so an old save still reads. Only this list is drawn
+ * from. See `rollOmen`.
+ */
+export const OMEN_POOL_IDS: readonly string[] = [
+  // Ante 2 — the rules of reading a hand bend.
+  'blurred',         // two suits, not four
+  'serpent',         // the ace works at both ends
+  'the_flood',       // a sixth community card, every hand
+  'the_gilded',      // five Wild cards, hidden in the deck
+  'the_twinned',     // and seven that copy their neighbour
+  // Ante 3 — the deck starts lying.
+  'entropy_rising',  // a board card arrives undecided
+  'third_card',      // three hole cards each
+  // Ante 4+ — it stops pretending.
+  'unmade',          // a rank leaves the game
+  'inversion',       // the worst hand wins
+];
+
 export const OMEN_BY_ID: Record<string, OmenDef> = Object.fromEntries(
   OMENS.map((o) => [o.id, o]),
 );
 
 /** An omen in force, with whatever it rolled when it landed. */
+/** The omens a run can actually roll. `OMENS` stays the registry. */
+export const OMEN_POOL: OmenDef[] = OMEN_POOL_IDS.map((id) => {
+  const def = OMEN_BY_ID[id];
+  if (!def) throw new Error(`OMEN_POOL_IDS names an omen that does not exist: ${id}`);
+  return def;
+});
+
 export interface ActiveOmen {
   id: string;
   /** For omens that pick a rank when they arrive. */

@@ -19,7 +19,7 @@ import {
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import {
-  SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
+  POOL, SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
 } from '../../shared/sigils';
 import { resolveClause } from './scribed';
 import { hasRule } from '../../shared/relics';
@@ -169,7 +169,10 @@ export function bindInscribedPairs(t: Table): void {
 // Sigil supply
 // ---------------------------------------------------------------------------
 
-const DRAFT_POOL = Object.values(SIGIL_BY_ID);
+// What a player can be dealt. `SIGIL_BY_ID` still resolves everything ever
+// printed, so an old save or a ledger line from a previous version reads
+// fine; only the draw bag is the curated set. See shared/sigils.ts POOL_IDS.
+const DRAFT_POOL = POOL;
 
 export function randomSigil(rng: Rng, weights = true, school?: SigilDef['school']): SigilInstance {
   const bag: SigilDef[] = [];

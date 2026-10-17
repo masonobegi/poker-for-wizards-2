@@ -15,9 +15,9 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
 import { HEXES, MAX_HEX } from '@shared/hexes';
 import { COVENS, covenOf } from '@shared/covens';
-import { SIGILS } from '@shared/sigils';
-import { RELICS } from '@shared/relics';
-import { OMENS } from '@shared/omens';
+import { POOL as SIGIL_POOL } from '@shared/sigils';
+import { RELIC_POOL } from '@shared/relics';
+import { OMEN_POOL } from '@shared/omens';
 import { openWishlist } from '@/lib/demo';
 import { CountUp } from '@/components/fx/CountUp';
 
@@ -265,7 +265,7 @@ export default function GameOver({ view }: { view: TableView }) {
             <ul>
               <li>The run goes on, ante after ante, under a rulebook that keeps growing.</li>
               <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
-              <li>{SIGILS.length} sigils, {RELICS.length} relics and {OMENS.length} omens.</li>
+              <li>{SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics and {OMEN_POOL.length} omens.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>
           </motion.div>

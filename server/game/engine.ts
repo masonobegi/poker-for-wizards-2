@@ -17,7 +17,7 @@ import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
 import {
-  IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, keepsPromise, omenNumber, type ActiveOmen,
+  IMPOSSIBLE_BY_ANTE, OMEN_BY_ID, OMEN_POOL, keepsPromise, omenNumber, type ActiveOmen,
 } from '../../shared/omens';
 import {
   isStreet,
@@ -37,7 +37,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
+import { COVENS, COVEN_CHOICE, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID, defOf } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -1285,7 +1285,7 @@ export class Engine {
     const t = this.table;
     const rng = this.stream(`omen:${t.ante}:${t.omens.length}`);
     const taken = new Set(t.omens.map((o) => o.id));
-    let pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
+    let pool = OMEN_POOL.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
     if (pool.length === 0) return;
     // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
     // given a way to hold a card twice.
@@ -1834,10 +1834,15 @@ export class Engine {
     const name = free.length ? r.pick(free) : `Bot ${t.players.length}`;
     // Seeded, so a daily table meets the same opponents with the same temperament.
     const bot = this.addPlayer(`bot_${Rng.hash(`${t.seed}:bot:${t.players.length}`).toString(36)}`, name, true);
-    // Bots draw a coven too, and never the Unaligned — a table of four
-    // identical openings is the thing covens exist to stop, and it would be
-    // an odd game that only let the human have one.
-    if (bot) bot.coven = r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id;
+    // Bots drew a coven too, so that a table was not four identical
+    // openings. With the picker gone (COVEN_CHOICE) that cuts the other way:
+    // the player sits down Unaligned and every bot plays a rulebook they
+    // were never shown. One table, one set of rules.
+    if (bot) {
+      bot.coven = COVEN_CHOICE
+        ? r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id
+        : DEFAULT_COVEN;
+    }
     return bot;
   }
 

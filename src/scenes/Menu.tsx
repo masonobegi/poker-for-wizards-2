@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, Field, Modal } from '@/components/ui/kit';
 import { readName, useGame } from '@/store/net';
-import { SCHOOLS, SIGILS } from '@shared/sigils';
+import { SCHOOLS, POOL as SIGIL_POOL } from '@shared/sigils';
 import type { BotSkill, TableSpeed } from '@shared/types';
-import { RELICS } from '@shared/relics';
+import { RELIC_POOL } from '@shared/relics';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
@@ -17,7 +17,7 @@ import { appVersion } from '@/components/shell/version';
 import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
-import { COVENS, DEFAULT_COVEN, covenOf, creedOf } from '@shared/covens';
+import { COVENS, COVEN_CHOICE, DEFAULT_COVEN, covenOf, creedOf } from '@shared/covens';
 import { RELIC_BY_ID } from '@shared/relics';
 import { loadProfile } from '@/components/profile/profile';
 import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
@@ -116,6 +116,10 @@ export default function Menu() {
   // The run's opening decision, remembered between sessions so a player who
   // has found the one they like does not re-pick it every time.
   const [coven, setCoven] = useState<string>(() => {
+    // Covens are off (COVEN_CHOICE): a run saved under the picker must not
+    // start as a coven the player can no longer see, and the Hex ladder is
+    // kept per coven, so this has to be the same id every time.
+    if (!COVEN_CHOICE) return DEFAULT_COVEN;
     let id = DEFAULT_COVEN;
     try { id = localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { /* private mode */ }
     // The demo opens three covens; anything else falls back to the first.
@@ -284,66 +288,74 @@ export default function Menu() {
                 run again.
               </p>
 
-              {/* The coven picker. This is the first decision of a run and it
-                  sits directly above the button that starts one, because a
-                  choice a player has to go looking for is a choice most of
-                  them never make. */}
-              <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
-                {COVENS.map((c) => {
-                  // In the demo the other four are shown, locked: a demo
-                  // should show the shape of what it is holding back.
-                  const locked = IS_DEMO && !DEMO_COVENS.includes(c.id);
-                  return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={coven === c.id}
-                    aria-disabled={locked || undefined}
-                    aria-label={locked ? `${c.name}, in the full game` : undefined}
-                    className={`menu-coven ${coven === c.id ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
-                    style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
-                    onClick={() => { if (locked) setPeek(c.id); else { setPeek(null); pickCoven(c.id); } }}
-                    onMouseEnter={locked ? () => setPeek(c.id) : undefined}
-                    onMouseLeave={locked ? () => setPeek(null) : undefined}
-                    onFocus={locked ? () => setPeek(c.id) : undefined}
-                    onBlur={locked ? () => setPeek(null) : undefined}
-                    title={locked ? undefined : c.style}
-                  >
-                    <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
-                    <span className="menu-coven__name">{c.name}</span>
-                    {locked ? (
-                      <svg className="menu-coven__lock" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
-                        <rect x="3" y="7" width="10" height="7" rx="1.2" fill="currentColor" />
-                        <path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                      </svg>
-                    ) : null}
-                  </button>
-                  );
-                })}
-              </div>
-              <p className="menu-covennote">
-                {peek ? (
-                  <>
-                    <strong className="menu-covenpeek">{covenOf(peek).name}, in the full game.</strong>{' '}
-                    {covenOf(peek).text}
-                    <CreedLine coven={peek} />
-                  </>
-                ) : <>{covenOf(coven).text}<CreedLine coven={coven} /></>}
-                {peek ? null : covenRecord ? (
-                  <em className="menu-covenrecord">
-                    {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
-                    {covenRecord.wins > 0 ? ` · ${covenRecord.wins} won` : ''}
-                    {covenRecord.deepestAnte > 0 ? ` · deepest ante ${covenRecord.deepestAnte}` : ''}
-                    {covenRecord.impossible > 0 ? ` · ${covenRecord.impossible} impossible` : ''}
-                  </em>
-                ) : <em className="menu-covenrecord">never played</em>}
-              </p>
+              {/* The run used to open on a choice between seven covens. See
+                  COVEN_CHOICE in shared/covens.ts: the first screen of a game
+                  nobody has played before should not be a thirty-rule decision.
+                  Turn the flag on and this comes back as it was. */}
+              {COVEN_CHOICE ? (
+                <>
+                {/* The coven picker. This is the first decision of a run and it
+                    sits directly above the button that starts one, because a
+                    choice a player has to go looking for is a choice most of
+                    them never make. */}
+                <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
+                  {COVENS.map((c) => {
+                    // In the demo the other four are shown, locked: a demo
+                    // should show the shape of what it is holding back.
+                    const locked = IS_DEMO && !DEMO_COVENS.includes(c.id);
+                    return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={coven === c.id}
+                      aria-disabled={locked || undefined}
+                      aria-label={locked ? `${c.name}, in the full game` : undefined}
+                      className={`menu-coven ${coven === c.id ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
+                      style={{ ['--school' as string]: SCHOOLS[c.school].accent }}
+                      onClick={() => { if (locked) setPeek(c.id); else { setPeek(null); pickCoven(c.id); } }}
+                      onMouseEnter={locked ? () => setPeek(c.id) : undefined}
+                      onMouseLeave={locked ? () => setPeek(null) : undefined}
+                      onFocus={locked ? () => setPeek(c.id) : undefined}
+                      onBlur={locked ? () => setPeek(null) : undefined}
+                      title={locked ? undefined : c.style}
+                    >
+                      <span className="menu-coven__glyph" aria-hidden><Mark kind="coven" id={c.id} fallback={c.glyph} /></span>
+                      <span className="menu-coven__name">{c.name}</span>
+                      {locked ? (
+                        <svg className="menu-coven__lock" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+                          <rect x="3" y="7" width="10" height="7" rx="1.2" fill="currentColor" />
+                          <path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                        </svg>
+                      ) : null}
+                    </button>
+                    );
+                  })}
+                </div>
+                <p className="menu-covennote">
+                  {peek ? (
+                    <>
+                      <strong className="menu-covenpeek">{covenOf(peek).name}, in the full game.</strong>{' '}
+                      {covenOf(peek).text}
+                      <CreedLine coven={peek} />
+                    </>
+                  ) : <>{covenOf(coven).text}<CreedLine coven={coven} /></>}
+                  {peek ? null : covenRecord ? (
+                    <em className="menu-covenrecord">
+                      {covenRecord.runs} run{covenRecord.runs === 1 ? '' : 's'}
+                      {covenRecord.wins > 0 ? ` · ${covenRecord.wins} won` : ''}
+                      {covenRecord.deepestAnte > 0 ? ` · deepest ante ${covenRecord.deepestAnte}` : ''}
+                      {covenRecord.impossible > 0 ? ` · ${covenRecord.impossible} impossible` : ''}
+                    </em>
+                  ) : <em className="menu-covenrecord">never played</em>}
+                </p>
+                </>
+              ) : null}
 
               {IS_DEMO ? (
                 <p className="menu-demonote">
-                  Demo: a run of {DEMO_ANTES} antes, as {DEMO_COVENS.length} of the {COVENS.length} covens.
-                  The full game adds five hexes per coven, the Daily Rite and tables with friends.
+                  Demo: a run of {DEMO_ANTES} antes.
+                  The full game adds the hex ladder, the Daily Rite and tables with friends.
                 </p>
               ) : (
                 <Picker
@@ -429,7 +441,7 @@ export default function Menu() {
                   How this works
                 </Button>
                 <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>
-                  Codex &mdash; {SIGILS.length} sigils, {RELICS.length} relics
+                  Codex &mdash; {SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics
                 </Button>
                 <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>
                   Settings
@@ -576,7 +588,7 @@ function MenuBackdrop() {
       accent: s.accent,
       // One sigil per school, drifting behind the menu. It is the real mark
       // from the real school, not a decorative asterisk.
-      sigil: SIGILS.find((g) => g.school === s.id),
+      sigil: SIGIL_POOL.find((g) => g.school === s.id),
       left: `${8 + (i * 15.5) % 84}%`,
       top: `${12 + ((i * 37) % 70)}%`,
       delay: i * 2.4,

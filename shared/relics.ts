@@ -552,9 +552,43 @@ export const CREEDS: RelicDef[] = [
   },
 ];
 
+/**
+ * The relics actually sold.
+ *
+ * Forty-five, and four of them were "your straights need only four cards"
+ * with different names. Twelve stay: five commons, five rares and two
+ * mythics, which is the shop's own weighting, and no two of them do the
+ * same thing. The rest are still defined — a run saved under an older
+ * version still reads its relics — but the Market never offers them.
+ */
+export const RELIC_POOL_IDS: readonly string[] = [
+  // Common — a small, legible edge.
+  'leyline',           // +1 mana a street: where mana comes from
+  'deep_pockets',      // one more sigil in hand
+  'thin_veil',         // you always see the top of the deck
+  'ladder',            // your straights need four
+  'gilt_edge',         // a hole card scores a rank higher
+  // Rare — a rule of your own.
+  'third_hand',        // three hole cards
+  'cold_read',         // one hole card of every player
+  'blood_price',       // pay for a sigil in chips when the mana is short
+  'unstable_isotope',  // a hole card undecided, every hand
+  'vow_of_silence',    // uncounterable, and you may never answer
+  // Mythic — the run bends around it.
+  'wild_inheritance',  // a hole card is any card
+  'twice_told',        // your first sigil each hand resolves twice
+];
+
 export const RELIC_BY_ID: Record<string, RelicDef> = Object.fromEntries(
   [...RELICS, ...RETIRED, ...CREEDS].map((r) => [r.id, r]),
 );
+
+/** What the Market can offer. `RELICS` stays the registry of everything. */
+export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
+  const def = RELIC_BY_ID[id];
+  if (!def) throw new Error(`RELIC_POOL_IDS names a relic that does not exist: ${id}`);
+  return def;
+});
 
 /** Whether any of these relics (or a creed among them) runs this rule. */
 export const hasRule = (relicIds: string[], rule: RuleId): boolean =>

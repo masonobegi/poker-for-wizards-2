@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { Engine } from '../server/game/engine';
 import { anteLength } from '../server/game/table';
 import { rollShop } from '../server/game/shop';
-import { creedAwake, creedOf, COVEN_BY_ID } from '../shared/covens';
+import { creedAwake, creedOf, COVEN_BY_ID, COVEN_CHOICE, DEFAULT_COVEN } from '../shared/covens';
 import { DEFAULT_CONFIG, type RoomConfig } from '../shared/types';
 import { Rng } from '../shared/rng';
 import { dailyCoven, dailySeed, hexPrice, isDailySeed } from '../shared/hexes';
@@ -82,10 +82,15 @@ test('a daily table seats one human', () => {
   e.dispose();
 });
 
-test('only a daily seed is accepted as one, and each day has a coven', () => {
+test('only a daily seed is accepted as one, and the Rite seats everyone the same', () => {
   assert.ok(isDailySeed('daily:2026-09-25'));
   assert.ok(!isDailySeed('anything-else'));
   assert.ok(!isDailySeed('daily:2026-09-25; x'));
-  assert.notEqual(dailyCoven('2026-09-25'), 'unaligned');
+  // The Rite used to roll a coven for the day. With the picker off
+  // (COVEN_CHOICE) there is no coven to roll, and a shared daily run where
+  // one seat plays a rulebook nobody else can see is worse than none.
+  // Whichever way the flag is set, the same day is always the same run.
   assert.equal(dailyCoven('2026-09-25'), dailyCoven('2026-09-25'));
+  if (COVEN_CHOICE) assert.notEqual(dailyCoven('2026-09-25'), DEFAULT_COVEN);
+  else assert.equal(dailyCoven('2026-09-25'), DEFAULT_COVEN);
 });

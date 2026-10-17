@@ -15,7 +15,7 @@
  * to a bot, an omen drawn early, a price, the ante length — so a hex cannot
  * smuggle in new behaviour, the same constraint covens live under.
  */
-import { COVENS, DEFAULT_COVEN } from './covens';
+import { COVENS, COVEN_CHOICE, DEFAULT_COVEN } from './covens';
 import { Rng } from './rng';
 
 export interface HexDef {
@@ -106,6 +106,8 @@ export const isDailySeed = (s: unknown): s is string =>
 
 /** The coven today's rite is played as. Never the Unaligned: the day should have a shape. */
 export function dailyCoven(day: string): string {
+  // With the picker off nobody has a coven, so the Rite cannot assign one.
+  if (!COVEN_CHOICE) return DEFAULT_COVEN;
   const pool = COVENS.filter((c) => c.id !== DEFAULT_COVEN);
   return new Rng(`coven:${dailySeed(day)}`).pick(pool).id;
 }

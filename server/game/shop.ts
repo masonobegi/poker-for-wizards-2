@@ -10,8 +10,8 @@ import { hexPrice } from '../../shared/hexes';
 import { INK_SHARDS, readSpell, type Roster, type ScribeRead } from '../../shared/scribe';
 import { nanoid } from 'nanoid';
 import { MARKS, type MarkId, faceLabel } from '../../shared/cards';
-import { RELICS, RELIC_BY_ID, relicNumber } from '../../shared/relics';
-import { SCRIBED_ID, SIGILS, SIGIL_BY_ID } from '../../shared/sigils';
+import { RELIC_BY_ID, RELIC_POOL, relicNumber } from '../../shared/relics';
+import { POOL, SCRIBED_ID, SIGIL_BY_ID } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
 import { giveSigil, sign } from './magic';
@@ -47,16 +47,18 @@ const RITE_BAG: MarkId[] = [
 const BASE_REROLL = 3;
 
 function rollSigilItem(rng: Rng): ShopItem {
-  const bag = SIGILS.flatMap((s) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[s.rarity]).fill(s));
-  const def = rng.pick(bag) as typeof SIGILS[number];
+  // The live set, not every sigil ever written. See shared/sigils.ts POOL_IDS.
+  const bag = POOL.flatMap((s) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[s.rarity]).fill(s));
+  const def = rng.pick(bag) as typeof POOL[number];
   return { kind: 'sigil', id: def.id, uid: nanoid(8), price: def.price };
 }
 
 function rollRelicItem(rng: Rng, owned: string[]): ShopItem | null {
-  const pool = RELICS.filter((r) => !owned.includes(r.id));
+  // The live set, not every relic ever written. See shared/relics.ts.
+  const pool = RELIC_POOL.filter((r) => !owned.includes(r.id));
   if (pool.length === 0) return null;
   const bag = pool.flatMap((r) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[r.rarity]).fill(r));
-  const def = rng.pick(bag) as typeof RELICS[number];
+  const def = rng.pick(bag) as typeof RELIC_POOL[number];
   return { kind: 'relic', id: def.id, uid: nanoid(8), price: def.price };
 }
 
