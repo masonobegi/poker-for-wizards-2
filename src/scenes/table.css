@@ -2704,6 +2704,17 @@
  * The previous fixed 300px silently clipped its own last row the moment a
  * third player reached showdown.
  */
+/* While the showdown is open the board is drawn twice: once on the cloth and
+   once along the top of the panel standing on top of it. The one underneath
+   is the duplicate. */
+.felt.is-showdown .board-cards,
+.felt.is-showdown .board-pot,
+.felt.is-showdown .board-mods {
+  opacity: 0.18;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+
 .showdown {
   /* Absolute inside .felt, so it sits in the felt's own empty lower band at
      every resolution rather than at a viewport offset tuned for one. */

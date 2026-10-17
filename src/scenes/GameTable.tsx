@@ -231,6 +231,8 @@ export default function GameTable() {
   /* How many rules are in force, for the tab. A number on the tab is the
      whole point: by ante four this game is being played under a dozen rules
      that were not in it when the run started, and nothing counted them. */
+  const showdownUp = view.phase === 'payout' && !!view.payout && !anteTurned;
+
   const ruleCount = view.omens.length + view.modNotes.length
     + (view.activeMods?.deadRanks?.length ?? 0) + me.relics.length;
 
@@ -307,7 +309,12 @@ export default function GameTable() {
       </header>
 
       <main className="tbl-main">
-        <div className="felt">
+        {/* The showdown panel is anchored to the top of the felt (it must
+            never run off the top — see .showdown in table.css) and it
+            reproduces the board along its own top row, so while it is open
+            the real strip underneath it is a duplicate the panel is sitting
+            on. Fade it rather than fight the anchor. */}
+        <div className={`felt ${showdownUp ? 'is-showdown' : ''}`}>
           {/* The floor, its inlay, the dither that joins its tones, and the
               motes in the light above it. The nap plate is gone: a noise
               texture is how you suggest cloth in a rendered image and the
@@ -355,9 +362,7 @@ export default function GameTable() {
               band under the pot at every resolution instead of being placed
               by an offset that only held at one window size. */}
           <AnimatePresence>
-            {view.phase === 'payout' && view.payout && !anteTurned
-              ? <ShowdownPanel key="showdown" view={view} />
-              : null}
+            {showdownUp ? <ShowdownPanel key="showdown" view={view} /> : null}
           </AnimatePresence>
         </div>
 
