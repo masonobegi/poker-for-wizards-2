@@ -123,7 +123,7 @@ const KEPT: RelicDef[] = [
   },
   {
     id: 'unstable_isotope', name: 'Unstable Isotope', glyph: '⟁', rarity: 'rare', price: 15,
-    text: 'One of your hole cards is dealt in superposition every hand.',
+    text: 'One of your hole cards is dealt undecided every hand — two faces until showdown.',
     impossible: 'Being dealt a card that has not decided what it is.',
     deal: { quantumHole: 1 },
   },
@@ -160,7 +160,7 @@ const KEPT: RelicDef[] = [
   },
   {
     id: 'mirror_shard', name: 'Mirror Shard', glyph: '⧉', rarity: 'rare', price: 15,
-    text: 'You can read the possible faces of every superposed card on the table.',
+    text: 'You can read both faces of every undecided card on the table.',
     impossible: 'Seeing the shape of an uncertainty instead of its outcome.',
     vision: ['quantum_clouds'],
   },

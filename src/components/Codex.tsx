@@ -255,7 +255,7 @@ function Rules() {
       <section>
         <h3>Hands that cannot exist</h3>
         <p>
-          Wild marks, mirrored cards and superposition make hands a physical deck
+          Wild marks, mirrored cards and undecided cards make hands a physical deck
           cannot produce. Above a Straight Flush sit <strong>Five of a Kind</strong>,{' '}
           <strong>Flush House</strong> and <strong>Flush Five</strong>. Win with one
           and the table pays attention.
