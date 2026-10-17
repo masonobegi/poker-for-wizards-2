@@ -15,6 +15,7 @@ import TargetPrompt from '@/components/table/TargetPrompt';
 import ShowdownPanel from '@/components/table/ShowdownPanel';
 import LogPanel from '@/components/LogPanel';
 import ChatBox from '@/components/ChatBox';
+import RulesPanel from '@/components/RulesPanel';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import Shop from '@/scenes/Shop';
@@ -140,7 +141,7 @@ export default function GameTable() {
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [side, setSide] = useState<'log' | 'chat'>('log');
+  const [side, setSide] = useState<'log' | 'chat' | 'rules'>('log');
   // Below 1100px `.tbl-side` (the ledger/chat rail) is hidden for room — this
   // gives it back as an on-demand drawer instead, so the log stays reachable.
   const [logOpen, setLogOpen] = useState(false);
@@ -227,6 +228,12 @@ export default function GameTable() {
   const targetableHole = cardTargetMode
     && targeting.def.target !== 'board_card';
 
+  /* How many rules are in force, for the tab. A number on the tab is the
+     whole point: by ante four this game is being played under a dozen rules
+     that were not in it when the run started, and nothing counted them. */
+  const ruleCount = view.omens.length + view.modNotes.length
+    + (view.activeMods?.deadRanks?.length ?? 0) + me.relics.length;
+
   const sideTabs = (
     <div className="tbl-sidetabs">
       <button
@@ -234,6 +241,13 @@ export default function GameTable() {
         onClick={() => setSide('log')}
       >
         Ledger
+      </button>
+      <button
+        className={`tbl-sidetab ${side === 'rules' ? 'is-on' : ''}`}
+        onClick={() => setSide('rules')}
+      >
+        Rules
+        {ruleCount > 0 ? <span className="tbl-sidecount">{ruleCount}</span> : null}
       </button>
       <button
         className={`tbl-sidetab ${side === 'chat' ? 'is-on' : ''}`}
@@ -245,7 +259,9 @@ export default function GameTable() {
   );
   const sidePanel = side === 'log'
     ? <LogPanel entries={view.log} players={view.players} />
-    : <ChatBox compact className="tbl-sidechat" />;
+    : side === 'rules'
+      ? <RulesPanel view={view} me={me} className="tbl-siderules" />
+      : <ChatBox compact className="tbl-sidechat" />;
 
   return (
     <div className="table-scene">

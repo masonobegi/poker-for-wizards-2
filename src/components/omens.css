@@ -94,19 +94,18 @@
   color: var(--bad);
 }
 
+/* Portaled to <body> and placed from the chip's own rect: the header clips
+   its children, so a panel positioned inside it is painted and discarded. */
 .omen-tip {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  left: auto;
+  position: fixed;
+  translate: -50% 0;
   z-index: var(--z-modal);
-  width: min(300px, calc(100vw - 32px));
+  width: min(320px, calc(100vw - 32px));
   padding: 11px 13px;
   border-radius: var(--r-md);
   background: var(--surface);
   border: 2px solid color-mix(in srgb, var(--entropy) 45%, transparent);
   box-shadow: var(--e-4);
-  pointer-events: none;
   text-align: left;
   white-space: normal;
 }

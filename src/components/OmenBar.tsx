@@ -7,6 +7,7 @@
  * knowing that suits have merged and a rank has been struck out.
  */
 import { memo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OMEN_BY_ID, type ActiveOmen } from '@shared/omens';
 import { RANK_NAME } from '@shared/cards';
@@ -19,7 +20,24 @@ import { flashPeak, motionPrefs } from '@/components/fx/arcade';
 
 function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
   const [open, setOpen] = useState<string | null>(null);
+  /**
+   * Where the open chip is, in window coordinates.
+   *
+   * The panel is portaled to <body>. It has to be: this bar lives in the
+   * table header, which sets `overflow: hidden` so nothing can push a second
+   * row down over the felt — and `.tbl-top-r .omens` clips as well. A panel
+   * absolutely positioned inside either of them opens correctly and is then
+   * thrown away by the clip, which is why clicking an omen appeared to do
+   * nothing at all.
+   */
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const reduced = useReducedMotionPref();
+
+  const openAt = (id: string, el: HTMLElement | null): void => {
+    const r = el?.getBoundingClientRect();
+    if (r) setAt({ x: Math.min(Math.max(r.left + r.width / 2, 170), window.innerWidth - 170), y: r.bottom + 8 });
+    setOpen(id);
+  };
 
   // A new omen is announced first and lands second. Its banner names it in
   // the middle of the screen; only once that banner has gone does the chip
@@ -71,11 +89,14 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
               >
                 <button
                   className={`omen ${showing ? 'is-open' : ''}`}
-                  onPointerEnter={() => setOpen(o.id)}
+                  onPointerEnter={(e) => openAt(o.id, e.currentTarget)}
                   onPointerLeave={() => setOpen((v) => (v === o.id ? null : v))}
-                  onFocus={() => setOpen(o.id)}
+                  onFocus={(e) => openAt(o.id, e.currentTarget)}
                   onBlur={() => setOpen((v) => (v === o.id ? null : v))}
-                  onClick={() => setOpen((v) => (v === o.id ? null : o.id))}
+                  onClick={(e) => {
+                    if (showing) setOpen(null);
+                    else openAt(o.id, e.currentTarget);
+                  }}
                   aria-expanded={showing}
                   title={`${def.name} — ${def.text}`}
                 >
@@ -85,11 +106,13 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                   <span className="omen-ask" aria-hidden>?</span>
                 </button>
 
-                <AnimatePresence>
-                  {showing ? (
+                {createPortal(
+                  <AnimatePresence>
+                  {showing && at ? (
                     <motion.div
                       className="omen-tip"
                       role="tooltip"
+                      style={{ left: at.x, top: at.y }}
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
@@ -107,7 +130,9 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                       <span className="omen-since">Every omen so far is in force at once</span>
                     </motion.div>
                   ) : null}
-                </AnimatePresence>
+                  </AnimatePresence>,
+                  document.body,
+                )}
               </motion.li>
             );
           })}

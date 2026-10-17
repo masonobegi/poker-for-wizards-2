@@ -22,6 +22,14 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
   const winningIds = new Set(
     (view.payout?.entries ?? []).filter((e) => e.won > 0).flatMap((e) => e.usedIds),
   );
+  /* What the sigil on the stack is pointing at.
+     The caster could see their own pick highlighted; nobody else could see
+     anything at all, so a spell arriving at the board was a panel of text and
+     a card that changed afterwards. Everyone sees the aim now, while there is
+     still time to answer it. */
+  const aimed = new Set(
+    (view.stack?.entries ?? []).flatMap((e) => e.targets?.cardIds ?? []),
+  );
   // "Which five cards won?" is the question the showdown has to answer, and a
   // gold ring on an already-bright card face is not loud enough to answer it.
   // Once a winning hand is known, the board cards that are *not* part of it
@@ -138,7 +146,9 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
                 index={i}
                 dealFrom={dealFrom.current}
                 highlight={
-                  winningIds.has(c.id) ? 'winning' : dimLosers ? 'dimmed' : 'none'
+                  aimed.has(c.id) ? 'target'
+                    : winningIds.has(c.id) ? 'winning'
+                      : dimLosers ? 'dimmed' : 'none'
                 }
                 selectable={targetable}
                 selected={pickedIds.includes(c.id)}
@@ -158,18 +168,36 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
             `clip-path` percentages mean no hardcoded offsets, so it reads the
             same at every --card-w. */}
         <AnimatePresence>
-          {Array.from({ length: Math.max(0, 5 - view.board.length) }, (_, i) => (
-            <motion.div
-              key={`slot-${i}`}
-              className="board-slot"
-              aria-hidden
-              layout
-              initial={{ opacity: 0, clipPath: 'inset(0 50% 0 50%)' }}
-              animate={{ opacity: 1, clipPath: 'inset(0 0% 0 0%)' }}
-              exit={{ opacity: 0, clipPath: 'inset(0 50% 0 50%)' }}
-              transition={ENTER_PANEL}
-            />
-          ))}
+          {((empty: number) => Array.from({ length: empty }, (_, i) => {
+            /* Which of these sockets will never be filled.
+               A burned card leaves the board and the survivors slide left, so
+               the hole ends up at the end of the row — and the next street's
+               card lands in the FIRST empty socket, not this one. So the
+               burned ones are the last N, and the X stays put while cards
+               keep arriving in front of it. */
+            const burned = i >= empty - Math.min(view.burnedSlots.length, empty);
+            return (
+              <motion.div
+                key={`slot-${i}`}
+                className={`board-slot ${burned ? 'is-burned' : ''}`}
+                title={burned ? 'A community card was burned out of the board here. It is not replaced.' : undefined}
+                aria-label={burned ? 'A burned community card. It is not replaced.' : undefined}
+                aria-hidden={burned ? undefined : true}
+                layout
+                initial={{ opacity: 0, clipPath: 'inset(0 50% 0 50%)' }}
+                animate={{ opacity: 1, clipPath: 'inset(0 0% 0 0%)' }}
+                exit={{ opacity: 0, clipPath: 'inset(0 50% 0 50%)' }}
+                transition={ENTER_PANEL}
+              >
+                {burned ? (
+                  <>
+                    <span className="board-slot__x" aria-hidden>✕</span>
+                    <span className="board-slot__burnedlabel" aria-hidden>burned</span>
+                  </>
+                ) : null}
+              </motion.div>
+            );
+          }))(Math.max(0, 5 - view.board.length))}
         </AnimatePresence>
       </div>
 

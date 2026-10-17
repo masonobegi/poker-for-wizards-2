@@ -664,6 +664,20 @@
   pointer-events: none;
 }
 
+.seat-turn.is-aim {
+  background: var(--ruin);
+  color: var(--bone);
+  bottom: auto;
+  top: calc(100% + 4px);
+}
+.seat.is-aimed .seat-pod {
+  border-color: var(--ruin);
+  box-shadow:
+    var(--e-3),
+    0 0 0 2px color-mix(in srgb, var(--ruin) 45%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--ruin) 45%, transparent) 40%, transparent);
+}
+
 /* The same chip, on your own rail. */
 .rail-pos {
   display: inline-grid;
@@ -998,6 +1012,37 @@
 /* An undealt slot. Not a dashed placeholder box: it reads as a place on the
    table where a card is going to be, with the corner radius and inner shadow
    the real cards sit in, and a hex ghost echoing the card back. */
+/* A socket nothing will ever land in: a card was burned out of the board
+   here and the rules say it is not replaced. Empty felt said "a card is
+   still to come", which is the opposite of what happened. */
+.board-slot.is-burned {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--ruin) 55%, transparent);
+  background: color-mix(in srgb, var(--ruin) 8%, transparent);
+}
+.board-slot__x {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--ruin) 70%, var(--bone-3));
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+.board-slot__burnedlabel {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  translate: -50% 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ruin) 60%, var(--bone-3));
+  white-space: nowrap;
+}
+
 .board-slot {
   position: relative;
   width: round(calc(var(--card-w) * var(--board-scale, 1)), 4px);
@@ -1202,6 +1247,80 @@
 .tbl-sidetab:hover { color: var(--text-2); }
 .tbl-sidetab.is-on { color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
 .tbl-sidetab:active { transform: scale(0.97); }
+/* How many rules are in force. A tab that carries the number is the whole
+   reason a player opens it. */
+.tbl-sidecount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0 4px;
+  background: var(--entropy);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
+.rules { display: grid; min-height: 0; }
+.rules-scroll {
+  overflow-y: auto;
+  padding: var(--s-3);
+  display: grid;
+  gap: var(--s-2);
+  align-content: start;
+}
+.rules-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--s-2);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.rules-head:first-child { margin-top: 0; }
+.rules-count {
+  margin-left: auto;
+  color: var(--text-4);
+  letter-spacing: 0;
+}
+.rules-list { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.rules-item {
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  border-left: 4px solid var(--line);
+}
+.rules-item.is-bad { border-left-color: var(--ruin); }
+.rules-item.is-good { border-left-color: var(--weave); }
+.rules-from {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.rules-title { display: block; font-size: var(--fs-sm); color: var(--bone); }
+.rules-text { font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--text-2); }
+/* Why that counts as a straight. Under The Ladder it is four cards, and a
+   player watching a four-card straight take their pot deserves the sentence
+   rather than the suspicion. */
+.showdown-why {
+  display: block;
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--text-4);
+}
+
+.rules-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-4);
+  font-style: italic;
+  padding: var(--s-2) 0;
+}
 
 .tbl-sidechat { min-height: 0; }
 
@@ -1225,7 +1344,10 @@
   gap: 4px;
   align-content: start;
   min-height: 0;
-  font-size: var(--fs-xs);
+  /* 12px of --text-3 on a near-black plate is the smallest, faintest text in
+     the game, and it is the running record of everything the magic layer
+     does. "Hard as shit to read" was about this panel. */
+  font-size: var(--fs-sm);
   line-height: 1.5;
 }
 .log-empty { color: var(--text-4); font-style: italic; text-align: center; padding: var(--s-4) 0; }
@@ -1233,7 +1355,7 @@
 .log-line {
   --accent: var(--text-3);
   line-height: var(--lh-sm);
-  color: var(--text-3);
+  color: var(--text-2);
   padding-left: 8px;
   border-left: 2px solid transparent;
 }
@@ -1449,7 +1571,37 @@
   min-height: 15px;
   display: grid;
   place-items: center;
+  gap: 1px;
 }
+/* "THREE OF A KIND, QUEENS" on its own, under two cards, is a statement with
+   no subject — a player read it as the board's hand, or somebody else's. */
+.rail-read-label {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+/* Your own bet, in the same shape as the chips in front of every other
+   seat. */
+.rail-bet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 2px solid var(--gold-deep);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  color: var(--chip);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.rail-bet__chip {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--chip);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.rail-bet__total { color: var(--text-3); font-style: normal; }
 .rail-read-name {
   font-family: var(--font-display);
   font-size: var(--fs-xs);
@@ -3051,8 +3203,12 @@
    action bar. The spell being cast is now the centre of the screen, with what
    it does in full and who it is aimed at. */
 .stackview {
-  align-items: center;
-  padding: var(--s-4);
+  /* Not centred. Centred, it landed exactly on the community cards — the one
+     thing you have to look at to decide whether to answer the sigil it is
+     telling you about. It sits in the band between the board and the rail
+     instead, where there is nothing behind it. */
+  align-items: end;
+  padding: var(--s-4) var(--s-4) calc(var(--rail-h) + var(--actionbar-h) + 16px);
   /* Light: this opens on every cast, and a screen that dims and brightens a
      few times a hand reads as flashing. The card is the focus, not the dark. */
   background: color-mix(in srgb, var(--ink) 30%, transparent);
@@ -3064,7 +3220,9 @@
 
 .stack-panel {
   width: min(680px, 100%);
-  max-height: min(86vh, 760px);
+  /* Capped so a deep stack scrolls inside the band rather than growing back
+     up over the board. */
+  max-height: min(38vh, 380px);
   gap: var(--s-4);
   padding: var(--s-5) var(--s-6);
 }

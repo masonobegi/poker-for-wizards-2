@@ -732,7 +732,11 @@
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: hx-ring-spin 4.5s linear infinite;
+  /* It used to rotate, once every 4.5 seconds, forever, on every Wild card
+     on the table at once. A rectangle turning on the spot behind a card you
+     are trying to read is not an effect, it is a distraction with a period —
+     and the thing it was saying ("any suit, any rank") is now said by the
+     card's own rainbow pips. The ring stays, as a border; it holds still. */
 }
 
 .hx-fx--echo {
@@ -797,7 +801,6 @@
     var(--bind) 180deg 240deg,
     var(--veil) 240deg 300deg,
     var(--entropy) 300deg 360deg);
-  animation: hx-ring-spin 5s linear infinite;
 }
 .hx-mark--wild .hx-mark__glyph {
   display: inline-block;
@@ -808,7 +811,6 @@
     -2px 0 0 color-mix(in srgb, var(--bone) 60%, transparent),
     0 2px 0 color-mix(in srgb, var(--bone) 60%, transparent),
     0 -2px 0 color-mix(in srgb, var(--bone) 60%, transparent);
-  animation: hx-ring-spin-rev 5s linear infinite;
 }
 
 .hx-mark--blooded { animation: hx-pulse-op 2s ease-in-out infinite; }

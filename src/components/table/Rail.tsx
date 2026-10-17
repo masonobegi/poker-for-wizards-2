@@ -128,6 +128,25 @@ function RailBase({
           <span className="rail-chips mono">
             <RollingNumber value={me.chips} spring={{ stiffness: 260, damping: 24, mass: 1 }} />
           </span>
+          {/* What you have put in. The pot is on the felt and every other
+              seat's bet is a chip in front of it; your own was the one number
+              on this table you could not see, which is the number you are
+              deciding about. */}
+          {me.bet > 0 || me.committed > 0 ? (
+            <Tooltip body={(
+              <>
+                <strong>Your bet</strong><br />
+                {me.bet.toLocaleString()} in front of you on this street.<br />
+                {me.committed.toLocaleString()} in the pot from you this hand.
+              </>
+            )}>
+              <span className="rail-bet mono">
+                <span className="rail-bet__chip" aria-hidden />
+                {me.bet.toLocaleString()}
+                {me.committed > me.bet ? <em className="rail-bet__total"> / {me.committed.toLocaleString()}</em> : null}
+              </span>
+            </Tooltip>
+          ) : null}
         </div>
 
         <div className="rail-resources">
@@ -194,6 +213,7 @@ function RailBase({
           changes, and stays put when it does not.
         */}
         <div className="rail-read" aria-live="polite">
+          {me.handRead ? <span className="rail-read-label">your hand</span> : null}
           <AnimatePresence mode="wait" initial={false}>
             {me.handRead ? (
               <motion.span

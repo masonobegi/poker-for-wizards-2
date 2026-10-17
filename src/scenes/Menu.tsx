@@ -154,7 +154,7 @@ export default function Menu() {
     label: h.name.replace('Hex ', ''),
     blurb: `${h.name}. ${h.text}${h.level > 1 ? ' Every hex below it still applies.' : ''}`,
     locked: h.level > openHex
-      ? `Win a run at Hex ${HEXES[h.level - 2].name.replace('Hex ', '')} as ${covenOf(coven).name} to open this.`
+      ? `Win a run at Hex ${HEXES[h.level - 2].name.replace('Hex ', '')}${COVEN_CHOICE ? ` as ${covenOf(coven).name}` : ''} to open this.`
       : undefined,
   }));
 
@@ -358,12 +358,22 @@ export default function Menu() {
                   The full game adds the hex ladder, the Daily Rite and tables with friends.
                 </p>
               ) : (
-                <Picker
-                  legend="Hex"
-                  value={String(hex)}
-                  options={hexOptions}
-                  onPick={(v) => pickHex(Number(v))}
-                />
+                <>
+                  <Picker
+                    legend="Hex"
+                    value={String(hex)}
+                    options={hexOptions}
+                    onPick={(v) => pickHex(Number(v))}
+                  />
+                  {/* The word was never defined anywhere a player would look,
+                      and it is also the name of a thing that happens to you
+                      mid-hand. One of the two needed a sentence. */}
+                  <p className="menu-hexnote">
+                    A hex is how hard the run is. Hex I is the ordinary table; each one
+                    above it adds a rule against you, and they stack. Win at one to open
+                    the next.
+                  </p>
+                </>
               )}
 
               <div className="menu-actions">

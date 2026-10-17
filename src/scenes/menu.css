@@ -120,6 +120,14 @@
   text-align: center;
 }
 
+/* What a hex is. See the Hex picker. */
+.menu-hexnote {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-sm);
+  color: var(--text-4);
+}
+
 .menu-actions { display: grid; gap: var(--s-2); margin-top: var(--s-1); }
 
 .menu-practicenote {

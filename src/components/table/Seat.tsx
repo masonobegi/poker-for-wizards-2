@@ -52,6 +52,12 @@ function SeatBase({
       : p.allIn ? 'allin'
         : 'in';
 
+  // What a sigil on the stack is aimed at: this seat, or cards it holds.
+  const stackEntries = view.stack?.entries ?? [];
+  const aimedCards = new Set(stackEntries.flatMap((e) => e.targets?.cardIds ?? []));
+  const aimedAtSeat = stackEntries.some((e) => e.targets?.playerId === p.id);
+  const aimedHole = p.hole.filter((c) => aimedCards.has(c.id)).map((c) => c.id);
+
   const cardsRef = useRef<HTMLDivElement>(null);
   useCardAnchors(cardsRef, p.hole.map((c) => c.id));
 
@@ -71,6 +77,7 @@ function SeatBase({
         'seat',
         `is-${state}`,
         acting ? 'is-acting' : '',
+        aimedAtSeat ? 'is-aimed' : '',
         targetable ? 'is-targetable' : '',
         winner ? 'is-winner' : '',
         !p.connected && !p.isBot ? 'is-away' : '',
@@ -85,6 +92,9 @@ function SeatBase({
       {/* A gold ring reads as "this seat is special" and nothing more. The
           word is what says the table is waiting on them. */}
       {acting && !p.isYou ? <span className="seat-turn">to act</span> : null}
+      {/* A spell is pointed at this player. Said in a word, on the seat, not
+          only in a panel in the middle of the screen. */}
+      {aimedAtSeat ? <span className="seat-turn is-aim">targeted</span> : null}
 
       <div className="seat-cards" ref={cardsRef}>
         <CardRow
@@ -93,8 +103,8 @@ function SeatBase({
           size="sm"
           overlap={0.42}
           faceDown={false}
-          highlightIds={p.result?.usedIds}
-          highlight="winning"
+          highlightIds={aimedHole.length ? aimedHole : p.result?.usedIds}
+          highlight={aimedHole.length ? 'target' : 'winning'}
           restHighlight={p.folded ? 'dimmed' : 'none'}
           selectable={targetableCards && !p.warded}
           selectedIds={pickedIds}

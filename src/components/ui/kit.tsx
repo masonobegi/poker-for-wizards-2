@@ -7,6 +7,7 @@ import {
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { playSfx, soundProps } from '@/lib/sound';
 import { EASE_OUT, ENTER, ENTER_PANEL, T_REDUCED } from '@/styles/motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
@@ -138,17 +139,49 @@ export function Badge({ tone, children, style }: {
   return <span className={`badge ${tone ? `badge-${tone}` : ''}`} style={style}>{children}</span>;
 }
 
+/**
+ * A tooltip that cannot be clipped by whatever it is standing in.
+ *
+ * It used to be an absolutely-positioned child of its trigger, which works
+ * everywhere except the places that matter: the table header sets
+ * `overflow: hidden` so an unexpected element cannot push a second row down
+ * over the felt, and `.tbl-top-r .omens` clips too, for the same reason. So
+ * every tooltip up there — the omens, the nav — opened correctly, inside a
+ * box that threw it away. "You still can't click the omens" was that: the
+ * click worked and the answer was painted outside the clip.
+ *
+ * So the body goes through a portal to `document.body` and is positioned
+ * from the trigger's own rect, in fixed coordinates, clamped to the window.
+ * Nothing between the trigger and the root can clip it, and nothing has to
+ * give up its overflow rule to let it through.
+ */
 export const Tooltip = memo(function Tooltip({ body, children, delay = 220 }: {
   body: ReactNode;
   children: ReactNode;
   delay?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const [at, setAt] = useState<{ x: number; y: number; below: boolean } | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  const hostRef = useRef<HTMLSpanElement>(null);
+
+  const place = (): void => {
+    const el = hostRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    // Above by default; below when there is no room above, which is exactly
+    // the case for anything living in the header.
+    const below = r.top < 140;
+    setAt({
+      x: Math.min(Math.max(r.left + r.width / 2, 150), window.innerWidth - 150),
+      y: below ? r.bottom + 10 : r.top - 10,
+      below,
+    });
+  };
 
   const show = () => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setOpen(true), delay);
+    timer.current = window.setTimeout(() => { place(); setOpen(true); }, delay);
   };
   const hide = () => {
     window.clearTimeout(timer.current);
@@ -159,26 +192,31 @@ export const Tooltip = memo(function Tooltip({ body, children, delay = 220 }: {
   return (
     <span
       className="tip"
+      ref={hostRef}
       onPointerEnter={show}
       onPointerLeave={hide}
       onFocus={show}
       onBlur={hide}
     >
       {children}
-      <AnimatePresence>
-        {open && body ? (
-          <motion.span
-            className="tip-body"
-            role="tooltip"
-            initial={{ opacity: 0, y: 6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
-            transition={ENTER}
-          >
-            {body}
-          </motion.span>
-        ) : null}
-      </AnimatePresence>
+      {typeof document !== 'undefined' ? createPortal(
+        <AnimatePresence>
+          {open && body && at ? (
+            <motion.span
+              className={`tip-body ${at.below ? 'is-below' : ''}`}
+              role="tooltip"
+              style={{ left: at.x, top: at.below ? at.y : undefined, bottom: at.below ? undefined : window.innerHeight - at.y }}
+              initial={{ opacity: 0, y: at.below ? -6 : 6, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: at.below ? -4 : 4, scale: 0.98 }}
+              transition={ENTER}
+            >
+              {body}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      ) : null}
     </span>
   );
 });

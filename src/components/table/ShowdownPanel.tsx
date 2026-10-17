@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ShowdownEntry, TableView } from '@shared/types';
-import { CAT_NAME } from '@shared/hand';
+import { CAT_NAME, Cat, type RuleMods } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
 import { DecodeText } from '@/components/fx/DecodeText';
@@ -15,6 +15,37 @@ import { CountUp } from '@/components/fx/CountUp';
 
 /** The sign belongs to the number: as a separate flex item it sat a gap away. */
 const plus = (n: number): string => `+${n.toLocaleString()}`;
+
+/**
+ * Why that is the hand it is.
+ *
+ * "My buddy had four cards to a straight and it never told me when he played
+ * it" — and he was right to be confused, because under The Ladder four cards
+ * in sequence IS a straight, and nothing on the screen said so. Every one of
+ * these rules is public and already listed in the Rules tab; this is the
+ * same information said at the moment it decides a pot.
+ */
+function whyThisHand(cat: number, mods: RuleMods, impossible: boolean): string | null {
+  const why: string[] = [];
+  const straightish = cat === Cat.Straight || cat === Cat.StraightFlush;
+  const flushish = cat === Cat.Flush || cat === Cat.StraightFlush
+    || cat === Cat.FlushHouse || cat === Cat.FlushFive;
+
+  if (straightish && mods.straightSize && mods.straightSize < 5) {
+    why.push(`a straight is ${mods.straightSize} cards here`);
+  }
+  if (straightish && mods.straightGap) why.push('straights may skip a rank');
+  if (straightish && mods.wheelWrap) why.push('the ace bridges both ends');
+  if (flushish && mods.flushSize && mods.flushSize < 5) {
+    why.push(`a flush is ${mods.flushSize} cards here`);
+  }
+  if (flushish && mods.mergedColors) why.push('two suits, not four');
+  if (mods.facesAreKings && cat >= Cat.Trips) why.push('jacks and queens read as kings');
+  if (mods.memoryBonus) why.push('cards score higher for pots they have won');
+  if (mods.lowWins) why.push('the worst hand wins');
+  if (impossible && why.length === 0) return null;
+  return why.length ? why.join(' · ') : null;
+}
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
@@ -92,7 +123,14 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
 
         <ul className="showdown-list">
           {shown.map((e, i) => (
-            <ShowdownRow key={e.playerId} e={e} i={i} nameOf={nameOf} shards={payout.shards[e.playerId]} />
+            <ShowdownRow
+              key={e.playerId}
+              e={e}
+              i={i}
+              nameOf={nameOf}
+              shards={payout.shards[e.playerId]}
+              why={whyThisHand(e.cat, view.activeMods ?? {}, !!e.impossible)}
+            />
           ))}
         </ul>
       </div>
@@ -114,9 +152,11 @@ interface ShowdownRowProps {
   i: number;
   nameOf: (id: string) => string;
   shards?: number;
+  /** The table rule that made this hand what it is, if one did. */
+  why?: string | null;
 }
 
-function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
+function ShowdownRow({ e, i, nameOf, shards, why }: ShowdownRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   useCardAnchors(rowRef, e.cards.map((c) => c.id));
   const reduced = useReducedMotionPref();
@@ -175,6 +215,7 @@ function ShowdownRow({ e, i, nameOf, shards }: ShowdownRowProps) {
         {e.echoName && e.timelineUsed !== 'echo' ? (
           <span className="showdown-alt">echo would have been {e.echoName}</span>
         ) : null}
+        {why ? <span className="showdown-why">{why}</span> : null}
       </div>
 
       {e.cards.length ? (

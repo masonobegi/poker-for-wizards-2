@@ -24,6 +24,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, StackEntry, TableView } from '@shared/types';
+import { faceName } from '@shared/cards';
 import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
@@ -59,11 +60,24 @@ function aimOf(e: StackEntry, view: TableView): string | null {
   if (t.rank) return RANKS[t.rank] ?? null;
   if (t.suit) return SUITS[t.suit] ?? null;
   if (t.cardIds?.length) {
+    /* Name the card, not its postcode.
+       "Sable casts → a community card" tells you a spell is coming for the
+       board and leaves you to work out which one while the clock runs. Every
+       card anyone can see has a face, and the one case where it does not —
+       somebody's face-down hole card — is the one case where "their card" is
+       the whole truth. */
     const where = t.cardIds.map((id) => {
-      if (view.board.some((c) => c.id === id)) return 'a community card';
+      const onBoard = view.board.find((c) => c.id === id);
+      if (onBoard) {
+        const pos = view.board.indexOf(onBoard) + 1;
+        return onBoard.face ? faceName(onBoard.face) : `community card ${pos}`;
+      }
       const owner = view.players.find((p) => p.hole?.some((c) => c.id === id));
       if (!owner) return 'a card';
-      return owner.isYou ? 'your card' : `${owner.name}’s card`;
+      const card = owner.hole?.find((c) => c.id === id);
+      const named = card?.face ? faceName(card.face) : null;
+      if (owner.isYou) return named ? `your ${named}` : 'one of your cards';
+      return named ? `${owner.name}’s ${named}` : `${owner.name}’s hole card`;
     });
     return [...new Set(where)].join(' and ');
   }
