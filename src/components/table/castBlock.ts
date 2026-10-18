@@ -80,6 +80,12 @@ export function blockLabel(block: CastBlock, timing: Timing[], phase: Phase): Bl
       return { short: 'Answered', long: 'You have already answered this spell.', kind: 'rule' };
     case 'out':
       return { short: 'Out of the hand', long: 'You are out of this hand.', kind: 'rule' };
+    case 'turn':
+      return {
+        short: 'On your turn',
+        long: 'A sigil is an action: cast it when the table is on you, the same window as a bet. Answering someone else\u2019s spell is the exception.',
+        kind: 'rule',
+      };
     case 'off':
       return { short: 'Magic is off', long: 'Magic is disabled at this table.', kind: 'rule' };
     case 'relic': {

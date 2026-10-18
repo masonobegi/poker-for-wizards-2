@@ -139,6 +139,8 @@ export default function GameTable() {
   const me = useMe();
   const { cast, leave } = useGame();
   const [targeting, setTargeting] = useState<Targeting | null>(null);
+  /** A targetless sigil waiting for a second click to confirm — see beginCast. */
+  const [armed, setArmed] = useState<string | null>(null);
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
   const [side, setSide] = useState<'log' | 'chat' | 'rules'>('log');
@@ -179,16 +181,62 @@ export default function GameTable() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  /*
+   * A sigil that needs no target used to fire on the first click.
+   *
+   * "You should more easily be able to back out of a spell if you
+   * accidentally click it" — and for a targeted one you can: the prompt has a
+   * Cancel, a click outside it, and now Escape. A targetless one had no step
+   * between brushing the card and the mana being gone. So the first click
+   * arms it and says so on the card, and the second commits. Escape, a click
+   * anywhere else, or six seconds of nothing puts it back down.
+   */
   const beginCast = useCallback((uid: string) => {
     const inst = me?.sigils?.find((s) => s.uid === uid);
     const def = inst ? defOf(inst) : undefined;
     if (!def) return;
     if (def.target === 'none' || def.target === 'stack') {
-      cast(uid, {});
+      if (armed === uid) { setArmed(null); cast(uid, {}); return; }
+      setArmed(uid);
       return;
     }
+    setArmed(null);
     setTargeting({ uid, def, picked: [] });
-  }, [me?.sigils, cast]);
+  }, [me?.sigils, cast, armed]);
+
+  /* Backing out, by every gesture a player would try. Escape cancels the
+     target prompt as well as an armed card — the system menu already stands
+     aside while `.prompt` is up (see shell/SystemMenu). */
+  useEffect(() => {
+    if (!armed && !targeting) return;
+    const key = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setArmed(null);
+      setTargeting(null);
+    };
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
+  }, [armed, targeting]);
+
+  useEffect(() => {
+    if (!armed) return;
+    const away = (e: PointerEvent): void => {
+      if (!(e.target as HTMLElement | null)?.closest?.('.sigil')) setArmed(null);
+    };
+    // Six seconds: long enough to decide, short enough that a card is never
+    // left armed into a street you did not mean it for.
+    const id = window.setTimeout(() => setArmed(null), 6000);
+    document.addEventListener('pointerdown', away, true);
+    return () => {
+      window.clearTimeout(id);
+      document.removeEventListener('pointerdown', away, true);
+    };
+  }, [armed]);
+
+  // Nothing stays armed across a hand, a street or a stack opening.
+  useEffect(() => { setArmed(null); }, [view?.phase, view?.handNumber, view?.stack]);
 
   const finishCast = useCallback((targets: SigilTargets) => {
     if (!targeting) return;
@@ -387,7 +435,8 @@ export default function GameTable() {
         pickedIds={targeting?.picked ?? []}
         onPickCard={pickCard}
         onBeginCast={beginCast}
-        onCancelCast={() => setTargeting(null)}
+        armedUid={armed}
+        onCancelCast={() => { setArmed(null); setTargeting(null); }}
       />
 
       <ActionBar view={view} me={me} blocked={!!targeting || !!view.stack} />

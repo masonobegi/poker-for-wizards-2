@@ -1,8 +1,8 @@
-import { memo, useEffect, useLayoutEffect, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import type { TableView } from '@shared/types';
-import { RANK_NAME, type CardView } from '@shared/cards';
+import { rankPlural, type CardView } from '@shared/cards';
 import { Card } from '@/components/card/Card';
 import { Tooltip } from '@/components/ui/kit';
 import { RollingNumber } from '@/components/fx/RollingNumber';
@@ -113,11 +113,26 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
           : view.phase === 'showdown' || view.phase === 'payout' ? 'Showdown'
             : '';
 
+  /*
+   * The same rule, once.
+   *
+   * A struck rank arrives twice: the server writes "Queens are unmade" into
+   * `modNotes` when the sigil resolves, and `activeMods.deadRanks` carries it
+   * as structured state for as long as it holds. Both were rendered, so the
+   * felt read "QUEENS ARE UNMADE · THREES ARE UNMADE · QUEENS UNMADE ·
+   * THREES UNMADE". The structured one wins — it is the one that disappears
+   * when the rule does — and any note that says the same thing is dropped.
+   */
+  const notes = useMemo(() => {
+    const dead = new Set((view.activeMods.deadRanks ?? []).map((r) => `${rankPlural(r)} unmade`.toLowerCase()));
+    return view.modNotes.filter((n) => !dead.has(n.toLowerCase().replace(/\bare\s+/, '')));
+  }, [view.modNotes, view.activeMods.deadRanks]);
+
   return (
     <div className="board">
       <div className="board-mods">
         <AnimatePresence>
-          {view.modNotes.map((n) => (
+          {notes.map((n) => (
             <motion.span
               key={n}
               className="board-mod"
@@ -138,7 +153,7 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
               exit={{ opacity: 0 }}
               layout
             >
-              {RANK_NAME[r]}s unmade
+              {rankPlural(r)} unmade
             </motion.span>
           ))}
         </AnimatePresence>

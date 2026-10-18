@@ -24,6 +24,23 @@ import { Rng } from '../shared/rng';
 import { SIGILS } from '../shared/sigils';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
 
+/**
+ * Cast on the caster's own turn.
+ *
+ * A sigil is an action and actions happen on your turn (see `castBlock`'s
+ * `turn` rule), so a fixture that casts has to say whose turn it is. These
+ * tests are about what a sigil does once it is cast, not about turn order —
+ * that is `test/rotation.test.ts` — so the table is simply put on whoever is
+ * casting. Responses are exempt from the rule and unaffected by this.
+ */
+function castOnTurn(
+  ctx: MagicCtx, p: Player, uid: string, targets: Parameters<typeof castSigil>[3],
+): ReturnType<typeof castSigil> {
+  ctx.t.actingId = p.id;
+  return castSigil(ctx, p, uid, targets);
+}
+
+
 // ---------------------------------------------------------------- helpers
 
 const c = (rank: Rank, suit: Suit, patch: Partial<CardEntity> = {}): CardEntity => makeCard(rank, suit, patch);
@@ -196,13 +213,13 @@ test('Twice-Told: the first sigil of the hand resolves twice, the second once', 
   hero.mana = 9;
   hero.castsThisHand = 0;
   const ctx = ctxOf(t);
-  assert.ok(castSigil(ctx, hero, give(hero, 'second_wind'), {}).ok);
+  assert.ok(castOnTurn(ctx, hero, give(hero, 'second_wind'), {}).ok);
   assert.equal(t.stack!.entries[0].twice, true);
   t.stack!.pending = [];
   resolveStack(ctx);
   assert.equal(hero.sigils.length, 4, 'Second Wind twice draws four');
   hero.sigils = [];
-  assert.ok(castSigil(ctx, hero, give(hero, 'second_wind'), {}).ok);
+  assert.ok(castOnTurn(ctx, hero, give(hero, 'second_wind'), {}).ok);
   assert.equal(t.stack!.entries[0].twice, undefined);
 });
 
@@ -218,8 +235,8 @@ test('the Magpie: countering a sigil brings it to your hand', () => {
   foe.mana = 9;
   const ctx = ctxOf(t);
   const counter = give(hero, 'nullify');
-  assert.ok(castSigil(ctx, foe, give(foe, 'second_wind'), {}).ok);
-  assert.ok(castSigil(ctx, hero, counter, {}).ok);
+  assert.ok(castOnTurn(ctx, foe, give(foe, 'second_wind'), {}).ok);
+  assert.ok(castOnTurn(ctx, hero, counter, {}).ok);
   t.stack!.pending = [];
   resolveStack(ctx);
   assert.deepEqual(hero.sigils.map((s) => s.defId), ['second_wind']);
@@ -238,7 +255,7 @@ test('Vow of Silence: nobody may answer, and its owner answers nothing', () => {
   foe.mana = 9;
   give(foe, 'nullify');
   const ctx = ctxOf(t);
-  assert.ok(castSigil(ctx, hero, give(hero, 'second_wind'), {}).ok);
+  assert.ok(castOnTurn(ctx, hero, give(hero, 'second_wind'), {}).ok);
   assert.deepEqual(t.stack!.pending, [], 'a vowed sigil opens no response window');
   resolveStack(ctx);
   const counter = give(hero, 'nullify');
@@ -254,10 +271,10 @@ test('the Sanctum: it cannot be named, and it names nobody', () => {
   hero.sigils = [];
   hero.mana = 9;
   const ctx = ctxOf(t);
-  const hex = castSigil(ctx, hero, give(hero, 'hex'), { playerId: foe.id });
+  const hex = castOnTurn(ctx, hero, give(hero, 'hex'), { playerId: foe.id });
   assert.equal(hex.ok, false);
   assert.match(hex.error ?? '', /Sanctum/);
-  const touch = castSigil(ctx, hero, give(hero, 'superpose'), { cardIds: [foe.hole[0]] });
+  const touch = castOnTurn(ctx, hero, give(hero, 'superpose'), { cardIds: [foe.hole[0]] });
   assert.equal(touch.ok, false, 'a Sanctum holder\'s hole card is out of reach');
   hero.relics = ['sanctum'];
   const read = hero.sigils.find((s) => s.defId === 'hex')!;
@@ -275,7 +292,7 @@ test('the Blood Price: mana short is paid in chips, a big blind a mana, never th
   const ctx = ctxOf(t);
   const uid = give(hero, 'second_wind');
   assert.equal(castBlock(t, hero, hero.sigils[0]), null);
-  assert.ok(castSigil(ctx, hero, uid, {}).ok);
+  assert.ok(castOnTurn(ctx, hero, uid, {}).ok);
   assert.equal(hero.chips, 5000 - 2 * t.bb);
   // A stack that would have to bleed its last chip cannot.
   hero.mana = 0;
@@ -435,7 +452,7 @@ test('Salt: a card the Ashen burn takes its rank from every hand', () => {
   hero.mana = 9;
   t.board = [place(t, c(13, 'S')), place(t, c(5, 'H')), place(t, c(8, 'D'))];
   const ctx = ctxOf(t);
-  assert.ok(castSigil(ctx, hero, give(hero, 'burn'), { cardIds: [t.board[0]] }).ok);
+  assert.ok(castOnTurn(ctx, hero, give(hero, 'burn'), { cardIds: [t.board[0]] }).ok);
   t.stack!.pending = [];
   resolveStack(ctx);
   assert.deepEqual(t.mods.deadRanks, [13]);

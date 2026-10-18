@@ -31,6 +31,12 @@ export interface SigilCardProps {
    */
   lock?: BlockLabel | null;
   selected?: boolean;
+  /**
+   * Clicked once and waiting for a second click to actually cast it. Only a
+   * sigil that needs no target is ever armed — a targeted one opens the
+   * prompt instead, which has its own Cancel. See GameTable's `beginCast`.
+   */
+  armed?: boolean;
   onCast?: (uid: string) => void;
   onDiscard?: (uid: string) => void;
   index?: number;
@@ -43,7 +49,7 @@ export interface SigilCardProps {
  * given refs" error on every re-render of the sigil hand.
  */
 const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilCardBase({
-  inst, castable, cost, affordable, lock, selected, onCast, onDiscard, index = 0, compact,
+  inst, castable, cost, affordable, lock, selected, armed, onCast, onDiscard, index = 0, compact,
 }: SigilCardProps, ref) {
   const def = defOf(inst);
   const written = inst.scribed;
@@ -92,6 +98,7 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         usable ? 'is-castable' : 'is-locked',
         why?.kind === 'mana' ? 'is-short' : '',
         selected ? 'is-selected' : '',
+        armed ? 'is-armed' : '',
         compact ? 'is-compact' : '',
         written ? 'is-written' : '',
       ].filter(Boolean).join(' ')}
@@ -180,7 +187,11 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
 
       {/* Outside the frame, because the frame is what gets greyed: a reason
           printed inside it would be dimmed along with the card it explains. */}
-      {why ? (
+      {/* An armed card says what the next click will do, in place of the
+          reason it cannot be cast — it plainly can, that is the point. */}
+      {armed ? (
+        <span className="sigil-lock sigil-lock--armed">Click again to cast · Esc</span>
+      ) : why ? (
         <span className={`sigil-lock sigil-lock--${why.kind}`} aria-hidden>
           {why.short}
         </span>

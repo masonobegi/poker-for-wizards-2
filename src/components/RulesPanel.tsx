@@ -68,14 +68,30 @@ function tableRules(view: TableView): Rule[] {
     out.push({ key: `note:${note}`, from: 'This hand', title: note, text: 'Cast at this table this hand.' });
   }
 
-  if (view.config.hex > 1) {
-    out.push({
-      key: 'hex',
-      from: 'Difficulty',
-      title: `Hex ${'I'.repeat(Math.min(view.config.hex - 1, 5))}`,
-      text: 'The run is being played a step harder: the bots play their rules sooner and the blinds climb faster.',
-    });
-  }
+  /*
+   * What a hex is, said on the table rather than only on the menu.
+   *
+   * "Hex needs more of a definition." It had one sentence, on the screen
+   * where you pick it, and nowhere a player mid-run would look — and the word
+   * is on the front of the game, on the difficulty ladder and in the ledger,
+   * which is three meanings to hold at once. So the definition lives here,
+   * where every other rule in force is listed, and it is here at Hex I too:
+   * the question "what is a hex" does not wait for Hex II.
+   */
+  const hex = Math.max(1, view.config.hex);
+  out.push({
+    key: 'hex',
+    from: 'This run',
+    title: `Hex ${'I'.repeat(Math.min(hex, 5))}`,
+    text: 'A hex is how hard this run is, chosen before the first hand and fixed for all of it. '
+      + 'Hex I is the ordinary table. Each step above it adds one permanent rule against you — '
+      + 'opponents who start with a relic, an omen in force before the first card, a dearer Market, '
+      + 'faster blinds — and every step keeps the ones below it. Win at one to open the next. '
+      + (hex > 1
+        ? `You are playing ${hex - 1} step${hex === 2 ? '' : 's'} above the ordinary table.`
+        : 'This run is the ordinary table.'),
+    tone: hex > 1 ? 'bad' : undefined,
+  });
 
   return out;
 }

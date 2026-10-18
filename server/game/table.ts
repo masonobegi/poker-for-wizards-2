@@ -467,6 +467,31 @@ export function castBlock(t: Table, p: Player, inst: SigilInstance): CastBlock |
   // The Blood Price pays for a sigil on its owner's turn, never a response:
   // a response window opens only for those who can already pay.
   if (p.mana < need && (isResponse || bloodOwed(t, p, need) === null)) return { why: 'mana', need };
+
+  /*
+   * A sigil is an action, and actions happen on your turn.
+   *
+   * "I shouldn't be able to just play spells at any time." Anyone could cast
+   * at any moment of any street, which made the betting order meaningless for
+   * half the game and handed the last word to whoever clicked fastest. A cast
+   * now happens in the same window as a bet — and the turn reaches an all-in
+   * player too (see the rotation in engine.ts), which is the other half of the
+   * same report.
+   *
+   * Checked last, against the grain of the rest of this function. Every other
+   * reason is a property of the sigil or the table and is worth printing on
+   * the card; this one is true of every card in the hand between your turns,
+   * and reporting it first turned the whole hand into a wall of "on your
+   * turn" that hid the mana and timing a player is actually planning around.
+   *
+   * Responses are exempt: answering a spell is the one thing that must happen
+   * out of turn. `!t.stack` is what carves them out — a response is only ever
+   * legal while a stack is open, and the branch above has already gated it to
+   * the players that window is open for. Without this the answer window was
+   * open and every Nullify in it was refused for not being its holder's turn,
+   * which is the one moment it is supposed to be.
+   */
+  if (!t.stack && isStreet(t.phase) && t.actingId !== p.id) return { why: 'turn' };
   return null;
 }
 
@@ -500,6 +525,7 @@ export function canCast(t: Table, p: Player, inst: SigilInstance): CastCheck {
     case 'responded': return { ok: false, reason: 'You have already responded' };
     case 'response': return { ok: false, reason: 'Nothing is being cast' };
     case 'timing': return { ok: false, reason: `Cannot be cast during ${phaseLabel(t.phase)}` };
+    case 'turn': return { ok: false, reason: 'Wait for your turn' };
     case 'mana': return { ok: false, reason: 'Not enough mana' };
     case 'relic': return { ok: false, reason: `Your ${RELIC_BY_ID[block.relic]?.name ?? 'relic'} forbids it` };
   }

@@ -678,7 +678,7 @@ export class Engine {
     this.fx.push({ t: 'chips', playerId: sbPlayer.id, amount: t.sb });
     this.fx.push({ t: 'chips', playerId: bbPlayer.id, amount: t.bb });
 
-    const first = nextSeat(t, bbPlayer.seat, (p) => !p.folded && !p.allIn && !p.eliminated);
+    const first = nextSeat(t, bbPlayer.seat, (p) => !p.folded && !p.eliminated);
     t.actingId = first?.id ?? null;
   }
 
@@ -700,7 +700,7 @@ export class Engine {
       t.minRaise = t.bb;
       t.lastAggressorId = null;
       for (const p of t.players) { t.pot += p.bet; p.bet = 0; }
-      const firstToAct = nextSeat(t, t.dealerSeat, (p) => !p.folded && !p.allIn && !p.eliminated);
+      const firstToAct = nextSeat(t, t.dealerSeat, (p) => !p.folded && !p.eliminated);
       t.actingId = firstToAct?.id ?? null;
     }
     t.actedThisStreet = new Set();
@@ -1500,6 +1500,19 @@ export class Engine {
     let kind = action.kind;
     let amount = action.amount ?? 0;
 
+    /* An all-in player is at the table to cast, not to bet: every chip they
+       had is already in. Pass is the only move, and it is always legal — the
+       bet they cannot match is not theirs to match. */
+    if (p.allIn) {
+      if (kind !== 'check' && kind !== 'fold') return { ok: false, error: 'You are all in — you can only pass' };
+      kind = 'check';
+      this.clearWait();
+      t.actedThisStreet.add(p.id);
+      p.lastAction = { kind: 'check', amount: 0, at: Date.now() };
+      this.afterAction();
+      return { ok: true };
+    }
+
     if (kind === 'check' && toCall > 0) return { ok: false, error: 'You cannot check' };
     if (kind === 'call' && toCall === 0) kind = 'check';
     if (kind === 'allin') { amount = p.chips + p.bet; kind = toCall > 0 ? 'raise' : 'bet'; }
@@ -1608,6 +1621,10 @@ export class Engine {
     const t = this.table;
     if (live(t).length <= 1) return true;
     const canAct = actable(t);
+    /* Matching the bet is still only asked of players who have chips to match
+       it with. Having had a turn is asked of everyone still in the hand,
+       because an all-in player's turn is their one chance to cast. */
+    if (!live(t).every((p) => t.actedThisStreet.has(p.id))) return false;
     if (canAct.length === 0) return true;
     return canAct.every((p) => t.actedThisStreet.has(p.id) && p.bet === t.currentBet);
   }
@@ -1640,7 +1657,19 @@ export class Engine {
     }
 
     const current = byId(t, t.actingId);
-    const next = nextSeat(t, current?.seat ?? t.dealerSeat, (p) => !p.folded && !p.allIn && !p.eliminated);
+    /*
+     * All in, and still at the table.
+     *
+     * "When I'm all in the turn should still come to me in case I play
+     * spells." It used to skip them outright, which was right when the only
+     * thing a turn was for was betting — and wrong here, because a sigil
+     * costs mana rather than chips and a player with no chips left may still
+     * have the hand-changing card. They have nothing to call with, so the
+     * only action they are offered is to pass (`applyAction` rejects the
+     * rest); `roundComplete` waits for that pass, and `actable` still decides
+     * who has to match the bet, so the betting logic is untouched.
+     */
+    const next = nextSeat(t, current?.seat ?? t.dealerSeat, (p) => !p.folded && !p.eliminated);
     if (!next) {
       this.standDown();
       this.flush();

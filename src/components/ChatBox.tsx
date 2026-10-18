@@ -17,9 +17,24 @@ export default function ChatBox({ className = '', compact }: {
   const [text, setText] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
+  /** Follow the chat only while the reader is already at the bottom — the
+      same rule as the ledger (see LogPanel), and for the same reason. */
+  const pinned = useRef(true);
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    const onScroll = (): void => {
+      pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || !pinned.current) return;
+    const id = requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+    return () => cancelAnimationFrame(id);
   }, [chat.length]);
 
   const send = () => {

@@ -26,6 +26,8 @@ export interface RailProps {
   pickedIds: string[];
   onPickCard: (id: string) => void;
   onBeginCast: (uid: string) => void;
+  /** A targetless sigil armed and waiting for a second click to confirm. */
+  armedUid?: string | null;
   onCancelCast: () => void;
 }
 
@@ -51,7 +53,7 @@ function immediateFlightTarget(): Element | Vec2 {
 }
 
 function RailBase({
-  view, me, targeting, targetableHole, pickedIds, onPickCard, onBeginCast,
+  view, me, targeting, targetableHole, pickedIds, onPickCard, onBeginCast, armedUid,
 }: RailProps) {
   const discardSigil = useGame((s) => s.discardSigil);
   const castable = new Set(view.castable);
@@ -267,6 +269,7 @@ function RailBase({
                 affordable={block ? block.why !== 'mana' && me.mana >= cost : me.mana >= cost}
                 lock={block && def ? blockLabel(block, def.timing, view.phase) : null}
                 selected={targeting?.uid === s.uid}
+                armed={armedUid === s.uid}
                 onCast={handleBeginCast}
                 onDiscard={sigils.length > 1 ? discardSigil : undefined}
               />

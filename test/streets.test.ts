@@ -85,9 +85,25 @@ test('a sigil cast in the beat between streets does not eat the next betting rou
   assert.ok(ix.interrupted, 'the beat before the turn\'s betting round is armed');
   const boardOnTurn = t.board.length;
 
-  // The cast lands inside that beat, which is the whole bug.
+  /*
+   * The cast lands inside that beat, which is the whole bug.
+   *
+   * A sigil is now cast on its owner's turn, and in this beat nobody is on
+   * the clock — so the route that caused the original bug is closed twice
+   * over, and the refusal is worth asserting on its own.
+   */
+  assert.equal(e.cast(hero.id, uid, {}).error, 'Wait for your turn',
+    'a cast in the gap between streets is not a legal action');
+
+  /* What is under test is the scheduler, not the turn rule: the owed beat
+     must survive a cast that happens while it is armed. So the hero is put
+     back on the clock and casts legally into the same beat. */
+  t.actingId = hero.id;
   const r = e.cast(hero.id, uid, {});
   assert.ok(r.ok, r.error);
+  /* Back off the clock, which is where the beat left it: the loop below
+     waits for the betting round to put somebody back on. */
+  t.actingId = null;
 
   // Settle the stack and run whatever it hands back, to a fixed point.
   for (let i = 0; i < 8 && fire(ix); i++) {
@@ -130,11 +146,13 @@ test('every street from the flop on gets a round of its own', () => {
     ix.advanceStreet();
     assert.equal(t.phase, expected);
 
-    // Cast into the beat every time.
+    // Cast into the beat every time, on the clock (castBlock's `turn` rule).
     hero.sigils = [{ uid, defId }];
     hero.mana = 5;
+    t.actingId = hero.id;
     const r = e.cast(hero.id, uid, {});
     assert.ok(r.ok, r.error);
+    t.actingId = null;
     for (let i = 0; i < 8 && fire(ix); i++) if (t.actingId) break;
 
     assert.ok(t.actingId, `${expected} got a betting round`);

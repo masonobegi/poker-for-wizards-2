@@ -103,6 +103,9 @@ function inscriptions(ante: number): Map<string, number> {
       t.phase = 'flop';
       t.pot = 1000;
       t.ante = ante;
+      // A bot only considers a sigil on its own turn (castBlock's `turn`
+      // rule), which is the only moment the engine ever asks it.
+      t.actingId = a.id;
       const cast = decideCast(t, a, new Rng(`ic:${i}`));
       if (cast?.targets.markId) marks.set(cast.targets.markId, (marks.get(cast.targets.markId) ?? 0) + 1);
     }

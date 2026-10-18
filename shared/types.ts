@@ -37,6 +37,7 @@ export type CastBlock =
   | { why: 'responded' }  // already answered this response window
   | { why: 'response' }   // a response, and nothing is being cast
   | { why: 'timing' }     // not castable on this street; see the def's timing
+  | { why: 'turn' }       // not your turn; a sigil is an action like any other
   | { why: 'mana'; need: number }
   /** A relic or coven creed the caster owns forbids it (Vow of Silence, the Sanctum). */
   | { why: 'relic'; relic: string };

@@ -704,9 +704,13 @@ test('a real counter, by the player or by a bot, slams COUNTERED onto the spell 
   try {
     // 1. The player answers a bot's Hex with Nullify.
     {
-      const { e, hero, bot, views, ix } = game('counter:player');
+      const { e, t, hero, bot, views, ix } = game('counter:player');
       bot.sigils = [{ uid: 'hx', defId: 'hex' }];
       hero.sigils = [{ uid: 'nf', defId: 'nullify' }];
+      /* The opening cast is an action, so the table is on whoever makes it
+         (castBlock's `turn` rule). The Nullify that answers it is a response
+         and is exempt — that is what a response window is for. */
+      t.actingId = bot.id;
       assert.ok(e.cast(bot.id, 'hx', { playerId: hero.id }).ok);
       assert.ok(e.cast(hero.id, 'nf', {}).ok);
       ix.tick(); // nobody can answer the Nullify: the stack resolves
@@ -727,6 +731,7 @@ test('a real counter, by the player or by a bot, slams COUNTERED onto the spell 
       const { e, t, hero, bot, views, ix } = game(`counter:bot:${s}`);
       hero.sigils = [{ uid: 'hx', defId: 'hex' }];
       bot.sigils = [{ uid: 'nf', defId: 'nullify' }];
+      t.actingId = hero.id;
       assert.ok(e.cast(hero.id, 'hx', { playerId: bot.id }).ok);
       ix.botClock.clear(); // its thinking time is up
       ix.tick();

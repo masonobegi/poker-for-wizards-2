@@ -6,13 +6,30 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { castSigil, resolveStack } from '../server/game/magic';
+import { castSigil, resolveStack, type MagicCtx } from '../server/game/magic';
 import { createTable } from '../server/game/table';
 import { rosterFor, scribe } from '../server/game/shop';
 import { readSpell } from '../shared/scribe';
 import { SCRIBED_ID } from '../shared/sigils';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
+
+/**
+ * Cast on the caster's own turn.
+ *
+ * A sigil is an action and actions happen on your turn (see `castBlock`'s
+ * `turn` rule), so a fixture that casts has to say whose turn it is. These
+ * tests are about what a sigil does once it is cast, not about turn order —
+ * that is `test/rotation.test.ts` — so the table is simply put on whoever is
+ * casting. Responses are exempt from the rule and unaffected by this.
+ */
+function castOnTurn(
+  ctx: MagicCtx, p: Player, uid: string, targets: Parameters<typeof castSigil>[3],
+): ReturnType<typeof castSigil> {
+  ctx.t.actingId = p.id;
+  return castSigil(ctx, p, uid, targets);
+}
+
 
 function seat(t: Table, id: string, chips: number): Player {
   const p = {
@@ -47,7 +64,7 @@ function castWords(t: Table, hero: Player, words: string): void {
   assert.ok(r.ok, r.error);
   hero.sigils.push({ uid: 'w', defId: SCRIBED_ID, scribed: r.spell });
   const ctx = { t, rng: new Rng('cast'), fx: [] };
-  const cast = castSigil(ctx, hero, 'w', {});
+  const cast = castOnTurn(ctx, hero, 'w', {});
   assert.ok(cast.ok, cast.error);
   assert.equal(hero.mana, 10 - r.spell!.cost, 'the written cost is what is paid');
   resolveStack(ctx);

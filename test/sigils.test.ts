@@ -11,12 +11,29 @@ import { nanoid } from 'nanoid';
 import { Rng } from '../shared/rng';
 import { SIGILS, SIGIL_BY_ID, type SigilDef } from '../shared/sigils';
 import { isQuantum } from '../shared/cards';
-import type { Table } from '../shared/types';
+import type { Player, Table } from '../shared/types';
 import { canCast, castBlock, createPlayer, createTable, live, viewFor } from '../server/game/table';
 import { blockLabel, windowLabel } from '../src/components/table/castBlock';
 import {
   castSigil, clearHandMagic, drawId, resolveStack, type MagicCtx,
 } from '../server/game/magic';
+
+/**
+ * Cast on the caster's own turn.
+ *
+ * A sigil is an action and actions happen on your turn (see `castBlock`'s
+ * `turn` rule), so a fixture that casts has to say whose turn it is. These
+ * tests are about what a sigil does once it is cast, not about turn order —
+ * that is `test/rotation.test.ts` — so the table is simply put on whoever is
+ * casting. Responses are exempt from the rule and unaffected by this.
+ */
+function castOnTurn(
+  ctx: MagicCtx, p: Player, uid: string, targets: Parameters<typeof castSigil>[3],
+): ReturnType<typeof castSigil> {
+  ctx.t.actingId = p.id;
+  return castSigil(ctx, p, uid, targets);
+}
+
 
 function freshTable(): { t: Table; ctx: MagicCtx } {
   const t = createTable('TEST', 'a', {
@@ -34,6 +51,9 @@ function freshTable(): { t: Table; ctx: MagicCtx } {
 
   t.deck = rng.shuffle([...t.cards.keys()]);
   t.phase = 'flop';
+  /* A sigil is cast on its caster's turn (castBlock's `turn` rule), so the
+     fixture puts the table on the player these tests cast as. */
+  t.actingId = t.players[0].id;
 
   for (const p of t.players) {
     for (let i = 0; i < 2; i++) {
@@ -77,7 +97,7 @@ for (const def of SIGILS) {
       me.sigils.push({ uid, defId: def.id });
       const victim = t.players[1];
       victim.sigils.push({ uid: 'bait', defId: 'second_sight' });
-      const bait = castSigil(ctx, victim, 'bait', {});
+      const bait = castOnTurn(ctx, victim, 'bait', {});
       assert.ok(bait.ok, `could not stage a sigil for ${def.name} to answer: ${bait.error}`);
       assert.ok(
         t.stack?.pending.includes(me.id),
@@ -93,7 +113,7 @@ for (const def of SIGILS) {
 
     if (!def.timing.includes('response')) me.sigils.push({ uid, defId: def.id });
 
-    const res = castSigil(ctx, me, uid, targetsFor(t, def));
+    const res = castOnTurn(ctx, me, uid, targetsFor(t, def));
     assert.ok(res.ok, `${def.name} could not be cast: ${res.error}`);
 
     assert.doesNotThrow(() => resolveStack(ctx), `${def.name} threw while resolving`);
@@ -134,7 +154,7 @@ function cast(t: Table, ctx: MagicCtx, id: string, targets: Record<string, unkno
   const me = t.players[0];
   const uid = nanoid(8);
   me.sigils.push({ uid, defId: id });
-  const res = castSigil(ctx, me, uid, targets as never);
+  const res = castOnTurn(ctx, me, uid, targets as never);
   assert.ok(res.ok, `${id} could not be cast: ${res.error}`);
   resolveStack(ctx);
   return me;
@@ -226,7 +246,7 @@ test('the hand teardown clears every temporary effect', () => {
     if (!def) continue;
     const uid = nanoid(8);
     me.sigils.push({ uid, defId: id });
-    const r = castSigil(ctx, me, uid, targetsFor(t, def));
+    const r = castOnTurn(ctx, me, uid, targetsFor(t, def));
     if (r.ok) resolveStack(ctx);
   }
 
@@ -256,9 +276,9 @@ test('Nullify actually stops the sigil underneath it', () => {
   answerer.sigils.push({ uid: 'no', defId: 'nullify' });
 
   caster.sigils.push({ uid: 'spell', defId: 'unmake' });
-  assert.ok(castSigil(ctx, caster, 'spell', { rank: 13 }).ok);
+  assert.ok(castOnTurn(ctx, caster, 'spell', { rank: 13 }).ok);
 
-  const answered = castSigil(ctx, answerer, 'no', {});
+  const answered = castOnTurn(ctx, answerer, 'no', {});
   assert.ok(answered.ok, answered.error);
 
   resolveStack(ctx);
@@ -271,7 +291,7 @@ test('a sigil cannot be cast without the mana for it', () => {
   const me = t.players[0];
   me.mana = 0;
   me.sigils.push({ uid: 'x', defId: 'rewind' });
-  const r = castSigil(ctx, me, 'x', {});
+  const r = castOnTurn(ctx, me, 'x', {});
   assert.equal(r.ok, false);
   assert.match(r.error ?? '', /mana/i);
 });
@@ -334,7 +354,7 @@ test('a warded player cannot be targeted', () => {
   const them = t.players[1];
   them.warded = true;
   me.sigils.push({ uid: 'x', defId: 'larceny' });
-  const r = castSigil(ctx, me, 'x', { playerId: them.id });
+  const r = castOnTurn(ctx, me, 'x', { playerId: them.id });
   assert.equal(r.ok, false);
   assert.match(r.error ?? '', /warded/i);
 });
@@ -344,7 +364,7 @@ test('Burn shortens the board and the hand still scores', () => {
   const me = t.players[0];
   const before = t.board.length;
   me.sigils.push({ uid: 'b', defId: 'burn' });
-  assert.ok(castSigil(ctx, me, 'b', { cardIds: [t.board[1]] }).ok);
+  assert.ok(castOnTurn(ctx, me, 'b', { cardIds: [t.board[1]] }).ok);
   resolveStack(ctx);
   assert.equal(t.board.length, before - 1);
   assert.equal(t.burnedSlots.length, 1);
@@ -377,14 +397,14 @@ function stackOf(ids: string[]) {
   const opener = t.players[0];
   const openUid = nanoid(8);
   opener.sigils.push({ uid: openUid, defId: ids[0] });
-  const first = castSigil(ctx, opener, openUid, {} as never);
+  const first = castOnTurn(ctx, opener, openUid, {} as never);
   assert.ok(first.ok, `${ids[0]} could not be cast: ${first.error}`);
 
   // Each answer comes from a different player; one seat may answer only once.
   ids.slice(1).forEach((id, i) => {
     const p = t.players[(i + 1) % t.players.length];
     const uid = uids[(i + 1) % t.players.length][i];
-    const res = castSigil(ctx, p, uid, {} as never);
+    const res = castOnTurn(ctx, p, uid, {} as never);
     assert.ok(res.ok, `${id} (answer ${i + 1}) could not be cast: ${res.error}`);
   });
   return { t, ctx };

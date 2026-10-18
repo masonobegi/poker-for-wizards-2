@@ -369,9 +369,11 @@ export default function Menu() {
                       and it is also the name of a thing that happens to you
                       mid-hand. One of the two needed a sentence. */}
                   <p className="menu-hexnote">
-                    A hex is how hard the run is. Hex I is the ordinary table; each one
-                    above it adds a rule against you, and they stack. Win at one to open
-                    the next.
+                    A hex is how hard this run will be, chosen now and fixed for the whole
+                    of it. Hex I is the ordinary table. Each step above it adds one
+                    permanent rule against you — and keeps every rule below it. Win at one
+                    to open the next. (It is also the name of the game, and of a sigil that
+                    scores a hand lower; this ladder is the one you choose.)
                   </p>
                 </>
               )}
