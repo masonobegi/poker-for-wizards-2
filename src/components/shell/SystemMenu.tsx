@@ -26,7 +26,12 @@ type MenuView = 'menu' | 'settings';
 function anotherOverlayIsOpen(): boolean {
   return !!document.querySelector('.scrim')
     || !!document.querySelector('.prompt')
-    || !!document.querySelector('.tbl-targethint');
+    || !!document.querySelector('.tbl-targethint')
+    // A pinned omen or the open deck are reading panels the player opened on
+    // purpose; Escape belongs to whichever of those is up, not to the pause
+    // menu. Each also closes itself on Escape, so the key does one thing.
+    || !!document.querySelector('.omen-tip')
+    || !!document.querySelector('.deck-panel');
 }
 
 function isTypingTarget(el: EventTarget | null): el is HTMLElement {

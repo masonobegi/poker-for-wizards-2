@@ -128,25 +128,6 @@ function RailBase({
           <span className="rail-chips mono">
             <RollingNumber value={me.chips} spring={{ stiffness: 260, damping: 24, mass: 1 }} />
           </span>
-          {/* What you have put in. The pot is on the felt and every other
-              seat's bet is a chip in front of it; your own was the one number
-              on this table you could not see, which is the number you are
-              deciding about. */}
-          {me.bet > 0 || me.committed > 0 ? (
-            <Tooltip body={(
-              <>
-                <strong>Your bet</strong><br />
-                {me.bet.toLocaleString()} in front of you on this street.<br />
-                {me.committed.toLocaleString()} in the pot from you this hand.
-              </>
-            )}>
-              <span className="rail-bet mono">
-                <span className="rail-bet__chip" aria-hidden />
-                {me.bet.toLocaleString()}
-                {me.committed > me.bet ? <em className="rail-bet__total"> / {me.committed.toLocaleString()}</em> : null}
-              </span>
-            </Tooltip>
-          ) : null}
         </div>
 
         <div className="rail-resources">
@@ -186,6 +167,34 @@ function RailBase({
       </div>
 
       <div className="rail-hole" ref={holeRef}>
+        {/*
+          Your bet, in front of your cards.
+
+          It used to live up beside your stack, and it was reported missing
+          twice — "I can see the pot but I can't see what I'm betting", then
+          "I still can't see how much I'm betting" after it had been added.
+          Both times in the same breath as "I want my cards out in front of
+          me, not down in the corner", which is the explanation: the number
+          was in the corner the player had already said they were not looking
+          at. Every other seat draws its bet as a chip in front of it. So does
+          this one now, and it travels with the cards.
+        */}
+        {me.bet > 0 || me.committed > 0 ? (
+          <Tooltip body={(
+            <>
+              <strong>Your bet</strong><br />
+              {me.bet.toLocaleString()} in front of you on this street.<br />
+              {me.committed.toLocaleString()} in the pot from you this hand.
+            </>
+          )}>
+            <span className="rail-bet mono">
+              <span className="rail-bet__chip" aria-hidden />
+              {me.bet.toLocaleString()}
+              {me.committed > me.bet ? <em className="rail-bet__total"> / {me.committed.toLocaleString()}</em> : null}
+            </span>
+          </Tooltip>
+        ) : null}
+
         <CardRow
           dealFromDeck
           views={me.hole}

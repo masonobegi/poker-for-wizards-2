@@ -13,6 +13,16 @@
 
 .tbl-top {
   display: grid;
+  /* Above the spell overlay's scrim.
+   *
+   * `.stackview` is a full-screen fixed layer at z 70, and its scrim covered
+   * this bar — so while a sigil was resolving the omen chips were lit, legible
+   * through a 30% wash, and completely unclickable, which is a third way for
+   * "you can't click the omens" to be true. The rules in force are exactly
+   * what a player wants to check while deciding whether to answer a spell, so
+   * the bar stays live. It cannot collide with the panel itself: that is 72px
+   * further down and off to the right. */
+  position: relative;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-rows: auto;
   /* Anything unexpected is clipped rather than allowed to push a second row
@@ -34,7 +44,12 @@
      71px starts at y=19.5. */
   box-shadow: inset 0 -2px 0 var(--line-soft);
   background: var(--abyss);
-  z-index: var(--z-ui);
+  /* Was --z-ui (40), under the spell overlay at 70. See the note at the top
+     of this rule: the omen chips have to stay reachable while a sigil is
+     resolving, which is when a player most wants to re-read the rules. Still
+     under --z-modal (80), so the Market and the real modals cover it — and
+     the Market carries its own copy of the rules panel for that reason. */
+  z-index: 75;
 }
 .tbl-top-l { display: flex; align-items: center; gap: var(--s-3); }
 .tbl-top-r { display: flex; align-items: center; gap: 4px; justify-self: end; min-width: 0; }
@@ -796,7 +811,11 @@
   top: -12px;
   width: 44px; height: 44px;
   pointer-events: none;
-  z-index: 5;
+  /* Above the seat's own cards, which sit in the row directly over this
+     corner and were painting across the dial on 82 of 122 samples: a card
+     wrapper picks up its own stacking context while it animates, and z-index
+     5 lost to it. Nothing else in a seat goes above 10. */
+  z-index: 20;
 }
 
 /* --- turn timer (shared by Seat's opponent ring and ActionBar's own) ---- */
@@ -1600,15 +1619,25 @@
   gap: 4px;
   flex-wrap: wrap;
   max-width: 100%;
+  /* "Bottom left perks need to be bigger and I was told sometimes they run
+     off the screen." Bigger below; this is the second half. Wrapping alone
+     does not stop them running off — it turns an overflowing row into extra
+     rows, which grow the rail and push the bottom one out of the window. Two
+     rows' worth, then it scrolls, so the block's height is fixed whatever a
+     run collects. */
+  max-height: 88px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .rail-relic {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  /* Was 28px with an 18px glyph, and reported too small to read. */
+  width: 40px;
+  height: 40px;
   background: color-mix(in srgb, var(--ink) 65%, transparent);
   border: 2px solid var(--gold-deep);
-  font-size: 18px;
+  font-size: 24px;
   color: var(--gold);
   cursor: help;
 }
@@ -1642,7 +1671,27 @@
  * short enough that the cards would land on the pot. Under that height they
  * stay in the row, where there is room for them.
  */
-@media (min-height: 900px) {
+/* 680px is the Electron minimum window height, i.e. every window the game can
+   be played in. This was `min-height: 900px` and the report came back a third
+   time — because a 1366x768 laptop and a 1280x800 Steam Deck both fall under
+   900, so in most of the windows anyone actually plays in, the cards were
+   still in the corner.
+
+   Two bands, and a floor. Everything here is written against `--card-h`,
+   which scales with vmin, but the felt does not: below about 900px the band
+   between the pot and the rail runs out faster than the cards shrink, and
+   lifting the full 2.25 rail there squeezed the felt until a seat sat on the
+   board and a hole card sat on a sigil tile (both caught by
+   test/responsive.mjs). So the short band lifts the cards with a smaller lip
+   and smaller cards.
+
+   740px is where it stops being possible at all, measured rather than
+   guessed: the fan's bottom edge against the top of the sigil tiles comes out
+   at +13px of overlap at 700, +1px at 720, -15px at 740. Under that the pot
+   ends within a few pixels of the tiles and there is no band to float into,
+   so the cards stay in the rail row — which is what the gate was always for.
+   The only shipped size below it is the 1024x680 Electron minimum. */
+@media (min-height: 740px) {
   /* The rail grows a brass lip for the cards to rest their lower third on.
      The band between the pot and the rail is 129px at 1080p and the cards
      are 215px tall, so something has to give: 80px of extra rail is the
@@ -1679,6 +1728,22 @@
     translate: -50% 0;
     z-index: 3;
     pointer-events: auto;
+  }
+}
+
+/* The short band: tall enough to float the cards, not tall enough to pay the
+   full lip for it. Overrides the three numbers above and nothing else. */
+@media (min-height: 740px) and (max-height: 899px) {
+  /* Give the felt back a quarter of a card, which is what the seats were
+     losing to the board. */
+  .table-scene { --rail-h: round(calc(var(--card-h) * 1.95 + 24px), 4px); }
+  .rail-hole {
+    /* Smaller again, because the band is smaller. Still larger than a seat's
+       cards, which is the point of them being yours. */
+    scale: 0.7;
+    /* And sitting higher in it, so the fan clears the sigil tiles under it
+       rather than resting on their top row. */
+    bottom: calc(100% - round(calc(var(--card-h) * 0.30), 4px));
   }
 }
 
@@ -1731,8 +1796,15 @@
   border: 2px solid var(--gold-deep);
   background: color-mix(in srgb, var(--gold) 12%, transparent);
   color: var(--chip);
-  font-size: var(--fs-xs);
+  /* Not --fs-xs. This is one of the two numbers a player is deciding
+     between — the other is the pot, a few inches away on the felt — and it
+     was reported missing twice. Same size as the pot, so the pair reads as a
+     pair. */
+  font-size: var(--fs-md);
   font-weight: 700;
+  /* It sits above the fan in the grid, so it does not move when the cards
+     breathe and does not reflow when the amount gains a digit. */
+  justify-self: center;
 }
 .rail-bet__chip {
   width: 10px; height: 10px;
@@ -3368,11 +3440,24 @@
    action bar. The spell being cast is now the centre of the screen, with what
    it does in full and who it is aimed at. */
 .stackview {
-  /* Not centred. Centred, it landed exactly on the community cards — the one
-     thing you have to look at to decide whether to answer the sigil it is
-     telling you about. It sits in the band between the board and the rail
-     instead, where there is nothing behind it. */
+  /* Down and to the right, not centred and not in the middle band.
+   *
+   * Centred, it landed exactly on the community cards. Moving it into "the
+   * band between the board and the rail, where there is nothing behind it"
+   * was measured, once, on a tall window — and the band only exists on a
+   * tall window. At 1280x800 the panel covered the board on 156 of 156
+   * samples and the player's own hand on all 156 of them, which is the
+   * report ("the pop ups block the community cards") still true after it was
+   * called fixed. There is no horizontal band at that height: board, pot and
+   * your hand fill the felt top to bottom.
+   *
+   * So it goes beside them instead, over the ledger column — the one thing on
+   * this screen you do not need in order to answer a sigil, and a scrollback
+   * you can read again afterwards. Everything the decision needs (the board,
+   * the pot, your cards, your bet) stays visible, and every response is a
+   * button inside the panel. */
   align-items: end;
+  justify-items: end;
   padding: var(--s-4) var(--s-4) calc(var(--rail-h) + var(--actionbar-h) + 16px);
   /* Light: this opens on every cast, and a screen that dims and brightens a
      few times a hand reads as flashing. The card is the focus, not the dark. */
@@ -3384,7 +3469,9 @@
 .stackview.is-lingering .stack-panel { pointer-events: auto; cursor: pointer; }
 
 .stack-panel {
-  width: min(680px, 100%);
+  /* Narrow enough to clear the board at its widest, which is what moved it
+     here. 680px centred is what used to swallow the community cards. */
+  width: min(400px, 38vw, 100%);
   /* Capped so a deep stack scrolls inside the band rather than growing back
      up over the board. The response row is sticky (see .stack-respond), so
      what scrolls is the reading, never the decision. */

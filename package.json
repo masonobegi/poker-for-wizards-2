@@ -44,7 +44,8 @@
     "style": "node test/style.mjs",
     "audio:calibrate": "node scripts/calibrate-audio.mjs",
     "play:packaged": "node test/packaged.mjs",
-    "steam:art": "python steam/make_art.py"
+    "steam:art": "python steam/make_art.py",
+    "omens": "node test/omengesture.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

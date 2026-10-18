@@ -296,3 +296,13 @@
 }
 .scribe-replace { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .scribe-preset.is-on { color: var(--void); background: var(--brass-hi); border-color: var(--gold); }
+
+/* The rules in force, folded into the Market.
+   Collapsed by default in spirit — it is a reference, not the thing you came
+   here to do — so it is capped and scrolls rather than pushing the shelf down
+   off a short window. */
+.shop-rules {
+  max-height: 22vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}

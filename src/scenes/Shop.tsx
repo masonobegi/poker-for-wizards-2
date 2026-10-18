@@ -22,6 +22,7 @@ import './shop.css';
 import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 import { Mark, type MarkKind } from '@/art/marks';
 import Scribe from './Scribe';
+import RulesPanel from '@/components/RulesPanel';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
   const reduced = useReducedMotionPref();
@@ -77,6 +78,19 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
             {shop.closesAt ? <span className="shop-clock mono">{left}s</span> : null}
           </div>
         </header>
+
+        {/*
+          The rules in force, while you are spending on the rest of the run.
+
+          The Market is a near-opaque overlay, so the omen chips in the table
+          header are behind it: visible enough to see, far too dim to read and
+          impossible to click. That is the worst possible moment to hide them,
+          because every purchase here is a bet on what the rest of the run
+          looks like — and the ask was "it needs to be way more clear to people
+          so people can see their own mods and the table mods". This is the
+          same panel the table shows, in the one screen that was missing it.
+        */}
+        <RulesPanel view={view} me={me} className="shop-rules" />
 
         <div className="shop-grid">
           <AnimatePresence mode="popLayout">

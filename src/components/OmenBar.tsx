@@ -6,7 +6,7 @@
  * by ante four a player genuinely cannot reason about their hand without
  * knowing that suits have merged and a rank has been struck out.
  */
-import { memo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OMEN_BY_ID, type ActiveOmen } from '@shared/omens';
@@ -19,7 +19,27 @@ import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { flashPeak, motionPrefs } from '@/components/fx/arcade';
 
 function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
-  const [open, setOpen] = useState<string | null>(null);
+  /*
+   * Hovering and clicking are two different intentions, and conflating them
+   * is why "you still can't click the omens" came back twice after the panel
+   * itself was fixed.
+   *
+   * There was one piece of state and three handlers writing it: pointer-enter
+   * opened it, pointer-leave closed it, and click toggled. So a click — which
+   * is always preceded by a pointer-enter — found it already open and closed
+   * it again. Measured, in a browser, on a real table: hover → panel up,
+   * click → panel gone. A tap on a touchscreen opened it on the synthetic
+   * enter and shut it on the click that followed. There was no gesture that
+   * left it readable, and moving the mouse off to read it dismissed it.
+   *
+   * So hovering previews and clicking pins. A pinned omen stays up when the
+   * pointer leaves, which is the whole point of clicking one, and clicking it
+   * again — or Escape, or a click anywhere else — puts it away.
+   */
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const open = pinned ?? hovered;
+  const setOpen = setHovered;
   /**
    * Where the open chip is, in window coordinates.
    *
@@ -32,6 +52,31 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
    */
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const reduced = useReducedMotionPref();
+
+  // A pinned panel is dismissed the two ways anything else on this table is.
+  useEffect(() => {
+    if (!pinned) return;
+    const away = (e: PointerEvent): void => {
+      const t = e.target as HTMLElement | null;
+      if (!t?.closest?.('.omens') && !t?.closest?.('.omen-tip')) setPinned(null);
+    };
+    /* Capture, and consume. Escape at a table otherwise opens the system
+       menu (see shell/SystemMenu), so dismissing a pinned omen also paused
+       the game — two things from one key. Taking it in the capture phase and
+       stopping it there means Escape closes the panel and nothing else. */
+    const key = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPinned(null);
+    };
+    document.addEventListener('pointerdown', away, true);
+    document.addEventListener('keydown', key, true);
+    return () => {
+      document.removeEventListener('pointerdown', away, true);
+      document.removeEventListener('keydown', key, true);
+    };
+  }, [pinned]);
 
   const openAt = (id: string, el: HTMLElement | null): void => {
     const r = el?.getBoundingClientRect();
@@ -62,6 +107,7 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
             const def = OMEN_BY_ID[o.id];
             if (!def) return null;
             const showing = open === o.id;
+            const isPinned = pinned === o.id;
             return (
               <motion.li
                 key={o.id}
@@ -88,14 +134,18 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                   }}
               >
                 <button
-                  className={`omen ${showing ? 'is-open' : ''}`}
+                  className={`omen ${showing ? 'is-open' : ''} ${isPinned ? 'is-pinned' : ''}`}
                   onPointerEnter={(e) => openAt(o.id, e.currentTarget)}
                   onPointerLeave={() => setOpen((v) => (v === o.id ? null : v))}
                   onFocus={(e) => openAt(o.id, e.currentTarget)}
                   onBlur={() => setOpen((v) => (v === o.id ? null : v))}
                   onClick={(e) => {
-                    if (showing) setOpen(null);
-                    else openAt(o.id, e.currentTarget);
+                    // Pin, or unpin if this one is already pinned. Never
+                    // reads the hover state, which is what used to make a
+                    // click close the panel the hover had just opened.
+                    if (pinned === o.id) { setPinned(null); return; }
+                    openAt(o.id, e.currentTarget);
+                    setPinned(o.id);
                   }}
                   aria-expanded={showing}
                   title={`${def.name} — ${def.text}`}
@@ -127,7 +177,11 @@ function OmenBarBase({ omens }: { omens: ActiveOmen[] }) {
                       <p className="omen-impossible">
                         <Mark kind="ui" id="impossible" /> {def.impossible}
                       </p>
-                      <span className="omen-since">Every omen so far is in force at once</span>
+                      <span className="omen-since">
+                        {isPinned
+                          ? 'Click the omen again, or press Escape, to put this away'
+                          : 'Every omen so far is in force at once'}
+                      </span>
                     </motion.div>
                   ) : null}
                   </AnimatePresence>,
