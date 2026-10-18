@@ -459,13 +459,16 @@ export const PipLayout = memo(function PipLayout({ rank, suit, rainbow }: PipLay
   );
 });
 
-function CornerIndex({ rank, suit, corner, rainbow }: {
-  rank: Rank; suit: Suit; corner: 'tl' | 'br'; rainbow?: boolean;
+function CornerIndex({ rank, suit, corner, rainbow, anyRank }: {
+  rank: Rank; suit: Suit; corner: 'tl' | 'br'; rainbow?: boolean; anyRank?: boolean;
 }) {
   const label = RANK_LABEL[rank] ?? '?';
   return (
     <div className={`hx-art__index hx-art__index--${corner}`} aria-hidden="true">
-      <span className="hx-art__rank" data-wide={label.length > 1 ? 'true' : undefined}>
+      <span
+        className={anyRank ? 'hx-art__rank is-any' : 'hx-art__rank'}
+        data-wide={label.length > 1 ? 'true' : undefined}
+      >
         {label}
       </span>
       <SuitShape suit={suit} rainbow={rainbow} className="hx-art__index-suit" />
@@ -481,6 +484,12 @@ export interface CardArtProps {
    * lie the player reads out loud, so it is not printed.
    */
   rainbow?: boolean;
+  /**
+   * And its rank is a lie too (Wild, but not Prism). The number stays
+   * visible — it is still what the card was — but greyed and struck, so a
+   * glance tells the two apart.
+   */
+  anyRank?: boolean;
 }
 
 /**
@@ -488,7 +497,7 @@ export interface CardArtProps {
  * rotated), plus the centre art. Transparent background — the ivory stock is
  * painted by the surface beneath, so several of these can be stacked.
  */
-export const CardArt = memo(function CardArt({ face, className, rainbow }: CardArtProps) {
+export const CardArt = memo(function CardArt({ face, className, rainbow, anyRank }: CardArtProps) {
   const red = isRed(face.suit) && !rainbow;
   return (
     <div
@@ -502,11 +511,11 @@ export const CardArt = memo(function CardArt({ face, className, rainbow }: CardA
       data-suit={face.suit}
       aria-hidden="true"
     >
-      <CornerIndex rank={face.rank} suit={face.suit} corner="tl" rainbow={rainbow} />
+      <CornerIndex rank={face.rank} suit={face.suit} corner="tl" rainbow={rainbow} anyRank={anyRank} />
       <div className="hx-art__centre">
         <PipLayout rank={face.rank} suit={face.suit} rainbow={rainbow} />
       </div>
-      <CornerIndex rank={face.rank} suit={face.suit} corner="br" rainbow={rainbow} />
+      <CornerIndex rank={face.rank} suit={face.suit} corner="br" rainbow={rainbow} anyRank={anyRank} />
     </div>
   );
 });

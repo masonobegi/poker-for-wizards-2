@@ -442,6 +442,35 @@
    .hx-card__ov, so they render even over the QuantumField "unknown" back).
    --------------------------------------------------------------------------- */
 
+/* What this card counts as, said on the card.
+   Wild is any rank and any suit; Prism is any suit only, and they were drawn
+   the same. The strip says which, and on a Wild the printed rank goes grey
+   and struck — it is still what the card was, and it no longer decides
+   anything. */
+.hx-any {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6%;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--bone) 86%, transparent);
+  box-shadow: 0 0 0 2px var(--ink);
+  pointer-events: none;
+  z-index: 3;
+}
+.hx-any.is-both { background: var(--arc-gold, var(--gold)); }
+
+.hx-art__rank.is-any {
+  color: color-mix(in srgb, currentColor 42%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 .hx-q { position: absolute; inset: 0; }
 
 /* Each possible face gets its own wedge of the card, clipped on the diagonal

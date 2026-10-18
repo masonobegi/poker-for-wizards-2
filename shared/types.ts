@@ -466,6 +466,21 @@ export interface TableView {
   /** Board slots destroyed by Burn, for the gap animation. */
   burnedSlots: number[];
   deckCount: number;
+  /**
+   * What has been done to the deck, as opposed to what is in it.
+   *
+   * Asked for: "I want to click on the deck and see what cards are actually
+   * in there so I can scroll through and see what's happening." The order of
+   * the cards left is the one thing that has to stay secret — that is the
+   * poker — but everything that has been DONE to the deck was announced to
+   * the table when it happened: an omen marks five cards Wild in the middle
+   * of the screen, a burned card was face-up on the board when it burned.
+   * So this is the census: how many of each mark are still in there, and
+   * what has left the run for good.
+   */
+  deckMarks: Array<{ mark: MarkId; count: number }>;
+  /** Faces of the cards burned out of the run. They are never dealt again. */
+  destroyedFaces: string[];
   /** Visible only with Thin Veil. */
   deckTop: CardView | null;
   /** Cards peeked with Second Sight / Foresight, for your eyes only. */

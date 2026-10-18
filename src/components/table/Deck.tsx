@@ -69,7 +69,45 @@ function DeckBase({ cut, view }: { cut: number; view: TableView }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotionPref();
   const [open, setOpen] = useState(false);
+  /** How much room the panel has, and which way it has it. */
+  const [room, setRoom] = useState<{ px: number; above: boolean }>({ px: 0, above: false });
   const rules = deckRules(view.omens);
+
+  // Measured on open rather than guessed in vh: the deck sits at a fixed
+  // fraction of the felt, but the felt is not the viewport, and a census of
+  // nine marks is a lot taller than the empty one this was first seen with.
+  useEffect(() => {
+    if (!open) return;
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const below = window.innerHeight - r.bottom - 24;
+    const above = r.top - 24;
+    setRoom(below < 240 && above > below ? { px: above, above: true } : { px: below, above: false });
+  }, [open]);
+
+  /*
+   * Closing it used to be the button's own `onBlur`, which is wrong for a
+   * panel you are meant to read: the ask was to "click the deck and scroll
+   * through what's actually in there", and reaching for the scrollbar takes
+   * focus off the button and shuts the panel in your hand. So it closes on
+   * the two gestures that mean "done" — a click somewhere else, or Escape —
+   * and anything inside the deck is left alone.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent): void => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const key = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', away, true);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', away, true);
+      document.removeEventListener('keydown', key);
+    };
+  }, [open]);
 
   useEffect(() => {
     const el = ref.current;
@@ -96,7 +134,6 @@ function DeckBase({ cut, view }: { cut: number; view: TableView }) {
         aria-label={`The deck — ${view.deckCount} cards left. What is in it?`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        onBlur={() => setOpen(false)}
       />
       <div className="deck-shadow" />
       <div className="deck-stack">
@@ -119,7 +156,8 @@ function DeckBase({ cut, view }: { cut: number; view: TableView }) {
       <AnimatePresence>
         {open ? (
           <motion.div
-            className="deck-panel"
+            className={`deck-panel ${room.above ? 'is-above' : ''}`}
+            style={{ '--deck-room': `${Math.round(room.px)}px` } as React.CSSProperties}
             role="dialog"
             aria-label="The deck"
             initial={{ opacity: 0, y: -6 }}
@@ -136,16 +174,44 @@ function DeckBase({ cut, view }: { cut: number; view: TableView }) {
                 You can see the top card: <b>{view.deckTop.face ? faceName(view.deckTop.face) : 'not yet decided'}</b>
               </p>
             ) : null}
-            {rules.length ? (
-              <ul className="deck-rules">
-                {rules.map((r) => <li key={r.key}>{r.text}</li>)}
-              </ul>
-            ) : (
-              <p className="deck-plain">Nothing has been done to it yet: fifty-two cards, four suits, no duplicates.</p>
-            )}
+            {/* The census: what is still in there, counted by what has been
+                done to it. Scrolls, because a long run marks a lot of cards. */}
+            <div className="deck-scroll">
+              {view.deckMarks.length ? (
+                <ul className="deck-census">
+                  {view.deckMarks.map(({ mark, count }) => {
+                    const def = MARKS[mark];
+                    return (
+                      <li key={mark}>
+                        <b className="mono">{count}</b> {def?.name ?? mark}
+                        <em>{def?.blurb ?? ''}</em>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+
+              {rules.length ? (
+                <ul className="deck-rules">
+                  {rules.map((r) => <li key={r.key}>{r.text}</li>)}
+                </ul>
+              ) : null}
+
+              {!rules.length && !view.deckMarks.length ? (
+                <p className="deck-plain">Nothing has been done to it yet: fifty-two cards, four suits, no duplicates.</p>
+              ) : null}
+
+              {view.destroyedFaces.length ? (
+                <>
+                  <strong className="deck-sub">Burned out of the run</strong>
+                  <p className="deck-gone">{view.destroyedFaces.join('  ')}</p>
+                </>
+              ) : null}
+            </div>
             <p className="deck-note">
-              What each remaining card IS stays secret — that part is still poker.
-              Cards burned off the board do not come back this hand.
+              Which card is which stays secret — that part is still poker. What has been
+              done to the deck does not: every mark here was announced when it landed,
+              and a burned card was face up when it burned.
             </p>
           </motion.div>
         ) : null}

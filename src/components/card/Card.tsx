@@ -228,6 +228,18 @@ const GlyphRing = memo(function GlyphRing() {
 // Description for assistive tech
 // ---------------------------------------------------------------------------
 
+/**
+ * What a mark means, in the words the player needs mid-hand.
+ *
+ * `MARKS[id].blurb` is written for the codex; this is the same thing said
+ * while you are deciding whether to call. Asked for directly: "if I hover
+ * over a card I want to see its stats and modifiers."
+ */
+function markLine(m: MarkId): string {
+  const def = MARKS[m];
+  return `${def.name}: ${def.blurb}`;
+}
+
 function describe(view: CardView, back: boolean, cloud: Face[]): string {
   const bits: string[] = [];
   if (back && view.state === 'facedown') bits.push('Face-down card');
@@ -244,7 +256,7 @@ function describe(view: CardView, back: boolean, cloud: Face[]): string {
   if (view.entangled) bits.push('entangled');
   if (view.amber) bits.push('set in amber — nothing can change it');
   if (view.memory > 0) bits.push(`${view.memory} pot${view.memory === 1 ? '' : 's'} won`);
-  for (const m of view.marks) bits.push(MARKS[m].name);
+  for (const m of view.marks) bits.push(markLine(m));
   return bits.join('. ');
 }
 
@@ -323,6 +335,12 @@ function CardBase({
   /* Wild counts as any suit and Prism counts as any suit, so neither has the
      one that is printed on it. See CardArt's `rainbow`. */
   const rainbow = marks.includes('wild') || marks.includes('prism');
+  /* Wild is any rank AND any suit; Prism is any suit only. They were drawn
+     identically, so "there needs to be more of a distinction on which cards
+     are wild rank, which are wild suit and which are both" — the rank goes
+     grey and struck on a Wild, because the number printed on it no longer
+     decides anything, and a strip at the foot of the card says which it is. */
+  const anyRank = marks.includes('wild');
 
   const slotVars: StyleVars = {
     '--cs': scale,
@@ -422,7 +440,7 @@ function CardBase({
                 key={`${faceKey(f)}-${i}`}
                 style={{ clipPath: band(i, cloud.length) } as StyleVars}
               >
-                <CardArt face={f} rainbow={rainbow} />
+                <CardArt face={f} rainbow={rainbow} anyRank={anyRank} />
               </div>
             ))}
             <QuantumSeams n={cloud.length} />
@@ -432,7 +450,12 @@ function CardBase({
             <span className="hx-q__or" aria-hidden>or</span>
           </div>
         ) : view.face ? (
-          <CardArt face={view.face} rainbow={rainbow} />
+          <CardArt face={view.face} rainbow={rainbow} anyRank={anyRank} />
+        ) : null}
+        {rainbow && !showBack ? (
+          <span className={`hx-any ${anyRank ? 'is-both' : ''}`} aria-hidden>
+            {anyRank ? 'any rank · any suit' : 'any suit'}
+          </span>
         ) : null}
       </div>
     </div>
@@ -467,6 +490,10 @@ function CardBase({
       tabIndex={onClick ? 0 : undefined}
       aria-pressed={selectable && onClick ? selected : undefined}
       aria-label={describe(view, showBack, cloud)}
+      /* The same sentence as a native tooltip. A card can be on the board, on
+         a seat, in your hand or in a showdown row, so this is the one place
+         that reaches all of them without a layer that could be clipped. */
+      title={describe(view, showBack, cloud)}
     >
       <motion.div
         className="hx-card-enter"

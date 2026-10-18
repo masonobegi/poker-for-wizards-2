@@ -18,6 +18,7 @@ import type { PlayerView, TableView } from '@shared/types';
 import { OMEN_BY_ID } from '@shared/omens';
 import { RELIC_BY_ID } from '@shared/relics';
 import { RANK_NAME, rankPlural } from '@shared/cards';
+import { COVEN_CHOICE } from '@shared/covens';
 import { Mark } from '@/art/marks';
 
 interface Rule {
@@ -86,6 +87,20 @@ function yourRules(view: TableView, me: PlayerView): Rule[] {
   for (const id of me.relics) {
     const r = RELIC_BY_ID[id];
     if (!r) continue;
+    /* "How did this happen? I don't ever remember this" — about The Last
+       Word, which arrives with the coven everybody now plays (COVEN_CHOICE
+       is off), so nobody chose it and nothing said where it came from. It is
+       a rule of the table now, so it says so. */
+    if (r.coven && !COVEN_CHOICE) {
+      out.push({
+        key: `creed:${id}`,
+        from: 'Every seat',
+        title: r.name,
+        text: `${r.text} Nobody picked this: with the covens gone it is simply how this table plays, for everyone.`,
+        tone: 'good',
+      });
+      continue;
+    }
     out.push({ key: `relic:${id}`, from: r.coven ? 'Creed' : 'Relic', title: r.name, text: r.text });
   }
 

@@ -9,7 +9,7 @@
  */
 import { nanoid } from 'nanoid';
 import {
-  type CardEntity, type CardView, type Face, type Rank,
+  type CardEntity, type CardView, type Face, type MarkId, type Rank,
   faceLabel, isQuantum, standardDeck, viewCard,
 } from '../../shared/cards';
 import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
@@ -697,6 +697,17 @@ export function viewFor(t: Table, viewerId: string): TableView {
     board,
     burnedSlots: t.burnedSlots,
     deckCount: t.deck.length,
+    // The census, not the order. See TableView.deckMarks.
+    deckMarks: (() => {
+      const counts = new Map<MarkId, number>();
+      for (const id of t.deck) {
+        for (const m of t.cards.get(id)?.marks ?? []) counts.set(m, (counts.get(m) ?? 0) + 1);
+      }
+      return [...counts].map(([mark, count]) => ({ mark, count })).sort((a, b) => b.count - a.count);
+    })(),
+    destroyedFaces: [...t.cards.values()]
+      .filter((c) => c.destroyed)
+      .map((c) => faceLabel(c.faces[c.collapsed ?? 0])),
     deckTop,
     peeked,
     pot: totalPot(t),
