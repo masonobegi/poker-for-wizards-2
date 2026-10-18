@@ -68,6 +68,25 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
   // five actually mattered and dims the rest.
   const allWinningIds = payout.entries.filter((e) => e.won > 0).flatMap((e) => e.usedIds);
   const uncontested = shown.every((e) => e.cards.length === 0);
+  /*
+   * How big the hands are drawn depends on how many there are and how much
+   * felt there is to draw them on.
+   *
+   * The panel is centred in the felt and capped at its height, so a size that
+   * is generous for a heads-up showdown pushes the last player's row off the
+   * bottom of a four-handed one — and a row you have to scroll to is a row
+   * nobody reads. Measured: three rows of `md` overran the felt at 1920x1080,
+   * and three of `sm` still overran it by 48px at 1280x800, where the felt is
+   * only 396px tall. Both dimensions have to be in the decision.
+   *
+   * Read at render rather than through a resize listener: this panel
+   * re-renders on every table update, and a window resized during a showdown
+   * is not a case worth a subscription.
+   */
+  const roomy = typeof window === 'undefined' || window.innerHeight >= 900;
+  const handSize = shown.length >= 3
+    ? (roomy ? 'sm' : 'xs')
+    : (roomy ? 'md' : 'sm');
 
   return (
     <motion.div
@@ -111,7 +130,11 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
             <span className="showdown-boardlabel">Board</span>
             <CardRow
               views={view.board}
-              size="xs"
+              /* Was "xs" at every size. The panel is wider than it was and
+                 the board row is what "Flush, King high" has to be checked
+                 against — but on a short felt it gives the room back to the
+                 hands, which are the point. */
+              size={roomy ? 'sm' : 'xs'}
               // Apart, not fanned: the row exists so a reader can check the
               // ranks that scored, and at 0.24 the corner indices of five xs
               // cards crowded each other (fun round 5). The panel is 660px
@@ -134,6 +157,7 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
               nameOf={nameOf}
               shards={payout.shards[e.playerId]}
               why={whyThisHand(e.cat, view.activeMods ?? {}, !!e.impossible)}
+              size={handSize}
             />
           ))}
         </ul>
@@ -158,9 +182,11 @@ interface ShowdownRowProps {
   shards?: number;
   /** The table rule that made this hand what it is, if one did. */
   why?: string | null;
+  /** Set by the panel from how many hands it has to fit — see `handSize`. */
+  size: 'xs' | 'sm' | 'md';
 }
 
-function ShowdownRow({ e, i, nameOf, shards, why }: ShowdownRowProps) {
+function ShowdownRow({ e, i, nameOf, shards, why, size }: ShowdownRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   useCardAnchors(rowRef, e.cards.map((c) => c.id));
   const reduced = useReducedMotionPref();
@@ -226,7 +252,7 @@ function ShowdownRow({ e, i, nameOf, shards, why }: ShowdownRowProps) {
         <div ref={rowRef}>
           <CardRow
             views={e.cards}
-            size="sm"
+            size={size}
             overlap={0.34}
             highlightIds={revealed}
             highlight="winning"

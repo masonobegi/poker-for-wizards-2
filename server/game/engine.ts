@@ -77,8 +77,19 @@ const BOTS_AFTER_DONE_MS = 4000;
  * for exactly that reason). Off (false) restores the old pace exactly.
  */
 export const FAST_AFTER_FOLD = true;
-/** The share of a showdown's reading time a folded player sits through. */
-const FOLDED_READ = 0.5;
+/**
+ * The share of a showdown's reading time a folded player sits through.
+ *
+ * Was half. The point of FAST_AFTER_FOLD is to stop a folded player watching
+ * bots bet into a pot they are not in — about 22 seconds a run — and the
+ * think-time band does that work. Halving the *result* as well was reaching
+ * too far: the showdown summary is a few seconds, it is the one screen that
+ * says what the magic did, and the hand a player most wants explained is
+ * usually one they folded out of ("my buddy had four cards to a straight and
+ * it never told me when he played it"). A folded player still waits less,
+ * just not half as long.
+ */
+const FOLDED_READ = 0.8;
 
 /**
  * How much the blinds climb per ante step.
@@ -1010,8 +1021,9 @@ export class Engine {
   private payoutHold(payout: PayoutInfo): number {
     const t = this.table;
     const revealed = payout.entries.filter((e) => e.cards.length > 0);
-    // Nobody showed a hand — everyone folded. There is nothing to read.
-    if (revealed.length === 0) return 1400;
+    // Nobody showed a hand — everyone folded. There is still a name and a
+    // number to take in, which 1400ms was not enough for.
+    if (revealed.length === 0) return 2200;
 
     // Matches ShowdownPanel: a 320ms lead-in, then one card every 90ms, or
     // every 300ms when the hand is one of the impossible categories.
@@ -1020,12 +1032,24 @@ export class Engine {
     const longestReveal = Math.max(0, ...payout.entries.map((e) => e.usedIds.length));
     const revealMs = 320 + longestReveal * step;
 
-    // Each extra hand on screen is another line to read before the deal.
-    const readMs = 1500 + revealed.length * 450;
+    /*
+     * Each extra hand on screen is another line to read before the deal.
+     *
+     * Measured from a real table before this: a two-hand showdown at standard
+     * speed held for 2688ms — "it goes by too quick", and it was. In that time
+     * a player has to take in the board, two names, two hand categories and
+     * two chip counts, while the winning name is still decoding character by
+     * character. The old 1500 + 450/hand was budgeting about half a second
+     * per hand for all of it.
+     *
+     * The numbers are now what they claim to be: a couple of seconds to find
+     * the panel and read the board, and a full second for each hand in it.
+     */
+    const readMs = 2600 + revealed.length * 1000;
 
     // The impossible categories are the payoff the whole deck exists for.
     // They get to breathe.
-    const ceremony = impossible ? 1800 : 0;
+    const ceremony = impossible ? 2400 : 0;
 
     /*
      * Speed scales the time spent *reading* the result. It deliberately does
@@ -1056,7 +1080,9 @@ export class Engine {
     const read = this.spectating() ? readMs * FOLDED_READ : readMs;
     const scaled = revealMs + Math.round((read + ceremony) * tempo.hold);
     const floor = Math.max(revealMs, decodeMs) + 450;
-    return Math.min(9000, Math.max(floor, scaled));
+    /* The cap was 9s, which a four-handed impossible showdown hit and was cut
+       off by — the one hand in a run most worth looking at. */
+    return Math.min(14000, Math.max(floor, scaled));
   }
 
   private bestFaceFor(faces: Face[]): number {

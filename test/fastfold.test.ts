@@ -86,7 +86,7 @@ function payout(hero: string, others: string[], impossible: boolean): PayoutInfo
   };
 }
 
-test('a folded player sits through half the reading, and an impossible hand keeps its ceremony', () => {
+test('a folded player waits less, but still gets to read the result', () => {
   if (!FAST_AFTER_FOLD) return;
   const e = new Engine('HOLD', 'host', { ...DEFAULT_CONFIG }, () => {}, () => {});
   try {
@@ -102,11 +102,12 @@ test('a folded player sits through half the reading, and an impossible hand keep
       const inIt = internals(e).payoutHold(pay);
       hero.folded = true;
       const out = internals(e).payoutHold(pay);
-      // Two hands revealed: reading is 1500 + 2 x 450 = 2400ms, half is 1200
-      // (less when the floor for the winner's decoding name holds it up).
+      // Two hands revealed: reading is 2600 + 2 x 1000 = 4600ms, of which a
+      // folded player sits through 0.8 — so 920ms is saved, not half of it.
+      // (Less when the floor for the winner's decoding name holds it up.)
       const saved = inIt - out;
-      assert.ok(saved > 1000 && saved <= 1200, `impossible=${impossible}: in ${inIt}ms, folded ${out}ms`);
-      if (impossible) assert.ok(out >= 1800 + 320 + 5 * 300, 'the ceremony and the slow reveal survive a fold');
+      assert.ok(saved > 700 && saved <= 920, `impossible=${impossible}: in ${inIt}ms, folded ${out}ms`);
+      if (impossible) assert.ok(out >= 2400 + 320 + 5 * 300, 'the ceremony and the slow reveal survive a fold');
     }
   } finally {
     e.dispose();

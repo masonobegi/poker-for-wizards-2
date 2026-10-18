@@ -2961,12 +2961,31 @@
      470px of rows and the felt has roughly 400 at 1280x800; something has to
      give, and the one thing it must not be is a player's hand disappearing
      with nothing to say it was ever there. */
-  top: 8px;
+  /* Centred in the felt, and as wide as the felt will allow.
+   *
+   * It was pinned to the felt's top at a flat 660px, which at 1920x1080 made
+   * the biggest moment in the game 660x347 — 25% of the felt and 11% of the
+   * screen, with 472px of empty cloth either side of it and 184px underneath.
+   * "There is so much unused space on the screen." There was.
+   *
+   * The width now comes off the felt rather than a constant, so it fills what
+   * is actually there at every size and still cannot overhang: `100% - 24px`
+   * is the felt's own width, and it wins on a small window where the old
+   * constant would have stuck out. Centring is safe now in a way it was not
+   * before, because `max-height` plus scrolling means the panel can never be
+   * taller than the felt and so can never run off the top — which is what the
+   * top anchor was protecting against. */
+  top: 50%;
   bottom: auto;
-  translate: -50% 0;
+  translate: -50% -50%;
   z-index: var(--z-overlay);
   pointer-events: none;
-  width: min(660px, 92vw);
+  /* 1180 was too wide for what the rows hold: the name sat left, the cards
+     sat left of centre and the chips sat hard right, with a few hundred
+     pixels of nothing between the cards and the chips — the same empty space,
+     moved. This is sized to the content (a name, five cards, a chip count)
+     with the row below distributing it. */
+  width: min(1000px, calc(100% - 24px), 94vw);
   max-height: calc(100% - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3095,13 +3114,18 @@
     0 -2px 0 color-mix(in srgb, var(--bone) 60%, transparent);
 }
 
-.showdown-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; min-height: 0; }
+.showdown-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; min-height: 0; }
 .showdown-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* Name left, hand centred, winnings right, with the slack split evenly
+     between them instead of pooling on one side. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--s-3);
-  padding: 2px 12px;
+  gap: var(--s-4);
+  /* Was 2px 12px, which packed four hands into a strip in the middle of an
+     empty screen. The panel has the room now, so the rows use it — but not
+     so much that a four-handed showdown pushes its last row off the felt. */
+  padding: 6px 16px;
   border-radius: var(--r-md);
   border: 2px solid var(--gold-deep);
   background: color-mix(in srgb, var(--gold) 8%, transparent);
@@ -3113,7 +3137,18 @@
     0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--gold) 30%, transparent) 40%, transparent);
 }
 
-.showdown-who { display: grid; gap: 1px; min-width: 0; }
+.showdown-who { display: grid; gap: 2px; min-width: 0; }
+/* The hand name is the sentence the whole panel exists to deliver — "Two
+   Pair, Queens and Jacks" — and it was rendering at the inherited body size
+   in the middle of a mostly empty screen. */
+.showdown-hand {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-1);
+}
+.showdown-row.is-winner .showdown-hand { color: var(--gold); }
 .showdown-name {
   display: flex;
   align-items: baseline;
@@ -3123,7 +3158,7 @@
   color: var(--text-3);
 }
 .showdown-name strong {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-md);
   color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
@@ -3134,6 +3169,7 @@
 .showdown-alt { font-size: 12px; color: var(--text-4); font-style: italic; }
 .showdown-muck { font-size: var(--fs-xs); color: var(--text-4); font-style: italic; }
 .showdown-won {
+  justify-self: end;
   font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--good);
