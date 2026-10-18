@@ -433,11 +433,26 @@ async function checkRailCollision(page) {
       const els = [...document.querySelectorAll(sel)];
       return els.length ? Math.min(...els.map((e) => e.getBoundingClientRect().left)) : null;
     };
-    const holeRight = right('.rail-hole .hx-card');
-    const sigilLeft = left('.rail-sigils .sigil');
-    if (holeRight === null || sigilLeft === null) return [];
-    const gap = sigilLeft - holeRight;
-    return gap < 2 ? [`hole cards overlap the sigil hand by ${Math.round(-gap)}px`] : [];
+    // A real intersection, not a left-of/right-of test: above a certain
+    // window height the hole cards leave the row and float over the felt in
+    // front of the player (table.css `.rail-hole`), so they are no longer to
+    // the left of the sigil hand — they are above it, and what matters is
+    // whether the two boxes actually touch.
+    const boxes = (sel) => [...document.querySelectorAll(sel)].map((e) => e.getBoundingClientRect());
+    const hole = boxes('.rail-hole .hx-card');
+    const sigils = boxes('.rail-sigils .sigil');
+    if (!hole.length || !sigils.length) return [];
+    const out = [];
+    for (const h of hole) {
+      for (const s of sigils) {
+        const w = Math.min(h.right, s.right) - Math.max(h.left, s.left);
+        const v = Math.min(h.bottom, s.bottom) - Math.max(h.top, s.top);
+        if (w > 2 && v > 2) {
+          out.push(`a hole card sits on a sigil tile (${Math.round(w)}x${Math.round(v)}px of overlap)`);
+        }
+      }
+    }
+    return [...new Set(out)].slice(0, 2);
   });
 }
 

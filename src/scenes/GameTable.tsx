@@ -276,8 +276,15 @@ export default function GameTable() {
         <div className="tbl-top-c">
           <div className="tbl-ante">
             <span className="eyebrow">Ante {view.ante}</span>
+            {/* "100 / 200" never said which number was which, and the two
+                blinds are what the whole betting round is measured in. */}
             <span className="tbl-blinds mono">
-              {view.sb.toLocaleString()} / {view.bb.toLocaleString()}
+              <span className="tbl-blind">
+                <em>small blind</em>{view.sb.toLocaleString()}
+              </span>
+              <span className="tbl-blind">
+                <em>big blind</em>{view.bb.toLocaleString()}
+              </span>
             </span>
           </div>
           {view.handsUntilAnte > 0 ? (

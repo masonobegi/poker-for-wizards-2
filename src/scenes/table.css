@@ -44,6 +44,20 @@
 .tbl-top-r > .btn { flex: none; }
 .tbl-top-c { display: grid; justify-items: center; gap: 1px; }
 
+/* Which number is which blind. */
+.tbl-blind {
+  display: grid;
+  justify-items: center;
+  line-height: 1.05;
+}
+.tbl-blind em {
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
 .tbl-code {
   font-family: var(--font-display);
   font-size: var(--fs-sm);
@@ -53,6 +67,9 @@
 
 .tbl-ante { display: flex; align-items: baseline; gap: var(--s-3); }
 .tbl-blinds {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-end;
   font-family: var(--font-hud);
   font-size: var(--fs-hud);
   line-height: var(--lh-md);
@@ -717,14 +734,19 @@
   letter-spacing: 0.04em;
 }
 
+/* The clock on somebody else's turn.
+   It used to hang behind the seat (`z-index: -1`) and 46px below it, so what
+   you saw was a sliver of ring sticking out from under a nameplate — "I
+   can't fully see other people's timers". On the pod's top-left corner, in
+   front, where there is nothing else: the "to act" tag is centred above, the
+   bet chip is out to the side, the marks are on the other edge. */
 .seat-timer {
   position: absolute;
-  left: 50%;
-  top: calc(100% - 46px);
-  transform: translateX(-50%);
-  width: 68px; height: 68px;
+  left: -12px;
+  top: -12px;
+  width: 44px; height: 44px;
   pointer-events: none;
-  z-index: -1;
+  z-index: 5;
 }
 
 /* --- turn timer (shared by Seat's opponent ring and ActionBar's own) ---- */
@@ -1404,6 +1426,9 @@
 .rail {
   position: relative;
   display: grid;
+  /* Your money, your two cards, your hand of sigils. On a tall enough window
+     the cards leave this row entirely and float onto the felt in front of
+     you — see `.rail-hole` and the min-height rule under it. */
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: end;
   gap: var(--s-4);
@@ -1515,20 +1540,29 @@
   cursor: help;
 }
 
+/* The relics you bought. They were 15px glyphs in a row that could not wrap
+   out of its column, so a sixth one ran off the edge of the screen —
+   "bottom left perks need to be bigger and I was told sometimes they run off
+   the screen". Bigger, boxed, and wrapping inside the column they live in. */
 .rail-relics {
   grid-column: 1 / -1;
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 .rail-relic {
-  display: inline-block;
-  font-size: 15px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: color-mix(in srgb, var(--ink) 65%, transparent);
+  border: 2px solid var(--gold-deep);
+  font-size: 18px;
   color: var(--gold);
-  filter:
-;
   cursor: help;
 }
+.rail-relic:hover { border-color: var(--gold); }
 
 /* A fanned row rotates its cards, and a rotated card overflows the layout box
    its un-rotated size reserved — so the outer card's corner sat on top of the
@@ -1541,6 +1575,61 @@
   display: grid;
   justify-items: center;
   gap: 2px;
+}
+
+/* Your two cards, out in front of you.
+ *
+ * In the rail's row they sat between your money and your sigil hand, which
+ * on a 1920-wide screen is the bottom-LEFT of the table while the pot is
+ * dead centre: "I want my cards out in front of me, not down in the corner."
+ * They cannot be centred inside that row — a four-sigil hand is a thousand
+ * pixels of it — so on a window tall enough to have one they leave the row
+ * and sit on the felt's empty lower band instead, centred on the table and
+ * directly above the action buttons.
+ *
+ * The height gate is the whole of it: measured, the band between the pot and
+ * the rail is 130px at 1080p and nothing at all at 768, where the felt is
+ * short enough that the cards would land on the pot. Under that height they
+ * stay in the row, where there is room for them.
+ */
+@media (min-height: 900px) {
+  /* The rail grows a brass lip for the cards to rest their lower third on.
+     The band between the pot and the rail is 129px at 1080p and the cards
+     are 215px tall, so something has to give: 80px of extra rail is the
+     cheapest of the three (the alternatives were shrinking the cards to
+     illegibility or pushing the pot up into the board). The felt loses the
+     same 80px and everything on it is positioned as a percentage of the
+     felt, so it simply sits slightly tighter. */
+  /* On `.table-scene`, not `:root`: this file and tokens.css both define it
+     at root specificity and the bundler's order decides which wins, which is
+     not something a layout should depend on. The scene is an ancestor of
+     everything that reads the token, so it wins by inheritance. */
+  /* The lip scales with the card, not with a constant: --card-h is 8.2vmin
+     and a flat 110px that fitted at 1080p was 60px short at 4K, where the
+     cards are a third again as big. 0.95 of a card is exactly the part that
+     hangs into the rail (see `.rail-hole` below). */
+  .table-scene { --rail-h: round(calc(var(--card-h) * 2.25 + 24px), 4px); }
+  .rail { grid-template-columns: auto minmax(0, 1fr); }
+  /* The pot tucks up under the board to open the band the cards sit in.
+     Growing the rail alone cannot do it: the felt loses what the rail gains,
+     so the pot comes up with it and the band only closes by half as much as
+     the rail grew. */
+  .board-pot { top: calc(100% + round(calc(var(--card-h) * 0.08), 4px)); }
+  .rail-hole {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - round(calc(var(--card-h) * 0.52), 4px));
+    /* Smaller than they are in the rail. The band between the pot and the
+       rail is finite and the felt pays for every pixel the rail takes, so
+       the cards give a fifth of their size back to fit the gap without the
+       seats closing in on the board. They are still half again the size of
+       the cards on a seat. */
+    scale: 0.8;
+    transform-origin: bottom center;
+    translate: -50% 0;
+    z-index: 3;
+    pointer-events: auto;
+  }
 }
 
 /* A held hand is never still.
@@ -1723,14 +1812,12 @@
     bottom: calc(var(--rail-h) + var(--actionbar-h) + 68px);
   }
 
-  /* The turn ring hangs 46px below the seat, which at this height is the
-     middle of the table. Over the pod instead, and smaller with it. */
+  /* Smaller with everything else at this height, same corner. */
   .seat-timer {
-    top: 50%;
-    bottom: auto;
-    width: 58px;
-    height: 58px;
-    transform: translate(-50%, -50%);
+    left: -8px;
+    top: -8px;
+    width: 34px;
+    height: 34px;
   }
 }
 
