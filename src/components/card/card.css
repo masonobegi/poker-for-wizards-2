@@ -1209,3 +1209,29 @@
    slightly lower than its neighbours rather than glittering. */
 .has-cursed .hx-card__surface--face::before { opacity: 0.46; }
 .has-cursed .hx-card__lift { filter: saturate(0.88) brightness(0.95); }
+
+/* --- what it is, and what it was ------------------------------------------
+   A Mirrored card is split along the same diagonal as an undecided one: the
+   face it has now at full strength on the upper half, the face it was printed
+   as greyed back on the lower. See `.hx-q` above — this reuses that seam
+   deliberately, so "this card is two things" looks like one idea rather than
+   two unrelated effects.
+   -------------------------------------------------------------------------- */
+.hx-was { position: absolute; inset: 0; }
+.hx-was__layer { position: absolute; inset: 0; }
+/* Greyed, not faded: the arcade palette has no ramps, so this desaturates to
+   the plate colour instead of dropping opacity onto whatever is behind. */
+.hx-was__layer.is-was { filter: grayscale(1); opacity: 0.38; }
+.hx-was__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px 2px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}

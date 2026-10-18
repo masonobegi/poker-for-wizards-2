@@ -856,6 +856,14 @@ export class Engine {
       if (!dst || !dst.marks.includes('mirrored')) continue;
       const src = card(t, t.board[i - 1]);
       if (!src || src.id === dst.id) continue;
+      /* Remember what it was printed as, once. A chain keeps the first
+         answer: the second mirror in a flop copies a card that is already a
+         copy, and "it was a 7♦" is the fact a player needs, not "it was a 3♣
+         a moment ago". Cleared with the Mirrored mark between hands. */
+      if (!dst.wasFace) {
+        const own = dst.faces[dst.collapsed ?? 0];
+        if (own) dst.wasFace = { ...own };
+      }
       dst.faces = src.faces.map((f) => ({ ...f }));
       dst.collapsed = src.collapsed;
       dst.veil = src.veil;

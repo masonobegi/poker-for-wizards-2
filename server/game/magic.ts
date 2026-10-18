@@ -1442,6 +1442,7 @@ export function clearHandMagic(t: Table): void {
     c.entangledWith = undefined;
     c.veil = 'open';
     c.amber = undefined;
+    c.wasFace = undefined;
     if (c.faces.length > 1) {
       c.faces = [c.faces[c.collapsed ?? 0]];
       c.collapsed = 0;

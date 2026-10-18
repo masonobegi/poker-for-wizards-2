@@ -27,7 +27,7 @@ import { motion, type Transition } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { usePointerFoil } from '@/components/fx/usePointerFoil';
 import type { CardView, Face, MarkId, Rank, Suit } from '@shared/cards';
-import { MARKS, RANK_LABEL, RANK_NAME, SUIT_NAME, faceKey, faceName } from '@shared/cards';
+import { MARKS, RANK_LABEL, RANK_NAME, SUIT_NAME, faceKey, faceLabel, faceName } from '@shared/cards';
 import { CardArt, SuitShape } from './CardArt';
 import { CardBack } from './CardBack';
 import { Mark } from '@/art/marks';
@@ -252,6 +252,7 @@ function describe(view: CardView, back: boolean, cloud: Face[]): string {
   } else if (view.face) bits.push(faceName(view.face));
   else bits.push('Face-down card');
 
+  if (view.wasFace) bits.push(`was printed ${faceName(view.wasFace)}`);
   if (view.diverged) bits.push('divergent — the table sees another card');
   if (view.entangled) bits.push('entangled');
   if (view.amber) bits.push('set in amber — nothing can change it');
@@ -448,6 +449,29 @@ function CardBase({
             {/* The word, because a split card still has to say what the split
                 means. "Undecided" is the game's word for it everywhere else. */}
             <span className="hx-q__or" aria-hidden>or</span>
+          </div>
+        ) : view.face && view.wasFace ? (
+          /*
+            What it is, and what it was, on one card.
+
+            "You can see the real card and the card of what it is in like a
+            half and half, and what the card really is is bright while what it
+            was is grayed out." This is that, on the same diagonal seam the
+            undecided cards are split along, so the two kinds of split card
+            read as the same idea. Only a Mirrored card has a `wasFace`: the
+            board that came out 3♣ 4♠ 7♦ and read as three 3♣s now shows the
+            4♠ and the 7♦ still there underneath, which is the part that was
+            missing.
+          */
+          <div className="hx-was">
+            <div className="hx-was__layer is-was" style={{ clipPath: band(1, 2) } as StyleVars}>
+              <CardArt face={view.wasFace} />
+            </div>
+            <div className="hx-was__layer is-now" style={{ clipPath: band(0, 2) } as StyleVars}>
+              <CardArt face={view.face} rainbow={rainbow} anyRank={anyRank} />
+            </div>
+            <QuantumSeams n={2} />
+            <span className="hx-was__label" aria-hidden>was {faceLabel(view.wasFace)}</span>
           </div>
         ) : view.face ? (
           <CardArt face={view.face} rainbow={rainbow} anyRank={anyRank} />

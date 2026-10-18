@@ -139,6 +139,19 @@ export interface CardEntity {
   markBy?: Partial<Record<MarkId, string>>;
   /** Set while the card is mid-flight so the client can animate its arrival. */
   origin?: 'deck' | 'weave' | 'conjured' | 'stolen';
+  /**
+   * What this card was printed as, before something rewrote its face.
+   *
+   * Only a Mirrored card sets it today. The board came out 3♣ 4♠ 7♦ with the
+   * last two Mirrored, read as three 3♣s, and the player's complaint was not
+   * that it was wrong — it was that there was no way to tell what had
+   * happened, because the 4♠ and the 7♦ were simply gone. The card keeps the
+   * face it used to have so it can show both: "what the card really is is
+   * bright, what it was is greyed out".
+   *
+   * Per-hand, like the Mirrored mark that causes it (`clearHandMagic`).
+   */
+  wasFace?: Face;
 }
 
 let cardCounter = 0;
@@ -234,6 +247,8 @@ export interface CardView {
   diverged?: boolean;
   entangled?: boolean;
   origin?: CardEntity['origin'];
+  /** What it was printed as, when something has rewritten its face. */
+  wasFace?: Face;
 }
 
 export interface ViewOptions {
@@ -287,8 +302,16 @@ export function viewCard(card: CardEntity, opts: ViewOptions): CardView {
 
   if (card.veil === 'rank') return { ...base, state: 'veiled', rank: f.rank };
   if (card.veil === 'suit') return { ...base, state: 'veiled', suit: f.suit };
-  return { ...base, state: 'faceup', face: f };
+  /* `wasFace` rides with the face, and only with it: it is part of reading the
+     card, so a viewer who may not read the card may not read what it used to
+     be either. Dropped when it matches the face, which happens when a copy
+     lands on a card of the same identity and there is nothing to show. */
+  const was = card.wasFace && !sameFace(card.wasFace, f) ? card.wasFace : undefined;
+  return { ...base, state: 'faceup', face: f, wasFace: was };
 }
+
+/** Two faces are the same card. */
+export const sameFace = (a: Face, b: Face): boolean => a.rank === b.rank && a.suit === b.suit;
 
 /** Short human label used in the game log. */
 export function cardLabel(card: CardEntity, viewerId: string | null = null): string {

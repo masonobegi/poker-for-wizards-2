@@ -230,7 +230,7 @@ export const SIGILS: SigilDef[] = [
     id: 'mirror', name: 'Mirror', school: 'bind', glyph: '⧉', cost: 2,
     timing: ['flop', 'turn', 'river'], target: 'two_cards', rarity: 'common', price: 5, botBias: 0.6,
     pick: ['choose the card to copy', 'choose the card that becomes a copy of it'],
-    text: 'Pick two community cards. The second becomes an exact duplicate of the first. The deck now holds two of the same card, legally.',
+    text: 'Pick two community cards. The second becomes an exact duplicate of the first — marks and all. For this hand the deck holds two of the same card, legally.',
     brief: 'One community card becomes a copy of another.',
     impossible: 'Two identical cards in one fifty-two card deck.',
   },

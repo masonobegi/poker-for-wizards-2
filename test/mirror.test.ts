@@ -16,7 +16,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 import { Engine } from '../server/game/engine';
-import { makeCard, faceLabel, type CardEntity, type Rank, type Suit } from '../shared/cards';
+import { makeCard, faceLabel, viewCard, type CardEntity, type Rank, type Suit } from '../shared/cards';
 import { DEFAULT_CONFIG, type Table } from '../shared/types';
 
 interface Internals {
@@ -79,6 +79,49 @@ test('a mirrored card copies the marks, so a copy of a Wild is Wild', () => {
     'the copy is the same card as the original, so it is Wild like the original');
   // And it is still a copy: it keeps saying so.
   assert.ok(copy.marks.includes('mirrored'), 'it is still the mirrored card');
+  e.dispose();
+});
+
+test('a mirrored card still shows what it was printed as', () => {
+  /* "You can see the real card and the card of what it is in like a half and
+     half, and what the card really is is bright while what it was is grayed
+     out." The client can only draw that if the server keeps the old face, and
+     the reported board — 3♣ 4♠ 7♦ reading as three 3♣s — is exactly the case
+     where losing it leaves a player with no way to tell what happened. */
+  const { e, t, ix } = table('mirror:wasface');
+  t.board = [];
+  t.deck = [
+    place(t, 3, 'C'),
+    place(t, 4, 'S', { marks: ['mirrored'] }),
+    place(t, 7, 'D', { marks: ['mirrored'] }),
+  ];
+  ix.dealStreet('flop');
+
+  const [, second, third] = t.board.map((id) => t.cards.get(id)!);
+  assert.deepEqual(second.wasFace, { rank: 4, suit: 'S' }, 'the 4♠ forgot it was a 4♠');
+  assert.deepEqual(third.wasFace, { rank: 7, suit: 'D' }, 'the 7♦ forgot it was a 7♦');
+
+  // A chain keeps the first answer: the third copied a card that was already a
+  // copy, and what a player needs is "it was a 7♦", not "it was a 3♣ a moment
+  // ago".
+  assert.notDeepEqual(third.wasFace, { rank: 3, suit: 'C' });
+
+  // And the viewer gets it only with the face itself.
+  const seen = viewCard(third, { reveal: true, viewerId: 'host' });
+  assert.deepEqual(seen.wasFace, { rank: 7, suit: 'D' });
+  const hidden = viewCard(third, { reveal: false, viewerId: 'other' });
+  assert.equal(hidden.wasFace, undefined, 'a card you may not read leaked what it used to be');
+  e.dispose();
+});
+
+test('a card that was not rewritten has nothing to show', () => {
+  const { e, t, ix } = table('mirror:plain');
+  t.board = [];
+  t.deck = [place(t, 2, 'H'), place(t, 8, 'S')];
+  ix.dealStreet('flop');
+  for (const id of t.board) {
+    assert.equal(t.cards.get(id)!.wasFace, undefined, 'an untouched card claims it used to be something else');
+  }
   e.dispose();
 });
 
