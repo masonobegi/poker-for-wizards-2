@@ -28,6 +28,7 @@ import { faceName } from '@shared/cards';
 import { SCHOOLS, defOf, entryDef, type SigilDef } from '@shared/sigils';
 import { RELIC_BY_ID } from '@shared/relics';
 import { Button } from '@/components/ui/kit';
+import { CardRow } from '@/components/card/CardRow';
 import { useGame } from '@/store/net';
 import { lingerFor, markSeen, timesSeen, usePrefs } from '@/components/shell/prefs';
 // From the lazy-loading shim, not the `@/vfx` barrel — see SpellFlight.tsx.
@@ -146,6 +147,25 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
   }, [lingering]);
   // A new hand clears anything left over from the last one.
   useEffect(() => { setLingering(null); }, [view.handNumber]);
+  /*
+   * And the showdown clears it immediately, rather than waiting out its own
+   * timer on top of the result.
+   *
+   * Both panels are centred, so a sigil that resolved in the last seconds of
+   * the river was still lingering over the payout — caught in a screenshot
+   * with a COUNTERED stamp sitting across the winning hand. The showdown is
+   * the one moment nothing else may cover, which is the whole reason it now
+   * carries its own cards; a spell that has already resolved has nothing left
+   * to say over the top of it.
+   */
+  useEffect(() => { if (view.payout) setLingering(null); }, [view.payout]);
+
+  /* Defaulted rather than read straight off the view: this panel is mounted
+     by tests and by the first frame of a table with fixtures that carry only
+     the fields they are about, and a missing `board` crashed the whole
+     overlay on `.length`. */
+  const board = view.board ?? [];
+  const hole = me.hole ?? [];
 
   // With spell cards Off, a live stack is shown only when you can answer it.
   const live = !!(stack && view.stackEntries.length) && (spellCards !== 'off' || mayRespond);
@@ -207,6 +227,34 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
               ? { duration: T_REDUCED, ease: EASE_OUT }
               : SPRING_CRISP}
           >
+            {/*
+              The board and your own hand, inside the panel.
+
+              The panel sits over the middle of the felt, so it hides the two
+              things the decision is actually about. It has been moved three
+              times trying to dodge them and there is nowhere to go: on a short
+              window the board, the pot and your hand fill the felt from top to
+              bottom, and off to one side it became unreadable. So it brings
+              them with it, the way the showdown panel does — "is their Burn
+              worth a Nullify?" is a question about these cards.
+            */}
+            {board.length > 0 || hole.length > 0 ? (
+              <div className="stack-cards">
+                {board.length > 0 ? (
+                  <div className="stack-cardset">
+                    <span className="stack-cardlabel">Board</span>
+                    <CardRow views={board} size="xs" overlap={0} tiltOnHover={false} />
+                  </div>
+                ) : null}
+                {hole.length > 0 ? (
+                  <div className="stack-cardset">
+                    <span className="stack-cardlabel">Yours</span>
+                    <CardRow views={hole} size="xs" overlap={0} tiltOnHover={false} />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {lead && leadDef ? (
               <section
                 className={`stack-feature ${lead.countered ? 'is-countered' : ''}`}

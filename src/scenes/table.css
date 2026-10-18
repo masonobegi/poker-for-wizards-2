@@ -2980,12 +2980,10 @@
   translate: -50% -50%;
   z-index: var(--z-overlay);
   pointer-events: none;
-  /* 1180 was too wide for what the rows hold: the name sat left, the cards
-     sat left of centre and the chips sat hard right, with a few hundred
-     pixels of nothing between the cards and the chips — the same empty space,
-     moved. This is sized to the content (a name, five cards, a chip count)
-     with the row below distributing it. */
-  width: min(1000px, calc(100% - 24px), 94vw);
+  /* Sized to the content: a name, five cards and a chip count. It was 660px
+     when the row held two cards and a board row above it; the rows now carry
+     the five that actually scored, at a size you can read from a sofa. */
+  width: min(1160px, calc(100% - 24px), 94vw);
   max-height: calc(100% - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3476,24 +3474,25 @@
    action bar. The spell being cast is now the centre of the screen, with what
    it does in full and who it is aimed at. */
 .stackview {
-  /* Down and to the right, not centred and not in the middle band.
+  /* Centred, and it carries the board with it.
    *
-   * Centred, it landed exactly on the community cards. Moving it into "the
-   * band between the board and the rail, where there is nothing behind it"
-   * was measured, once, on a tall window — and the band only exists on a
-   * tall window. At 1280x800 the panel covered the board on 156 of 156
-   * samples and the player's own hand on all 156 of them, which is the
-   * report ("the pop ups block the community cards") still true after it was
-   * called fixed. There is no horizontal band at that height: board, pot and
-   * your hand fill the felt top to bottom.
+   * Three placements have been tried. Centred over the middle of the felt hid
+   * the community cards. Pushed into "the band between the board and the
+   * rail" only worked on a tall window — at 1280x800 it covered the board on
+   * 156 of 156 samples. Pushed off to the right it cleared everything and
+   * became unreadable: on a window under 1100px wide, where the ledger column
+   * is already hidden, 38vw is about 380px, the display-font sigil name does
+   * not fit in it, and the panel clipped its own title mid-word. "All the
+   * cards that are played, like the spells, are way off to the right and he
+   * can't read them."
    *
-   * So it goes beside them instead, over the ledger column — the one thing on
-   * this screen you do not need in order to answer a sigil, and a scrollback
-   * you can read again afterwards. Everything the decision needs (the board,
-   * the pot, your cards, your bet) stays visible, and every response is a
-   * button inside the panel. */
+   * There is no placement that avoids the board on a short window: the board,
+   * the pot and your own hand fill the felt top to bottom. So this stops
+   * trying, and does what ShowdownPanel already does for the same reason —
+   * the panel covers the board and carries a copy of it inside, where the
+   * decision can actually use it. Centred, full width, nothing hidden. */
   align-items: end;
-  justify-items: end;
+  justify-items: center;
   padding: var(--s-4) var(--s-4) calc(var(--rail-h) + var(--actionbar-h) + 16px);
   /* Light: this opens on every cast, and a screen that dims and brightens a
      few times a hand reads as flashing. The card is the focus, not the dark. */
@@ -3505,9 +3504,10 @@
 .stackview.is-lingering .stack-panel { pointer-events: auto; cursor: pointer; }
 
 .stack-panel {
-  /* Narrow enough to clear the board at its widest, which is what moved it
-     here. 680px centred is what used to swallow the community cards. */
-  width: min(400px, 38vw, 100%);
+  /* Wide enough for the sigil's own name. The display face is nearly square
+     per character, so "SUPERPOSE" alone wants ~220px before the glyph, the
+     gaps and the padding are counted. */
+  width: min(680px, calc(100vw - 32px), 100%);
   /* Capped so a deep stack scrolls inside the band rather than growing back
      up over the board. The response row is sticky (see .stack-respond), so
      what scrolls is the reading, never the decision. */
@@ -3533,14 +3533,23 @@
 .stack-feature__glyph {
   display: grid;
   place-items: center;
-  width: clamp(64px, 9vw, 96px);
-  height: clamp(64px, 9vw, 96px);
-  font-size: clamp(40px, 6vw, 64px);
+  /* Gives the words back the room on a narrow window. */
+  width: clamp(44px, 9vw, 96px);
+  height: clamp(44px, 9vw, 96px);
+  font-size: clamp(28px, 6vw, 64px);
   color: var(--school);
   border-radius: 50%;
   background: radial-gradient(circle, color-mix(in srgb, var(--school) 22%, transparent), transparent 70%);
 }
-.stack-feature__body { display: grid; gap: 6px; }
+.stack-feature__body {
+  display: grid;
+  gap: 6px;
+  /* A grid item's `min-width` is `auto`, which is the widest unbreakable
+     thing inside it — here a single display-font word. That is what pushed
+     the body past the panel and let the panel clip "SUPERPOSE" to "SUPERPO".
+     With this it shrinks and the name below wraps instead. */
+  min-width: 0;
+}
 .stack-feature__who {
   font-size: var(--fs-md);
   color: var(--text-2);
@@ -3548,11 +3557,17 @@
 .stack-feature__who strong { color: var(--text); }
 .stack-feature__name {
   font-family: var(--font-display);
-  font-size: round(clamp(24px, 3.2vw, 40px), 4px);
-  line-height: round(calc(clamp(24px, 3.2vw, 40px) * 1.1), 4px);
+  /* The floor was 24px, which at nine characters of a near-square pixel face
+     is wider than a narrow window's whole panel — "SUPERPOSE" did not fit and
+     the panel clipped it to "SUPERPO". The grid stays 4px (one art pixel);
+     only the floor moved. */
+  font-size: round(clamp(16px, 3.2vw, 40px), 4px);
+  line-height: round(calc(clamp(16px, 3.2vw, 40px) * 1.15), 4px);
   letter-spacing: 0.04em;
   color: var(--school);
   text-wrap: balance;
+  /* A name that still does not fit breaks rather than escaping the panel. */
+  overflow-wrap: anywhere;
 }
 .stack-feature__text {
   font-size: clamp(15px, 1.5vw, 19px);
@@ -3627,4 +3642,26 @@
   font-size: var(--fs-sm);
   color: var(--text-2);
   text-align: center;
+}
+
+/* --- the board and your hand, carried inside the spell panel --------------
+   See the note on `.stackview`: the panel cannot avoid covering the felt's
+   middle on a short window, so it carries what the decision needs instead of
+   hiding it. Small and quiet — this is reference, not the subject. */
+.stack-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-2);
+}
+.stack-cardset { display: flex; align-items: center; gap: var(--s-2); }
+.stack-cardlabel {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  flex: none;
 }

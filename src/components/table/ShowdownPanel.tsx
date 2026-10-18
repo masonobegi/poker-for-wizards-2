@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ShowdownEntry, TableView } from '@shared/types';
+import type { CardView } from '@shared/cards';
 import { CAT_NAME, Cat, type RuleMods } from '@shared/hand';
 import { CardRow } from '@/components/card/CardRow';
 import { useCardAnchors } from '@/components/fx/useCardAnchors';
@@ -82,11 +83,14 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
    * Read at render rather than through a resize listener: this panel
    * re-renders on every table update, and a window resized during a showdown
    * is not a case worth a subscription.
+   *
+   * Every size went up a step when the board row came out: "make the hands at
+   * the end a lot bigger", and dropping the board row is what paid for it.
    */
   const roomy = typeof window === 'undefined' || window.innerHeight >= 900;
   const handSize = shown.length >= 3
-    ? (roomy ? 'sm' : 'xs')
-    : (roomy ? 'md' : 'sm');
+    ? (roomy ? 'md' : 'sm')
+    : (roomy ? 'lg' : 'md');
 
   return (
     <motion.div
@@ -115,39 +119,18 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
           ) : null}
         </header>
 
-        {/* The board, inside the panel.
+        {/*
+          No board row any more.
 
-            This panel is positioned over the felt and, at Steam Deck's
-            1280x800, lands squarely on top of the community cards — so the
-            one moment you most need to see the board is the one moment it is
-            covered. "Flush, King high" is unreadable without the four hearts
-            it was made from. There is no room to move the panel: the gap
-            between the pot and the rail is about 140px and the panel needs
-            290. So the board comes along with it, and the showdown explains
-            itself. */}
-        {!uncontested && view.board.length > 0 ? (
-          <div className="showdown-board">
-            <span className="showdown-boardlabel">Board</span>
-            <CardRow
-              views={view.board}
-              /* Was "xs" at every size. The panel is wider than it was and
-                 the board row is what "Flush, King high" has to be checked
-                 against — but on a short felt it gives the room back to the
-                 hands, which are the point. */
-              size={roomy ? 'sm' : 'xs'}
-              // Apart, not fanned: the row exists so a reader can check the
-              // ranks that scored, and at 0.24 the corner indices of five xs
-              // cards crowded each other (fun round 5). The panel is 660px
-              // wide and the row needed under half of it either way.
-              overlap={0}
-              highlightIds={allWinningIds}
-              highlight="winning"
-              restHighlight="dimmed"
-              tiltOnHover={false}
-            />
-          </div>
-        ) : null}
-
+          It was here because the panel covers the real board, and "Flush,
+          King high" is unreadable without the cards it was made from. The
+          rows below now show the five cards that actually scored — board
+          cards and hole cards together, in the order they scored — so the
+          board row was saying the same thing twice and taking the space the
+          hands wanted: "instead of just the two cards it needs to show the 5
+          that created the winning hand, don't bother showing the community
+          cards, and make the hands at the end a lot bigger."
+        */}
         <ul className="showdown-list">
           {shown.map((e, i) => (
             <ShowdownRow
@@ -158,6 +141,7 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
               shards={payout.shards[e.playerId]}
               why={whyThisHand(e.cat, view.activeMods ?? {}, !!e.impossible)}
               size={handSize}
+              board={view.board}
             />
           ))}
         </ul>
@@ -183,12 +167,34 @@ interface ShowdownRowProps {
   /** The table rule that made this hand what it is, if one did. */
   why?: string | null;
   /** Set by the panel from how many hands it has to fit — see `handSize`. */
-  size: 'xs' | 'sm' | 'md';
+  size: 'xs' | 'sm' | 'md' | 'lg';
+  /** The community cards, so a scored board card can be found by its id. */
+  board: CardView[];
 }
 
-function ShowdownRow({ e, i, nameOf, shards, why, size }: ShowdownRowProps) {
+function ShowdownRow({ e, i, nameOf, shards, why, size, board }: ShowdownRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
-  useCardAnchors(rowRef, e.cards.map((c) => c.id));
+
+  /*
+   * The five cards that made the hand, not the two you were dealt.
+   *
+   * "Instead of just the two cards it needs to show the 5 that created the
+   * winning hand." `usedIds` is what the evaluator actually scored, and the
+   * cards themselves are split across the board and this player's hole — so
+   * they are gathered back together here, in scoring order, which is the
+   * order the reveal lights them up in.
+   *
+   * A hand with nothing scored (a muck, or a pot taken uncontested) falls
+   * back to whatever the player showed, so a row never goes empty.
+   */
+  const hand = useMemo(() => {
+    const byId = new Map<string, CardView>();
+    for (const c of [...board, ...e.cards]) byId.set(c.id, c);
+    const used = e.usedIds.map((id) => byId.get(id)).filter((c): c is CardView => !!c);
+    return used.length ? used : e.cards;
+  }, [board, e.cards, e.usedIds]);
+
+  useCardAnchors(rowRef, hand.map((c) => c.id));
   const reduced = useReducedMotionPref();
 
   const isWinner = e.won > 0 && e.usedIds.length > 0;
@@ -248,10 +254,10 @@ function ShowdownRow({ e, i, nameOf, shards, why, size }: ShowdownRowProps) {
         {why ? <span className="showdown-why">{why}</span> : null}
       </div>
 
-      {e.cards.length ? (
+      {hand.length ? (
         <div ref={rowRef}>
           <CardRow
-            views={e.cards}
+            views={hand}
             size={size}
             overlap={0.34}
             highlightIds={revealed}
