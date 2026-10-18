@@ -86,14 +86,57 @@ const MAX_TILT = 10;
 const FLIP: Transition = { duration: T_SLOW, ease: EASE_OUT };
 const STAGGER = 0.07;
 
-/** Cross-fade offsets for stacked superposition faces, in px. */
-const Q_OFFSET: ReadonlyArray<readonly [number, number]> = [
-  [-3.2, -1.6],
-  [3.2, 1.6],
-  [0, -3.6],
-];
-const Q_PHASE = 3.6; // seconds for one full phase cycle
 const Q_MAX_LAYERS = 3;
+
+/**
+ * An undecided card is cut, not cross-faded.
+ *
+ * The two faces used to be stacked on one sheet with their opacity phasing
+ * in and out of each other, which is a lovely idea and reads, in the hand, as
+ * a card that cannot make up its mind about being rendered. "The wildcard
+ * animations look bad" was the note, and the fix the same player asked for is
+ * the right one: show both at once, split, so the card states its two
+ * identities instead of flickering between them.
+ *
+ * The cut runs corner to corner because of where a playing card prints its
+ * index: top-left upright, bottom-right rotated. Split on that diagonal and
+ * each half keeps a whole index of its own — the upper face reads from the
+ * top-left corner, the lower face from the bottom-right, exactly as both
+ * would if you fanned two real cards.
+ *
+ * `band(i, n)` is that cut generalised: n bands between the lines x + y = t,
+ * which is two triangles at n = 2 and three stripes at n = 3.
+ */
+function band(i: number, n: number): string {
+  const ta = (200 * i) / n;
+  const tb = (200 * (i + 1)) / n;
+  const first = (t: number): [number, number] => (t <= 100 ? [t, 0] : [100, t - 100]);
+  const second = (t: number): [number, number] => (t <= 100 ? [0, t] : [t - 100, 100]);
+  const pts: Array<[number, number]> = [first(ta)];
+  if (ta < 100 && tb > 100) pts.push([100, 0]);
+  pts.push(first(tb), second(tb));
+  if (ta < 100 && tb > 100) pts.push([0, 100]);
+  pts.push(second(ta));
+  return `polygon(${pts.map(([x, y]) => `${x.toFixed(2)}% ${y.toFixed(2)}%`).join(', ')})`;
+}
+
+/** The cut lines themselves, drawn in ink so the split is an edge, not a seam. */
+function QuantumSeams({ n }: { n: number }) {
+  const lines = [];
+  for (let i = 1; i < n; i++) {
+    const t = (200 * i) / n;
+    const [x1, y1] = t <= 100 ? [t, 0] : [100, t - 100];
+    const [x2, y2] = t <= 100 ? [0, t] : [t - 100, 100];
+    lines.push(
+      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} vectorEffect="non-scaling-stroke" />,
+    );
+  }
+  return (
+    <svg className="hx-q__seams" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden focusable="false">
+      {lines}
+    </svg>
+  );
+}
 
 const RING_GLYPHS = ['✶', '◈', '☾', '✦', '⟁', '☉', '✷', '⌖', '⟡', '✧', '⎔', '❖'] as const;
 
@@ -185,6 +228,18 @@ const GlyphRing = memo(function GlyphRing() {
 // Description for assistive tech
 // ---------------------------------------------------------------------------
 
+/**
+ * What a mark means, in the words the player needs mid-hand.
+ *
+ * `MARKS[id].blurb` is written for the codex; this is the same thing said
+ * while you are deciding whether to call. Asked for directly: "if I hover
+ * over a card I want to see its stats and modifiers."
+ */
+function markLine(m: MarkId): string {
+  const def = MARKS[m];
+  return `${def.name}: ${def.blurb}`;
+}
+
 function describe(view: CardView, back: boolean, cloud: Face[]): string {
   const bits: string[] = [];
   if (back && view.state === 'facedown') bits.push('Face-down card');
@@ -193,14 +248,15 @@ function describe(view: CardView, back: boolean, cloud: Face[]): string {
     else if (view.suit !== undefined) bits.push(`Veiled card, suit ${SUIT_NAME[view.suit]}, rank hidden`);
     else bits.push('Veiled card');
   } else if (view.state === 'quantum') {
-    bits.push(cloud.length ? `Uncollapsed card: ${cloud.map(faceName).join(' or ')}` : 'Uncollapsed card');
+    bits.push(cloud.length ? `Undecided card: ${cloud.map(faceName).join(' or ')}` : 'Undecided card — nobody has seen it yet');
   } else if (view.face) bits.push(faceName(view.face));
   else bits.push('Face-down card');
 
   if (view.diverged) bits.push('divergent — the table sees another card');
   if (view.entangled) bits.push('entangled');
+  if (view.amber) bits.push('set in amber — nothing can change it');
   if (view.memory > 0) bits.push(`${view.memory} pot${view.memory === 1 ? '' : 's'} won`);
-  for (const m of view.marks) bits.push(MARKS[m].name);
+  for (const m of view.marks) bits.push(markLine(m));
   return bits.join('. ');
 }
 
@@ -276,6 +332,15 @@ function CardBase({
 
   const marks = view.marks;
   const has = useCallback((id: MarkId): boolean => marks.includes(id), [marks]);
+  /* Wild counts as any suit and Prism counts as any suit, so neither has the
+     one that is printed on it. See CardArt's `rainbow`. */
+  const rainbow = marks.includes('wild') || marks.includes('prism');
+  /* Wild is any rank AND any suit; Prism is any suit only. They were drawn
+     identically, so "there needs to be more of a distinction on which cards
+     are wild rank, which are wild suit and which are both" — the rank goes
+     grey and struck on a Wild, because the number printed on it no longer
+     decides anything, and a strip at the foot of the card says which it is. */
+  const anyRank = marks.includes('wild');
 
   const slotVars: StyleVars = {
     '--cs': scale,
@@ -291,6 +356,7 @@ function CardBase({
     interactive ? 'is-interactive' : '',
     view.diverged ? 'is-diverged' : '',
     view.entangled ? 'is-entangled' : '',
+    view.amber ? 'is-amber' : '',
     // Every mark gets a hook. card.css turns these into the foil that makes a
     // marked card read as precious from across the table — the payoff of the
     // whole Weave school, which until now looked like an ordinary card with a
@@ -368,23 +434,28 @@ function CardBase({
         <span className="hx-card__paper" />
         {isQuantum && cloud.length > 0 ? (
           <div className="hx-q">
-            {cloud.map((f, i) => {
-              const [dx, dy] = Q_OFFSET[i % Q_OFFSET.length];
-              const layerVars: StyleVars = {
-                '--qdx': dx,
-                '--qdy': dy,
-                animationDelay: `${(-(i * Q_PHASE) / Math.max(cloud.length, 1)).toFixed(2)}s`,
-              };
-              return (
-                <div className="hx-q__layer" key={`${faceKey(f)}-${i}`} style={layerVars}>
-                  <CardArt face={f} />
-                </div>
-              );
-            })}
+            {cloud.map((f, i) => (
+              <div
+                className="hx-q__layer"
+                key={`${faceKey(f)}-${i}`}
+                style={{ clipPath: band(i, cloud.length) } as StyleVars}
+              >
+                <CardArt face={f} rainbow={rainbow} anyRank={anyRank} />
+              </div>
+            ))}
+            <QuantumSeams n={cloud.length} />
             <span className="hx-q__moire" />
+            {/* The word, because a split card still has to say what the split
+                means. "Undecided" is the game's word for it everywhere else. */}
+            <span className="hx-q__or" aria-hidden>or</span>
           </div>
         ) : view.face ? (
-          <CardArt face={view.face} />
+          <CardArt face={view.face} rainbow={rainbow} anyRank={anyRank} />
+        ) : null}
+        {rainbow && !showBack ? (
+          <span className={`hx-any ${anyRank ? 'is-both' : ''}`} aria-hidden>
+            {anyRank ? 'any rank · any suit' : 'any suit'}
+          </span>
         ) : null}
       </div>
     </div>
@@ -419,6 +490,10 @@ function CardBase({
       tabIndex={onClick ? 0 : undefined}
       aria-pressed={selectable && onClick ? selected : undefined}
       aria-label={describe(view, showBack, cloud)}
+      /* The same sentence as a native tooltip. A card can be on the board, on
+         a seat, in your hand or in a showdown row, so this is the one place
+         that reaches all of them without a layer that could be clipped. */
+      title={describe(view, showBack, cloud)}
     >
       <motion.div
         className="hx-card-enter"
@@ -521,6 +596,19 @@ function CardBase({
                 {view.entangled && (
                   <span className="hx-badge hx-badge--entangled" role="img" aria-label="Entangled">
                     ∞
+                  </span>
+                )}
+                {/* Amber was invisible: the rule existed, the card wearing it
+                    did not say so, and a player cannot plan around a card
+                    they cannot point at. */}
+                {view.amber && (
+                  <span
+                    className="hx-badge hx-badge--amber"
+                    role="img"
+                    aria-label="Set in amber — nothing can burn, collapse, steal or rewrite this card"
+                    title="Set in amber — nothing can burn, collapse, steal or rewrite this card"
+                  >
+                    ⬡
                   </span>
                 )}
               </span>

@@ -106,6 +106,21 @@ function RailBase({
         <div className="rail-meinfo">
           <span className="rail-name">
             {me.name}
+            {/* Your own position, in the same words as every other seat's.
+                See PlayerView.pos — it comes off the hand, so heads up (where
+                the button posts the small blind) reads right. */}
+            {me.pos ? (
+              <Tooltip body={me.pos === 'dealer'
+                ? <><strong>Dealer button</strong><br />You act last on every street after the flop.</>
+                : me.pos === 'sb'
+                  ? <><strong>Small blind</strong><br />You posted {view.sb.toLocaleString()} before the cards. You act first after the flop.</>
+                  : <><strong>Big blind</strong><br />You posted {view.bb.toLocaleString()} before the cards. You act last before the flop.</>}
+              >
+                <span className={`rail-pos is-${me.pos}`}>
+                  {me.pos === 'dealer' ? 'D' : me.pos === 'sb' ? 'SB' : 'BB'}
+                </span>
+              </Tooltip>
+            ) : null}
             {me.warded ? <Tooltip body="Warded — your cards cannot be targeted"><span className="rail-flag">☾</span></Tooltip> : null}
             {me.severed ? <Tooltip body="Severed — no mana this hand"><span className="rail-flag is-bad">⨯</span></Tooltip> : null}
             {me.hexed > 0 ? <Tooltip body={`Hexed ×${me.hexed}`}><span className="rail-flag is-bad">☠</span></Tooltip> : null}
@@ -113,10 +128,43 @@ function RailBase({
           <span className="rail-chips mono">
             <RollingNumber value={me.chips} spring={{ stiffness: 260, damping: 24, mass: 1 }} />
           </span>
+          {/* What you have put in. The pot is on the felt and every other
+              seat's bet is a chip in front of it; your own was the one number
+              on this table you could not see, which is the number you are
+              deciding about. */}
+          {me.bet > 0 || me.committed > 0 ? (
+            <Tooltip body={(
+              <>
+                <strong>Your bet</strong><br />
+                {me.bet.toLocaleString()} in front of you on this street.<br />
+                {me.committed.toLocaleString()} in the pot from you this hand.
+              </>
+            )}>
+              <span className="rail-bet mono">
+                <span className="rail-bet__chip" aria-hidden />
+                {me.bet.toLocaleString()}
+                {me.committed > me.bet ? <em className="rail-bet__total"> / {me.committed.toLocaleString()}</em> : null}
+              </span>
+            </Tooltip>
+          ) : null}
         </div>
 
         <div className="rail-resources">
-          <ManaPips value={me.mana} max={me.maxMana} />
+          {/* "I could not work out how to get mana" was the first thing a new
+              player said out loud. The pips showed how much; nothing showed
+              where it came from, and the number moves with relics and omens
+              so it cannot be written into the string. */}
+          <Tooltip body={(
+            <>
+              <strong>Mana {me.mana} / {me.maxMana}</strong><br />
+              +{me.manaRegen} at the start of every street, and +2 at the start of a hand.<br />
+              Sigils cost mana. Unspent mana carries into the next hand.
+            </>
+          )}>
+            <span className="rail-mana">
+              <ManaPips value={me.mana} max={me.maxMana} />
+            </span>
+          </Tooltip>
           <Tooltip body="Shards — spend them in the market between antes">
             <span className="rail-shards mono">◆ {me.shards}</span>
           </Tooltip>
@@ -165,6 +213,7 @@ function RailBase({
           changes, and stays put when it does not.
         */}
         <div className="rail-read" aria-live="polite">
+          {me.handRead ? <span className="rail-read-label">your hand</span> : null}
           <AnimatePresence mode="wait" initial={false}>
             {me.handRead ? (
               <motion.span
@@ -184,7 +233,13 @@ function RailBase({
 
       <div className="rail-sigils">
         {sigils.length === 0 ? (
-          <p className="rail-nosigils">No sigils in hand</p>
+          <p className="rail-nosigils">
+            No sigils in hand.<br />
+            <span className="rail-nosigils-why">
+              You draw {me.sigilDraw} at the start of every hand, and hold up to {me.sigilMax}.
+              The Market sells more between antes.
+            </span>
+          </p>
         ) : null}
         <AnimatePresence mode="popLayout">
           {sigils.map((s, i) => {

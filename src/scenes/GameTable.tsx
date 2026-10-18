@@ -15,6 +15,7 @@ import TargetPrompt from '@/components/table/TargetPrompt';
 import ShowdownPanel from '@/components/table/ShowdownPanel';
 import LogPanel from '@/components/LogPanel';
 import ChatBox from '@/components/ChatBox';
+import RulesPanel from '@/components/RulesPanel';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import Shop from '@/scenes/Shop';
@@ -140,7 +141,7 @@ export default function GameTable() {
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [codex, setCodex] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [side, setSide] = useState<'log' | 'chat'>('log');
+  const [side, setSide] = useState<'log' | 'chat' | 'rules'>('log');
   // Below 1100px `.tbl-side` (the ledger/chat rail) is hidden for room — this
   // gives it back as an on-demand drawer instead, so the log stays reachable.
   const [logOpen, setLogOpen] = useState(false);
@@ -149,6 +150,34 @@ export default function GameTable() {
 
   // Any phase change invalidates a half-finished target selection.
   useEffect(() => { setTargeting(null); }, [view?.phase, view?.handNumber]);
+
+  /**
+   * T opens Talk and puts the cursor in it.
+   *
+   * Typing at this table was hard for a new player and the reason is the
+   * action shortcuts: F folds, C calls, A goes all in, and they listen to the
+   * window. Start typing a sentence without having clicked into the chat box
+   * first and the first word plays your hand for you. Every multiplayer game
+   * solves this the same way — one key takes you to the message line — and
+   * the hint under the box says which key it is.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key.toLowerCase() !== 't' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+      setSide('chat');
+      setLogOpen(true);
+      // After the tab has switched and the input exists.
+      window.setTimeout(() => {
+        const input = document.querySelector<HTMLInputElement>('.chat-input');
+        input?.focus();
+      }, 30);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const beginCast = useCallback((uid: string) => {
     const inst = me?.sigils?.find((s) => s.uid === uid);
@@ -199,6 +228,14 @@ export default function GameTable() {
   const targetableHole = cardTargetMode
     && targeting.def.target !== 'board_card';
 
+  /* How many rules are in force, for the tab. A number on the tab is the
+     whole point: by ante four this game is being played under a dozen rules
+     that were not in it when the run started, and nothing counted them. */
+  const showdownUp = view.phase === 'payout' && !!view.payout && !anteTurned;
+
+  const ruleCount = view.omens.length + view.modNotes.length
+    + (view.activeMods?.deadRanks?.length ?? 0) + me.relics.length;
+
   const sideTabs = (
     <div className="tbl-sidetabs">
       <button
@@ -208,16 +245,25 @@ export default function GameTable() {
         Ledger
       </button>
       <button
+        className={`tbl-sidetab ${side === 'rules' ? 'is-on' : ''}`}
+        onClick={() => setSide('rules')}
+      >
+        Rules
+        {ruleCount > 0 ? <span className="tbl-sidecount">{ruleCount}</span> : null}
+      </button>
+      <button
         className={`tbl-sidetab ${side === 'chat' ? 'is-on' : ''}`}
         onClick={() => setSide('chat')}
       >
-        Talk
+        Talk <kbd className="tbl-sidekey">T</kbd>
       </button>
     </div>
   );
   const sidePanel = side === 'log'
     ? <LogPanel entries={view.log} players={view.players} />
-    : <ChatBox compact className="tbl-sidechat" />;
+    : side === 'rules'
+      ? <RulesPanel view={view} me={me} className="tbl-siderules" />
+      : <ChatBox compact className="tbl-sidechat" />;
 
   return (
     <div className="table-scene">
@@ -230,8 +276,15 @@ export default function GameTable() {
         <div className="tbl-top-c">
           <div className="tbl-ante">
             <span className="eyebrow">Ante {view.ante}</span>
+            {/* "100 / 200" never said which number was which, and the two
+                blinds are what the whole betting round is measured in. */}
             <span className="tbl-blinds mono">
-              {view.sb.toLocaleString()} / {view.bb.toLocaleString()}
+              <span className="tbl-blind">
+                <em>small blind</em>{view.sb.toLocaleString()}
+              </span>
+              <span className="tbl-blind">
+                <em>big blind</em>{view.bb.toLocaleString()}
+              </span>
             </span>
           </div>
           {view.handsUntilAnte > 0 ? (
@@ -263,7 +316,12 @@ export default function GameTable() {
       </header>
 
       <main className="tbl-main">
-        <div className="felt">
+        {/* The showdown panel is anchored to the top of the felt (it must
+            never run off the top — see .showdown in table.css) and it
+            reproduces the board along its own top row, so while it is open
+            the real strip underneath it is a duplicate the panel is sitting
+            on. Fade it rather than fight the anchor. */}
+        <div className={`felt ${showdownUp ? 'is-showdown' : ''}`}>
           {/* The floor, its inlay, the dither that joins its tones, and the
               motes in the light above it. The nap plate is gone: a noise
               texture is how you suggest cloth in a rendered image and the
@@ -298,7 +356,7 @@ export default function GameTable() {
           {/* The deck is the origin every dealt card now flies from, so it
               lives inside the felt and moves with it. `cut` replays the
               top-card lift on each new street and each new hand. */}
-          <Deck cut={view.handNumber * 8 + view.board.length} />
+          <Deck cut={view.handNumber * 8 + view.board.length} view={view} />
 
           <Board
             view={view}
@@ -311,9 +369,7 @@ export default function GameTable() {
               band under the pot at every resolution instead of being placed
               by an offset that only held at one window size. */}
           <AnimatePresence>
-            {view.phase === 'payout' && view.payout && !anteTurned
-              ? <ShowdownPanel key="showdown" view={view} />
-              : null}
+            {showdownUp ? <ShowdownPanel key="showdown" view={view} /> : null}
           </AnimatePresence>
         </div>
 
@@ -361,7 +417,7 @@ export default function GameTable() {
               {targeting.def.name} &mdash;{' '}
               {playerTargetMode ? 'choose an opponent'
                 : targeting.def.target === 'two_cards'
-                  ? `choose two cards (${targeting.picked.length}/2)`
+                  ? `${targeting.def.pick?.[targeting.picked.length] ?? 'choose two cards'} (${Math.min(2, targeting.picked.length + 1)} of 2)`
                   : targeting.def.target === 'own_card' ? 'choose one of your cards'
                     : targeting.def.target === 'board_card' ? 'choose a community card'
                       : 'choose a card in play'}

@@ -6,10 +6,10 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Badge } from '@/components/ui/kit';
-import { SCHOOLS, SIGILS, RARITY_COLOR, type School } from '@shared/sigils';
-import { CREEDS, RELICS, RELIC_RARITY_COLOR } from '@shared/relics';
+import { SCHOOLS, POOL as SIGIL_POOL, RARITY_COLOR, type School } from '@shared/sigils';
+import { CREEDS, RELIC_POOL, RELIC_RARITY_COLOR } from '@shared/relics';
 import { covenOf } from '@shared/covens';
-import { OMENS } from '@shared/omens';
+import { OMEN_POOL } from '@shared/omens';
 import { MARKS } from '@shared/cards';
 import { ACHIEVEMENTS } from '@shared/achievements';
 import { earned } from '@/lib/achievements';
@@ -25,7 +25,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
   const [school, setSchool] = useState<School | 'all'>('all');
 
   const sigils = useMemo(
-    () => (school === 'all' ? SIGILS : SIGILS.filter((s) => s.school === school)),
+    () => (school === 'all' ? SIGIL_POOL : SIGIL_POOL.filter((s) => s.school === school)),
     [school],
   );
 
@@ -112,7 +112,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
 
       {tab === 'relics' ? (
         <ul className="codex-list">
-          {RELICS.map((r) => (
+          {RELIC_POOL.map((r) => (
             <li key={r.id} className="codex-entry" style={{ ['--accent' as string]: RELIC_RARITY_COLOR[r.rarity] }}>
               <div className="codex-glyph"><Mark kind="relic" id={r.id} fallback={r.glyph} /></div>
               <div className="codex-body">
@@ -155,7 +155,7 @@ export default function Codex({ onClose }: { onClose: () => void }) {
           them in. */}
       {tab === 'omens' ? (
         <ul className="codex-list">
-          {[...OMENS].sort((a, b) => a.minAnte - b.minAnte || a.name.localeCompare(b.name)).map((o) => (
+          {[...OMEN_POOL].sort((a, b) => a.minAnte - b.minAnte || a.name.localeCompare(b.name)).map((o) => (
             <li key={o.id} className="codex-entry" style={{ ['--accent' as string]: 'var(--gold)' }}>
               <div className="codex-glyph"><Mark kind="omen" id={o.id} fallback={o.glyph} /></div>
               <div className="codex-body">
@@ -255,7 +255,7 @@ function Rules() {
       <section>
         <h3>Hands that cannot exist</h3>
         <p>
-          Wild marks, mirrored cards and superposition make hands a physical deck
+          Wild marks, mirrored cards and undecided cards make hands a physical deck
           cannot produce. Above a Straight Flush sit <strong>Five of a Kind</strong>,{' '}
           <strong>Flush House</strong> and <strong>Flush Five</strong>. Win with one
           and the table pays attention.

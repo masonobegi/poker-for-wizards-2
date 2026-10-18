@@ -135,6 +135,24 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
           <span className="sigil-school">
             {written ? 'Written' : def.timing.includes('response') ? 'Response' : school.name}
           </span>
+          {/* Inside the card, in the header, and visible without hovering.
+              It used to hang off the top-right corner at -7px and only appear
+              on hover — so on a hovered card, which lifts 14px and scales
+              1.05, it was pushed past the top of the sigil row's clip box and
+              came out with a slice missing. A control that is cut off is a
+              control nobody trusts. The header is also the one strip of this
+              card that survives being locked, which is exactly when a player
+              wants to get rid of a sigil. */}
+          {onDiscard ? (
+            <button
+              className="sigil-discard"
+              title={`Unmake ${def.name} for 1 mana`}
+              aria-label={`Unmake ${def.name} for one mana`}
+              onClick={(e) => { e.stopPropagation(); onDiscard(inst.uid); }}
+            >
+              ⌫
+            </button>
+          ) : null}
         </header>
 
         <div className="sigil-art">
@@ -168,22 +186,12 @@ const SigilCardBase = forwardRef<HTMLDivElement, SigilCardProps>(function SigilC
         </span>
       ) : null}
 
-      {onDiscard ? (
-        <button
-          className="sigil-discard"
-          title="Unmake for 1 mana"
-          aria-label={`Unmake ${def.name} for one mana`}
-          onClick={(e) => { e.stopPropagation(); onDiscard(inst.uid); }}
-        >
-          ⌫
-        </button>
-      ) : null}
-
       <div className="sigil-tip" role="tooltip">
         <strong>{written ? `“${written.text}”` : def.name}</strong>
         <p>{def.text}</p>
         <p className="sigil-impossible"><Mark kind="ui" id="impossible" /> {def.impossible}</p>
         {why ? <p className="sigil-warn">{why.long}</p> : null}
+        {onDiscard ? <p className="sigil-unmake">⌫ unmakes it for 1 mana — the sigil is gone.</p> : null}
       </div>
     </motion.div>
   );

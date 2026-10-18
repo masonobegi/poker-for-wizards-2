@@ -87,6 +87,15 @@ export interface SigilDef {
   unstoppable?: boolean;
   /** Bot willingness to fire it, 0..1 — crude but keeps bots from misplaying. */
   botBias?: number;
+  /**
+   * What each pick means, for a sigil that asks for more than one card.
+   *
+   * "Choose two cards (0/2)" does not say which of the two is the one being
+   * copied and which is the one being overwritten, and deciding that is the
+   * whole of Mirror. A player asked to be given the choice; the choice was
+   * always theirs, the prompt just never said so.
+   */
+  pick?: readonly string[];
 }
 
 export const SIGILS: SigilDef[] = [
@@ -212,6 +221,7 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'entangle', name: 'Entangle', school: 'bind', glyph: '∞', cost: 3,
     timing: ['any'], target: 'two_cards', rarity: 'rare', price: 9, botBias: 0.5,
+    pick: ['choose the first card to bind', 'choose the card to bind it to'],
     text: 'Bind two cards. From now on, whatever happens to one happens to the other — including being replaced, collapsed, or destroyed.',
     brief: 'Bind two cards. What happens to one happens to both.',
     impossible: 'Action at a distance between two pieces of card stock.',
@@ -219,6 +229,7 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'mirror', name: 'Mirror', school: 'bind', glyph: '⧉', cost: 2,
     timing: ['flop', 'turn', 'river'], target: 'two_cards', rarity: 'common', price: 5, botBias: 0.6,
+    pick: ['choose the card to copy', 'choose the card that becomes a copy of it'],
     text: 'Pick two community cards. The second becomes an exact duplicate of the first. The deck now holds two of the same card, legally.',
     brief: 'One community card becomes a copy of another.',
     impossible: 'Two identical cards in one fifty-two card deck.',
@@ -651,6 +662,64 @@ export const SIGILS: SigilDef[] = [
 export const SIGIL_BY_ID: Record<string, SigilDef> = Object.fromEntries(
   SIGILS.map((s) => [s.id, s]),
 );
+
+/**
+ * The sigils actually in the game.
+ *
+ * Seventy-one of these were written and all seventy-one were in the draw
+ * bag, which is about sixty more than anybody can hold in their head. Two
+ * people played a run on the hosted build and the verdict was the same from
+ * both: not "this card is bad" but "I cannot remember what any of these do".
+ * A spell game where the spells are a blur is a slot machine with extra
+ * reading.
+ *
+ * So this is the set, thirteen cards, and the bar for being in it is high:
+ *
+ *   1. It could not happen at a real table. That was always the house rule.
+ *   2. Its one-line brief is the whole card. If you need the rules text to
+ *      know what it does, it is not in.
+ *   3. It is not a dial on another card. Six omens said "sigils cost one
+ *      more mana" in six different wordings; the sigil set had the same
+ *      problem, and a set of near-duplicates reads as a set of unknowns.
+ *   4. Each school keeps its pitch. Two cards each, so the six schools are
+ *      still six different ways to break a hand of poker.
+ *
+ * The other fifty-eight are still defined, and still resolve by id, because
+ * a saved table, an old achievement or a ledger line from a previous version
+ * must not crash on a card that left the pool. They are simply never dealt
+ * or sold. Moving one back in is one line here.
+ */
+export const POOL_IDS: readonly string[] = [
+  // Entropy — nothing is decided until it is seen.
+  'superpose',     // the signature card: one object, two identities
+  'collapse',      // and the answer to it
+  // Veil — truth is a per-observer quantity.
+  'divergence',    // one card, two readings, both scoring
+  'nullify',       // the counterspell; a stack needs an answer
+  'second_sight',  // one mana, no target: the card you can always cast
+  // Chronos — the river has run before.
+  'rewind',        // take the newest card back and run it again
+  'amber',         // and the card nothing can touch
+  // Bind — two cards, one fate.
+  'twin',          // your hole card joins the board for everyone
+  'mirror',        // the board holds the same card twice
+  // Ruin — some cards should not have existed.
+  'burn',          // the board gets shorter
+  'unmake',        // a rank leaves every hand at once
+  // Weave — the deck remembers what you write on it.
+  'wild_rite',     // a card of yours becomes any card
+  'sixth_card',    // a community card nobody asked for
+];
+
+/** What is dealt and sold. `SIGILS` stays the registry of everything. */
+export const POOL: SigilDef[] = POOL_IDS.map((id) => {
+  const def = SIGIL_BY_ID[id];
+  if (!def) throw new Error(`POOL_IDS names a sigil that does not exist: ${id}`);
+  return def;
+});
+
+/** Is this one of the sigils a player can actually be dealt? */
+export const inPool = (id: string): boolean => POOL_IDS.includes(id);
 
 export const RESPONSE_SIGILS = new Set(
   SIGILS.filter((s) => s.timing.includes('response')).map((s) => s.id),

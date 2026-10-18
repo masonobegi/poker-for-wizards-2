@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useRef } from 'react';
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import type { TableView } from '@shared/types';
-import { RANK_NAME } from '@shared/cards';
+import { RANK_NAME, type CardView } from '@shared/cards';
 import { Card } from '@/components/card/Card';
 import { Tooltip } from '@/components/ui/kit';
 import { RollingNumber } from '@/components/fx/RollingNumber';
@@ -22,6 +22,34 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
   const winningIds = new Set(
     (view.payout?.entries ?? []).filter((e) => e.won > 0).flatMap((e) => e.usedIds),
   );
+  /* What the sigil on the stack is pointing at.
+     The caster could see their own pick highlighted; nobody else could see
+     anything at all, so a spell arriving at the board was a panel of text and
+     a card that changed afterwards. Everyone sees the aim now, while there is
+     still time to answer it. */
+  const aimed = new Set(
+    (view.stack?.entries ?? []).flatMap((e) => e.targets?.cardIds ?? []),
+  );
+
+  /* The row, with its holes.
+     `view.board` holds only the cards still on the table and `burnedSlots`
+     holds the places the burned ones occupied (server/game/table.ts
+     `displaySlot`), so the row is rebuilt here rather than closed up: a card
+     that burns leaves a gap exactly where it was dealt and nothing else
+     moves. "An X in the spot it was burned and no cards moved." */
+  const holes = new Set(view.burnedSlots);
+  const slots: Array<{ card: CardView | null; i: number }> = [];
+  {
+    let next = 0;
+    const width = view.board.length + holes.size;
+    for (let i = 0; i < width; i++) {
+      if (holes.has(i)) slots.push({ card: null, i });
+      else slots.push({ card: view.board[next++] ?? null, i });
+    }
+  }
+  // Five is the ordinary board; an omen can deal more, and a burn does not
+  // buy anybody a replacement.
+  const toCome = Math.max(0, 5 - slots.length);
   // "Which five cards won?" is the question the showdown has to answer, and a
   // gold ring on an already-bright card face is not loud enough to answer it.
   // Once a winning hand is known, the board cards that are *not* part of it
@@ -118,7 +146,24 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
 
       <div className="board-cards" ref={stripRef}>
         <AnimatePresence mode="popLayout">
-          {view.board.map((c, i) => (
+          {slots.map(({ card: c, i }) => c === null ? (
+            /* A hole, where a card burned. It keeps the place the card was
+               dealt into — the row does not close up, because at a real
+               table nothing slides when a card is taken away. */
+            <motion.div
+              key={`hole-${i}`}
+              className="board-slot is-burned"
+              layout
+              title="A community card was burned out of the board here. It is not replaced, and it is out of the deck for good."
+              aria-label="A burned community card"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <span className="board-slot__x" aria-hidden>✕</span>
+              <span className="board-slot__burnedlabel" aria-hidden>burned</span>
+            </motion.div>
+          ) : (
             // `Card` already owns its full deck-to-slot arc, rotation, stagger
             // and exit (see `hx-card-enter` in card.css) — this wrapper only
             // needs `layout` so the remaining cards reflow smoothly when one
@@ -138,7 +183,9 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
                 index={i}
                 dealFrom={dealFrom.current}
                 highlight={
-                  winningIds.has(c.id) ? 'winning' : dimLosers ? 'dimmed' : 'none'
+                  aimed.has(c.id) ? 'target'
+                    : winningIds.has(c.id) ? 'winning'
+                      : dimLosers ? 'dimmed' : 'none'
                 }
                 selectable={targetable}
                 selected={pickedIds.includes(c.id)}
@@ -148,17 +195,12 @@ function BoardBase({ view, targetable, pickedIds = [], onPickCard }: BoardProps)
           ))}
         </AnimatePresence>
 
-        {/* Slots that were never dealt, or were burned out of the board. They
-            get their own AnimatePresence rather than joining the cards' —
-            that one is `mode="popLayout"`, which pulls exiting children out of
-            flow, and a socket should hold its place in the row while it
-            closes. When a sigil burns a community card the card exits on its
-            arc and the survivors slide; the socket arriving at the end of the
-            row was the one part of that change not explained by motion.
-            `clip-path` percentages mean no hardcoded offsets, so it reads the
-            same at every --card-w. */}
+        {/* Sockets for the cards still to come. Their own AnimatePresence
+            rather than the cards' — that one is `mode="popLayout"`, which
+            pulls exiting children out of flow, and a socket should hold its
+            place in the row while it closes. */}
         <AnimatePresence>
-          {Array.from({ length: Math.max(0, 5 - view.board.length) }, (_, i) => (
+          {Array.from({ length: toCome }, (_, i) => (
             <motion.div
               key={`slot-${i}`}
               className="board-slot"

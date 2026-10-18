@@ -9,7 +9,7 @@
  */
 import { nanoid } from 'nanoid';
 import {
-  type CardEntity, type CardView, type Face, type Rank,
+  type CardEntity, type CardView, type Face, type MarkId, type Rank,
   faceLabel, isQuantum, standardDeck, viewCard,
 } from '../../shared/cards';
 import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
@@ -54,6 +54,8 @@ export function createTable(code: string, hostId: string, config: Partial<RoomCo
     burnedSlots: [],
     echoTimeline: null,
     dealerSeat: 0,
+    sbId: null,
+    bbId: null,
     actingId: null,
     actingUntil: null,
     lastAggressorId: null,
@@ -277,8 +279,57 @@ export function refreshMaxMana(p: Player, t: Table): void {
   p.mana = Math.min(p.mana, p.maxMana);
 }
 
+/**
+ * Where a board card sits on the table, counting the holes already in the row.
+ *
+ * `t.board` holds only the cards that are still there, so the live index of a
+ * card shifts every time one before it burns. The table does not shift: a
+ * burned card leaves a hole and everything else stays where it was dealt,
+ * which is what a player sees and what they asked for ("an X in the spot it
+ * was burned and no cards moved"). This maps one to the other.
+ */
+export function displaySlot(liveIndex: number, holes: readonly number[]): number {
+  let slot = liveIndex;
+  for (const h of [...holes].sort((a, b) => a - b)) if (h <= slot) slot++;
+  return slot;
+}
+
+/**
+ * Take a community card out of the board and out of the run.
+ *
+ * Every burn goes through here — the Burn sigil, the Burning mark, anything
+ * that destroys a card — so that "gone" means the same thing each time: out
+ * of the row, a hole left where it was, and never dealt again.
+ */
+export function burnCard(t: Table, id: string): number | null {
+  const live = t.board.indexOf(id);
+  if (live < 0) return null;
+  const slot = displaySlot(live, t.burnedSlots);
+  t.board.splice(live, 1);
+  t.burnedSlots.push(slot);
+  const c = card(t, id);
+  if (c) c.destroyed = true;
+  // Not the discard: the discard folds back into the deck.
+  t.deck = t.deck.filter((d) => d !== id);
+  return slot;
+}
+
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
+
+/**
+ * Mana back at the top of each street, for this player, under these omens.
+ * Mirrors `Engine.beginStreet` — the one in the engine is the truth, this is
+ * what the rail prints so a player can see where mana comes from at all.
+ */
+export const manaRegenFor = (p: Player, t: Table): number => Math.max(0,
+  1 + relicNumber(p.relics, (r) => r.mana?.regen)
+    + omenNumber(t.omens, (o) => o.mana?.regen));
+
+/** Sigils drawn at the start of a hand. Mirrors `Engine.beginHand`. */
+export const sigilDrawFor = (p: Player, t: Table): number => Math.max(0,
+  2 + relicNumber(p.relics, (r) => r.sigils?.drawPerHand)
+    + omenNumber(t.omens, (o) => o.sigilDraw));
 
 export function manaCost(p: Player, def: SigilDef, t?: Table): number {
   const delta = relicNumber(p.relics, (r) => r.sigils?.costDelta)
@@ -569,6 +620,13 @@ export function viewFor(t: Table, viewerId: string): TableView {
       id: p.id,
       name: p.name,
       seat: p.seat,
+      pos: p.seat === t.dealerSeat ? 'dealer'
+        : t.sbId === p.id ? 'sb'
+          : t.bbId === p.id ? 'bb'
+            : null,
+      manaRegen: manaRegenFor(p, t),
+      sigilDraw: sigilDrawFor(p, t),
+      sigilMax: sigilHandSize(p),
       avatar: p.avatar,
       isBot: p.isBot,
       connected: p.connected,
@@ -639,6 +697,17 @@ export function viewFor(t: Table, viewerId: string): TableView {
     board,
     burnedSlots: t.burnedSlots,
     deckCount: t.deck.length,
+    // The census, not the order. See TableView.deckMarks.
+    deckMarks: (() => {
+      const counts = new Map<MarkId, number>();
+      for (const id of t.deck) {
+        for (const m of t.cards.get(id)?.marks ?? []) counts.set(m, (counts.get(m) ?? 0) + 1);
+      }
+      return [...counts].map(([mark, count]) => ({ mark, count })).sort((a, b) => b.count - a.count);
+    })(),
+    destroyedFaces: [...t.cards.values()]
+      .filter((c) => c.destroyed)
+      .map((c) => faceLabel(c.faces[c.collapsed ?? 0])),
     deckTop,
     peeked,
     pot: totalPot(t),

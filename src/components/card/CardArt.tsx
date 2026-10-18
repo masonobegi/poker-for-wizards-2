@@ -10,7 +10,7 @@
  * bevel live on the surface beneath it (see card.css) — which is what lets the
  * quantum state stack two of these on one sheet of paper and cross-fade them.
  */
-import { memo } from 'react';
+import { memo, useId } from 'react';
 import type { Face, Rank, Suit } from '@shared/cards';
 import { RANK_LABEL, isRed } from '@shared/cards';
 
@@ -51,10 +51,53 @@ function SuitGeometry({ suit }: { suit: Suit }) {
 export interface SuitShapeProps {
   suit: Suit;
   className?: string;
+  /** Draw the rainbow instead: this card counts as any suit. */
+  rainbow?: boolean;
+}
+
+/**
+ * The rainbow — the suit a Wild or Prism card actually has.
+ *
+ * A card that counts as any suit was still printed as the Eight of Clubs,
+ * with a little mark in the corner saying otherwise. Asked what it was,
+ * players said "eight of clubs", because that is what it says. The suit is
+ * the lie, so the suit is what has to change: four hard bands of colour in a
+ * lozenge that is deliberately none of the four shapes, at every size the
+ * suit is drawn — corner index and centre pips alike.
+ *
+ * Hard stops, not a gradient: this is a pixel-art deck and a smooth ramp
+ * between two opaque colours is the one thing the style rules out
+ * (test/arcade.style.test.ts).
+ */
+/* A hexagon, because the four shapes are taken and a lozenge is a Diamond
+   with the corners rounded off — which is what the first version drew, and
+   the one suit a player might mistake it for. */
+const RAINBOW_D = 'M50 3 L91 26 L91 74 L50 97 L9 74 L9 26 Z';
+const RAINBOW_BANDS = ['#e5261e', '#ff8c1a', '#4ee08a', '#00e5ff'] as const;
+
+function RainbowGeometry({ idBase }: { idBase: string }) {
+  const clip = `${idBase}-rb`;
+  return (
+    <>
+      <defs>
+        <clipPath id={clip}>
+          <path d={RAINBOW_D} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        {RAINBOW_BANDS.map((c, i) => (
+          <rect key={c} x={0} y={i * 25} width={100} height={25} fill={c} />
+        ))}
+      </g>
+      {/* The outline, so it still reads as an object on ivory. */}
+      <path d={RAINBOW_D} fill="none" stroke="currentColor" strokeWidth={6} />
+    </>
+  );
 }
 
 /** A standalone suit mark that inherits `color`. Used by indices and badges. */
-export const SuitShape = memo(function SuitShape({ suit, className }: SuitShapeProps) {
+export const SuitShape = memo(function SuitShape({ suit, className, rainbow }: SuitShapeProps) {
+  const id = useId().replace(/:/g, '');
   return (
     <svg
       className={className}
@@ -63,9 +106,11 @@ export const SuitShape = memo(function SuitShape({ suit, className }: SuitShapeP
       focusable="false"
       preserveAspectRatio="xMidYMid meet"
     >
-      <g fill="currentColor">
-        <SuitGeometry suit={suit} />
-      </g>
+      {rainbow ? <RainbowGeometry idBase={id} /> : (
+        <g fill="currentColor">
+          <SuitGeometry suit={suit} />
+        </g>
+      )}
     </svg>
   );
 });
@@ -377,11 +422,14 @@ function CourtArt({ rank, suit }: { rank: Rank; suit: Suit }) {
 export interface PipLayoutProps {
   rank: Rank;
   suit: Suit;
+  /** Any suit: draw the rainbow pip instead of this one. */
+  rainbow?: boolean;
 }
 
 /** The centre of the card: pips for 2..10, bespoke art for J/Q/K/A. */
-export const PipLayout = memo(function PipLayout({ rank, suit }: PipLayoutProps) {
+export const PipLayout = memo(function PipLayout({ rank, suit, rainbow }: PipLayoutProps) {
   const court = rank >= 11;
+  const id = useId().replace(/:/g, '');
   return (
     <svg
       className={court ? 'hx-art__svg hx-art__svg--court' : 'hx-art__svg'}
@@ -402,7 +450,7 @@ export const PipLayout = memo(function PipLayout({ rank, suit }: PipLayoutProps)
                 `scale(${pipScale(rank)}) translate(-50 -50)`
               }
             >
-              <SuitGeometry suit={suit} />
+              {rainbow ? <RainbowGeometry idBase={`${id}-${i}`} /> : <SuitGeometry suit={suit} />}
             </g>
           ))}
         </g>
@@ -411,14 +459,19 @@ export const PipLayout = memo(function PipLayout({ rank, suit }: PipLayoutProps)
   );
 });
 
-function CornerIndex({ rank, suit, corner }: { rank: Rank; suit: Suit; corner: 'tl' | 'br' }) {
+function CornerIndex({ rank, suit, corner, rainbow, anyRank }: {
+  rank: Rank; suit: Suit; corner: 'tl' | 'br'; rainbow?: boolean; anyRank?: boolean;
+}) {
   const label = RANK_LABEL[rank] ?? '?';
   return (
     <div className={`hx-art__index hx-art__index--${corner}`} aria-hidden="true">
-      <span className="hx-art__rank" data-wide={label.length > 1 ? 'true' : undefined}>
+      <span
+        className={anyRank ? 'hx-art__rank is-any' : 'hx-art__rank'}
+        data-wide={label.length > 1 ? 'true' : undefined}
+      >
         {label}
       </span>
-      <SuitShape suit={suit} className="hx-art__index-suit" />
+      <SuitShape suit={suit} rainbow={rainbow} className="hx-art__index-suit" />
     </div>
   );
 }
@@ -426,6 +479,17 @@ function CornerIndex({ rank, suit, corner }: { rank: Rank; suit: Suit; corner: '
 export interface CardArtProps {
   face: Face;
   className?: string;
+  /**
+   * This card counts as any suit (Wild, Prism). Its printed suit is then a
+   * lie the player reads out loud, so it is not printed.
+   */
+  rainbow?: boolean;
+  /**
+   * And its rank is a lie too (Wild, but not Prism). The number stays
+   * visible — it is still what the card was — but greyed and struck, so a
+   * glance tells the two apart.
+   */
+  anyRank?: boolean;
 }
 
 /**
@@ -433,8 +497,8 @@ export interface CardArtProps {
  * rotated), plus the centre art. Transparent background — the ivory stock is
  * painted by the surface beneath, so several of these can be stacked.
  */
-export const CardArt = memo(function CardArt({ face, className }: CardArtProps) {
-  const red = isRed(face.suit);
+export const CardArt = memo(function CardArt({ face, className, rainbow, anyRank }: CardArtProps) {
+  const red = isRed(face.suit) && !rainbow;
   return (
     <div
       className={className ? `hx-art ${className}` : 'hx-art'}
@@ -447,11 +511,11 @@ export const CardArt = memo(function CardArt({ face, className }: CardArtProps) 
       data-suit={face.suit}
       aria-hidden="true"
     >
-      <CornerIndex rank={face.rank} suit={face.suit} corner="tl" />
+      <CornerIndex rank={face.rank} suit={face.suit} corner="tl" rainbow={rainbow} anyRank={anyRank} />
       <div className="hx-art__centre">
-        <PipLayout rank={face.rank} suit={face.suit} />
+        <PipLayout rank={face.rank} suit={face.suit} rainbow={rainbow} />
       </div>
-      <CornerIndex rank={face.rank} suit={face.suit} corner="br" />
+      <CornerIndex rank={face.rank} suit={face.suit} corner="br" rainbow={rainbow} anyRank={anyRank} />
     </div>
   );
 });

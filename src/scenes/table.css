@@ -44,6 +44,20 @@
 .tbl-top-r > .btn { flex: none; }
 .tbl-top-c { display: grid; justify-items: center; gap: 1px; }
 
+/* Which number is which blind. */
+.tbl-blind {
+  display: grid;
+  justify-items: center;
+  line-height: 1.05;
+}
+.tbl-blind em {
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
 .tbl-code {
   font-family: var(--font-display);
   font-size: var(--fs-sm);
@@ -53,6 +67,9 @@
 
 .tbl-ante { display: flex; align-items: baseline; gap: var(--s-3); }
 .tbl-blinds {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-end;
   font-family: var(--font-hud);
   font-size: var(--fs-hud);
   line-height: var(--lh-md);
@@ -341,6 +358,118 @@
   pointer-events: none;
 }
 
+/* The deck answers a question now, so it has to look like something you can
+   ask. A player asked to be able to click it and see what is in it — fair,
+   in a game whose pitch is that the deck is not the deck any more. */
+.deck-hit {
+  position: absolute;
+  inset: -8px;
+  z-index: 2;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  /* The deck itself takes no pointer events, so a card flying over it on its
+     way to the board is not swallowed by the stack it came from. The hit area
+     has to opt back in, or the thing a player was told to click cannot be
+     clicked — which is exactly what happened. */
+  pointer-events: auto;
+}
+.deck.is-open .deck-stack,
+.deck-hit:hover + .deck-shadow + .deck-stack { transform: translateY(-2px); }
+.deck-hit:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.deck-panel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 10px);
+  z-index: var(--z-modal);
+  width: min(320px, calc(100vw - 32px));
+  padding: 11px 13px;
+  text-align: left;
+  background: var(--surface);
+  border: 4px solid var(--ink);
+  box-shadow: inset 0 0 0 2px var(--purple), var(--e-4);
+  /* A long run marks a lot of cards, and the deck sits low on the felt, so
+     the census could run off the bottom of a short screen. `--deck-room` is
+     the space that actually exists, measured when the panel opens; the list
+     inside it is the part that gives. */
+  max-height: var(--deck-room, 40vh);
+  display: flex;
+  flex-direction: column;
+}
+/* Nothing below the deck worth opening into: open upward instead. */
+.deck-panel.is-above {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+.deck-panel strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.deck-panel p { font-size: var(--fs-xs); line-height: var(--lh-sm); color: var(--text-2); }
+.deck-count b { color: var(--chip); font-size: var(--fs-md); }
+.deck-peek { margin-top: 4px; color: var(--jade); }
+.deck-plain { margin-top: 4px; color: var(--text-3); }
+/* The deck's census. */
+.deck-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.deck-census { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.deck-census li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.deck-census b { color: var(--chip); font-size: var(--fs-sm); }
+.deck-census em {
+  grid-column: 2;
+  font-style: normal;
+  color: var(--text-4);
+  line-height: var(--lh-sm);
+}
+.deck-sub {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ruin);
+}
+.deck-gone {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: var(--lh-sm);
+}
+
+.deck-rules {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.deck-rules li {
+  padding-left: 10px;
+  border-left: 2px solid var(--entropy);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-sm);
+  color: var(--text-2);
+}
+.deck-note {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 2px dashed var(--line-soft);
+  color: var(--text-4) !important;
+  font-style: italic;
+}
+
 .deck-stack {
   position: relative;
   width: round(calc(var(--card-w) * 0.62), 4px);
@@ -564,6 +693,76 @@
 }
 
 .seat-info { display: grid; min-width: 0; }
+/* D / SB / BB. A two-letter chip is wider than the round dealer button, so
+   it grows sideways from the same corner rather than squashing its text. */
+.seat-button.is-sb,
+.seat-button.is-bb {
+  width: auto;
+  min-width: 24px;
+  padding: 0 4px;
+  border-radius: 0;
+  /* 12px is the floor for text that is not on a card face — below it the
+     responsive harness calls it unreadable, and it is right. */
+  font-size: 12px;
+  background: var(--bone-2);
+}
+.seat-button.is-bb { background: var(--gold); }
+
+/* The word, over the seat the table is waiting on. A gold ring says "this
+   seat is special"; it does not say the game is stopped until they move. */
+.seat-turn {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  translate: -50% 0;
+  padding: 2px 6px;
+  background: var(--gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  font-family: var(--font-display);
+  /* The arcade face is only ever set at a multiple of 8 (test/arcade.style),
+     and 8px is under the readability floor, so 16px it is. */
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: var(--e-1);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.seat-turn.is-aim {
+  background: var(--ruin);
+  color: var(--bone);
+  bottom: auto;
+  top: calc(100% + 4px);
+}
+.seat.is-aimed .seat-pod {
+  border-color: var(--ruin);
+  box-shadow:
+    var(--e-3),
+    0 0 0 2px color-mix(in srgb, var(--ruin) 45%, transparent),
+    0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--ruin) 45%, transparent) 40%, transparent);
+}
+
+/* The same chip, on your own rail. */
+.rail-pos {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 4px;
+  background: var(--bone-2);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+.rail-pos.is-dealer { background: var(--brass-hi); }
+.rail-pos.is-bb { background: var(--gold); }
+
 .seat-name {
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
@@ -585,14 +784,19 @@
   letter-spacing: 0.04em;
 }
 
+/* The clock on somebody else's turn.
+   It used to hang behind the seat (`z-index: -1`) and 46px below it, so what
+   you saw was a sliver of ring sticking out from under a nameplate — "I
+   can't fully see other people's timers". On the pod's top-left corner, in
+   front, where there is nothing else: the "to act" tag is centred above, the
+   bet chip is out to the side, the marks are on the other edge. */
 .seat-timer {
   position: absolute;
-  left: 50%;
-  top: calc(100% - 46px);
-  transform: translateX(-50%);
-  width: 68px; height: 68px;
+  left: -12px;
+  top: -12px;
+  width: 44px; height: 44px;
   pointer-events: none;
-  z-index: -1;
+  z-index: 5;
 }
 
 /* --- turn timer (shared by Seat's opponent ring and ActionBar's own) ---- */
@@ -880,6 +1084,37 @@
 /* An undealt slot. Not a dashed placeholder box: it reads as a place on the
    table where a card is going to be, with the corner radius and inner shadow
    the real cards sit in, and a hex ghost echoing the card back. */
+/* A socket nothing will ever land in: a card was burned out of the board
+   here and the rules say it is not replaced. Empty felt said "a card is
+   still to come", which is the opposite of what happened. */
+.board-slot.is-burned {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--ruin) 55%, transparent);
+  background: color-mix(in srgb, var(--ruin) 8%, transparent);
+}
+.board-slot__x {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--ruin) 70%, var(--bone-3));
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+.board-slot__burnedlabel {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  translate: -50% 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ruin) 60%, var(--bone-3));
+  white-space: nowrap;
+}
+
 .board-slot {
   position: relative;
   width: round(calc(var(--card-w) * var(--board-scale, 1)), 4px);
@@ -1044,6 +1279,17 @@
   min-height: 0;
 }
 
+/* The key that gets you into the message line, on the tab that opens it. */
+.tbl-sidekey {
+  margin-left: 4px;
+  padding: 0 3px;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  font-size: 12px;
+  color: var(--text-4);
+  font-family: inherit;
+}
+
 .tbl-sidetabs {
   display: flex;
   gap: 2px;
@@ -1073,6 +1319,80 @@
 .tbl-sidetab:hover { color: var(--text-2); }
 .tbl-sidetab.is-on { color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
 .tbl-sidetab:active { transform: scale(0.97); }
+/* How many rules are in force. A tab that carries the number is the whole
+   reason a player opens it. */
+.tbl-sidecount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0 4px;
+  background: var(--entropy);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
+.rules { display: grid; min-height: 0; }
+.rules-scroll {
+  overflow-y: auto;
+  padding: var(--s-3);
+  display: grid;
+  gap: var(--s-2);
+  align-content: start;
+}
+.rules-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--s-2);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.rules-head:first-child { margin-top: 0; }
+.rules-count {
+  margin-left: auto;
+  color: var(--text-4);
+  letter-spacing: 0;
+}
+.rules-list { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.rules-item {
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  border-left: 4px solid var(--line);
+}
+.rules-item.is-bad { border-left-color: var(--ruin); }
+.rules-item.is-good { border-left-color: var(--weave); }
+.rules-from {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.rules-title { display: block; font-size: var(--fs-sm); color: var(--bone); }
+.rules-text { font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--text-2); }
+/* Why that counts as a straight. Under The Ladder it is four cards, and a
+   player watching a four-card straight take their pot deserves the sentence
+   rather than the suspicion. */
+.showdown-why {
+  display: block;
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--text-4);
+}
+
+.rules-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-4);
+  font-style: italic;
+  padding: var(--s-2) 0;
+}
 
 .tbl-sidechat { min-height: 0; }
 
@@ -1096,7 +1416,10 @@
   gap: 4px;
   align-content: start;
   min-height: 0;
-  font-size: var(--fs-xs);
+  /* 12px of --text-3 on a near-black plate is the smallest, faintest text in
+     the game, and it is the running record of everything the magic layer
+     does. "Hard as shit to read" was about this panel. */
+  font-size: var(--fs-sm);
   line-height: 1.5;
 }
 .log-empty { color: var(--text-4); font-style: italic; text-align: center; padding: var(--s-4) 0; }
@@ -1104,7 +1427,7 @@
 .log-line {
   --accent: var(--text-3);
   line-height: var(--lh-sm);
-  color: var(--text-3);
+  color: var(--text-2);
   padding-left: 8px;
   border-left: 2px solid transparent;
 }
@@ -1153,6 +1476,9 @@
 .rail {
   position: relative;
   display: grid;
+  /* Your money, your two cards, your hand of sigils. On a tall enough window
+     the cards leave this row entirely and float onto the felt in front of
+     you — see `.rail-hole` and the min-height rule under it. */
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: end;
   gap: var(--s-4);
@@ -1264,20 +1590,29 @@
   cursor: help;
 }
 
+/* The relics you bought. They were 15px glyphs in a row that could not wrap
+   out of its column, so a sixth one ran off the edge of the screen —
+   "bottom left perks need to be bigger and I was told sometimes they run off
+   the screen". Bigger, boxed, and wrapping inside the column they live in. */
 .rail-relics {
   grid-column: 1 / -1;
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 .rail-relic {
-  display: inline-block;
-  font-size: 15px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: color-mix(in srgb, var(--ink) 65%, transparent);
+  border: 2px solid var(--gold-deep);
+  font-size: 18px;
   color: var(--gold);
-  filter:
-;
   cursor: help;
 }
+.rail-relic:hover { border-color: var(--gold); }
 
 /* A fanned row rotates its cards, and a rotated card overflows the layout box
    its un-rotated size reserved — so the outer card's corner sat on top of the
@@ -1290,6 +1625,61 @@
   display: grid;
   justify-items: center;
   gap: 2px;
+}
+
+/* Your two cards, out in front of you.
+ *
+ * In the rail's row they sat between your money and your sigil hand, which
+ * on a 1920-wide screen is the bottom-LEFT of the table while the pot is
+ * dead centre: "I want my cards out in front of me, not down in the corner."
+ * They cannot be centred inside that row — a four-sigil hand is a thousand
+ * pixels of it — so on a window tall enough to have one they leave the row
+ * and sit on the felt's empty lower band instead, centred on the table and
+ * directly above the action buttons.
+ *
+ * The height gate is the whole of it: measured, the band between the pot and
+ * the rail is 130px at 1080p and nothing at all at 768, where the felt is
+ * short enough that the cards would land on the pot. Under that height they
+ * stay in the row, where there is room for them.
+ */
+@media (min-height: 900px) {
+  /* The rail grows a brass lip for the cards to rest their lower third on.
+     The band between the pot and the rail is 129px at 1080p and the cards
+     are 215px tall, so something has to give: 80px of extra rail is the
+     cheapest of the three (the alternatives were shrinking the cards to
+     illegibility or pushing the pot up into the board). The felt loses the
+     same 80px and everything on it is positioned as a percentage of the
+     felt, so it simply sits slightly tighter. */
+  /* On `.table-scene`, not `:root`: this file and tokens.css both define it
+     at root specificity and the bundler's order decides which wins, which is
+     not something a layout should depend on. The scene is an ancestor of
+     everything that reads the token, so it wins by inheritance. */
+  /* The lip scales with the card, not with a constant: --card-h is 8.2vmin
+     and a flat 110px that fitted at 1080p was 60px short at 4K, where the
+     cards are a third again as big. 0.95 of a card is exactly the part that
+     hangs into the rail (see `.rail-hole` below). */
+  .table-scene { --rail-h: round(calc(var(--card-h) * 2.25 + 24px), 4px); }
+  .rail { grid-template-columns: auto minmax(0, 1fr); }
+  /* The pot tucks up under the board to open the band the cards sit in.
+     Growing the rail alone cannot do it: the felt loses what the rail gains,
+     so the pot comes up with it and the band only closes by half as much as
+     the rail grew. */
+  .board-pot { top: calc(100% + round(calc(var(--card-h) * 0.08), 4px)); }
+  .rail-hole {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - round(calc(var(--card-h) * 0.52), 4px));
+    /* Smaller than they are in the rail. The band between the pot and the
+       rail is finite and the felt pays for every pixel the rail takes, so
+       the cards give a fifth of their size back to fit the gap without the
+       seats closing in on the board. They are still half again the size of
+       the cards on a seat. */
+    scale: 0.8;
+    transform-origin: bottom center;
+    translate: -50% 0;
+    z-index: 3;
+    pointer-events: auto;
+  }
 }
 
 /* A held hand is never still.
@@ -1320,7 +1710,37 @@
   min-height: 15px;
   display: grid;
   place-items: center;
+  gap: 1px;
 }
+/* "THREE OF A KIND, QUEENS" on its own, under two cards, is a statement with
+   no subject — a player read it as the board's hand, or somebody else's. */
+.rail-read-label {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+/* Your own bet, in the same shape as the chips in front of every other
+   seat. */
+.rail-bet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 2px solid var(--gold-deep);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  color: var(--chip);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.rail-bet__chip {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--chip);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.rail-bet__total { color: var(--text-3); font-style: normal; }
 .rail-read-name {
   font-family: var(--font-display);
   font-size: var(--fs-xs);
@@ -1369,10 +1789,17 @@
 }
 .rail-nosigils {
   font-size: var(--fs-xs);
-  color: var(--text-4);
+  color: var(--text-3);
   font-style: italic;
   align-self: center;
+  text-align: center;
+  max-width: 34ch;
+  line-height: var(--lh-sm);
 }
+/* An empty hand is the one moment a player is guaranteed to be looking at
+   this space, so it is where the rule for refilling it belongs. */
+.rail-nosigils-why { color: var(--text-4); font-style: normal; }
+.rail-mana { display: inline-flex; }
 
 
 /* ===========================================================================
@@ -1435,14 +1862,12 @@
     bottom: calc(var(--rail-h) + var(--actionbar-h) + 68px);
   }
 
-  /* The turn ring hangs 46px below the seat, which at this height is the
-     middle of the table. Over the pod instead, and smaller with it. */
+  /* Smaller with everything else at this height, same corner. */
   .seat-timer {
-    top: 50%;
-    bottom: auto;
-    width: 58px;
-    height: 58px;
-    transform: translate(-50%, -50%);
+    left: -8px;
+    top: -8px;
+    width: 34px;
+    height: 34px;
   }
 }
 
@@ -1777,18 +2202,32 @@
   text-transform: uppercase;
 }
 .sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #2b2266); }
+/* The one line that says the corner button is not decoration. */
+.sigil-unmake {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 2px dashed var(--line-soft);
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+}
 .sigil-timing { color: color-mix(in srgb, var(--info) 70%, #2b2266); }
 
+/* In the header, in the card. Absolutely positioned at the corner it stuck
+   out past the row's clip box on every hover; hover-only, it was invisible
+   until you found it by accident. */
 .sigil-discard {
-  position: absolute;
-  top: -7px; right: -7px;
-  width: 20px; height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  margin-left: 4px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--ink) 95%, transparent);
   border: 2px solid var(--line);
-  color: var(--text-4);
+  color: var(--text-3);
   font-size: 12px;
-  opacity: 0;
+  line-height: 1;
+  opacity: 0.6;
   transition: opacity var(--t-fast) var(--ease-out),
               color var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
@@ -1796,6 +2235,7 @@
   z-index: 2;
 }
 .sigil:hover .sigil-discard { opacity: 1; }
+.sigil-discard:focus-visible { opacity: 1; outline: 2px solid var(--gold); outline-offset: 2px; }
 .sigil-discard:hover { color: var(--bad); border-color: var(--bad); }
 .sigil-discard:active { transform: scale(0.94); }
 
@@ -1890,14 +2330,23 @@
   gap: 2px;
   pointer-events: none;
 }
+/* It was 12px of --text-4 beside a dial, which is the typographic weight of
+   a footnote for the one thing the player is waiting on. */
 .ab-clocklabel {
   font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.2em;
+  font-size: 16px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--gold);
+  text-shadow: var(--halo-text);
   white-space: nowrap;
 }
+.ab-clockline {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.ab-clockline b { color: var(--chip); font-weight: 700; }
 @media (max-width: 1080px) { .ab-clock { display: none; } }
 
 /* `position: relative` because the raise panel opens OVER this, not above it
@@ -1998,9 +2447,22 @@
 .ab-raisetop { display: flex; align-items: baseline; justify-content: space-between; }
 .ab-amount { font-size: var(--fs-xl); font-weight: 700; color: var(--chip); }
 
-.ab-presets { display: flex; gap: 5px; justify-content: center; }
+/* What a raise costs, under what it raises to. Both numbers, every time:
+   "Raise 5,050" is the total to one reader and the chips leaving the stack
+   to another, and a player read it the second way and shoved. */
+.ab-raisecost {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.ab-raisecost .mono { color: var(--text-2); }
+
+.ab-presets { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
 .ab-preset {
-  padding: 4px 14px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 4px 12px;
   border-radius: var(--r-pill);
   border: 2px solid var(--line);
   font-size: var(--fs-xs);
@@ -2018,6 +2480,8 @@
   color: var(--gold);
   background: color-mix(in srgb, var(--gold) 12%, transparent);
 }
+.ab-presetlabel { font-size: var(--fs-xs); }
+.ab-presetvalue { font-size: 12px; opacity: 0.8; }
 
 .ab-idle {
   font-size: var(--fs-sm);
@@ -2175,7 +2639,24 @@
   to   { transform: scaleX(0); }
 }
 
-.stack-respond { display: grid; gap: var(--s-3); }
+/* The answer never scrolls away.
+   Capping the panel's height to keep it off the community cards meant that
+   on a tall spell the "Answer it?" row — the counterspell you are being
+   offered, with a clock running on it — was below the fold of a box most
+   people will not think to scroll. Sticky to the bottom of the panel, with
+   its own plate, so whatever else is on the stack the thing you can DO about
+   it is on screen. */
+.stack-respond {
+  display: grid;
+  gap: var(--s-3);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: var(--s-3);
+  background: var(--surface);
+  box-shadow: 0 -4px 0 var(--surface);
+  border-top: 2px solid var(--line);
+}
 .stack-ask {
   font-family: var(--font-display);
   font-size: var(--fs-md);
@@ -2377,6 +2858,17 @@
  * The previous fixed 300px silently clipped its own last row the moment a
  * third player reached showdown.
  */
+/* While the showdown is open the board is drawn twice: once on the cloth and
+   once along the top of the panel standing on top of it. The one underneath
+   is the duplicate. */
+.felt.is-showdown .board-cards,
+.felt.is-showdown .board-pot,
+.felt.is-showdown .board-mods {
+  opacity: 0.18;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+
 .showdown {
   /* Absolute inside .felt, so it sits in the felt's own empty lower band at
      every resolution rather than at a viewport offset tuned for one. */
@@ -2876,8 +3368,12 @@
    action bar. The spell being cast is now the centre of the screen, with what
    it does in full and who it is aimed at. */
 .stackview {
-  align-items: center;
-  padding: var(--s-4);
+  /* Not centred. Centred, it landed exactly on the community cards — the one
+     thing you have to look at to decide whether to answer the sigil it is
+     telling you about. It sits in the band between the board and the rail
+     instead, where there is nothing behind it. */
+  align-items: end;
+  padding: var(--s-4) var(--s-4) calc(var(--rail-h) + var(--actionbar-h) + 16px);
   /* Light: this opens on every cast, and a screen that dims and brightens a
      few times a hand reads as flashing. The card is the focus, not the dark. */
   background: color-mix(in srgb, var(--ink) 30%, transparent);
@@ -2889,7 +3385,10 @@
 
 .stack-panel {
   width: min(680px, 100%);
-  max-height: min(86vh, 760px);
+  /* Capped so a deep stack scrolls inside the band rather than growing back
+     up over the board. The response row is sticky (see .stack-respond), so
+     what scrolls is the reading, never the decision. */
+  max-height: min(48vh, 460px);
   gap: var(--s-4);
   padding: var(--s-5) var(--s-6);
 }

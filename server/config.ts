@@ -58,7 +58,22 @@ export const config = {
    */
   pacePercent: int('HEXHOLD_PACE', 100, 10, 2000),
   host: process.env.HOST ?? '0.0.0.0',
-  production: process.env.NODE_ENV === 'production',
+  /**
+   * Production mode: stricter CORS, long cache headers on hashed assets.
+   *
+   * `RAILWAY_ENVIRONMENT` is set on every Railway deployment and nowhere else.
+   * Without it a deploy whose NODE_ENV did not survive the builder would run
+   * with `origin: true` — every origin allowed — which is the one default
+   * that is WORSE when it is wrong. A hosted deployment is production whether
+   * or not the builder remembered to say so.
+   *
+   * A getter, like the persistence paths below and for the same reason: a
+   * module-level snapshot of `process.env` is taken before anything that
+   * imports this file has had a chance to set it.
+   */
+  get production(): boolean {
+    return process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT;
+  },
 
   /** Where the built client lives, if this process is also serving it. */
   clientDir: process.env.CLIENT_DIR ?? null,
@@ -68,8 +83,15 @@ export const config = {
    * the right default for a server that also serves the client. A desktop
    * build connects from `file://` or its own loopback origin, so it sends no
    * usable Origin header and is allowed through by `null`.
+   *
+   * A getter, so `test/deploy.test.ts` can set the variable and read back who
+   * would be let in. This is the one setting here whose failure mode is a
+   * server that works perfectly for the wrong people, and a rule nothing can
+   * exercise is a rule nobody can trust.
    */
-  allowedOrigins: list('ALLOWED_ORIGINS'),
+  get allowedOrigins(): string[] {
+    return list('ALLOWED_ORIGINS');
+  },
 
   limits: {
     /** Total live tables. Beyond this, room creation is refused politely. */
@@ -97,7 +119,25 @@ export const config = {
    */
   persistence: {
     get enabled(): boolean { return bool('PERSIST', true); },
-    get file(): string { return process.env.PERSIST_FILE ?? 'hexhold.db'; },
+    /**
+     * Where the snapshot lives.
+     *
+     * A hosted container's filesystem is ephemeral — on Railway the whole
+     * thing is replaced on every deploy — so the default lands wherever the
+     * process was started and is lost with it. That is survivable, because a
+     * lost snapshot costs the tables that were live at the moment of a
+     * restart and nothing else.
+     *
+     * If a volume IS attached, use it: Railway sets
+     * `RAILWAY_VOLUME_MOUNT_PATH` to its mount point, and a table that
+     * survives a deploy is worth having for free. `PERSIST_FILE` still wins
+     * over both, because an operator who names a path means it.
+     */
+    get file(): string {
+      if (process.env.PERSIST_FILE) return process.env.PERSIST_FILE;
+      const vol = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+      return vol ? `${vol.replace(/\/+$/, '')}/hexhold.db` : 'hexhold.db';
+    },
   },
 
   /** Printed at boot so an operator can see what they actually started. */

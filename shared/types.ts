@@ -191,6 +191,25 @@ export interface PlayerView {
   hexed: number;
   blinded: boolean;
   lastAction?: Player['lastAction'];
+  /**
+   * Dealer, small blind, big blind — or nothing, which is most seats at a
+   * full table. Read straight off the hand rather than worked out from the
+   * seat ring, so heads-up (where the button posts the small blind) and a
+   * table with a hole in it are both right.
+   */
+  pos: 'dealer' | 'sb' | 'bb' | null;
+  /**
+   * Where mana and sigils come from, for this seat, right now.
+   *
+   * "I could not work out how to get mana or cards" was the first thing a
+   * new player said. Both numbers are the engine's — mana regenerates
+   * `1 + relics + omens` at the top of every street, hands draw
+   * `2 + relics + omens` sigils and hold `4 + relics` — and all three move
+   * during a run, so the client cannot print a constant and be honest.
+   */
+  manaRegen: number;
+  sigilDraw: number;
+  sigilMax: number;
   isYou: boolean;
   ready: boolean;
   shopDone: boolean;
@@ -453,6 +472,21 @@ export interface TableView {
   /** Board slots destroyed by Burn, for the gap animation. */
   burnedSlots: number[];
   deckCount: number;
+  /**
+   * What has been done to the deck, as opposed to what is in it.
+   *
+   * Asked for: "I want to click on the deck and see what cards are actually
+   * in there so I can scroll through and see what's happening." The order of
+   * the cards left is the one thing that has to stay secret — that is the
+   * poker — but everything that has been DONE to the deck was announced to
+   * the table when it happened: an omen marks five cards Wild in the middle
+   * of the screen, a burned card was face-up on the board when it burned.
+   * So this is the census: how many of each mark are still in there, and
+   * what has left the run for good.
+   */
+  deckMarks: Array<{ mark: MarkId; count: number }>;
+  /** Faces of the cards burned out of the run. They are never dealt again. */
+  destroyedFaces: string[];
   /** Visible only with Thin Veil. */
   deckTop: CardView | null;
   /** Cards peeked with Second Sight / Foresight, for your eyes only. */
@@ -540,6 +574,17 @@ export interface Table {
   echoTimeline: Timeline | null;
 
   dealerSeat: number;
+  /**
+   * Who posted the blinds this hand.
+   *
+   * Derivable from `dealerSeat` and the seating — and it was being derived,
+   * in the client, wrongly: heads up the button IS the small blind, and an
+   * eliminated seat between two players shifts everything along. Nobody
+   * could tell what position they were in, which in poker is most of what
+   * you are deciding on. `postBlinds` knows; it says so here.
+   */
+  sbId: string | null;
+  bbId: string | null;
   actingId: string | null;
   actingUntil: number | null;
   /** Seat index that closes the current betting round. */

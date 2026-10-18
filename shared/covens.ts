@@ -171,6 +171,32 @@ export const COVEN_BY_ID: Record<string, CovenDef> = Object.fromEntries(
 export const DEFAULT_COVEN = 'unaligned';
 
 /**
+ * Whether the run starts by choosing one of these.
+ *
+ * It does not, as of two people playing the hosted build. The first screen of
+ * a game nobody has played before asked for a decision between seven
+ * archetypes, each with two signature sigils, a relic and a creed — thirty
+ * or so rules to weigh before the first card. The feedback was not that the
+ * covens were badly designed; it was that the game was confusing to sit down
+ * to, and this is the first thing it asks.
+ *
+ * So everyone is Unaligned. That is not a loss of content in the shape it
+ * looks like: the Unaligned creed (The Last Word, shared/relics.ts CREEDS)
+ * means every seat always holds a counterspell, so the table is symmetric
+ * and the one piece of magic a new player has to understand — somebody can
+ * answer what you cast — is in every hand from the first.
+ *
+ * Every coven is still defined, and `covenOf` still resolves one, so a run
+ * saved while the picker existed still loads. Turn this back on and the
+ * picker, the bot draw and the Daily Rite's coven all come back with it.
+ */
+export const COVEN_CHOICE = false;
+
+/** The covens a player may actually be dealt or pick. */
+export const pickableCovens = (): CovenDef[] =>
+  (COVEN_CHOICE ? COVENS : COVENS.filter((c) => c.id === DEFAULT_COVEN));
+
+/**
  * How often a hand's first sigil draw comes from the coven's own school.
  *
  * A coven's two signature sigils are dealt once and are gone when cast, so by

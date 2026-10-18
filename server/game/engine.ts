@@ -17,7 +17,7 @@ import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
 import {
-  IMPOSSIBLE_BY_ANTE, OMENS, OMEN_BY_ID, keepsPromise, omenNumber, type ActiveOmen,
+  IMPOSSIBLE_BY_ANTE, OMEN_BY_ID, OMEN_POOL, keepsPromise, omenNumber, type ActiveOmen,
 } from '../../shared/omens';
 import {
   isStreet,
@@ -25,7 +25,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
+  burnCard, contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
 } from './table';
 import {
   applySeal, bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -37,7 +37,7 @@ import { buy, payInterest, reroll, rollShop, scribe } from './shop';
 import {
   decideAction, decideCast, decideResponse, decideScribe, decideShop, thinkTime, TEMPO,
 } from './bots';
-import { COVENS, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
+import { COVENS, COVEN_CHOICE, COVEN_LEAN, COVEN_LEAN_FROM_ANTE, DEFAULT_COVEN, covenOf, creedAwake, creedOf, leanOf } from '../../shared/covens';
 import { SIGIL_BY_ID, defOf } from '../../shared/sigils';
 
 export type Emit = (fx: FxEvent[]) => void;
@@ -180,6 +180,52 @@ export class Engine {
   private clearWait(): void {
     this.deadline = 0;
     this.onDeadline = null;
+  }
+
+  /**
+   * The street transition a cast interrupted, if one did.
+   *
+   * A street is dealt and then waits a beat before its betting round opens.
+   * In that beat the street exists but its round does not: `actedThisStreet`
+   * still holds the PREVIOUS street's actors, and nobody's bet has been swept
+   * into the pot, so `roundComplete()` reads true for a round that never
+   * started. Anyone may cast into that beat — a response does not wait its
+   * turn — and `cast()` kills the pending timer, because a sigil cast on
+   * someone's turn has to stop that turn's clock.
+   *
+   * The result was two streets for one cast: the turn was bet, the river
+   * arrived with no betting round at all, and a Burning turn card made the
+   * river look like a second turn. So the beat is remembered rather than
+   * guessed at — whatever was scheduled runs when the stack settles, and
+   * nothing else does.
+   *
+   * It is stamped with the hand and street it was armed in, which is what
+   * makes it safe to leave lying around: an owed beat can only be claimed at
+   * the exact point it was armed for. A timer cancelled by anything else —
+   * a showdown, a new hand, the Market — can never resurrect it.
+   */
+  private interrupted: { go: () => void; hand: number; phase: Phase } | null = null;
+
+  /** Schedule a transition that survives a cast landing inside its beat. */
+  private beat(ms: number, go: () => void): void {
+    const owed = { go, hand: this.table.handNumber, phase: this.table.phase };
+    this.interrupted = owed;
+    this.wait(ms, () => {
+      if (this.interrupted === owed) this.interrupted = null;
+      go();
+    });
+  }
+
+  /** The transition still owed at this exact point of this exact hand. */
+  private owedBeat(): (() => void) | null {
+    const owed = this.interrupted;
+    if (!owed) return null;
+    const t = this.table;
+    if (owed.hand !== t.handNumber || owed.phase !== t.phase) {
+      this.interrupted = null;
+      return null;
+    }
+    return owed.go;
   }
 
   // -------------------------------------------------------------------- seats
@@ -420,7 +466,10 @@ export class Engine {
 
     // Its own stream per hand, so a seeded table deals the same cards on the
     // same hand number whatever happened in between.
-    t.deck = this.stream(`deck:${t.handNumber}`).shuffle([...t.cards.keys()]);
+    // Burned cards do not come back. See CardEntity.destroyed.
+    t.deck = this.stream(`deck:${t.handNumber}`).shuffle(
+      [...t.cards.values()].filter((c) => !c.destroyed).map((c) => c.id),
+    );
 
     // Move the button.
     const next = nextSeat(t, t.dealerSeat, (p) => !p.eliminated);
@@ -458,7 +507,10 @@ export class Engine {
       const leans = !!lean && t.ante >= COVEN_LEAN_FROM_ANTE && this.rng.chance(COVEN_LEAN);
       for (let i = 0; i < draws; i++) {
         if (p.sigils.length < sigilHandSize(p)) {
-          giveSigil(t, p, randomSigil(this.rng, true, i === 0 && leans ? lean! : undefined));
+          // Prefer a card they are not already holding: see randomSigil.
+          giveSigil(t, p, randomSigil(
+            this.rng, true, i === 0 && leans ? lean! : undefined, p.sigils.map((s) => s.defId),
+          ));
         }
       }
       // The Unaligned's creed: a hand never starts without an answer. The
@@ -599,6 +651,11 @@ export class Engine {
       : nextSeat(t, t.dealerSeat, (p) => !p.eliminated && !p.sittingOut) ?? seats[0];
     const bbPlayer = nextSeat(t, sbPlayer.seat, (p) => !p.eliminated && !p.sittingOut && p.id !== sbPlayer.id)
       ?? seats.find((p) => p.id !== sbPlayer.id) ?? seats[0];
+
+    // Published, so every seat can say what position it is in without the
+    // client re-deriving it. See Table.sbId.
+    t.sbId = sbPlayer.id;
+    t.bbId = bbPlayer.id;
 
     this.commit(sbPlayer, Math.min(t.sb, sbPlayer.chips));
     this.commit(bbPlayer, Math.min(t.bb, bbPlayer.chips));
@@ -802,6 +859,17 @@ export class Engine {
       dst.faces = src.faces.map((f) => ({ ...f }));
       dst.collapsed = src.collapsed;
       dst.veil = src.veil;
+      /* The marks come with it.
+         "The mirroring 3 should be a wild one, it should take the mods too" —
+         and that is right: the card is a copy of the card beside it, not a
+         card that happens to have the same rank and suit printed on it. A
+         copy of a Wild is Wild, a copy of a Blooded scores a rank higher, a
+         copy of a Burning leaves at the end of the street with the original.
+         It keeps its own `mirrored` so it still says what it is, and marks it
+         already carries are kept rather than overwritten. */
+      dst.marks = [...new Set([...dst.marks, ...src.marks.filter((m) => m !== 'mirrored')])];
+      dst.memory = Math.max(dst.memory, src.memory);
+      if (src.amber) dst.amber = true;
       this.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
       log(t, `The board holds two of ${describeCard(t, src.id)}.`, 'impossible');
     }
@@ -826,11 +894,7 @@ export class Engine {
       if (t.board.length <= floor) break;
       const c = card(t, id);
       if (!c || !c.marks.includes('burning') || c.amber) continue;
-      const slot = t.board.indexOf(id);
-      if (slot < 0) continue;
-      t.board.splice(slot, 1);
-      t.burnedSlots.push(slot);
-      t.discard.push(id);
+      if (burnCard(t, id) === null) continue;
       this.fx.push({ t: 'burn', cardId: id });
       this.fx.push({ t: 'sfx', name: 'card_burn' });
       log(t, `${describeCard(t, id)} burns away.`, 'impossible');
@@ -852,7 +916,7 @@ export class Engine {
     t.phase = next;
     this.dealStreet(next);
     this.flush();
-    this.wait(320, () => this.beginStreet());
+    this.beat(320, () => this.beginStreet());
   }
 
   /** Everyone is committed; deal the remaining board with a beat between cards. */
@@ -875,9 +939,9 @@ export class Engine {
       t.phase = next;
       this.dealStreet(next);
       this.flush();
-      this.wait(750, step);
+      this.beat(750, step);
     };
-    this.wait(600, step);
+    this.beat(600, step);
   }
 
   private toShowdown(): void {
@@ -1269,7 +1333,7 @@ export class Engine {
     const t = this.table;
     const rng = this.stream(`omen:${t.ante}:${t.omens.length}`);
     const taken = new Set(t.omens.map((o) => o.id));
-    let pool = OMENS.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
+    let pool = OMEN_POOL.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
     if (pool.length === 0) return;
     // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
     // given a way to hold a card twice.
@@ -1564,7 +1628,9 @@ export class Engine {
     const r = castSigil(this.ctx(), p, uid, targets);
     if (!r.ok) { this.flush(); return r; }
 
-    // Casting freezes the betting clock until the stack settles.
+    // Casting freezes the betting clock until the stack settles. A street
+    // transition waiting out its beat is frozen, not cancelled: `interrupted`
+    // outlives the timer and `settleStack` owes it.
     if (wasIdle) t.actingUntil = null;
     this.clearWait();
 
@@ -1600,6 +1666,9 @@ export class Engine {
   private settleStack(): void {
     const t = this.table;
     if (!t.stack) return;
+    // The street transition the cast interrupted, if this is still the point
+    // it was armed for. See `interrupted`.
+    const owed = this.owedBeat();
     this.clearWait();
     resolveStack(this.ctx());
     this.flush();
@@ -1614,6 +1683,10 @@ export class Engine {
         return;
       }
       if (live(t).length <= 1) { this.toShowdown(); return; }
+      // The interrupted beat first: between a street being dealt and its
+      // round opening, `roundComplete()` is answering about the street
+      // before this one.
+      if (owed) { this.interrupted = null; owed(); return; }
       if (this.roundComplete()) { this.standDown(); this.advanceStreet(); return; }
       if (t.actingId) { this.startActionClock(true); return; }
       this.advanceStreet();
@@ -1809,10 +1882,15 @@ export class Engine {
     const name = free.length ? r.pick(free) : `Bot ${t.players.length}`;
     // Seeded, so a daily table meets the same opponents with the same temperament.
     const bot = this.addPlayer(`bot_${Rng.hash(`${t.seed}:bot:${t.players.length}`).toString(36)}`, name, true);
-    // Bots draw a coven too, and never the Unaligned — a table of four
-    // identical openings is the thing covens exist to stop, and it would be
-    // an odd game that only let the human have one.
-    if (bot) bot.coven = r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id;
+    // Bots drew a coven too, so that a table was not four identical
+    // openings. With the picker gone (COVEN_CHOICE) that cuts the other way:
+    // the player sits down Unaligned and every bot plays a rulebook they
+    // were never shown. One table, one set of rules.
+    if (bot) {
+      bot.coven = COVEN_CHOICE
+        ? r.pick(COVENS.filter((c) => c.id !== DEFAULT_COVEN)).id
+        : DEFAULT_COVEN;
+    }
     return bot;
   }
 

@@ -169,6 +169,16 @@ export function CardGallery() {
           <Swatch label="faceup">
             <Card view={faceup(sampleFace)} />
           </Swatch>
+          <Swatch label="undecided · two faces">
+            <Card
+              view={view('quantum', {
+                possible: [
+                  { rank: 14, suit: 'S' },
+                  { rank: 7, suit: 'H' },
+                ],
+              })}
+            />
+          </Swatch>
           <Swatch label="quantum · seen">
             <Card
               view={view('quantum', {
@@ -188,6 +198,37 @@ export function CardGallery() {
           </Swatch>
           <Swatch label="veiled · suit leaked">
             <Card view={view('veiled', { suit: 'H' })} />
+          </Swatch>
+        </div>
+      </Section>
+
+      <Section
+        title="Any suit"
+        note="Wild and Prism count as any suit, so the printed one is a lie: both draw the rainbow pip instead."
+      >
+        <div style={swatchRow}>
+          <Swatch label="wild">
+            <Card view={faceup({ rank: 8, suit: 'C' }, { marks: ['wild'] })} />
+          </Swatch>
+          <Swatch label="prism">
+            <Card view={faceup({ rank: 12, suit: 'D' }, { marks: ['prism'] })} />
+          </Swatch>
+          <Swatch label="wild · court">
+            <Card view={faceup({ rank: 13, suit: 'H' }, { marks: ['wild'] })} />
+          </Swatch>
+          <Swatch label="wild · undecided">
+            <Card
+              view={view('quantum', {
+                marks: ['wild'],
+                possible: [
+                  { rank: 10, suit: 'C' },
+                  { rank: 3, suit: 'D' },
+                ],
+              })}
+            />
+          </Swatch>
+          <Swatch label="plain, for comparison">
+            <Card view={faceup({ rank: 8, suit: 'C' })} />
           </Swatch>
         </div>
       </Section>

@@ -1067,9 +1067,25 @@ export function thinkTime(
   // per-table speed setting; the crowd factor keeps a six-handed round from
   // taking three times as long as a heads-up one. They multiply.
   const pace = config.pacePercent / 100;
+  /* The quick band, and it stays quick. It is used for a table catching up
+     after a restart, for a bot answering a cast inside the response window,
+     and for a solo table whose player has already folded — in all three the
+     player has nothing to follow, and the measured cost of not hurrying was
+     about 22 seconds a run watching hands they were no longer in. The band
+     below moved the other way for the opposite reason, which is not a
+     contradiction: there is a difference between the action you are in and
+     the action you have walked away from. */
   if (opts.fast) return Math.round((140 + rng.int(200)) * tempo.think * pace);
-  const base = 300 + rng.int(620);
+  /* Slower than it was, on purpose.
+     A bot used to think for 300-920ms, and the crowd factor cut that to as
+     little as 190ms at a six-handed table — so three opponents could act
+     inside half a second and the only record of it was the ledger: "the bot
+     animations are also way too fast, I can't tell what's going on". A chip
+     moving, a card flipping and a sigil resolving each need about a third of
+     a second to read, and there are often two of them in one action. Blitz
+     is still there for anyone who wants the old pace. */
+  const base = 520 + rng.int(520);
   const actors = opts.actors ?? 2;
-  const crowd = actors > 3 ? Math.max(0.62, 1 - (actors - 3) * 0.12) : 1;
+  const crowd = actors > 3 ? Math.max(0.8, 1 - (actors - 3) * 0.07) : 1;
   return Math.round(base * crowd * tempo.think * pace);
 }

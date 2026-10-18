@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import Gallery from './components/card/Gallery';
 
 import './styles/tokens.css';
 import './styles/base.css';
@@ -34,9 +35,22 @@ ${e.error?.stack ?? ''}`);
 const root = document.getElementById('root');
 if (!root) throw new Error('No #root element');
 
+/**
+ * `?gallery` renders the card gallery instead of the game.
+ *
+ * src/components/card/Gallery.tsx has said "mount it from a debug route"
+ * since it was written, and for want of three lines nobody ever did — so
+ * every change to the card layer was checked by playing hands until the
+ * state you had changed happened to come up. An undecided card with three
+ * faces, a Wild in the hole, a veiled rank: all of them are two minutes of
+ * luck away in a real game and all of them are on this page at once.
+ */
+const debugGallery = typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).has('gallery');
+
 createRoot(root).render(
   <StrictMode>
-    <App />
+    {debugGallery ? <Gallery /> : <App />}
   </StrictMode>,
 );
 

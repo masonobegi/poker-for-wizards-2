@@ -19,7 +19,7 @@ import {
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import {
-  SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
+  POOL, SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
 } from '../../shared/sigils';
 import { resolveClause } from './scribed';
 import { hasRule } from '../../shared/relics';
@@ -27,7 +27,7 @@ import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, bloodOwed, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
+  alive, bloodOwed, burnCard, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
   ruleRelic, sigilHandSize,
 } from './table';
 
@@ -70,7 +70,9 @@ export function drawId(ctx: MagicCtx): string | null {
 export function reshuffleDiscard(ctx: MagicCtx): void {
   const { t, rng } = ctx;
   if (t.discard.length === 0) return;
-  t.deck.push(...rng.shuffle(t.discard));
+  // A burned card is out of the run; the discard is the one route back in,
+  // so it is filtered here as well as in the deck build.
+  t.deck.push(...rng.shuffle(t.discard.filter((id) => !card(t, id)?.destroyed)));
   t.discard = [];
   log(t, 'The discards fold back into the deck.', 'magic');
 }
@@ -169,15 +171,37 @@ export function bindInscribedPairs(t: Table): void {
 // Sigil supply
 // ---------------------------------------------------------------------------
 
-const DRAFT_POOL = Object.values(SIGIL_BY_ID);
+// What a player can be dealt. `SIGIL_BY_ID` still resolves everything ever
+// printed, so an old save or a ledger line from a previous version reads
+// fine; only the draw bag is the curated set. See shared/sigils.ts POOL_IDS.
+const DRAFT_POOL = POOL;
 
-export function randomSigil(rng: Rng, weights = true, school?: SigilDef['school']): SigilInstance {
-  const bag: SigilDef[] = [];
-  for (const d of DRAFT_POOL) {
-    if (school && d.school !== school) continue;
-    const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
-    for (let i = 0; i < n; i++) bag.push(d);
-  }
+/**
+ * One sigil out of the bag.
+ *
+ * `avoid` is what the player already holds. With thirteen sigils in the pool
+ * a plain weighted draw deals a four-card hand with two of the same card
+ * often enough to be the first thing you notice, and two identical cards
+ * read as a smaller game than one of each — which is exactly the impression
+ * the cut has to avoid making. Preferring a card they do not hold is not a
+ * guarantee (a hand can outlast the pool of a school, and the bag falls back
+ * rather than failing), it just stops the common case looking thin.
+ */
+export function randomSigil(
+  rng: Rng, weights = true, school?: SigilDef['school'], avoid?: readonly string[],
+): SigilInstance {
+  const build = (skip: ReadonlySet<string>): SigilDef[] => {
+    const bag: SigilDef[] = [];
+    for (const d of DRAFT_POOL) {
+      if (school && d.school !== school) continue;
+      if (skip.has(d.id)) continue;
+      const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
+      for (let i = 0; i < n; i++) bag.push(d);
+    }
+    return bag;
+  };
+  const fresh = avoid && avoid.length ? build(new Set(avoid)) : [];
+  const bag = fresh.length ? fresh : build(new Set());
   return { uid: nanoid(8), defId: rng.pick(bag).id };
 }
 
@@ -674,11 +698,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     // ---------------------------------------------------------------- RUIN
     case 'burn': {
       if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
-      const slot = t.board.indexOf(firstCard.id);
-      if (slot < 0) { note('That card is not on the board.', 'warn'); break; }
-      t.board.splice(slot, 1);
-      t.burnedSlots.push(slot);
-      t.discard.push(firstCard.id);
+      if (burnCard(t, firstCard.id) === null) { note('That card is not on the board.', 'warn'); break; }
       ctx.fx.push({ t: 'burn', cardId: firstCard.id });
       ctx.fx.push({ t: 'sfx', name: 'card_burn' });
       noteCard(firstCard.id, (d) => `${caster.name} burns ${d} out of the board.`, 'impossible');
@@ -994,7 +1014,9 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
 
     case 'second_wind': {
       let drawn = 0;
-      for (let i = 0; i < 2; i++) if (giveSigil(t, caster, randomSigil(rng))) drawn++;
+      for (let i = 0; i < 2; i++) {
+        if (giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)))) drawn++;
+      }
       note(
         drawn ? `${caster.name} draws ${drawn === 2 ? 'two sigils' : 'a sigil'}.` : 'Their hand is already full.',
         drawn ? 'magic' : 'warn',
@@ -1237,10 +1259,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
           return !!c && c.faces.some((f) => f.rank === rank);
         }));
       if (held) {
-        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng));
+        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is right. Two sigils.`, 'impossible');
       } else {
-        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng));
+        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng, true, undefined, p.sigils.map((s) => s.defId)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is wrong. Everybody else draws.`, 'warn');
       }
       break;
@@ -1265,13 +1287,13 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       firstCard.collapsed = null;
       // The second card leaves by the same route a burn takes, so anything
       // watching the board sees a shape it already understands.
-      const slot = t.board.indexOf(secondCard.id);
-      if (slot >= 0) { t.board.splice(slot, 1); t.burnedSlots.push(slot); }
-      else for (const p of t.players) {
-        const h = p.hole.indexOf(secondCard.id);
-        if (h >= 0) p.hole.splice(h, 1);
+      if (burnCard(t, secondCard.id) === null) {
+        for (const p of t.players) {
+          const h = p.hole.indexOf(secondCard.id);
+          if (h >= 0) p.hole.splice(h, 1);
+        }
+        t.discard.push(secondCard.id);
       }
-      t.discard.push(secondCard.id);
       ctx.fx.push({ t: 'burn', cardId: secondCard.id });
       ctx.fx.push({ t: 'superpose', cardId: firstCard.id });
       note(`${caster.name} welds two cards into one that counts as either.`, 'impossible');

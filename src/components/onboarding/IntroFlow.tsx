@@ -114,7 +114,7 @@ function DeckBreaksVisual() {
     <div className="intro-visual intro-trio">
       <div className="intro-trio__item">
         <Card view={QUANTUM_DEMO} size="md" tiltOnHover />
-        <span className="intro-visual__label">Superposed</span>
+        <span className="intro-visual__label">Undecided</span>
       </div>
       <div className="intro-trio__item">
         <Card view={SEALED_DEMO} size="md" tiltOnHover />
