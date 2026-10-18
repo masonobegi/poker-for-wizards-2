@@ -25,7 +25,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
-  contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
+  burnCard, contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
 } from './table';
 import {
   applySeal, bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -439,7 +439,10 @@ export class Engine {
 
     // Its own stream per hand, so a seeded table deals the same cards on the
     // same hand number whatever happened in between.
-    t.deck = this.stream(`deck:${t.handNumber}`).shuffle([...t.cards.keys()]);
+    // Burned cards do not come back. See CardEntity.destroyed.
+    t.deck = this.stream(`deck:${t.handNumber}`).shuffle(
+      [...t.cards.values()].filter((c) => !c.destroyed).map((c) => c.id),
+    );
 
     // Move the button.
     const next = nextSeat(t, t.dealerSeat, (p) => !p.eliminated);
@@ -829,6 +832,17 @@ export class Engine {
       dst.faces = src.faces.map((f) => ({ ...f }));
       dst.collapsed = src.collapsed;
       dst.veil = src.veil;
+      /* The marks come with it.
+         "The mirroring 3 should be a wild one, it should take the mods too" —
+         and that is right: the card is a copy of the card beside it, not a
+         card that happens to have the same rank and suit printed on it. A
+         copy of a Wild is Wild, a copy of a Blooded scores a rank higher, a
+         copy of a Burning leaves at the end of the street with the original.
+         It keeps its own `mirrored` so it still says what it is, and marks it
+         already carries are kept rather than overwritten. */
+      dst.marks = [...new Set([...dst.marks, ...src.marks.filter((m) => m !== 'mirrored')])];
+      dst.memory = Math.max(dst.memory, src.memory);
+      if (src.amber) dst.amber = true;
       this.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
       log(t, `The board holds two of ${describeCard(t, src.id)}.`, 'impossible');
     }
@@ -853,11 +867,7 @@ export class Engine {
       if (t.board.length <= floor) break;
       const c = card(t, id);
       if (!c || !c.marks.includes('burning') || c.amber) continue;
-      const slot = t.board.indexOf(id);
-      if (slot < 0) continue;
-      t.board.splice(slot, 1);
-      t.burnedSlots.push(slot);
-      t.discard.push(id);
+      if (burnCard(t, id) === null) continue;
       this.fx.push({ t: 'burn', cardId: id });
       this.fx.push({ t: 'sfx', name: 'card_burn' });
       log(t, `${describeCard(t, id)} burns away.`, 'impossible');

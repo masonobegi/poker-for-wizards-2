@@ -118,6 +118,18 @@ export interface CardEntity {
   veil: Veil;
   /** Set in amber: nothing may burn, collapse, replace or rewrite it. */
   amber?: boolean;
+  /**
+   * Burned out of the run.
+   *
+   * Burn used to put the card in the discard, which folds back into the deck
+   * when the deck runs dry and is rebuilt from scratch next hand — so "destroy
+   * a community card" destroyed it for about ninety seconds. The rule a player
+   * read, and the one they asked for, is that it is gone: "things like burn
+   * should burn the card FOREVER". The entity stays in `t.cards` so a ledger
+   * line, an achievement or a saved table can still resolve its id; it is
+   * simply never dealt again.
+   */
+  destroyed?: boolean;
   /** Pots this card has been part of a winning hand for. */
   memory: number;
   /**

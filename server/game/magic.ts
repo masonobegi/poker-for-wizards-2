@@ -27,7 +27,7 @@ import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, bloodOwed, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
+  alive, bloodOwed, burnCard, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
   ruleRelic, sigilHandSize,
 } from './table';
 
@@ -70,7 +70,9 @@ export function drawId(ctx: MagicCtx): string | null {
 export function reshuffleDiscard(ctx: MagicCtx): void {
   const { t, rng } = ctx;
   if (t.discard.length === 0) return;
-  t.deck.push(...rng.shuffle(t.discard));
+  // A burned card is out of the run; the discard is the one route back in,
+  // so it is filtered here as well as in the deck build.
+  t.deck.push(...rng.shuffle(t.discard.filter((id) => !card(t, id)?.destroyed)));
   t.discard = [];
   log(t, 'The discards fold back into the deck.', 'magic');
 }
@@ -696,11 +698,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     // ---------------------------------------------------------------- RUIN
     case 'burn': {
       if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
-      const slot = t.board.indexOf(firstCard.id);
-      if (slot < 0) { note('That card is not on the board.', 'warn'); break; }
-      t.board.splice(slot, 1);
-      t.burnedSlots.push(slot);
-      t.discard.push(firstCard.id);
+      if (burnCard(t, firstCard.id) === null) { note('That card is not on the board.', 'warn'); break; }
       ctx.fx.push({ t: 'burn', cardId: firstCard.id });
       ctx.fx.push({ t: 'sfx', name: 'card_burn' });
       noteCard(firstCard.id, (d) => `${caster.name} burns ${d} out of the board.`, 'impossible');
@@ -1289,13 +1287,13 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       firstCard.collapsed = null;
       // The second card leaves by the same route a burn takes, so anything
       // watching the board sees a shape it already understands.
-      const slot = t.board.indexOf(secondCard.id);
-      if (slot >= 0) { t.board.splice(slot, 1); t.burnedSlots.push(slot); }
-      else for (const p of t.players) {
-        const h = p.hole.indexOf(secondCard.id);
-        if (h >= 0) p.hole.splice(h, 1);
+      if (burnCard(t, secondCard.id) === null) {
+        for (const p of t.players) {
+          const h = p.hole.indexOf(secondCard.id);
+          if (h >= 0) p.hole.splice(h, 1);
+        }
+        t.discard.push(secondCard.id);
       }
-      t.discard.push(secondCard.id);
       ctx.fx.push({ t: 'burn', cardId: secondCard.id });
       ctx.fx.push({ t: 'superpose', cardId: firstCard.id });
       note(`${caster.name} welds two cards into one that counts as either.`, 'impossible');

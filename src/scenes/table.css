@@ -2502,7 +2502,24 @@
   to   { transform: scaleX(0); }
 }
 
-.stack-respond { display: grid; gap: var(--s-3); }
+/* The answer never scrolls away.
+   Capping the panel's height to keep it off the community cards meant that
+   on a tall spell the "Answer it?" row — the counterspell you are being
+   offered, with a clock running on it — was below the fold of a box most
+   people will not think to scroll. Sticky to the bottom of the panel, with
+   its own plate, so whatever else is on the stack the thing you can DO about
+   it is on screen. */
+.stack-respond {
+  display: grid;
+  gap: var(--s-3);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: var(--s-3);
+  background: var(--surface);
+  box-shadow: 0 -4px 0 var(--surface);
+  border-top: 2px solid var(--line);
+}
 .stack-ask {
   font-family: var(--font-display);
   font-size: var(--fs-md);
@@ -3232,8 +3249,9 @@
 .stack-panel {
   width: min(680px, 100%);
   /* Capped so a deep stack scrolls inside the band rather than growing back
-     up over the board. */
-  max-height: min(38vh, 380px);
+     up over the board. The response row is sticky (see .stack-respond), so
+     what scrolls is the reading, never the decision. */
+  max-height: min(48vh, 460px);
   gap: var(--s-4);
   padding: var(--s-5) var(--s-6);
 }

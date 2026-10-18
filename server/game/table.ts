@@ -279,6 +279,41 @@ export function refreshMaxMana(p: Player, t: Table): void {
   p.mana = Math.min(p.mana, p.maxMana);
 }
 
+/**
+ * Where a board card sits on the table, counting the holes already in the row.
+ *
+ * `t.board` holds only the cards that are still there, so the live index of a
+ * card shifts every time one before it burns. The table does not shift: a
+ * burned card leaves a hole and everything else stays where it was dealt,
+ * which is what a player sees and what they asked for ("an X in the spot it
+ * was burned and no cards moved"). This maps one to the other.
+ */
+export function displaySlot(liveIndex: number, holes: readonly number[]): number {
+  let slot = liveIndex;
+  for (const h of [...holes].sort((a, b) => a - b)) if (h <= slot) slot++;
+  return slot;
+}
+
+/**
+ * Take a community card out of the board and out of the run.
+ *
+ * Every burn goes through here — the Burn sigil, the Burning mark, anything
+ * that destroys a card — so that "gone" means the same thing each time: out
+ * of the row, a hole left where it was, and never dealt again.
+ */
+export function burnCard(t: Table, id: string): number | null {
+  const live = t.board.indexOf(id);
+  if (live < 0) return null;
+  const slot = displaySlot(live, t.burnedSlots);
+  t.board.splice(live, 1);
+  t.burnedSlots.push(slot);
+  const c = card(t, id);
+  if (c) c.destroyed = true;
+  // Not the discard: the discard folds back into the deck.
+  t.deck = t.deck.filter((d) => d !== id);
+  return slot;
+}
+
 export const sigilHandSize = (p: Player): number =>
   4 + relicNumber(p.relics, (r) => r.sigils?.handSize);
 

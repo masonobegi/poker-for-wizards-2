@@ -329,7 +329,16 @@ test('a Burning board card leaves the board at the end of its street', () => {
 
     (engine as unknown as { burnOffBoard(): void }).burnOffBoard();
     assert.ok(t.board.length < afterDeal, 'burning cards left the board');
-    assert.equal(t.discard.length > 0, true, 'they went to the discard');
+    // They used to go to the discard, which folds back into the deck. A burn
+    // is permanent now (test/burn.test.ts, CardEntity.destroyed), so what
+    // this asserts is that they are out of the run rather than in a pile
+    // waiting to come back.
+    const gone = [...t.cards.values()].filter((c) => c.destroyed);
+    assert.ok(gone.length > 0, 'nothing was destroyed');
+    for (const c of gone) {
+      assert.ok(!t.deck.includes(c.id), 'a burned card is still in the deck');
+      assert.ok(!t.discard.includes(c.id), 'a burned card went to the discard');
+    }
   } finally {
     engine.dispose();
   }
