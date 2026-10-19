@@ -5,7 +5,7 @@
  * Rites are the interesting purchase: they inscribe a card in the *shared* deck,
  * which means the upgrade you paid for can land in someone else's hand later.
  */
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { PlayerView, ShopItem, TableView } from '@shared/types';
 import { SCHOOLS, SIGIL_BY_ID, RARITY_COLOR } from '@shared/sigils';
@@ -23,6 +23,7 @@ import { EASE_OUT, ENTER_PANEL, SPRING_SOFT, T_REDUCED } from '@/styles/motion';
 import { Mark, type MarkKind } from '@/art/marks';
 import Scribe from './Scribe';
 import RulesPanel from '@/components/RulesPanel';
+import ScrollMore from '@/components/ui/ScrollMore';
 
 export default function Shop({ view, me }: { view: TableView; me: PlayerView }) {
   const reduced = useReducedMotionPref();
@@ -49,6 +50,10 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
   // Two relics on the shelf are a choice (RELIC_OFFERS, server/game/shop.ts):
   // buying one takes the other away, so say so while both are there.
   const relicChoice = wares.filter((i) => i.kind === 'relic' && !shop.sold.includes(i.uid) && !gone.includes(i.uid)).length > 1;
+  // The panel is 92vh and the shelf is taller than that on a laptop: at
+  // 1280x800 the blank page is sliced off at the bottom edge, which reads as
+  // broken rather than as "scroll".
+  const panelRef = useRef<HTMLDivElement>(null);
 
   return (
     <motion.div
@@ -59,6 +64,7 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
       transition={ENTER_PANEL}
     >
       <motion.div
+        ref={panelRef}
         className="shop-panel hx-plate"
         initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -161,6 +167,8 @@ export default function Shop({ view, me }: { view: TableView; me: PlayerView }) 
           </Button>
         </footer>
       </motion.div>
+
+      <ScrollMore target={panelRef} />
     </motion.div>
   );
 }

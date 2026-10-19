@@ -13,13 +13,14 @@
  * carries, says where each rule came from, and splits it the way a player
  * thinks about it: what is true for everybody, and what is true for me.
  */
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import type { PlayerView, TableView } from '@shared/types';
 import { OMEN_BY_ID } from '@shared/omens';
 import { RELIC_BY_ID } from '@shared/relics';
 import { RANK_NAME, rankPlural } from '@shared/cards';
 import { COVEN_CHOICE } from '@shared/covens';
 import { Mark } from '@/art/marks';
+import ScrollMore from '@/components/ui/ScrollMore';
 
 interface Rule {
   key: string;
@@ -167,10 +168,15 @@ function RulesPanelBase({ view, me, className = '' }: {
 }) {
   const table = tableRules(view);
   const mine = yourRules(view, me);
+  /* By ante 4 this list is longer than any box it is shown in, and the box
+     simply cut it: in the Market the hex paragraph ended mid-sentence against
+     the bottom edge, and on the table the "You" heading was sliced in half.
+     Both of those read as a broken panel rather than as a scrollable one. */
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <section className={`rules panel ${className}`}>
-      <div className="rules-scroll">
+      <div className="rules-scroll" ref={scrollRef}>
         <h3 className="rules-head">
           <Mark kind="ui" id="impossible" /> This table
           <span className="rules-count">{table.length}</span>
@@ -180,6 +186,7 @@ function RulesPanelBase({ view, me, className = '' }: {
         <h3 className="rules-head">You<span className="rules-count">{mine.length}</span></h3>
         <RuleList rules={mine} empty="Nothing of your own yet — the Market sells relics between antes." />
       </div>
+      <ScrollMore target={scrollRef} label="more rules" />
     </section>
   );
 }

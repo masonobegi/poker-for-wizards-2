@@ -104,6 +104,17 @@
     0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--accent) 50%, transparent) 40%, transparent);
 }
 .shopcard.is-sold { opacity: 0.35; filter: grayscale(0.85); }
+/* A disabled button is 0.4 opacity and a ghost button's text is bone-3 — on
+   bone paper that put the price of an unaffordable card at 2.2:1, which is
+   the one number on the card a player is looking for when they cannot afford
+   it. Ink at 65% reads at 5.9:1 and the flat fill still says "not yet". */
+.shopcard .btn:disabled {
+  opacity: 1;
+  filter: none;
+  color: color-mix(in srgb, var(--ink) 65%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 30%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
 .shopcard.is-locked { filter: grayscale(0.8) brightness(0.62) contrast(0.95); }
 
 .shopcard-kind {
@@ -113,8 +124,10 @@
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 80%, var(--ink));
-  opacity: 0.95;
+  /* 80% of the accent measured 1.9:1 on the card's paper for a Rite's green
+     and 3.3:1 for a relic's blue. Same 42% as `.sigil-rarity`: the hue still
+     names the kind, the ink makes it a word. */
+  color: color-mix(in srgb, var(--accent) 42%, var(--ink));
 }
 
 .shopcard-art {
@@ -167,7 +180,12 @@
   font-size: 12px;
   line-height: 1.45;
   font-style: italic;
-  color: #a86a2a;
+  /* --wood-dark measured 4.45:1 on the card behind it — a hair under AA, on
+     the line that sells the relic — and lightening it made that worse, not
+     better, on bone paper. Purple is the palette's dark ink for anything that
+     is not the body copy: 8.8:1 here, and still obviously a different voice
+     from the rule above it. */
+  color: var(--purple);
   text-align: center;
   padding-top: 6px;
   border-top: 2px dashed color-mix(in srgb, var(--ink) 18%, transparent);
@@ -301,8 +319,7 @@
    Collapsed by default in spirit — it is a reference, not the thing you came
    here to do — so it is capped and scrolls rather than pushing the shelf down
    off a short window. */
-.shop-rules {
-  max-height: 22vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+/* The cap is on the panel; the scrolling is its own `.rules-scroll`, which is
+   where the "more rules" chip is anchored. One scroller, not two nested. */
+.shop-rules { max-height: 22vh; }
+.shop-rules .rules-scroll { overscroll-behavior: contain; }

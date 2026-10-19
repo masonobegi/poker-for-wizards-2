@@ -50,6 +50,29 @@ function whyThisHand(cat: number, mods: RuleMods, impossible: boolean): string |
 
 const SCHOOL_CYCLE: School[] = ['entropy', 'veil', 'chronos', 'bind', 'ruin', 'weave'];
 
+/** CardRow's own scale per size — kept in step with SCALE in CardRow.tsx. */
+const CARD_SCALE = { xs: 0.52, sm: 0.74, md: 1, lg: 1.36 } as const;
+
+/**
+ * The biggest hand size whose row still fits the panel.
+ *
+ * The panel is capped at `100vh - 128px` and spends about 72px of that on its
+ * header and padding; each row adds 16px of its own padding and border to the
+ * card it holds. `--card-h` is `round(clamp(56px, 8.2vmin, 168px), 4px)` times
+ * 112/78, which is cheap enough to recompute here and keeps this in one place
+ * rather than in a media query that has to be kept in step with tokens.css.
+ */
+function pickHandSize(rows: number): 'xs' | 'sm' | 'md' | 'lg' {
+  if (typeof window === 'undefined') return 'md';
+  const vmin = Math.min(window.innerWidth, window.innerHeight);
+  const cardH = Math.min(168, Math.max(56, 0.082 * vmin)) * 112 / 78;
+  const per = (window.innerHeight - 128 - 72) / Math.max(rows, 1) - 16;
+  if (per >= cardH * CARD_SCALE.lg) return 'lg';
+  if (per >= cardH * CARD_SCALE.md) return 'md';
+  if (per >= cardH * CARD_SCALE.sm) return 'sm';
+  return 'xs';
+}
+
 export default function ShowdownPanel({ view }: { view: TableView }) {
   // Before any early return: a hook behind a conditional is one refactor away
   // from "Rendered fewer hooks than expected".
@@ -70,27 +93,21 @@ export default function ShowdownPanel({ view }: { view: TableView }) {
   const allWinningIds = payout.entries.filter((e) => e.won > 0).flatMap((e) => e.usedIds);
   const uncontested = shown.every((e) => e.cards.length === 0);
   /*
-   * How big the hands are drawn depends on how many there are and how much
-   * felt there is to draw them on.
+   * How big the hands are drawn is a measurement, not a table of guesses.
    *
-   * The panel is centred in the felt and capped at its height, so a size that
-   * is generous for a heads-up showdown pushes the last player's row off the
-   * bottom of a four-handed one — and a row you have to scroll to is a row
-   * nobody reads. Measured: three rows of `md` overran the felt at 1920x1080,
-   * and three of `sm` still overran it by 48px at 1280x800, where the felt is
-   * only 396px tall. Both dimensions have to be in the decision.
+   * It was two thresholds — three-or-more rows, and a window 900px tall — and
+   * both of them were tuned against a panel that could only be as tall as the
+   * felt. The panel takes the window now (see `.felt.is-showdown` in
+   * table.css), so the honest question is the one `pickHandSize` asks: divide
+   * the height the panel may use between the rows there are, and take the
+   * biggest card size that fits in a row. At 1280x800 that is the difference
+   * between a 68px card and a 125px one.
    *
    * Read at render rather than through a resize listener: this panel
    * re-renders on every table update, and a window resized during a showdown
    * is not a case worth a subscription.
-   *
-   * Every size went up a step when the board row came out: "make the hands at
-   * the end a lot bigger", and dropping the board row is what paid for it.
    */
-  const roomy = typeof window === 'undefined' || window.innerHeight >= 900;
-  const handSize = shown.length >= 3
-    ? (roomy ? 'md' : 'sm')
-    : (roomy ? 'lg' : 'md');
+  const handSize = pickHandSize(shown.length);
 
   return (
     <motion.div

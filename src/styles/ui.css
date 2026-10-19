@@ -440,3 +440,49 @@
   background: var(--grain);
   opacity: 0.55;
 }
+
+/* ---------------------------------------------------------------------------
+   "There is more below" — see ScrollMore.tsx.
+
+   A scroller that gives no sign of being one is a scroller nobody uses: at
+   1280x800 the menu column is 1261px tall and the half of it under the fold
+   was, for every practical purpose, not in the game. The chip is only ever on
+   screen while there is further to scroll, so it is a control, not decoration.
+   --------------------------------------------------------------------------- */
+.scrollmore {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  translate: -50% 0;
+  z-index: var(--z-ui);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  border: 2px solid var(--gold-deep);
+  box-shadow: var(--e-2);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.scrollmore:hover { border-color: var(--gold); }
+.scrollmore:active { translate: -50% 2px; }
+/* Out of the column's way where the column is narrow and centred: in the menu
+   the chip sat across the OPPONENTS header, and the backdrop beside the plate
+   is empty at every width the game ships at. (After the rules above, so the
+   press offset is the one for a chip that is not centred.) */
+.scrollmore--aside { left: auto; right: 16px; translate: none; }
+.scrollmore--aside:active { translate: 0 2px; }
+/* Two frames, no ramp: the arrow is either up or down a pixel pair, which is
+   how a sprite bobs. */
+.scrollmore__arrow { animation: scrollmorebob 1.1s steps(1, end) infinite; }
+@keyframes scrollmorebob {
+  0%, 49%   { transform: translateY(0); }
+  50%, 100% { transform: translateY(2px); }
+}
+:root[data-reduced-motion='1'] .scrollmore__arrow { animation: none; }

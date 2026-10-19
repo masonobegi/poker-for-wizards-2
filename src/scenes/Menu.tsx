@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, Field, Modal } from '@/components/ui/kit';
 import { readName, useGame } from '@/store/net';
@@ -10,6 +10,7 @@ import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
 import ProfileCard from '@/components/profile/ProfileCard';
 import ServerPanel from '@/components/shell/ServerPanel';
+import ScrollMore from '@/components/ui/ScrollMore';
 import { Card } from '@/components/card/Card';
 import { MENU_BACK, MENU_COURT, MENU_DIVERGED, MENU_QUANTUM, MENU_VEILED, MENU_WILD } from '@/scenes/menuCards';
 import { getHexholdApi, isDesktop } from '@/components/shell/desktop';
@@ -246,11 +247,13 @@ export default function Menu() {
     }
   };
 
+  const innerRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="menu">
       <MenuBackdrop />
 
-      <div className="menu-inner">
+      <div className="menu-inner" ref={innerRef}>
         <motion.header
           className="menu-brand"
           initial={{ opacity: 0, y: -24 }}
@@ -547,6 +550,10 @@ export default function Menu() {
           <span className="menu-version mono">v{appVersion()}</span>
         </footer>
       </div>
+
+      {/* The column is taller than the window at every size anyone plays at —
+          1261px of menu in an 800px window — so it has to say so. */}
+      <ScrollMore target={innerRef} className="scrollmore--aside" />
 
       <Modal open={codex} onClose={() => setCodex(false)}>
         <Codex onClose={() => setCodex(false)} />

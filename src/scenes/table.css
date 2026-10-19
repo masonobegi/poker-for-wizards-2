@@ -1080,8 +1080,17 @@
 .board-mod {
   padding: 2px 10px;
   border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--entropy) 14%, transparent);
-  border: 2px solid color-mix(in srgb, var(--entropy) 40%, transparent);
+  /* Ink under the hue, not the hue alone.
+  
+     A 14% tint of the chip's own colour over the felt is still felt-coloured,
+     and a saturated hue sits in the middle of the luminance range by
+     definition: hotpink on that plate measures 3.80:1 at 12px, and the red
+     variant below it measured 2.55:1 — for the two labels that say what the
+     rules of the table have been changed to. The plate goes to ink and keeps
+     a trace of the hue; the text is then the brightest member of that family,
+     which is what the palette has instead of a tint ramp. */
+  background: color-mix(in srgb, var(--ink) 72%, color-mix(in srgb, var(--entropy) 18%, transparent));
+  border: 2px solid color-mix(in srgb, var(--entropy) 55%, transparent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1089,10 +1098,14 @@
   color: var(--entropy);
   white-space: nowrap;
 }
+/* The warning variant. --bad is arc-red, which cannot clear AA at 12px on any
+   plate dark enough to put it on (3.97:1 at best); arc-orange is the next
+   colour up that family and reads as the same kind of warning at 7.7:1, with
+   the red kept in the border and the plate. */
 .board-mod.is-bad {
-  background: color-mix(in srgb, var(--hotpink) 14%, transparent);
-  border-color: color-mix(in srgb, var(--hotpink) 45%, transparent);
-  color: var(--bad);
+  background: color-mix(in srgb, var(--ink) 72%, color-mix(in srgb, var(--bad) 18%, transparent));
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  color: var(--arc-orange);
 }
 
 /* The strip the community cards lie in.
@@ -1362,10 +1375,15 @@
   vertical-align: middle;
 }
 
-.rules { display: grid; min-height: 0; }
+/* Positioned, so the "more rules" chip inside it pins to the panel rather
+   than scrolling away with the list it is advertising. */
+.rules { position: relative; display: grid; min-height: 0; }
 .rules-scroll {
   overflow-y: auto;
-  padding: var(--s-3);
+  /* The extra 26px at the foot is the landing space for the "more rules"
+     chip, which is pinned to the panel: without it the chip sits on top of
+     the sentence it is telling you to scroll for. */
+  padding: var(--s-3) var(--s-3) calc(var(--s-3) + 26px);
   display: grid;
   gap: var(--s-2);
   align-content: start;
@@ -2315,7 +2333,11 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.sigil-rarity { color: color-mix(in srgb, var(--rarity) 72%, #2b2266); }
+/* The rarity word sits on the card's bone paper, so it is mixed toward ink,
+   not toward the table: at full strength "common" measured 2.4:1 there and
+   the old mix toward indigo made 3.6:1. 42% is the one fraction that clears
+   AA for all three rarity colours — the cyan of a rare is the hardest. */
+.sigil-rarity { color: color-mix(in srgb, var(--rarity) 42%, var(--ink)); }
 /* The one line that says the corner button is not decoration. */
 .sigil-unmake {
   margin-top: 6px;
@@ -2338,10 +2360,13 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--ink) 95%, transparent);
   border: 2px solid var(--line);
-  color: var(--text-3);
+  /* 3.3:1 at --text-3 and 0.6 opacity on the near-black disc, for a control
+     that destroys the sigil it sits on. One step up the bone ladder and most
+     of the way out of the fade: 8:1, and still quieter than the card. */
+  color: var(--text-2);
   font-size: 12px;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.85;
   transition: opacity var(--t-fast) var(--ease-out),
               color var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
@@ -2972,6 +2997,18 @@
  * The previous fixed 300px silently clipped its own last row the moment a
  * third player reached showdown.
  */
+/* While the showdown is open the felt outranks the rail.
+ *
+ * The panel lives inside `.felt`, which isolates, so it could never be taller
+ * than the cloth: at 1280x800 the felt is 400px and three hands at a size you
+ * can read from a sofa need about 500, which is why the cards were drawn at
+ * 0.74 scale in the middle of a screen with 300px of empty rail under them.
+ * Lifting the felt for the length of the showdown lets the panel use the
+ * window instead — nothing in the rail is actionable while a pot is being
+ * paid, and the panel itself is `pointer-events: none` apart from its own
+ * plate, so what is under it stays clickable the moment it leaves. */
+.felt.is-showdown { z-index: var(--z-overlay); }
+
 /* While the showdown is open the board is drawn twice: once on the cloth and
    once along the top of the panel standing on top of it. The one underneath
    is the duplicate. */
@@ -3017,16 +3054,24 @@
    * before, because `max-height` plus scrolling means the panel can never be
    * taller than the felt and so can never run off the top — which is what the
    * top anchor was protecting against. */
-  top: 50%;
+  /* Top-anchored, not centred: the panel can now be taller than the felt it
+     is positioned in, and a centred panel that tall grows up through the HUD
+     as readily as down over the rail. The felt already starts below the HUD,
+     so 8px inside it always clears it, at every resolution. */
+  top: 8px;
   bottom: auto;
-  translate: -50% -50%;
+  translate: -50% 0;
   z-index: var(--z-overlay);
   pointer-events: none;
   /* Sized to the content: a name, five cards and a chip count. It was 660px
      when the row held two cards and a board row above it; the rows now carry
      the five that actually scored, at a size you can read from a sofa. */
   width: min(1160px, calc(100% - 24px), 94vw);
-  max-height: calc(100% - 16px);
+  /* The window's height, not the felt's. 128px is the HUD above the felt plus
+     a margin under the panel; what is left is roughly 660px at 1280x800 where
+     the felt alone offered 390. The rows take what they need out of it and the
+     panel still scrolls if a four-handed showdown wants more. */
+  max-height: calc(100vh - 128px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
