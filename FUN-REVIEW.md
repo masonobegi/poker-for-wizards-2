@@ -1,10 +1,11 @@
 # HEXHOLD: fun and sellable review (2026-10-10)
 
-> **Round 5 (end of this file) is the current state:** fun 8/10 on the
-> locked rubric, 7.6 with one point of margin (this morning's build re-scored
-> 7.5: the art pass lifted presentation to 7, a font bug cost "says what
-> happened" a point). Two relics on the Market's shelf (take one), bots that
-> finish a folded hand quickly, the font bug fixed. Rounds 3 and 4 are above it.
+> **Round 7 (end of this file) is the current state:** fun 7/10 on the
+> locked rubric, 7.4, one point short of an 8. The covens open after the
+> first run, which stays the plain table the playtest asked for (branch
+> `covens-unlock-2026-10-22`). Round 6 (7.1) measured the UI pass and its
+> content cut; round 5 (7.6, an 8) is the last round with covens from the
+> first run. Rounds 3 and 4 are above them.
 
 Branch `steam-ready-2026-10-09`. Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN_BRIEF.md`.
 Grounded in the market research (`market/poker-for-wizards-2.md`), the three
@@ -1365,3 +1366,324 @@ players and one blind reviewer.
 as before (no online play on the store page until Steam invites exist;
 commissioned capsule art). The store copy was rewritten this round to sell
 what the game now deals: 13 sigils, 9 omens, 12 relics, no covens.
+
+# Round 7 (2026-10-22): covens as unlock
+
+Brief: Mason chose round 6's first proposal, "Covens as unlock". Keep the
+simpler first run the UI pass made (it cut content because two real players
+were confused); after the first run, open the covens and bring back a vetted
+subset of the cut cards, so later runs differ again. Same rubric, same
+honesty rule ("it has to earn the 8, and if it can't, fine, but no lying or
+moving the goalposts or adding shitty mechanics"). Branch
+`covens-unlock-2026-10-22`, from 8d1fea7. Raw batch summaries:
+`plans/fun-round7-data/` (each names its commit and command).
+
+## The rubric, unchanged, and the one thing that is new
+
+The same eight criteria, word for word, each out of 10; the mean is rounded
+half up, and an 8 needs 7.5.
+
+What is new is that the game now has two kinds of run, and the rubric was
+written when it had one. Decided before any batch was run, so the data could
+not choose the rule:
+
+- **Criteria 1 and 6** are about the first impression ("before it can end",
+  "the first 10 minutes"). A buyer's first run is run 1, so they are scored
+  on run 1.
+- **Criteria 4 and 7** are about variety across runs. Run 1 is the same on
+  purpose, so they are scored on runs 2 and later, the game a player keeps
+  playing.
+- **Criteria 2, 3 and 5** apply to every run: scored on runs 2+, unless run 1
+  would score lower, in which case the lower score stands.
+- **Criterion 8**: nothing here touched art.
+
+## What changed
+
+**The first run is exactly round 6's.** Unaligned, 13 sigils, 9 omens, 12
+relics, no picker, the same intro, the same menu. A first-run table builds
+every bag from the same lists in the same order as before, so it deals the
+same cards: `test/unlock.test.ts` checks identity, not equality, and the run-1
+batch below reproduces round 6's numbers to the digit.
+
+**After one finished run, won or lost** (a demo played to its end counts):
+
+- **The coven picker opens** with all seven, above the button that starts a
+  run, where it always sat. The bots stay Unaligned, as round 6's proposal
+  said: the one rulebook at the table you were not dealt is the one you
+  picked, and the picker showed you its creed first. The Daily Rite plays the
+  day's coven again, for everyone past their first run.
+- **Three sigils, three omens, four relics** join the pools, which stop at
+  the cut's own ceilings (16, 12, 16; `test/pool.test.ts` holds both pools to
+  everything the engine assumes):
+  - Sigils: **Graft, Blight, Gild**, the Twinned's, the Ashen's and the
+    Loom's own cards, so a coven's lean deals its card again after the
+    opening hand instead of drawing from two cards that are not its own.
+  - Omens: **The Kindling** (five cards that burn off the board at the end of
+    their street), **The Sealed Court** (Kings face down for everyone),
+    **The Prism** (six cards that are every suit, from ante 4).
+  - Relics: **The Keepsake** (fold before the flop, keep your higher card),
+    **Broken Compass** (flushes of four), **The Magpie** (counter a spell and
+    keep it, in a game where every seat holds a Nullify), **Crown of Thieves**
+    (Jacks and Queens read as Kings).
+  - Left out, and why, is written beside each list: the near-duplicates the
+    cut named (more sixth cards, cheaper mana, more straights of four), a
+    sigil that shares a relic's name (Cold Read), one that repeats a creed
+    (Foresight: the Long Now's creed already shows the river), plain numbers,
+    hidden penalties a player cannot see coming (The Curse), and a relic that
+    never shows when it works (The Sanctum).
+- **A reveal, once**, on the run-end screen of the run that opened it: "New
+  from your next run. Covens. Pick one on the menu: 6 more beside the
+  Unaligned, each with its own sigils, a relic and a rule of its own. 3
+  sigils, 3 omens and 4 relics join the deck", with a "Choose a coven" button.
+  In the demo it is one shorter line with no button, so "Wishlist on Steam"
+  stays whole on screen at 1280x800 (`test/demo.mjs` now checks the button is
+  inside the panel's visible box, not only above the fold). "Deal again" from
+  that screen deals the later pools too.
+
+Every piece is one switch or one list: `UNLOCK_AFTER_RUNS` (shared/unlock.ts),
+`COVENS_UNLOCK` (shared/covens.ts), `UNLOCKED_SIGIL_IDS`, `UNLOCKED_OMEN_IDS`,
+`UNLOCKED_RELIC_IDS`. Empty all three lists and set the switch off, and every
+run is round 6's.
+
+**Builds:**
+
+- **Full game:** as above.
+- **Demo:** the same unlock, after a demo run is finished. The picker offers
+  the Unaligned and its three covens (Ashen, Twinned, Unmoored) and shows the
+  other three locked with their pitch, which is how the demo always showed
+  them; the larger pools are dealt. A demo that shows the second run's choice
+  says the game has one. Demo saves do not carry into the full game (its own
+  app), so a buyer's first full-game run is the plain one again, on purpose.
+- **Playtest:** the full game's behaviour, since the playtest exists to test
+  the game as it will ship, plus one question on the feedback screen: "From
+  your second run: did the coven you picked change how you played?"
+
+**Persistence, and Steam Cloud.** The count is `profile.totals.runs`, in the
+save Steam Cloud already carries; nothing new is stored. A save that cannot
+be written (a private window) still opens the next run of the session. Steam
+Cloud keeps whichever save has finished a run over one that has not, both
+ways, so a second machine's few achievements from an unfinished run cannot
+take the covens back, or keep them from arriving (`cloudWins`, tested). The
+server only reads a flag the client sends when it opens a table
+(`RoomConfig.unlocked`); a table opened without it, by an old client, a test
+or the harness, is a first run.
+
+## Vetted before anything came back, and found while building
+
+- **Graft overwrote a card for the rest of the run.** It copied the faces with
+  nothing to put them back, so the grafted card stayed a duplicate and its own
+  identity left the deck: Mirror's bug from round 6, in a sigil that was not
+  live then. It now copies the way Mirror does since d03be97 (the whole card,
+  for the hand, "was" shown). Gild always wore off with the hand and now says
+  so, and so does Graft; Blight no longer claims the target is not told which
+  sigil died (the target can see its own hand). Test fails on 8d1fea7.
+- **"Leave table" went to a blank screen**, at the end of every run, on `main`
+  today. The engine broadcast the table to the room while the leaving socket
+  was still in it, so the client went back to a table with nobody in the
+  chair. Found because "Choose a coven" is a way to leave; fixed in the socket
+  layer, test fails on the old order.
+- **An empty save was one shared object**, and the first run banked on it was
+  added to the constant, so "no save" read as a player with runs for the rest
+  of the session. Harmless until a run count opened anything.
+- **`test/style.mjs` failed at 8d1fea7 whenever a Market was on screen**:
+  every shop card's border was a mix off the fourteen colours. Round 6
+  recorded the harness as in style; run here on a build of 8d1fea7 it reports
+  three palette findings on the Market. Now ink, as a sigil in hand is
+  outlined. A second, situational finding (an out seat's "OUT" at 3.04:1 when
+  a bot was out at the sweep) now uses the light ink the name beside it
+  passes with; no bot was out in the reruns, so that one is fixed by the
+  audit's arithmetic, not seen passing.
+- **"Nobody Saw It Coming" had no dealt route** since cc8f6ea (only a blank
+  page could seal a card). The Sealed Court gives later runs one;
+  `test/unlock.test.ts` checks that a later run can seal a card. All 20
+  achievements are earnable.
+- **Five sigils at the 1024x680 minimum window scroll sideways.** The Loom
+  holds five from its first hand (Deep Pockets). The row was designed to
+  scroll for a long hand; `test/responsive.mjs` now fails only a card the row
+  cannot be scrolled to. Shrinking the cards to fit was tried and rejected:
+  the school labels collided and the rail covered the pot.
+
+## Measured
+
+Seeds 0-279, adept bots, Hex I, the aggressive player (round 6's batch).
+"Runs 2+" is the same 280 seeds as a player past their first run: the later
+pools, the player rotating all seven covens (40 runs each), the bots
+Unaligned. The harness's buyer is greedy (it takes the dearest relic it can
+afford), so purchase figures are a floor for variety, as before.
+
+| | round 5 (eb6075d) | round 6, and this round's run 1 | this round, runs 2+ |
+|---|---|---|---|
+| run over before the first Market | 1% | 3% | 3% |
+| run over before ante 3 | 5% | 10% | 6% |
+| survived 3 antes | 80% | 69% | 77% |
+| busted, caught or not, before the first Market | 14% | 20% | 19% |
+| an impossible hand in the run | 64% | 57% | 68% |
+| ... one of your own | 37% | 35% | 43% |
+| impossible hands a run | 1.50 | 1.38 | 1.74 |
+| runs won | 91 | 91 | 106 |
+| your stack at ante 7 | 21 bb | 29 bb | 26 bb |
+| biggest pot in the last 3 hands | 49% | 58% | 49% |
+| real choices a minute | 9.5 | 8.9 | 8.3 |
+| share of the run that is not your decision | 36% | 44% | 45% |
+| a run | 7.4 min | 8.0 min | 8.3 min |
+| first Market | 92 s | 100 s | 99 s |
+| a real choice of two relics, per run | 3.3 | 2.5 | 3.3 |
+| distinct relics bought | 41 of 45 | 12 of 12 | 16 of 16 |
+| spread of purchases | 5.09 bits | 3.42 | 3.87 (of 4.00) |
+| overlap between two runs' relics | 0.09 | 0.34 | 0.17 |
+| ... over what the Market sold (no creed, no coven relic) | | 0.21 | 0.16 |
+| a bought relic's rule visibly fired | 60% | 47% | 71% |
+| a run owning a mythic | 2.5% (new ones) | 9% | 11% |
+| overlap between two runs' omens | | 0.31 | 0.26 |
+| distinct sigils cast across runs | | 14 | 22 |
+
+**The first run is round 6's, to the digit.** The run-1 column is this
+branch's own batch, not a copy: every line of its 280-run summary matches
+round 6's published one except the wall-clock server-stall line (`diff`, both
+files in the data folders). At 280 runs a difference under about 4 points is
+noise.
+
+**One number is smaller than it looks.** Overlap between two runs' relics
+halved, 0.34 to 0.17, but that line counts the creed and the coven's relic,
+and in round 6 every run shared one creed. Over what the Market sold, the
+shelf alone went 0.21 to 0.16: four more relics on the shelf, not a halving.
+
+**The demo, runs 2+** (seeds 0-139, the Unaligned and the demo's three
+covens rotating): reached the "demo ends here" screen 64% (run 1, round 6:
+64%), an impossible hand inside the demo 52% (40%), yours 24% (16%), 5.0
+minutes (5.1), first Market 106 s (100).
+
+**What a later run meets** (runs 2+): one of the unlocked sigils cast in 89%
+of runs, an unlocked omen in force in 56%, an unlocked relic owned in 63%.
+Graft, Blight and Gild are each cast in about half of all runs.
+
+**Covens, runs 2+** (40 runs each; at 40 runs a gap under about 11 points is
+noise):
+
+| | wins of 40 | final ante | own impossible hand | creed fires a run |
+|---|---|---|---|---|
+| The Unaligned | 14 | 5.3 | 33% | 2.0 |
+| The Unmoored | 13 | 4.8 | 33% | 16.1 |
+| The Quiet | 18 | 6.0 | 45% | 10.4 |
+| The Long Now | 14 | 6.2 | 50% | 7.2 |
+| The Twinned | 17 | 5.9 | 63% | 0.9 |
+| The Ashen | 17 | 5.1 | 38% | 2.2 |
+| The Loom | 13 | 5.8 | 40% | 0.9 |
+
+Round 5, the last time covens were dealt: wins 6 to 21 of 40, the Twinned
+50% own impossible hands, Signature 2.05 a run. Covens apart (mean distance
+between two): hands made 0.11 (round 5: 0.14), schools cast 0.26 (0.28).
+Each coven casts its own school 35-42% of the time, others 9-20%.
+
+## Re-scored with the same rubric
+
+A separate reviewer was given criteria 4 and 7 word for word, rounds 3 to 6's
+evidence and scores as anchors, and this round's numbers, unlabelled as a
+build to score, and told to be strict. It gave 7 and 7, the same as below,
+and its reasons are folded in.
+
+| # | Criterion | Round 6 | Now | Scored on | Why |
+|---|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 7 | 7 | run 1 | Run 1 is round 6's: over before the first Market 3%, before ante 3 10%, survived 3 antes 69%. Runs 2+ alone would read 3% / 6% / 77%, busted before the first Market 19% (round 5's 8: 1% / 5% / 80%, 14%): between the two, closer to the 8 on two figures, the same as round 6 on the first Market. The first run decides this one, and it did not change. |
+| 2 | The namesake shows up | 8 | 8 | runs 2+, run 1 no lower | Runs 2+: seen in 68% of runs, one of your own 43%, 1.74 a run (round 6: 57%, 35%, 1.38; round 5: 64%, 37%). The best this game has measured, beyond noise. Not 9: 57% of runs still never make one of their own. Run 1 is round 6's 8. |
+| 3 | The run arc builds | 7 | 7 | both | Biggest pot in the last three hands 49% (run 1: 58%), 26 bb at ante 7 (29). Round 5's 7 sat at 49%. |
+| 4 | Covens play differently and deliver their pitch | 5 | 7 | runs 2+ | There are covens again, and in substance they are round 5's (a 7): the Twinned, pitched as the impossible-hand coven, make their own in 63% of runs, the most of any; each coven casts its own school at about twice anyone else's rate; hands made 0.11 apart, inside round 5's range. Nothing is promised that is not dealt: the store copy says "from your second run", the reveal "from your next run". Not 8: no human has played it (round 5's own gate), two creeds fire under once a run (Kin, Signature: was 2.05), the Unmoored still die first, and the bots staying Unaligned takes a little of round 5's variety off the table. |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | both | Says what happened: a bought relic's rule visibly fired in 71% of runs (47%), the rules tab names whose creed it is, the reveal says what is new. Dead time: 45% of a run is not your decision (44%), 8.3 real choices a minute (8.9), a run 8.3 minutes (8.0). One half up a little, one half flat. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | run 1 | Run 1 unchanged: first cast 4 s, first Market 100 s, an impossible hand inside the demo 40%. (A demo player's second run sees one in 52%.) |
+| 7 | Builds have depth; relics are more than numbers | 7 | 7 | runs 2+ | The strongest 7 yet, not an 8. Up from round 6 on every measure: overlap between two runs' relics 0.17 (0.34; over what the Market sold alone 0.16, was 0.21, so most of the halving is seven creeds in place of one), spread of purchases 3.87 bits of 4.00 (3.42 of 3.58), a real two-relic choice 3.3 a run (2.5), 16 of 16 bought, 25 distinct relics owned with covens (13), a rule visibly fired 71% (round 5: 60%), a run owning a mythic 10.7%. But depth is what the criterion says first, and the two depth figures the 8s rested on are still far off: overlap 0.17 against rounds 4 and 5's 0.10 and 0.09, and the spread is about 15 relics' worth of variety against 31 and 34. A run draws on 16 sigils and its coven's openers, against 71. |
+| 8 | Presentation: art and feel | 7 | 7 | | Untouched. |
+| | **Mean** | **7.1 (7)** | **7.4 (7)** | | 59 points; an 8 needs 60. |
+
+## Was the 8 earned?
+
+**No. 7.4, one point short.** The unlock did what round 6 said it would for
+criterion 4 (5 to 7), and nothing else moved a whole point. Where it did not
+reach:
+
+- **Criterion 1** was named in round 6 as one the unlock would speak to,
+  because round 5's covens opened safer than the Unaligned. On runs 2+ it
+  partly does (before ante 3 10% to 6%, survived 3 antes 69% to 77%), but busts
+  before the first Market did not move (20% to 19%), and the criterion is
+  about the first run, which is the Unaligned by design. Scoring it on later
+  runs would have been the generous reading; it would not have made it an 8
+  anyway.
+- **Criterion 7** is capped by the ceiling the cut set: 16 relics cannot get
+  the overlap between two runs near 0.10. The reviewer's estimate of what
+  would: a later-run shelf of about 24-30 with the rule share and the
+  side-by-side choice kept.
+
+The unlock is the only new structure, and it is the one Mason chose; every
+card behind it is the game's own, coming back through a list. No new card,
+no new rule, no number tuned (Graft's change is a fix to what its card
+always said).
+
+## What would earn the 8 (not built: each is Mason's call)
+
+1. **A bigger later-run shelf** (criterion 7), the cut's ceiling raised for
+   runs 2+ only: about eight more relics, each from round 5's measured shelf,
+   with the same bar (visible, not a duplicate, not a number). This is the
+   most direct point left, and it is a design decision the cut said should
+   read like one ("the small size is the feature").
+2. **The December playtest** (criterion 4): whether people notice and like
+   the creeds, and whether "from your second run" reads as a reward or a
+   wall. The playtest build now asks.
+3. **Creeds that fire**: Kin and Signature fire under once a run (criterion
+   4's "not 8"). Kin's reach is one constant (`KIN_BOARD_ONLY`), set by
+   measurement in round 4; Signature has none. Changing either is tuning, so
+   it waits for the playtest.
+4. **An artist** (criterion 8), as before.
+
+## Decisions for Mason
+
+1. **Merge `covens-unlock-2026-10-22`.** It also fixes "Leave table" going to
+   a blank screen, which is live on `main` and the web version today.
+2. **Bots stay Unaligned in later runs**, as round 6 proposed. The other way
+   (each bot draws a coven, as round 5) is one line in `addBot`; it would put
+   rulebooks you did not pick back on the table, the thing the cut called
+   confusing.
+3. **The Daily Rite** plays the day's coven for anyone past their first run,
+   and the Unaligned for a first run. Two players at different stages play
+   different rites on the same day; the alternative is a Rite that never has
+   a coven.
+4. **The demo unlocks too** (the Unaligned and three covens open, three locked). The other choice is a
+   demo that is always the first run; it would never show the choice the full
+   game is selling.
+
+## Three simulated Steam reviews (after round 7)
+
+**The impatient refunder** · 0.9 hrs · Recommended
+
+> First run was plain poker with spells, which was fine, I could follow it.
+> When it ended the screen said covens were open and I got to pick one, so I
+> took the Twinned and the next run I made a Five of a Kind out of two copies
+> of the same card. Leave table took me to a black screen in an older build;
+> it goes to the menu now.
+
+**The genre veteran** · 14 hrs · Recommended
+
+> The first run is a tutorial with the training wheels bolted on, then the
+> game opens: seven covens, each with a rule that changes how you play (the
+> Quiet see a card the first time someone bets, the Ashen burn a rank out of
+> every hand). The shelf is still small, sixteen relics, so by run six I had seen
+> them all, but the coven changes which ones I want. Better than the build
+> people complained about, short of the old one for sheer variety.
+
+**The Deck player** · 6 hrs · Recommended
+
+> With the coven picker on the menu the d-pad still gets everywhere,
+> including the Market's Done. The Loom gives you five sigils and all five fit
+> on the Deck's screen; in the smallest window on my laptop the fifth one
+> scrolls. Typing on the blank page is still the clumsy bit.
+
+## Verdict, round 7
+
+**Fun: 7/10 on the locked rubric (7.4; round 6 7.1, round 5 7.6).** The
+covens are back and play differently (criterion 4, 5 to 7), the namesake
+shows up more than it ever has, and a first-time player sees exactly the
+game the playtest asked for. One point short of an 8: the first run is the
+weakest opening by design, and a 16-relic shelf is not round 5's depth.
+Every number is from simulated players and one blind reviewer.
+
+**Sellable at $9.99: yes**, on the same conditions as before (no online play
+on the store page until Steam invites exist; commissioned capsule art). The
+store copy now says both halves: the first run, and what opens after it.
