@@ -104,14 +104,34 @@ const BANNER_LEAD = Number(argv.lead ?? 0.4);
 const BANNER_LEAD_AT = (hit) => hit - BANNER_LEAD;
 /** Where the game's cut-in banners slam: across the middle of the felt. */
 const BANNER = { x: 200, y: 110, w: 1520 };
+/**
+ * A showdown, framed whole. Since 2026-10-18 the results panel takes the
+ * window (234,92 to 1394,734 at 1920x1080, three rows, each with the five
+ * cards that scored) and the cut-in banner's title runs 432 to 1488 across
+ * it; this is both with 30 px of room, which leaves out the ledger on the
+ * right and the spell rail underneath. BANNER cropped the panel's top and
+ * filled the bottom quarter with greyed spell cards. The camera has to be on
+ * its way before the panel exists, so this is a measurement rather than a
+ * query; the hook's showdown re-measures it (checkShowdownCam) and the
+ * finale uses what it found.
+ */
+let SHOWDOWN = { x: 204, y: 43, w: 1314 };
+/**
+ * Output pixels a caption covers, by size, measured from the top or bottom
+ * edge to where its slab's dark core ends. A camera given `top`/`bottom`
+ * keeps what it frames out of that band, so a card's rank is never under the
+ * words (cut 3 put FOUR KINGS. and HATE THE LAST CARD? over the board's
+ * ranks).
+ */
+const CAP = { normal: 185, small: 172, huge: 215 };
 let camFrom = FULL;
 let camTo = FULL;
 let camT0 = 0;
 let camT1 = 0;
 const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
-/** The union of what these selectors match, padded, as a 16:9 window inside the page. */
-async function frameOf(selectors, { pad = 40, minW = 720, dy = 0 } = {}) {
-  const r = await page.evaluate((sels) => {
+/** The union of the boxes these selectors match, in page pixels, or null. */
+function boxOf(selectors) {
+  return page.evaluate((sels) => {
     let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity;
     for (const sel of sels) {
       for (const el of document.querySelectorAll(sel)) {
@@ -122,17 +142,41 @@ async function frameOf(selectors, { pad = 40, minW = 720, dy = 0 } = {}) {
     }
     return Number.isFinite(x0) ? { x0, y0, x1, y1 } : null;
   }, selectors);
+}
+/**
+ * The union of what these selectors match, padded, as a 16:9 window inside
+ * the page. `top` and `bottom` are output pixels kept clear for a caption
+ * (CAP): the window widens until what it frames fits between them, and
+ * centres it there.
+ */
+async function frameOf(selectors, { pad = 40, minW = 720, dy = 0, top = 0, bottom = 0 } = {}) {
+  const r = await boxOf(selectors);
   if (!r) { console.log('  (camera: nothing matched', selectors.join(', '), ')'); return FULL; }
-  let w = Math.max(minW, r.x1 - r.x0 + pad * 2, (r.y1 - r.y0 + pad * 2) * 16 / 9);
-  w = Math.min(1920, w);
-  const h = w * 9 / 16;
+  const room = 1080 - top - bottom;
+  let h = Math.max(minW * 9 / 16, (r.x1 - r.x0 + pad * 2) * 9 / 16, (r.y1 - r.y0 + pad * 2) * 1080 / room);
+  h = Math.min(1080, h);
+  const w = h * 16 / 9;
+  const z = 1080 / h;
   const cx = (r.x0 + r.x1) / 2;
   const cy = (r.y0 + r.y1) / 2 + dy;
+  // Page pixels from the window's top edge to the middle of the clear band.
+  const mid = (top + 1080 - bottom) / 2 / z;
   return {
     x: Math.round(Math.max(0, Math.min(1920 - w, cx - w / 2))),
-    y: Math.round(Math.max(0, Math.min(1080 - h, cy - h / 2))),
+    y: Math.round(Math.max(0, Math.min(1080 - h, cy - mid))),
     w: Math.round(w),
   };
+}
+/**
+ * Once a showdown's panel and banner have landed, measure them and keep the
+ * result for the next showdown, saying so if SHOWDOWN was out of date.
+ */
+async function checkShowdownCam() {
+  const live = await frameOf(['.showdown', '.hx-banner__title'], { pad: 30 });
+  if (live === FULL) return;
+  const off = Math.max(Math.abs(live.x - SHOWDOWN.x), Math.abs(live.y - SHOWDOWN.y), Math.abs(live.w - SHOWDOWN.w));
+  if (off > 12) console.log(`\n  (camera: the showdown sits at ${JSON.stringify(live)}, not ${JSON.stringify(SHOWDOWN)}; update SHOWDOWN)`);
+  SHOWDOWN = live;
 }
 const camCut = (c) => { camFrom = c; camTo = c; camT0 = 0; camT1 = 0; };
 const camMove = (c, sec) => { camFrom = camNow(); camTo = c; camT0 = frame; camT1 = frame + Math.max(1, Math.round(sec * FPS)); };
@@ -366,7 +410,9 @@ await skip(1.2);
 let I = await ids();
 const kings = [I.hole[0], ...I.board.filter((_, i) => [0, 1, 3].includes(i))];
 const tableWide = await frameOf(['.board', '.rail [data-card-id]', '[data-seat-id]'], { pad: 30 });
-const handClose = await frameOf(['.board [data-card-id]', '.rail [data-card-id]'], { pad: 46, minW: 900 });
+// The board, your two cards in front of you and the readout under them
+// (2026-10-17: your hand sits on the felt now, and says what it is).
+const handClose = await frameOf(['.board [data-card-id]', '.rail [data-card-id]', '.rail-read'], { pad: 30, minW: 900, top: CAP.normal });
 
 camCut(tableWide);
 await begin('hook_kings');                       // 2.5 s
@@ -389,7 +435,7 @@ speed = 1;
 await at(BANNER_LEAD_AT(3.0));
 await unring(sevenRing);
 await S('ctx.checkAround()');
-camMove(BANNER, 0.4);
+camMove(SHOWDOWN, 0.4);
 await at(2.75);
 await hush();
 await at(3.05);
@@ -397,6 +443,7 @@ await at(3.05);
 // banner holds 3.2 s; at half speed it stays the whole shot).
 speed = 0.5;
 await at(3.5);
+await checkShowdownCam();
 await nextHandArm();
 await end();
 
@@ -418,7 +465,7 @@ await S(`ctx.setHand(1, { sigils: [] }); ctx.setHand(2, { sigils: [] }); ctx.set
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(1.0);
 I = await ids();
-camCut(await frameOf(['.board [data-card-id]', '.rail [data-card-id]'], { pad: 46, minW: 900 }));
+camCut(await frameOf(['.board [data-card-id]', '.rail [data-card-id]', '.rail-read'], { pad: 30, minW: 900, top: CAP.normal }));
 await begin('undo');                             // 9.5 s
 await caption('Hate the last card?', { pos: 'top' });   // read to 3.02
 const lastRing = await ring(cardSel(I.board[4]), 8);
@@ -492,6 +539,9 @@ await caption("See everyone's cards: done.", { pos: 'top', size: 'small' });   /
 for (const b of I.bots) for (const c of b.hole) await ring(cardSel(c), 6);
 await at(3.5);
 await unring();
+// Close on your hand. Cut 3's framing still reads best: the window cannot
+// start under the board without the greyed spell rail filling its bottom
+// third (tried 2026-10-22), so the board's lower edge sits behind the line.
 camMove(await frameOf(['.rail [data-card-id]'], { pad: 90, minW: 900, dy: -40 }), 0.5);
 await caption('Make my worst card wild: done.', { pos: 'top', size: 'small' }); // read to 7.22
 await at(3.9);
@@ -535,8 +585,10 @@ await whenOnScreen('.showdown', 3.2);
 // The engine would deal the next hand after its payout hold; the director
 // keeps the result on the table for the length of the shot instead.
 await S(`if (ctx.table.phase === 'payout') ctx.engine.deadline = Date.now() + 30000;`);
-// Framed with room under the rows, so the line below covers none of them.
-camMove(await frameOf(['.showdown'], { pad: 40, minW: 1180, dy: 85 }), 0.5);
+// The panel whole: your row and the row under it are what the line is about.
+// (Cut 3 framed it with room under the rows; the panel takes the window now,
+// so the line sits over the bottom of the third row, which is nobody's win.)
+camMove(await frameOf(['.showdown'], { pad: 30, minW: 1180 }), 0.5);
 await at(3.75);
 await caption('You had nothing. You won.', { pos: 'bottom' });   // read to 7.07
 await end();
@@ -552,7 +604,7 @@ await nextHand(
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(1.0);
 I = await ids();
-camCut(await frameOf(['.board', '.rail [data-card-id]'], { pad: 60, minW: 1100 }));
+camCut(await frameOf(['.board', '.rail [data-card-id]', '.rail-read'], { pad: 40, minW: 1100, top: CAP.huge }));
 await begin('finale');                           // 20.5 s; copies at 4.0, 6.5, 9.0, 11.5; banner at 14.5
 await caption('There is one King of Spades.', { pos: 'top', size: 'small' });   // read to 3.62
 await ring(cardSel(I.hole[0]), 8);
@@ -584,13 +636,14 @@ await hush();
 await at(BANNER_LEAD_AT(14.5));
 await unring();
 await S('ctx.checkAround()');
-camMove(BANNER, 0.5);
+camMove(SHOWDOWN, 0.5);
 await at(14.47);
 speed = 0.34;
 await at(15.6);
 // Slowed still, so the game's banner (3.2 s) stays up while it is read.
 speed = 0.55;
-await caption('Five of the same card.', { pos: 'low' });   // read to 20.5
+// At the bottom: on this framing the banner's title is where 'low' was.
+await caption('Five of the same card.', { pos: 'bottom' });   // read to 20.5
 await end();
 await hush();
 

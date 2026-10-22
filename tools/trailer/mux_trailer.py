@@ -35,7 +35,7 @@ GAME_GAIN = 0.62     # the game's mix ladder, under the score's level
 CUE_GAIN = 0.8
 THROTTLE = 0.025     # src/audio/engine.ts THROTTLE_SEC: one name, once per 25 ms
 TARGET_LUFS = -14.0
-POSTER_AT = 70.4     # FLUSH FIVE, KINGS, and the two Kings of Spades in your hand
+POSTER_AT = 70.4     # FLUSH FIVE, KINGS over the showdown, your row of five Kings of Spades above it
 # The six-second preview: two Kings of Spades under MAKE IT FIVE, then
 # FIVE OF A KIND landing and held 3.4 s, then 0.4 s dissolving back to the
 # first frame. The payoff gets the reading time; the loop repeats the rest.
