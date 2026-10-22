@@ -8,6 +8,7 @@
  */
 import { CAT_NAME, type Cat } from '@shared/hand';
 import { MAX_HEX } from '@shared/hexes';
+import { unlockedAfter } from '@shared/unlock';
 
 const KEY = 'hexhold.profile';
 const MAX_RUNS = 30;
@@ -72,10 +73,12 @@ export interface Profile {
   /**
    * Per-coven records, keyed by coven id.
    *
-   * Deliberately NOT an unlock gate. Hiding six of seven openings from a new
-   * player makes the game look thinner than it is on the one launch where
-   * that matters most; showing all seven with a record beside each gives the
-   * same reason to come back without spending the first impression on it.
+   * Not itself the gate: the covens open from the second run (shared/unlock.ts),
+   * and that is read from `totals.runs`, the one count that only ever grows
+   * and that Steam Cloud already weighs (src/lib/cloud.ts). This used to argue
+   * against any gate, on the grounds that hiding six openings makes a first
+   * launch look thin; two players on the hosted build found the opposite, that
+   * seven of them on the first screen made it unreadable (cc8f6ea).
    */
   covens: Record<string, CovenRecord>;
   /** Daily Rite results by day, newest kept. */
@@ -128,10 +131,27 @@ function save(p: Profile): void {
   } catch { /* private mode, or the quota is full — the game still plays */ }
 }
 
+/**
+ * Runs finished in this session, kept apart from the saved count so that a
+ * player whose save cannot be written (a private window, a full quota) still
+ * gets the later game on their next run instead of a reveal that never comes
+ * true. The saved count is the real one; this is only ever a floor.
+ */
+let finishedThisSession = 0;
+
+/** How many runs this player has finished, as far as anything here knows. */
+export function runsFinished(): number {
+  return Math.max(loadProfile().totals.runs, finishedThisSession);
+}
+
+/** Whether this player's next table is a later run (shared/unlock.ts). */
+export const isUnlocked = (): boolean => unlockedAfter(runsFinished());
+
 /** Fold one finished run into the profile. Returns the updated profile. */
 export function recordRun(run: RunRecord): Profile {
   const p = loadProfile();
   const t = p.totals;
+  finishedThisSession += 1;
 
   p.runs = [run, ...p.runs].slice(0, MAX_RUNS);
   t.runs += 1;
@@ -189,6 +209,7 @@ function betterDaily(a: DailyRecord, b: DailyRecord): boolean {
 }
 
 export function clearProfile(): void {
+  finishedThisSession = 0;
   try { localStorage.removeItem(KEY); } catch { /* ignore */ }
 }
 

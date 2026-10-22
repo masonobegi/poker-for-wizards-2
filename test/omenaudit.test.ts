@@ -16,7 +16,7 @@ import { test } from 'node:test';
 
 import { Engine } from '../server/game/engine';
 import { modsFor } from '../server/game/table';
-import { OMEN_POOL, OMEN_BY_ID, type ActiveOmen } from '../shared/omens';
+import { OMEN_BY_ID, omenPool, type ActiveOmen } from '../shared/omens';
 import { isQuantum } from '../shared/cards';
 import { DEFAULT_CONFIG, type Player, type Table } from '../shared/types';
 
@@ -60,8 +60,9 @@ const live = (t: Table): Player[] => t.players.filter((p) => !p.eliminated);
 
 test('every omen in the pool is one a run can actually roll', () => {
   // A pool entry that no longer exists, or a definition with no text, is a
-  // rule the game cannot explain to the player.
-  for (const def of OMEN_POOL) {
+  // rule the game cannot explain to the player. The later runs' pool holds
+  // the first run's (shared/unlock.ts), so this reads every omen either deals.
+  for (const def of omenPool(true)) {
     assert.ok(def.text && def.text.length > 10, `${def.id} has no rules text`);
     assert.ok(def.minAnte >= 2, `${def.id} would be in force before the game starts`);
     assert.ok(def.weight > 0, `${def.id} can never be drawn`);
@@ -158,5 +159,57 @@ test('two omens at once are both in force', () => {
   const mods = modsFor(t, live(t)[0]);
   assert.equal(mods.mergedColors, true, 'the earlier omen stopped applying');
   assert.equal(t.board.length, 6, 'the later omen did not apply');
+  e.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// The three that come back in later runs (shared/unlock.ts, 2026-10-22). None
+// was live when this audit was written, so each gets its sentence checked
+// here before a player is dealt it.
+// ---------------------------------------------------------------------------
+
+test('The Sealed Court: every King is dealt face down, hole cards and board alike', () => {
+  const { e, t, ix } = underOmens('audit:sealed', [{ id: 'sealed_court', ante: 3 }]);
+  // Put Kings where they will be dealt: one into a hole at the next deal is
+  // hard to arrange, so check the rule the deal reads and a King on the board.
+  assert.ok(t.sealedRanks.includes(13), 'Kings are not under a seal this hand');
+  assert.ok(t.modNotes.some((n) => /sealed/i.test(n)), 'nothing says Kings are sealed');
+  const king = [...t.cards.values()].find((c) => c.faces[0].rank === 13 && !t.board.includes(c.id)
+    && !t.players.some((p) => p.hole.includes(c.id)))!;
+  t.deck = [king.id, ...t.deck.filter((id) => id !== king.id)];
+  ix.dealStreet('flop');
+  assert.ok(t.board.includes(king.id), 'the King was not dealt');
+  assert.equal(t.cards.get(king.id)!.veil, 'sealed', 'a King reached the board face up');
+  for (const p of live(t)) {
+    for (const id of p.hole) {
+      const c = t.cards.get(id)!;
+      if (c.faces[0].rank === 13) assert.equal(c.veil, 'sealed', `${p.name}'s King was dealt face up`);
+    }
+  }
+  e.dispose();
+});
+
+test('The Kindling: five Burning cards, and one leaves the board at the end of its street', () => {
+  const { e, t, ix } = underOmens('audit:kindling', [{ id: 'the_kindling', ante: 2 }]);
+  const burning = [...t.cards.values()].filter((c) => c.marks.includes('burning'));
+  assert.equal(burning.length, 5, `${burning.length} cards are Burning`);
+  // One of them on the flop, then the street ends.
+  const hot = burning.find((c) => !t.board.includes(c.id) && !t.players.some((p) => p.hole.includes(c.id)))!;
+  t.board = [];
+  t.deck = [hot.id, ...t.deck.filter((id) => id !== hot.id)];
+  ix.dealStreet('flop');
+  assert.ok(t.board.includes(hot.id), 'the Burning card was not dealt');
+  // The end of the flop: two streets still to come, so the board may shrink.
+  t.phase = 'flop';
+  (e as unknown as { burnOffBoard(): void }).burnOffBoard();
+  assert.ok(!t.board.includes(hot.id), 'the Burning card was still on the board after its street');
+  assert.ok(t.cards.get(hot.id)!.destroyed, 'a burned card came back: burned is burned');
+  e.dispose();
+});
+
+test('The Prism: six cards in the shared deck are Prismatic, and count as any suit', () => {
+  const { e, t } = underOmens('audit:prism', [{ id: 'the_prism', ante: 4 }]);
+  const prism = [...t.cards.values()].filter((c) => c.marks.includes('prism'));
+  assert.equal(prism.length, 6, `${prism.length} cards are Prismatic`);
   e.dispose();
 });

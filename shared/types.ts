@@ -421,6 +421,12 @@ export interface RoomConfig {
    * screen. Set only by a demo server (shared/demo.ts), never by a client.
    */
   demoAntes?: number;
+  /**
+   * A later run (shared/unlock.ts): whoever opened the table has finished a
+   * run, so its seats may sit down as any coven and it deals the larger pools.
+   * Absent is a first run, which is what any table opened without it gets.
+   */
+  unlocked?: boolean;
 }
 
 export const DEFAULT_CONFIG: RoomConfig = {

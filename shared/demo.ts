@@ -9,10 +9,14 @@
  *    game holds and asks for a wishlist. A Next Fest player gives a demo
  *    minutes, not an evening; a whole run is 20-plus hands and a demo that
  *    ends while it is getting good is one that gets wishlisted.
- * 2. While the coven picker exists (COVEN_CHOICE, shared/covens.ts), three
- *    covens of seven are open and the other four are shown, locked, with
- *    their pitch. With the picker off, the demo is Unaligned like the full
- *    game (server/net/io.ts `covenFor`).
+ * 2. Its first run is the full game's first run: Unaligned, the small pool
+ *    (server/net/io.ts `covenFor`). After a demo run is finished, the later
+ *    game opens as it does in the full game (shared/unlock.ts), with the
+ *    larger pools, but the picker offers the Unaligned and three covens; the
+ *    other four are shown, locked, with their pitch (DEMO_COVENS). A demo
+ *    that shows the second run's choice is a demo that says the game has one.
+ *    (Under the old picker, COVEN_CHOICE, the demo opened the three and no
+ *    Unaligned.)
  * 3. No hex ladder, no Daily Rite, no hosting: the demo is the practice table.
  *
  * The server enforces all of it (server/net/io.ts), so a demo cannot be
@@ -65,6 +69,12 @@ export const wishlistUrl = (appId: number = FULL_GAME_APP_ID): string =>
     ? `https://store.steampowered.com/app/${appId}/HEXHOLD/`
     : 'https://store.steampowered.com/search/?term=HEXHOLD';
 
-/** A demo coven, falling back to the first one for anything else. */
+/** A demo coven, falling back to the first one for anything else (the old picker). */
 export const demoCoven = (id: string): string =>
   DEMO_COVENS.includes(id) ? id : DEMO_COVENS[0];
+
+/** Whether the demo's unlocked picker opens this coven: the Unaligned and the three. */
+export const demoOpen = (id: string): boolean => id === 'unaligned' || DEMO_COVENS.includes(id);
+
+/** A coven the demo's unlocked picker opens, falling back to the Unaligned. */
+export const demoOpenCoven = (id: string): string => (demoOpen(id) ? id : 'unaligned');

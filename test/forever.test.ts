@@ -31,7 +31,7 @@ import { test } from 'node:test';
 
 import { Engine } from '../server/game/engine';
 import { clearHandMagic } from '../server/game/magic';
-import { POOL, SIGIL_BY_ID } from '../shared/sigils';
+import { SIGIL_BY_ID, sigilPool } from '../shared/sigils';
 import { makeCard, type MarkId, type Rank, type Suit } from '../shared/cards';
 import { DEFAULT_CONFIG, type Table } from '../shared/types';
 
@@ -61,8 +61,12 @@ const SCOPED = [
   /this street/i,
 ];
 
-/** Sigils that register a mark in `t.tempMarks`, i.e. that wear off. */
-const WRITES_TEMP_MARK = ['mirror', 'wild_rite'];
+/**
+ * Sigils that register a mark in `t.tempMarks`, i.e. that wear off. Graft and
+ * Gild came back for later runs on 2026-10-22 (shared/unlock.ts): both always
+ * wore off with the hand, and neither said so until then.
+ */
+const WRITES_TEMP_MARK = ['mirror', 'wild_rite', 'graft', 'gild'];
 
 test('a mark nobody called temporary survives the next deal', () => {
   const { e, t, ix } = table('forever:mark');
@@ -109,6 +113,8 @@ test('every sigil that wears off says so on its face', () => {
 test('and every other sigil in the pool is not quietly temporary', () => {
   // The inverse guard: if a sigil starts registering a temporary mark, it has
   // to be added to the list above, which forces it through the text check.
+  // Over the later runs' pool, which holds the first run's (shared/unlock.ts).
+  const POOL = sigilPool(true);
   const scopedButNotListed = POOL
     .filter((d) => !WRITES_TEMP_MARK.includes(d.id))
     .filter((d) => SCOPED.some((re) => re.test(d.text)));

@@ -15,7 +15,7 @@
  * to a bot, an omen drawn early, a price, the ante length — so a hex cannot
  * smuggle in new behaviour, the same constraint covens live under.
  */
-import { COVENS, COVEN_CHOICE, DEFAULT_COVEN } from './covens';
+import { COVENS, DEFAULT_COVEN, covensOpen } from './covens';
 import { Rng } from './rng';
 
 export interface HexDef {
@@ -104,10 +104,15 @@ export const dailySeed = (day: string): string => `daily:${day}`;
 export const isDailySeed = (s: unknown): s is string =>
   typeof s === 'string' && /^daily:\d{4}-\d{2}-\d{2}$/.test(s);
 
-/** The coven today's rite is played as. Never the Unaligned: the day should have a shape. */
-export function dailyCoven(day: string): string {
-  // With the picker off nobody has a coven, so the Rite cannot assign one.
-  if (!COVEN_CHOICE) return DEFAULT_COVEN;
+/**
+ * The coven today's rite is played as. Never the Unaligned: the day should
+ * have a shape. Only for a player the covens are open to (COVENS_UNLOCK, from
+ * the second run): before that nobody has a coven, so the Rite cannot assign
+ * one, and a first run is a first run whichever button started it. Everyone
+ * past their first run plays the same coven on the same day.
+ */
+export function dailyCoven(day: string, unlocked = false): string {
+  if (!covensOpen(unlocked)) return DEFAULT_COVEN;
   const pool = COVENS.filter((c) => c.id !== DEFAULT_COVEN);
   return new Rng(`coven:${dailySeed(day)}`).pick(pool).id;
 }

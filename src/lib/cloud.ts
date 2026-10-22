@@ -10,6 +10,8 @@
  * whichever save has seen more — which for this game means more runs played —
  * rather than silently losing a night's progress to a clock skew.
  */
+import { unlockedAfter } from '@shared/unlock';
+
 const FILE = 'hexhold-save.json';
 const REV_KEY = 'hexhold.saveRev';
 
@@ -69,6 +71,32 @@ function localWeight(): number {
   } catch { return 0; }
 }
 
+/** Finished runs in a profile blob, or 0 for anything unreadable. */
+function runsIn(profile: string | null | undefined): number {
+  try {
+    const runs = (JSON.parse(profile ?? '{}') as { totals?: { runs?: unknown } }).totals?.runs;
+    return typeof runs === 'number' && Number.isFinite(runs) ? runs : 0;
+  } catch { return 0; }
+}
+
+/**
+ * Which save to keep, given both. A save that has opened the later game
+ * (shared/unlock.ts: a finished run) beats one that has not, whichever way
+ * round: the weight below counts achievements too, and a few achievements
+ * earned in an unfinished run on a second machine must not be able to take
+ * the covens back on the first, or keep them from reaching the second.
+ * Otherwise the cloud wins only if it has genuinely seen more play.
+ */
+export function cloudWins(
+  remote: { rev: number; weight: number; runs: number },
+  local: { rev: number; weight: number; runs: number },
+): boolean {
+  const remoteOpen = unlockedAfter(remote.runs);
+  const localOpen = unlockedAfter(local.runs);
+  if (remoteOpen !== localOpen) return remoteOpen;
+  return remote.rev > local.rev ? remote.weight >= local.weight : remote.weight > local.weight;
+}
+
 function collect(): SaveBlob {
   const data: Record<string, string> = {};
   for (const key of KEYS) {
@@ -108,13 +136,12 @@ export async function pullCloudSave(): Promise<boolean> {
     const remote = parse(await bridge.cloudRead(FILE));
     if (!remote) return false;
 
-    const localRev = readLocalRev();
-    const mine = localWeight();
-
-    // The cloud is only authoritative if it has genuinely seen more play.
-    const remoteWins = remote.rev > localRev
-      ? remote.weight >= mine
-      : remote.weight > mine;
+    let localProfile: string | null = null;
+    try { localProfile = localStorage.getItem('hexhold.profile'); } catch { /* private mode */ }
+    const remoteWins = cloudWins(
+      { rev: remote.rev, weight: remote.weight, runs: runsIn(remote.data['hexhold.profile']) },
+      { rev: readLocalRev(), weight: localWeight(), runs: runsIn(localProfile) },
+    );
 
     if (!remoteWins) return false;
     apply(remote);

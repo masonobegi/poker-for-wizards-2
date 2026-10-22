@@ -721,6 +721,49 @@ export const POOL: SigilDef[] = POOL_IDS.map((id) => {
 /** Is this one of the sigils a player can actually be dealt? */
 export const inPool = (id: string): boolean => POOL_IDS.includes(id);
 
+/**
+ * Three sigils back in the bag from the second run (shared/unlock.ts).
+ *
+ * Held to the same bar as POOL_IDS, and to one more: each is the signature of
+ * a coven that now opens, so a coven's lean (COVEN_LEAN) can deal its own card
+ * again after the opening hand instead of drawing from two cards that are not
+ * its own. None repeats a card already in the pool, none is a dial on one, and
+ * the set stays at the cut's own ceiling of sixteen (test/pool.test.ts).
+ *
+ * Left out on purpose: Cold Read (a relic of the same name is on the shelf),
+ * Foresight (the Long Now's creed already shows the river), Second Wind (a
+ * number), Inscribe (its brief cannot say which mark), Gloaming (a fourth Veil
+ * card, where the other schools have two).
+ *
+ * Each was vetted against the rules the UI pass fixed, since none of them was
+ * live when it did: Graft now copies the way Mirror does since d03be97 (the
+ * whole card, for the hand, with "was" shown) where it used to overwrite the
+ * card for the rest of the run; Gild and Graft say "for this hand", which is
+ * how long they always lasted (test/forever.test.ts); Blight no longer claims
+ * the target is not told, because the target can see its own hand.
+ *
+ * Empty this list and later runs deal the first run's thirteen.
+ */
+export const UNLOCKED_SIGIL_IDS: readonly string[] = [
+  'graft',   // Bind, the Twinned: a pair made of one card
+  'blight',  // Ruin, the Ashen: a spell dies before anybody casts it
+  'gild',    // Weave, the Loom: one card is every suit
+];
+
+const UNLOCKED_POOL: SigilDef[] = [...POOL, ...UNLOCKED_SIGIL_IDS.map((id) => {
+  const def = SIGIL_BY_ID[id];
+  if (!def) throw new Error(`UNLOCKED_SIGIL_IDS names a sigil that does not exist: ${id}`);
+  return def;
+})];
+
+/**
+ * What a table deals and sells: the first run's pool, or that pool and the
+ * unlocked sigils after it. The first run's list comes first and unchanged, so
+ * a first-run table's draws are the same draws they always were.
+ */
+export const sigilPool = (unlocked: boolean): readonly SigilDef[] =>
+  (unlocked ? UNLOCKED_POOL : POOL);
+
 export const RESPONSE_SIGILS = new Set(
   SIGILS.filter((s) => s.timing.includes('response')).map((s) => s.id),
 );

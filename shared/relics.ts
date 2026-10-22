@@ -590,6 +590,51 @@ export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
   return def;
 });
 
+/**
+ * Four relics back on the shelf from the second run (shared/unlock.ts).
+ *
+ * Picked for what they do to a decision, from round 5's measurements of all
+ * 45 (plans/fun-round5-data): each was bought often enough to be seen, and
+ * each fires where the player can see it (a ledger line or the hand it makes
+ * at showdown), because round 6 found five shelf relics that act silently and
+ * a sixth would make that worse. None repeats a relic on the shelf.
+ *
+ * - The Keepsake: folding before the flop becomes a plan (9.2 lines a run in
+ *   round 5, the most visible relic in the game). The Ashen, paid to fold,
+ *   now have something to build.
+ * - Broken Compass: your flushes need four. The Ladder's partner, for the
+ *   other drawing hand; 1.9 visible firings a run.
+ * - The Magpie: counter a spell and keep it. Every seat holds a Nullify (the
+ *   Unaligned's creed), so this turns the one spell everybody has into a bet.
+ * - Crown of Thieves: Jacks and Queens read as Kings for you. A hand-reading
+ *   rule nothing else on the shelf touches; 1.6 firings a run.
+ *
+ * Left out: Stepping Stones and Crooked Ladder (more straights of four, the
+ * duplicate the cut named), Smeared Ink (the Blurred omen's rule), the
+ * one-of-your-hole-cards family beyond the three already on the shelf, The
+ * Sanctum (it never shows when it works), and every relic that is a number.
+ *
+ * Sixteen with these, the cut's ceiling, at its 6/3/1 rarity weighting:
+ * seven commons, seven rares, two mythics. Empty this list and later runs
+ * see the first run's twelve.
+ */
+export const UNLOCKED_RELIC_IDS: readonly string[] = [
+  'keepsake',          // common: fold before the flop, keep your higher card
+  'broken_compass',    // common: your flushes need four
+  'magpie',            // rare: counter a sigil and it comes to your hand
+  'crown_of_thieves',  // rare: Jacks and Queens read as Kings for you
+];
+
+const UNLOCKED_RELIC_POOL: RelicDef[] = [...RELIC_POOL, ...UNLOCKED_RELIC_IDS.map((id) => {
+  const def = RELIC_BY_ID[id];
+  if (!def) throw new Error(`UNLOCKED_RELIC_IDS names a relic that does not exist: ${id}`);
+  return def;
+})];
+
+/** What a table's Market can offer: the first run's twelve, or those and the unlocked ones. */
+export const relicPool = (unlocked: boolean): readonly RelicDef[] =>
+  (unlocked ? UNLOCKED_RELIC_POOL : RELIC_POOL);
+
 /** Whether any of these relics (or a creed among them) runs this rule. */
 export const hasRule = (relicIds: string[], rule: RuleId): boolean =>
   relicIds.some((id) => RELIC_BY_ID[id]?.rule === rule);

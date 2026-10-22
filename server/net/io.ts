@@ -10,9 +10,9 @@ import { Rooms, type Seatholder } from './rooms';
 import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
 import { config } from '../config';
 import { isInscribeMark } from '../../shared/cards';
-import { COVEN_CHOICE, DEFAULT_COVEN, covenOf } from '../../shared/covens';
+import { COVEN_CHOICE, DEFAULT_COVEN, covenOf, covensOpen } from '../../shared/covens';
 import { clampHex, isDailySeed } from '../../shared/hexes';
-import { DEMO_ANTES, demoCoven } from '../../shared/demo';
+import { DEMO_ANTES, demoCoven, demoOpenCoven } from '../../shared/demo';
 import { MAX_TEXT } from '../../shared/scribe';
 
 const MAX_NAME = 16;
@@ -54,6 +54,10 @@ export function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   // A seed fixes the deck order, so a table two people share must not have
   // one that either of them can know in advance.
   if (isDailySeed(c.seed)) out.seed = c.seed;
+  // A later run (shared/unlock.ts). The client knows how many runs its player
+  // has finished; the server cannot, and nothing here is worth faking: it
+  // opens content any player gets by finishing one run. Only ever true.
+  if (c.unlocked === true) out.unlocked = true;
   // The demo server decides the demo's shape, whatever the page asked for:
   // the first hex, no seeded Daily Rite, and a run that ends after DEMO_ANTES.
   if (config.demo) {
@@ -65,17 +69,21 @@ export function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
 }
 
 /**
- * The coven a player sits down as: any of them, or only the demo's three in a
- * demo. With the picker off (COVEN_CHOICE) everyone is Unaligned, whatever the
- * page sent. That has to be decided here and not left to demoCoven: the demo
- * mapped 'unaligned' (not one of its three) to its first coven, so from
- * cc8f6ea a demo player sat down as the Ashen, with the Ashen's opening sigils
- * and creed, at a table of Unaligned bots and with nothing on screen saying so.
+ * The coven a player sits down as. On a first run (no `unlocked`) everyone is
+ * Unaligned, whatever the page sent. That has to be decided here and not left
+ * to demoCoven: the demo mapped 'unaligned' (not one of its three) to its
+ * first coven, so from cc8f6ea a demo player sat down as the Ashen, with the
+ * Ashen's opening sigils and creed, at a table of Unaligned bots and with
+ * nothing on screen saying so. On a later run (COVENS_UNLOCK) any coven, or in
+ * a demo the Unaligned and the demo's three.
  */
-export const covenFor = (raw: unknown): string => {
-  if (!COVEN_CHOICE) return DEFAULT_COVEN;
+export const covenFor = (raw: unknown, unlocked = false): string => {
+  if (!covensOpen(unlocked)) return DEFAULT_COVEN;
   const id = covenOf(clean(raw, 32)).id;
-  return config.demo ? demoCoven(id) : id;
+  if (!config.demo) return id;
+  // The old picker (COVEN_CHOICE) opened three covens in the demo and no
+  // Unaligned; the unlock keeps the Unaligned the first run was played as.
+  return COVEN_CHOICE ? demoCoven(id) : demoOpenCoven(id);
 };
 
 export function sanitizeTargets(raw: unknown): SigilTargets {
@@ -142,13 +150,14 @@ export function attach(io: Server): Rooms {
       const payload = (p ?? {}) as Record<string, unknown>;
       const name = clean(payload.name, MAX_NAME) || 'Host';
       const id = `p_${nanoid(10)}`;
-      const e = rooms.create(id, sanitizeConfig(payload.config));
+      const cfg = sanitizeConfig(payload.config);
+      const e = rooms.create(id, cfg);
       const player = e.addPlayer(id, name);
       if (!player) return fail(cb, 'Could not seat you');
       // A coven only sets which sigils and relic the run opens with, and an
       // unknown id falls back rather than throwing, so it needs no validation
       // beyond being a string.
-      player.coven = covenFor(payload.coven);
+      player.coven = covenFor(payload.coven, !!cfg.unlocked);
       const token = join(e.table.code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code: e.table.code, youId: id, token } });
@@ -168,7 +177,9 @@ export function attach(io: Server): Rooms {
       const id = `p_${nanoid(10)}`;
       const player = e.addPlayer(id, name);
       if (!player) return fail(cb, 'That table is full');
-      player.coven = covenFor(payload.coven);
+      // The seat's own player says whether they have finished a run; the
+      // table's pools are the host's (RoomConfig.unlocked).
+      player.coven = covenFor(payload.coven, payload.unlocked === true);
       const token = join(code, id);
       if (typeof cb === 'function') {
         (cb as (a: unknown) => void)({ ok: true, data: { code, youId: id, token } });
@@ -224,11 +235,15 @@ export function attach(io: Server): Rooms {
       e.setReady(s.playerId, !!(p as { ready?: boolean })?.ready);
     });
 
-    socket.on('room:start', (cb: unknown) => {
+    socket.on('room:start', (p: unknown, maybeCb?: unknown) => {
+      // Sent bare by older clients, so the ack may be the first argument.
+      const cb = typeof p === 'function' ? p : maybeCb;
       const s = seat(); const e = engine();
       if (!s || !e) return;
       if (e.table.hostId !== s.playerId) return fail(cb, 'Only the host can start');
       touch();
+      // "Deal again" after the run that opened the later game.
+      if (p && typeof p === 'object' && (p as { unlocked?: unknown }).unlocked === true) e.openLaterRuns();
       const r = e.start();
       if (!r.ok) {
         socket.emit('toast', { text: r.error ?? 'Cannot start', tone: 'warn' });

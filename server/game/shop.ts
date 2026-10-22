@@ -10,8 +10,8 @@ import { hexPrice } from '../../shared/hexes';
 import { INK_SHARDS, readSpell, type Roster, type ScribeRead } from '../../shared/scribe';
 import { nanoid } from 'nanoid';
 import { MARKS, type MarkId, faceLabel } from '../../shared/cards';
-import { RELIC_BY_ID, RELIC_POOL, relicNumber } from '../../shared/relics';
-import { POOL, SCRIBED_ID, SIGIL_BY_ID } from '../../shared/sigils';
+import { RELIC_BY_ID, relicNumber, relicPool, type RelicDef } from '../../shared/relics';
+import { SCRIBED_ID, SIGIL_BY_ID, sigilPool, type SigilDef } from '../../shared/sigils';
 import type { Rng } from '../../shared/rng';
 import type { Player, ShopItem, ShopState, Table } from '../../shared/types';
 import { giveSigil, sign } from './magic';
@@ -46,10 +46,11 @@ const RITE_BAG: MarkId[] = [
 ];
 const BASE_REROLL = 3;
 
-function rollSigilItem(rng: Rng): ShopItem {
-  // The live set, not every sigil ever written. See shared/sigils.ts POOL_IDS.
-  const bag = POOL.flatMap((s) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[s.rarity]).fill(s));
-  const def = rng.pick(bag) as typeof POOL[number];
+function rollSigilItem(rng: Rng, pool: readonly SigilDef[]): ShopItem {
+  // The live set, not every sigil ever written. See shared/sigils.ts POOL_IDS
+  // and `sigilPool`: a table opened after a first run sells a few more.
+  const bag = pool.flatMap((s) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[s.rarity]).fill(s));
+  const def = rng.pick(bag) as SigilDef;
   return { kind: 'sigil', id: def.id, uid: nanoid(8), price: def.price };
 }
 
@@ -72,12 +73,13 @@ function rollSigilItem(rng: Rng): ShopItem {
  */
 export const RELIC_OFFERS = 2;
 
-function rollRelicItem(rng: Rng, owned: string[]): ShopItem | null {
-  // The live set, not every relic ever written. See shared/relics.ts.
-  const pool = RELIC_POOL.filter((r) => !owned.includes(r.id));
+function rollRelicItem(rng: Rng, owned: string[], shelf: readonly RelicDef[]): ShopItem | null {
+  // The live set, not every relic ever written. See shared/relics.ts
+  // RELIC_POOL_IDS and `relicPool`.
+  const pool = shelf.filter((r) => !owned.includes(r.id));
   if (pool.length === 0) return null;
   const bag = pool.flatMap((r) => Array(({ common: 6, rare: 3, mythic: 1 } as const)[r.rarity]).fill(r));
-  const def = rng.pick(bag) as typeof RELIC_POOL[number];
+  const def = rng.pick(bag) as RelicDef;
   return { kind: 'relic', id: def.id, uid: nanoid(8), price: def.price };
 }
 
@@ -107,13 +109,16 @@ function rollRiteItem(t: Table, rng: Rng): ShopItem | null {
 
 export function rollShop(t: Table, p: Player, rng: Rng, rerolls = 0): ShopState {
   const items: ShopItem[] = [];
+  // The first run's pools, or the later game's (shared/unlock.ts).
+  const sigils = sigilPool(!!t.config.unlocked);
+  const shelf = relicPool(!!t.config.unlocked);
 
   const relics = Math.max(1, RELIC_OFFERS);
-  for (let i = 0; i < Math.max(0, 3 - relics); i++) items.push(rollSigilItem(rng));
+  for (let i = 0; i < Math.max(0, 3 - relics); i++) items.push(rollSigilItem(rng, sigils));
   // Two different relics: the second is drawn as if the first were owned.
   const shelved: string[] = [];
   for (let i = 0; i < relics; i++) {
-    const relic = rollRelicItem(rng, [...p.relics, ...shelved]);
+    const relic = rollRelicItem(rng, [...p.relics, ...shelved], shelf);
     if (!relic || relic.kind !== 'relic') break;
     shelved.push(relic.id);
     items.push(relic);
@@ -123,7 +128,7 @@ export function rollShop(t: Table, p: Player, rng: Rng, rerolls = 0): ShopState 
   if (rng.chance(0.4)) {
     items.push({ kind: 'mana', uid: nanoid(8), price: 6, amount: 1 });
   } else {
-    items.push(rollSigilItem(rng));
+    items.push(rollSigilItem(rng, sigils));
   }
   // Every Market has a blank page. Its listed price is the least a written
   // sigil can cost; the words decide the rest. See shared/scribe.ts.

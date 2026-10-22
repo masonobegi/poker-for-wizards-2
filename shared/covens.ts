@@ -192,9 +192,26 @@ export const DEFAULT_COVEN = 'unaligned';
  */
 export const COVEN_CHOICE = false;
 
+/**
+ * The covens open from the second run (shared/unlock.ts). Decided 2026-10-22:
+ * the first run stays the symmetric Unaligned table the playtest asked for,
+ * and once a player has finished one, the picker is back on the menu with all
+ * seven. False keeps every run Unaligned, as round 6 shipped.
+ *
+ * Only the player's seat. The bots stay Unaligned (COVEN_CHOICE still decides
+ * theirs), so the table never plays a rulebook nobody showed you: the one
+ * coven at the table that is not the Unaligned is the one you picked, and the
+ * picker showed you its creed before you sat down.
+ */
+export const COVENS_UNLOCK = true;
+
+/** Whether a seat may sit down as any coven: always with the old picker, else once unlocked. */
+export const covensOpen = (unlocked: boolean): boolean =>
+  COVEN_CHOICE || (COVENS_UNLOCK && unlocked);
+
 /** The covens a player may actually be dealt or pick. */
-export const pickableCovens = (): CovenDef[] =>
-  (COVEN_CHOICE ? COVENS : COVENS.filter((c) => c.id === DEFAULT_COVEN));
+export const pickableCovens = (unlocked = false): CovenDef[] =>
+  (covensOpen(unlocked) ? COVENS : COVENS.filter((c) => c.id === DEFAULT_COVEN));
 
 /**
  * How often a hand's first sigil draw comes from the coven's own school.

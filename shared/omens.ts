@@ -361,6 +361,48 @@ export const OMEN_POOL: OmenDef[] = OMEN_POOL_IDS.map((id) => {
   return def;
 });
 
+/**
+ * Three omens back in the draw from the second run (shared/unlock.ts).
+ *
+ * Each changes a rule you can see from the felt, none changes a rule an omen
+ * in the pool already changes (the cut's own test), and none is a hidden
+ * penalty a player cannot see coming (The Curse, The Undertow: an unexplained
+ * loss reads as cheating). Twelve in all, the cut's ceiling.
+ *
+ * - The Sealed Court: Kings arrive face down for everyone. It is also the
+ *   only way left for a dealt card to be sealed, which "Nobody Saw It Coming"
+ *   needs; from cc8f6ea to here that achievement could only be earned by
+ *   writing "seal the kings" on a blank page.
+ * - The Kindling: five cards that burn off the board at the end of their
+ *   street. You watch it happen; the Ashen's Burn finally has company.
+ * - The Prism: six cards that count as every suit, from ante 4, so a long run
+ *   gets a second way to break the deck after the promised Gilded or Twinned.
+ *
+ * Left out: the sixth-card, cheaper-mana, extra-draw and four-card-straight
+ * duplicates the cut named, Thin Ice and Coronation (they repeat Broken
+ * Compass and Crown of Thieves, which come back as relics a player chooses),
+ * and Long Memory (the Twinned's own relic already plays it).
+ *
+ * None keeps the impossible-hand promise (keepsPromise), so the ante-2 omen is
+ * The Gilded or The Twinned on every run, as before. Empty this list and later
+ * runs roll the first run's nine.
+ */
+export const UNLOCKED_OMEN_IDS: readonly string[] = [
+  'the_kindling',    // ante 2: five cards that burn off the board
+  'sealed_court',    // ante 3: every King is dealt face down
+  'the_prism',       // ante 4: six cards that are every suit
+];
+
+const UNLOCKED_OMEN_POOL: OmenDef[] = [...OMEN_POOL, ...UNLOCKED_OMEN_IDS.map((id) => {
+  const def = OMEN_BY_ID[id];
+  if (!def) throw new Error(`UNLOCKED_OMEN_IDS names an omen that does not exist: ${id}`);
+  return def;
+})];
+
+/** What a table rolls omens from: the first run's nine, or those and the unlocked ones. */
+export const omenPool = (unlocked: boolean): readonly OmenDef[] =>
+  (unlocked ? UNLOCKED_OMEN_POOL : OMEN_POOL);
+
 export interface ActiveOmen {
   id: string;
   /** For omens that pick a rank when they arrive. */

@@ -17,7 +17,7 @@ import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
 import {
-  IMPOSSIBLE_BY_ANTE, OMEN_BY_ID, OMEN_POOL, keepsPromise, omenNumber, type ActiveOmen,
+  IMPOSSIBLE_BY_ANTE, OMEN_BY_ID, keepsPromise, omenNumber, omenPool, type ActiveOmen,
 } from '../../shared/omens';
 import {
   isStreet,
@@ -29,7 +29,7 @@ import {
 } from './table';
 import {
   applySeal, bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
-  randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
+  draftPool, randomSigil, reapConjured, resolveStack, stackReady, superposeCard,
   type MagicCtx,
 } from './magic';
 import { grantInformantVision, runShowdown } from './showdown';
@@ -368,6 +368,19 @@ export class Engine {
     this.flush();
   }
 
+  /**
+   * "Deal again" after the run that opened the later game (shared/unlock.ts):
+   * the next run at this table is a later run. Only between runs, only ever
+   * on, and nothing else about the table changes: the seat keeps its coven
+   * (the picker is on the menu), the hex and the seed stay what they were.
+   */
+  openLaterRuns(): void {
+    const t = this.table;
+    if (t.config.unlocked || (t.phase !== 'lobby' && t.phase !== 'gameover')) return;
+    t.config = { ...t.config, unlocked: true };
+    this.flush();
+  }
+
   // --------------------------------------------------------------- game start
 
   start(): { ok: boolean; error?: string } {
@@ -412,7 +425,7 @@ export class Engine {
       // do something new, the relic has to learn it first.
       // The Daily Rite is played as the day's coven, whatever the client sent,
       // or it is not the same run as everyone else's.
-      if (!p.isBot && isDailySeed(t.config.seed)) p.coven = dailyCoven(t.config.seed.slice('daily:'.length));
+      if (!p.isBot && isDailySeed(t.config.seed)) p.coven = dailyCoven(t.config.seed.slice('daily:'.length), !!t.config.unlocked);
       const coven = covenOf(p.coven);
       // The creed first: it is the coven's rule, and the relic is its kit.
       const creed = creedOf(coven);
@@ -429,7 +442,7 @@ export class Engine {
       // relic that touches hand size currently adds to it, which is the only
       // reason that is not already a hang.
       for (let i = 0; i < 2 && p.sigils.length < 2; i++) {
-        if (!giveSigil(t, p, randomSigil(opening))) break;
+        if (!giveSigil(t, p, randomSigil(opening, true, undefined, undefined, draftPool(t)))) break;
       }
       // Hex II: the opponents arrive already equipped.
       if (p.isBot && t.config.hex >= 2) {
@@ -520,7 +533,7 @@ export class Engine {
         if (p.sigils.length < sigilHandSize(p)) {
           // Prefer a card they are not already holding: see randomSigil.
           giveSigil(t, p, randomSigil(
-            this.rng, true, i === 0 && leans ? lean! : undefined, p.sigils.map((s) => s.defId),
+            this.rng, true, i === 0 && leans ? lean! : undefined, p.sigils.map((s) => s.defId), draftPool(t),
           ));
         }
       }
@@ -1354,7 +1367,8 @@ export class Engine {
     const t = this.table;
     const rng = this.stream(`omen:${t.ante}:${t.omens.length}`);
     const taken = new Set(t.omens.map((o) => o.id));
-    let pool = OMEN_POOL.filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
+    // The first run's nine, or those and the unlocked ones after it (shared/unlock.ts).
+    let pool = omenPool(!!t.config.unlocked).filter((o) => !taken.has(o.id) && o.minAnte <= asAnte);
     if (pool.length === 0) return;
     // See IMPOSSIBLE_BY_ANTE: by the middle of a run, the deck must have been
     // given a way to hold a card twice.

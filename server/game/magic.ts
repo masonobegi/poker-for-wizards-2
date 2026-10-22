@@ -19,7 +19,7 @@ import {
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
 import {
-  POOL, SIGIL_BY_ID, SCHOOLS, defOf, entryDef, type SigilDef, type SigilInstance,
+  SIGIL_BY_ID, SCHOOLS, defOf, entryDef, sigilPool, type SigilDef, type SigilInstance,
 } from '../../shared/sigils';
 import { resolveClause } from './scribed';
 import { hasRule } from '../../shared/relics';
@@ -173,8 +173,11 @@ export function bindInscribedPairs(t: Table): void {
 
 // What a player can be dealt. `SIGIL_BY_ID` still resolves everything ever
 // printed, so an old save or a ledger line from a previous version reads
-// fine; only the draw bag is the curated set. See shared/sigils.ts POOL_IDS.
-const DRAFT_POOL = POOL;
+// fine; only the draw bag is the curated set. See shared/sigils.ts POOL_IDS,
+// and `sigilPool` for the larger bag a table opened after a first run deals.
+
+/** The bag this table draws sigils from (shared/unlock.ts). */
+export const draftPool = (t: Pick<Table, 'config'>): readonly SigilDef[] => sigilPool(!!t.config.unlocked);
 
 /**
  * One sigil out of the bag.
@@ -189,10 +192,11 @@ const DRAFT_POOL = POOL;
  */
 export function randomSigil(
   rng: Rng, weights = true, school?: SigilDef['school'], avoid?: readonly string[],
+  pool: readonly SigilDef[] = sigilPool(false),
 ): SigilInstance {
   const build = (skip: ReadonlySet<string>): SigilDef[] => {
     const bag: SigilDef[] = [];
-    for (const d of DRAFT_POOL) {
+    for (const d of pool) {
       if (school && d.school !== school) continue;
       if (skip.has(d.id)) continue;
       const n = weights ? ({ common: 6, rare: 3, mythic: 1 } as const)[d.rarity] : 1;
@@ -1014,7 +1018,7 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     case 'second_wind': {
       let drawn = 0;
       for (let i = 0; i < 2; i++) {
-        if (giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)))) drawn++;
+        if (giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId), draftPool(t)))) drawn++;
       }
       note(
         drawn ? `${caster.name} draws ${drawn === 2 ? 'two sigils' : 'a sigil'}.` : 'Their hand is already full.',
@@ -1261,10 +1265,10 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
           return !!c && c.faces.some((f) => f.rank === rank);
         }));
       if (held) {
-        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId)));
+        for (let i = 0; i < 2; i++) giveSigil(t, caster, randomSigil(rng, true, undefined, caster.sigils.map((s) => s.defId), draftPool(t)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is right. Two sigils.`, 'impossible');
       } else {
-        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng, true, undefined, p.sigils.map((s) => s.defId)));
+        for (const p of alive(t)) if (p.id !== caster.id) giveSigil(t, p, randomSigil(rng, true, undefined, p.sigils.map((s) => s.defId), draftPool(t)));
         note(`${caster.name} calls ${RANK_NAME[rank]} and is wrong. Everybody else draws.`, 'warn');
       }
       break;
