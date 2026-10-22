@@ -27,7 +27,7 @@ import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, bloodOwed, burnCard, byId, canCast, card, describeCard, describeCardInPlace, live, log, manaCost,
+  alive, bloodOwed, burnCard, byId, canCast, card, copyCardOnto, describeCard, describeCardInPlace, live, log, manaCost,
   ruleRelic, sigilHandSize,
 } from './table';
 
@@ -654,9 +654,8 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       const dst = secondCard ?? card(t, t.board[t.board.length - 1]);
       if (!src || !dst || src.id === dst.id) { note('Nothing to mirror.', 'warn'); break; }
       if (!canAlter(dst)) { note('That card is set in amber.', 'warn'); break; }
-      dst.faces = src.faces.map((f) => ({ ...f }));
-      dst.collapsed = src.collapsed;
-      dst.veil = src.veil;
+      // "An exact duplicate of the first, marks and all" (the card's text).
+      copyCardOnto(t, src, dst);
       if (!dst.marks.includes('mirrored')) dst.marks.push('mirrored');
       t.tempMarks.push({ cardId: dst.id, markId: 'mirrored' });
       ctx.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
@@ -1442,6 +1441,11 @@ export function clearHandMagic(t: Table): void {
     c.entangledWith = undefined;
     c.veil = 'open';
     c.amber = undefined;
+    // A copy lasts the hand (copyCardOnto): the card is itself again.
+    if (c.wasFace) {
+      c.faces = [{ ...c.wasFace }];
+      c.collapsed = 0;
+    }
     c.wasFace = undefined;
     if (c.faces.length > 1) {
       c.faces = [c.faces[c.collapsed ?? 0]];

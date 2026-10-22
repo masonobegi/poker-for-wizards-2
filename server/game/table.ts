@@ -354,6 +354,44 @@ export function log(t: Table, text: string, tone: LogTone = 'plain', extra: Part
 // ---------------------------------------------------------------------------
 
 export const card = (t: Table, id: string): CardEntity | undefined => t.cards.get(id);
+
+/**
+ * Make `dst` a copy of `src`: the whole card, the way a Mirrored card is.
+ *
+ * The faces, which of them it settled on and its veil; the marks that make the
+ * card what it is (a copy of a Wild is Wild), keeping `dst`'s own and never
+ * copying `mirrored` across; memory and amber. And `dst` remembers what it was
+ * printed as, once, so the client can draw "was 4♠" beside the copy: a chain
+ * keeps the first answer. The caller marks it `mirrored` (per hand).
+ *
+ * It lasts the hand: the marks it gains are registered in `t.tempMarks`, and
+ * clearHandMagic puts the printed face back from `wasFace`. Card entities live
+ * the whole run and every hand's deck is shuffled from them, so before
+ * 2026-10-22 a copy never reverted: the card stayed a duplicate for the rest of
+ * the run, its own identity left the deck, and the next time it was dealt its
+ * "was" named the previous copy. The Mirror card says "for this hand".
+ *
+ * One routine for the Twinned omen's Mirrored cards (Engine.resolveMirrored)
+ * and the Mirror sigil. Until 2026-10-22 the sigil copied faces, collapse and
+ * veil only, so its card said "an exact duplicate of the first, marks and all"
+ * and a Mirror aimed at a Wild made a plain card, with no "was" either.
+ */
+export function copyCardOnto(t: Table, src: CardEntity, dst: CardEntity): void {
+  if (!dst.wasFace) {
+    const own = dst.faces[dst.collapsed ?? 0];
+    if (own) dst.wasFace = { ...own };
+  }
+  dst.faces = src.faces.map((f) => ({ ...f }));
+  dst.collapsed = src.collapsed;
+  dst.veil = src.veil;
+  for (const m of src.marks) {
+    if (m === 'mirrored' || dst.marks.includes(m)) continue;
+    dst.marks.push(m);
+    t.tempMarks.push({ cardId: dst.id, markId: m });
+  }
+  dst.memory = Math.max(dst.memory, src.memory);
+  if (src.amber) dst.amber = true;
+}
 export const cardsOf = (t: Table, ids: string[]): CardEntity[] =>
   ids.map((id) => t.cards.get(id)).filter((c): c is CardEntity => !!c);
 

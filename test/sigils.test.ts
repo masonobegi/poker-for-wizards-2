@@ -160,6 +160,46 @@ function cast(t: Table, ctx: MagicCtx, id: string, targets: Record<string, unkno
   return me;
 }
 
+test('Mirror makes an exact duplicate, marks and all, and says what it was', () => {
+  // The card's own words. Until 2026-10-22 the sigil copied the face only:
+  // a Mirror aimed at a Wild made a plain card, and nothing said what the
+  // overwritten card had been (the Twinned omen's copies did both).
+  const { t, ctx } = freshTable();
+  const [srcId, dstId] = [t.board[0], t.board[1]];
+  const src = t.cards.get(srcId)!;
+  const dst = t.cards.get(dstId)!;
+  src.marks = ['wild'];
+  const printed = { ...dst.faces[dst.collapsed ?? 0] };
+
+  cast(t, ctx, 'mirror', { cardIds: [srcId, dstId] });
+
+  assert.deepEqual(dst.faces[dst.collapsed ?? 0], src.faces[src.collapsed ?? 0]);
+  assert.ok(dst.marks.includes('wild'), 'a copy of a Wild is not Wild');
+  assert.ok(dst.marks.includes('mirrored'), 'the copy no longer says it is one');
+  assert.deepEqual(dst.wasFace, printed, 'the copy forgot what it was printed as');
+});
+
+test('a Mirror lasts the hand: the copy is itself again at the next deal', () => {
+  // "For this hand the deck holds two of the same card." Cards live the whole
+  // run and each hand's deck is shuffled from them, so before 2026-10-22 the
+  // copy stayed a duplicate for the rest of the run and its own card was gone.
+  const { t, ctx } = freshTable();
+  const [srcId, dstId] = [t.board[0], t.board[1]];
+  const src = t.cards.get(srcId)!;
+  const dst = t.cards.get(dstId)!;
+  src.marks = ['wild'];
+  dst.marks = ['blooded'];
+  const printed = { ...dst.faces[dst.collapsed ?? 0] };
+
+  cast(t, ctx, 'mirror', { cardIds: [srcId, dstId] });
+  clearHandMagic(t);
+
+  assert.deepEqual(dst.faces, [printed], 'the copy kept the face it borrowed');
+  assert.equal(dst.wasFace, undefined);
+  assert.deepEqual(dst.marks, ['blooded'], 'the copy kept a borrowed mark, or lost its own');
+  assert.deepEqual(src.marks, ['wild'], 'the original lost its own mark');
+});
+
 test('Erase takes a card out of the game, where Burn only takes it off the board', () => {
   const { t, ctx } = freshTable();
   const victim = t.board[1];

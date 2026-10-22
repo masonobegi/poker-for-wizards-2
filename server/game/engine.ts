@@ -24,7 +24,7 @@ import {
   type BetAction, type BustedBy, type PayoutInfo, type Phase, type Player, type RoomConfig, type SigilTargets, type Table,
 } from '../../shared/types';
 import {
-  actable, alive, anteLength, byId, card, createPlayer, createTable, describeCard,
+  actable, alive, anteLength, byId, card, copyCardOnto, createPlayer, createTable, describeCard,
   burnCard, contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
 } from './table';
 import {
@@ -867,28 +867,15 @@ export class Engine {
       if (!dst || !dst.marks.includes('mirrored')) continue;
       const src = card(t, t.board[i - 1]);
       if (!src || src.id === dst.id) continue;
-      /* Remember what it was printed as, once. A chain keeps the first
-         answer: the second mirror in a flop copies a card that is already a
-         copy, and "it was a 7♦" is the fact a player needs, not "it was a 3♣
-         a moment ago". Cleared with the Mirrored mark between hands. */
-      if (!dst.wasFace) {
-        const own = dst.faces[dst.collapsed ?? 0];
-        if (own) dst.wasFace = { ...own };
-      }
-      dst.faces = src.faces.map((f) => ({ ...f }));
-      dst.collapsed = src.collapsed;
-      dst.veil = src.veil;
-      /* The marks come with it.
-         "The mirroring 3 should be a wild one, it should take the mods too" —
-         and that is right: the card is a copy of the card beside it, not a
-         card that happens to have the same rank and suit printed on it. A
-         copy of a Wild is Wild, a copy of a Blooded scores a rank higher, a
-         copy of a Burning leaves at the end of the street with the original.
-         It keeps its own `mirrored` so it still says what it is, and marks it
-         already carries are kept rather than overwritten. */
-      dst.marks = [...new Set([...dst.marks, ...src.marks.filter((m) => m !== 'mirrored')])];
-      dst.memory = Math.max(dst.memory, src.memory);
-      if (src.amber) dst.amber = true;
+      /* The whole card (copyCardOnto): what it was printed as, remembered
+         once, since a chain's second mirror copies a card that is already a
+         copy and "it was a 7♦" is the fact a player needs, not "it was a 3♣
+         a moment ago"; and the marks. "The mirroring 3 should be a wild one,
+         it should take the mods too" — a copy of a Wild is Wild, a copy of a
+         Blooded scores a rank higher, a copy of a Burning leaves at the end of
+         the street with the original. It keeps its own `mirrored` so it still
+         says what it is. Cleared with the Mirrored mark between hands. */
+      copyCardOnto(t, src, dst);
       this.fx.push({ t: 'entangle', cardIds: [src.id, dst.id] });
       log(t, `The board holds two of ${describeCard(t, src.id)}.`, 'impossible');
     }

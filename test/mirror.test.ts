@@ -18,6 +18,7 @@ import { test } from 'node:test';
 import { Engine } from '../server/game/engine';
 import { makeCard, faceLabel, viewCard, type CardEntity, type Rank, type Suit } from '../shared/cards';
 import { DEFAULT_CONFIG, type Table } from '../shared/types';
+import { clearHandMagic as clearHandMagicFor } from '../server/game/magic';
 
 interface Internals {
   dealStreet(phase: string): void;
@@ -111,6 +112,29 @@ test('a mirrored card still shows what it was printed as', () => {
   assert.deepEqual(seen.wasFace, { rank: 7, suit: 'D' });
   const hidden = viewCard(third, { reveal: false, viewerId: 'other' });
   assert.equal(hidden.wasFace, undefined, 'a card you may not read leaked what it used to be');
+  e.dispose();
+});
+
+test('a Mirrored card is itself again next hand, so its next "was" is the truth', () => {
+  // The Twinned inscribes Mirrored for the run; the copy is per hand. Before
+  // 2026-10-22 the borrowed face (and, since 1e00f3e, the borrowed marks)
+  // stayed on the card, so the next time it was dealt it said it "was" the
+  // previous copy, and a borrowed Wild stayed Wild.
+  const { e, t, ix } = table('mirror:revert');
+  t.board = [];
+  t.deck = [
+    place(t, 9, 'H', { marks: ['wild'] }),
+    place(t, 2, 'S', { marks: ['mirrored'] }),
+  ];
+  ix.dealStreet('flop');
+  const copy = t.cards.get(t.board[1])!;
+  assert.ok(copy.marks.includes('wild'));
+
+  clearHandMagicFor(t);
+
+  assert.deepEqual(copy.faces, [{ rank: 2, suit: 'S' }], 'the copy kept the face it borrowed');
+  assert.ok(!copy.marks.includes('wild'), 'the copy kept a borrowed Wild');
+  assert.ok(copy.marks.includes('mirrored'), 'the omen\'s own mark is permanent');
   e.dispose();
 });
 
