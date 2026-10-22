@@ -1246,6 +1246,8 @@
   font-size: clamp(11px, calc(var(--hx-h, 112px) * 0.09), 15px);
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--text-3);
-  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  /* Bone on a near-solid ink bar. It was --text-3 on 55% ink over the card's
+     paper, which composites to grey on grey: "was 3♠" at 1.79:1. */
+  color: var(--bone);
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
 }

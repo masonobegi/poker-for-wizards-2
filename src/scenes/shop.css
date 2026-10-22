@@ -127,7 +127,10 @@
   /* 80% of the accent measured 1.9:1 on the card's paper for a Rite's green
      and 3.3:1 for a relic's blue. Same 42% as `.sigil-rarity`: the hue still
      names the kind, the ink makes it a word. */
-  color: color-mix(in srgb, var(--accent) 42%, var(--ink));
+  /* Since 2026-10-22, like `.sigil-rarity`: ink for the word, the hue as the
+     rule under it, both on the palette. */
+  color: var(--ink);
+  box-shadow: inset 0 -4px 0 var(--accent);
 }
 
 .shopcard-art {

@@ -1137,7 +1137,9 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--ruin) 70%, var(--bone-3));
+  /* Ruin is red; on the felt its family's brightest member, which reads.
+     The 70% mix with bone-3 sat off the palette (tokens.css). */
+  color: var(--hotpink);
   font-size: 32px;
   font-weight: 900;
   line-height: 1;
@@ -1151,7 +1153,7 @@
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--ruin) 60%, var(--bone-3));
+  color: var(--hotpink);
   white-space: nowrap;
 }
 
@@ -2337,7 +2339,10 @@
    not toward the table: at full strength "common" measured 2.4:1 there and
    the old mix toward indigo made 3.6:1. 42% is the one fraction that clears
    AA for all three rarity colours — the cyan of a rare is the hardest. */
-.sigil-rarity { color: color-mix(in srgb, var(--rarity) 42%, var(--ink)); }
+/* Ink for the word, the rarity's hue as the rule under it. A 42% mix toward
+   ink read (35549b8) but sat between two palette colours, which the palette
+   forbids (tokens.css) and test/style.mjs reports once it can read color-mix. */
+.sigil-rarity { color: var(--ink); box-shadow: inset 0 -4px 0 var(--rarity); }
 /* The one line that says the corner button is not decoration. */
 .sigil-unmake {
   margin-top: 6px;
