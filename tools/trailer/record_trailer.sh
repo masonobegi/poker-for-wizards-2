@@ -7,7 +7,8 @@
 #   KEEP=1 tools/trailer/record_trailer.sh     keep the work folder for review
 #   PORT_A=5610 PORT_B=5611 tools/trailer/record_trailer.sh
 #                                              the two recorders' servers on
-#                                              other ports (defaults 3419, 3420)
+#                                              other ports (defaults 3419, 3420;
+#                                              the sound render then uses PORT_A)
 # The shots are filmed by two recorders at once, each playing the whole run
 # and filming its half (the run is seeded, so both play the same game).
 set -euo pipefail
@@ -32,7 +33,7 @@ B=$!
 wait $A || { cat "$WORK/a.log"; exit 1; }
 wait $B || { cat "$WORK/b.log"; exit 1; }
 cat "$WORK/a.log" "$WORK/b.log"
-node tools/trailer/render_sfx.mjs "$WORK/a/sfx.json" "$WORK/a/game"
-node tools/trailer/render_sfx.mjs "$WORK/b/sfx.json" "$WORK/b/game"
+SFX_PORT="$PORT_A" node tools/trailer/render_sfx.mjs "$WORK/a/sfx.json" "$WORK/a/game"
+SFX_PORT="$PORT_A" node tools/trailer/render_sfx.mjs "$WORK/b/sfx.json" "$WORK/b/game"
 "$PY" tools/trailer/mux_trailer.py "$OUT" "$WORK/a" "$WORK/b"
 echo "work folder: $WORK"
