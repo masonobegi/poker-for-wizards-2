@@ -9,8 +9,10 @@
  *    game holds and asks for a wishlist. A Next Fest player gives a demo
  *    minutes, not an evening; a whole run is 20-plus hands and a demo that
  *    ends while it is getting good is one that gets wishlisted.
- * 2. Three covens of seven are open. The other four are shown, locked, with
- *    their pitch: a demo should show the shape of what it is holding back.
+ * 2. While the coven picker exists (COVEN_CHOICE, shared/covens.ts), three
+ *    covens of seven are open and the other four are shown, locked, with
+ *    their pitch. With the picker off, the demo is Unaligned like the full
+ *    game (server/net/io.ts `covenFor`).
  * 3. No hex ladder, no Daily Rite, no hosting: the demo is the practice table.
  *
  * The server enforces all of it (server/net/io.ts), so a demo cannot be

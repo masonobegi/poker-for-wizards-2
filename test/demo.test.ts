@@ -121,6 +121,27 @@ test('the demo opens three covens and falls back to the first', () => {
   assert.equal(wishlistUrl(123), 'https://store.steampowered.com/app/123/HEXHOLD/');
 });
 
+test('with the picker off, a demo player sits down as the coven the bots play', async () => {
+  // From cc8f6ea to this fix the menu sent 'unaligned', demoCoven() mapped it
+  // to the Ashen (not one of the demo's three), and a demo player played the
+  // Ashen's opening sigils and creed against Unaligned bots, unannounced.
+  const { covenFor } = await import('../server/net/io');
+  const { COVEN_CHOICE, DEFAULT_COVEN } = await import('../shared/covens');
+  const prev = process.env.HEXHOLD_DEMO;
+  try {
+    for (const demo of [false, true]) {
+      if (demo) process.env.HEXHOLD_DEMO = '1'; else delete process.env.HEXHOLD_DEMO;
+      for (const asked of ['unaligned', 'ashen', 'loom', 'nonsense', undefined]) {
+        const got = covenFor(asked);
+        if (!COVEN_CHOICE) assert.equal(got, DEFAULT_COVEN, `${demo ? 'demo' : 'full game'} asked ${asked}`);
+        else if (demo) assert.ok(DEMO_COVENS.includes(got), `demo gave ${got}`);
+      }
+    }
+  } finally {
+    if (prev === undefined) delete process.env.HEXHOLD_DEMO; else process.env.HEXHOLD_DEMO = prev;
+  }
+});
+
 test('a demo server decides the demo, whatever the page asks for', async () => {
   const { sanitizeConfig } = await import('../server/net/io');
   const asked = { hex: 5, seed: 'daily:2026-10-09', botSkill: 'master', demoAntes: 99 };

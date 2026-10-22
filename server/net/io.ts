@@ -10,7 +10,7 @@ import { Rooms, type Seatholder } from './rooms';
 import { acceptSocket, allowRoomCreate, rateLimit, releaseSocket } from './guard';
 import { config } from '../config';
 import { isInscribeMark } from '../../shared/cards';
-import { covenOf } from '../../shared/covens';
+import { COVEN_CHOICE, DEFAULT_COVEN, covenOf } from '../../shared/covens';
 import { clampHex, isDailySeed } from '../../shared/hexes';
 import { DEMO_ANTES, demoCoven } from '../../shared/demo';
 import { MAX_TEXT } from '../../shared/scribe';
@@ -64,8 +64,16 @@ export function sanitizeConfig(raw: unknown): Partial<RoomConfig> {
   return out;
 }
 
-/** The coven a player sits down as: any of them, or only the demo's three in a demo. */
-const covenFor = (raw: unknown): string => {
+/**
+ * The coven a player sits down as: any of them, or only the demo's three in a
+ * demo. With the picker off (COVEN_CHOICE) everyone is Unaligned, whatever the
+ * page sent. That has to be decided here and not left to demoCoven: the demo
+ * mapped 'unaligned' (not one of its three) to its first coven, so from
+ * cc8f6ea a demo player sat down as the Ashen, with the Ashen's opening sigils
+ * and creed, at a table of Unaligned bots and with nothing on screen saying so.
+ */
+export const covenFor = (raw: unknown): string => {
+  if (!COVEN_CHOICE) return DEFAULT_COVEN;
   const id = covenOf(clean(raw, 32)).id;
   return config.demo ? demoCoven(id) : id;
 };
