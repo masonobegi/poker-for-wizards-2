@@ -19,9 +19,13 @@
  * Run: npx tsx test/fun.ts [runs] [first-seed] [--json out.json] [--coven id]
  *      [--skill novice|adept|master] [--hex n] [--demo] [--demo-antes n]
  *      [--player adept|cautious] [--no-phylactery] [--wall] [--all-covens]
+ *      [--unlocked]
  *
- * The player sits down as a coven the game lets them pick: the Unaligned
- * alone while COVEN_CHOICE is off. --all-covens rotates all seven anyway.
+ * The player sits down as a coven the game lets them pick: on a first run the
+ * Unaligned alone. --unlocked plays a later run (shared/unlock.ts): the larger
+ * pools, and the player rotates the covens the picker then opens (all seven;
+ * the Unaligned and the demo's three in a demo). --all-covens rotates all
+ * seven anyway.
  *
  * --demo plays the Next Fest demo's table: its three covens, and the run cut
  * off after DEMO_ANTES antes (or --demo-antes). --no-phylactery plays the same
@@ -35,8 +39,8 @@ import { Engine, bigBlindAt } from '../server/game/engine';
 import { decideAction, decideCast, decideResponse, decideScribe, decideShop, previewClock } from '../server/game/bots';
 import { alive, byId, castableSigils, handCards, live, modsFor, totalPot } from '../server/game/table';
 import { evaluate } from '../shared/hand';
-import { COVENS, COVEN_CHOICE, DEFAULT_COVEN } from '../shared/covens';
-import { RELICS, RELIC_BY_ID, type RelicDef } from '../shared/relics';
+import { COVENS, COVEN_CHOICE, DEFAULT_COVEN, covenOf, covensOpen } from '../shared/covens';
+import { RELICS, RELIC_BY_ID, isCreed, type RelicDef } from '../shared/relics';
 import { SIGIL_BY_ID, defOf } from '../shared/sigils';
 import { Rng } from '../shared/rng';
 import { DEFAULT_CONFIG, type BotSkill, type RoomConfig } from '../shared/types';
@@ -61,6 +65,8 @@ const DEMO = args.includes('--demo');
 const DEMO_LEN = Number(flag('--demo-antes') ?? DEMO_ANTES);
 const NO_PHYLACTERY = args.includes('--no-phylactery');
 const WALL = args.includes('--wall');
+/** A later run: the player has finished one (shared/unlock.ts). */
+const UNLOCKED = args.includes('--unlocked');
 /**
  * Who sits in the player's chair. `adept` plays the bots' own decision code at
  * full heat: aggressive, the hardest case. `cautious` is a newcomer still
@@ -173,7 +179,7 @@ const seenAcrossRuns = new Map<string, number>();
 
 function playRun(seed: string, coven: string): RunReport {
   const fxLog: FxEvent[] = [];
-  const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX, ...(DEMO ? { demoAntes: DEMO_LEN } : {}) };
+  const cfg: Partial<RoomConfig> = { ...DEFAULT_CONFIG, seed, botSkill: SKILL, hex: HEX, ...(DEMO ? { demoAntes: DEMO_LEN } : {}), ...(UNLOCKED ? { unlocked: true } : {}) };
   const e = new Engine('FUN1', YOU, cfg, (fx) => { for (const f of fx) fxLog.push(f); }, () => {});
   const t = e.table;
   const rng = new Rng(`fun:${seed}`);
@@ -505,15 +511,17 @@ if (!WALL) previewClock.now = () => (previewTicks += 6);
 const warn = console.warn; const err = console.error;
 console.warn = () => {}; console.error = () => {};
 
-// The covens a player can actually sit down as. With the picker off
-// (COVEN_CHOICE) that is the Unaligned alone, in the demo too; until
-// 2026-10-22 this rotated all seven regardless, so a batch measured six
-// openings the shipped game never deals. --all-covens keeps the old rotation.
+// The covens a player can actually sit down as. On a first run that is the
+// Unaligned alone, in the demo too; until 2026-10-22 this rotated all seven
+// regardless, so a batch measured six openings the shipped game never dealt.
+// A later run (--unlocked) rotates what the picker opens. --all-covens keeps
+// the old rotation.
 const ALL_COVENS = args.includes('--all-covens');
 const covens = ONLY_COVEN ? [ONLY_COVEN]
   : ALL_COVENS ? COVENS.map((c) => c.id)
-  : !COVEN_CHOICE ? [DEFAULT_COVEN]
-  : DEMO ? [...DEMO_COVENS] : COVENS.map((c) => c.id);
+  : !covensOpen(UNLOCKED) ? [DEFAULT_COVEN]
+  : DEMO ? (COVEN_CHOICE ? [...DEMO_COVENS] : [DEFAULT_COVEN, ...DEMO_COVENS])
+  : COVENS.map((c) => c.id);
 const reports: RunReport[] = [];
 for (let i = FIRST; i < FIRST + RUNS; i++) {
   const coven = covens[i % covens.length];
@@ -530,7 +538,7 @@ export function summarise(rs: RunReport[]): void {
   const n = rs.length;
   const avg = (f: (r: RunReport) => number) => rs.reduce((a, r) => a + f(r), 0) / Math.max(1, n);
   const pct = (k: number, d = n) => `${d ? Math.round((k / d) * 100) : 0}%`;
-  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} · ${PLAYER} player${NO_PHYLACTERY ? ' · no phylactery' : ''}${DEMO ? ` · demo, ${DEMO_LEN} antes` : ''} ════`);
+  console.log(`\n════ HEXHOLD from the player's chair · ${n} solo runs · ${SKILL} bots · Hex ${HEX} · ${PLAYER} player${NO_PHYLACTERY ? ' · no phylactery' : ''}${DEMO ? ` · demo, ${DEMO_LEN} antes` : ''}${UNLOCKED ? ' · a later run (unlocked)' : ''} ════`);
   console.log(`  won ${rs.filter((r) => r.won).length}/${n} · avg ${avg((r) => r.hands).toFixed(1)} hands · ${avg((r) => r.minutes).toFixed(1)} min · final ante ${avg((r) => r.finalAnte).toFixed(1)}`);
   const firsts = rs.filter((r) => r.firstMomentS !== null);
   console.log(`  first moment worth telling a friend: median ${median(firsts.map((r) => r.firstMomentS!)).toFixed(0)}s (${tally(firsts.map((r) => r.firstMomentKind!))})`);
@@ -622,6 +630,17 @@ export function summarise(rs: RunReport[]): void {
     if (uni) { sim += inter / uni; pairs++; }
   }
   console.log(`    relic-set overlap between runs (Jaccard) ${(pairs ? sim / pairs : 0).toFixed(2)} · distinct relics owned across runs ${new Set(rs.flatMap((r) => r.relics)).size}`);
+  // The same, over what the Market sold you: no creed, no coven relic. A
+  // creed every seat shares (the Unaligned's) pushes the line above up, and
+  // seven creeds pull it down, so this is the figure for the shelf itself.
+  const bought = rs.map((r) => new Set(r.relics.filter((id) => !isCreed(id) && id !== covenOf(r.coven).relic)));
+  let bsim = 0; let bpairs = 0;
+  for (let i = 0; i < bought.length; i++) for (let j = i + 1; j < bought.length; j++) {
+    const a = bought[i]; const b = bought[j];
+    const uni = new Set([...a, ...b]).size;
+    if (uni) { bsim += [...a].filter((x) => b.has(x)).length / uni; bpairs++; }
+  }
+  console.log(`    the same over relics the Market sold (no creed, no coven relic) ${(bpairs ? bsim / bpairs : 0).toFixed(2)} · distinct ${new Set(bought.flatMap((b) => [...b])).size}`);
   console.log(`    omens seen across runs ${new Set(rs.flatMap((r) => r.omens)).size} · most common ${tally(rs.flatMap((r) => r.omens), 4)}`);
 }
 
