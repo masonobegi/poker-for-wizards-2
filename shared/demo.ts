@@ -28,6 +28,16 @@
  * 10 points of impossible hands and costs 16 points of runs that reach the
  * wishlist screen. Either is far under the 14-minute median demo session
  * (Zukowski's 2022 Next Fest surveys), so a second run fits.
+ *
+ * Re-checked 2026-10-22 against newer Next Fest data (How To Market A Game,
+ * June 2024 and June 2026): median playtime barely predicts wishlists, it
+ * drops during the festival because players sample many demos, and a demo
+ * should assume it has a player's attention "for minutes" and skip long
+ * tutorials. The median demo player who wishlisted did so at 19.3% (June
+ * 2026 survey). So the shape holds: a first cast within seconds, a whole run
+ * in about five minutes, a clear end on the wishlist screen, and "Play the
+ * demo again". Saves do not carry into the full game, by design: the demo is
+ * its own app with its own save folder ("HEXHOLD Demo").
  */
 export const DEMO_ANTES = 3;
 
