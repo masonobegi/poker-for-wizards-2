@@ -13,7 +13,7 @@
  *    (server/net/io.ts `covenFor`). After a demo run is finished, the later
  *    game opens as it does in the full game (shared/unlock.ts), with the
  *    larger pools, but the picker offers the Unaligned and three covens; the
- *    other four are shown, locked, with their pitch (DEMO_COVENS). A demo
+ *    other three are shown, locked, with their pitch (DEMO_COVENS). A demo
  *    that shows the second run's choice is a demo that says the game has one.
  *    (Under the old picker, COVEN_CHOICE, the demo opened the three and no
  *    Unaligned.)

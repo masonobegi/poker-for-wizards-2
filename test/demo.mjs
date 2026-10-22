@@ -7,7 +7,7 @@
  * after DEMO_ANTES antes on the wishlist screen, and a bust that says who did
  * it. Since 2026-10-22 (shared/unlock.ts) the first run's end screen says
  * what the next run adds, the second run's does not, and the menu after a
- * finished run offers the Unaligned and three covens, with four locked. It serves the built demo (`npm run build:demo`) from
+ * finished run offers the Unaligned and three covens, with three locked. It serves the built demo (`npm run build:demo`) from
  * its own server on a free port, so it never touches dist/ or a dev server.
  *
  * Two runs, at a quick pace (HEXHOLD_PACE): one that folds everything it
@@ -85,8 +85,13 @@ async function clickIf(page, sel) {
 /** The end screen's wishlist button has to be on screen without scrolling. */
 async function wishlistAboveFold(page, tag) {
   const box = await page.locator('.gameover-actions button:has-text("Wishlist on Steam")').first().boundingBox().catch(() => null);
+  // The panel scrolls inside 90vh, so a button can be above the fold and
+  // still cut in half by the panel's own bottom edge (round 7's reveal did
+  // that at first): it has to sit inside the panel's visible box too.
+  const panel = await page.locator('.gameover-panel').first().boundingBox().catch(() => null);
   if (!box) fail(`${tag}: no wishlist button on the end screen`);
   else if (box.y + box.height > H) fail(`${tag}: the end screen's wishlist button is below the fold (${Math.round(box.y + box.height)} of ${H})`);
+  else if (panel && box.y + box.height > panel.y + panel.height) fail(`${tag}: the end screen's wishlist button is cut off by the panel (${Math.round(box.y + box.height)} past ${Math.round(panel.y + panel.height)})`);
 }
 
 /** Play one run to its end. `style` is 'fold' (survive) or 'shove' (bust). */

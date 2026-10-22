@@ -277,11 +277,12 @@ export default function GameOver({ view }: { view: TableView }) {
                 <>
                   <strong>Covens.</strong>{' '}
                   {/* "More" than the Unaligned this run was played as, which
-                      has no relic: every one of the others has all three. */}
+                      has no relic: every one of the others has all three.
+                      Shorter in the demo, and with no button of its own, so
+                      Wishlist stays whole on screen at 1280x800. */}
                   {demo
-                    ? `Pick one on the menu: ${DEMO_COVENS.length} more are open in the demo, ${COVENS.length - 1} in the full game, `
-                    : `Pick one on the menu: ${COVENS.length - 1} more beside the Unaligned, `}
-                  each with its own sigils, a relic and a rule of its own.
+                    ? `Pick one on the menu: ${DEMO_COVENS.length} more are open in the demo, ${COVENS.length - 1} in the full game.`
+                    : `Pick one on the menu: ${COVENS.length - 1} more beside the Unaligned, each with its own sigils, a relic and a rule of its own.`}
                 </>
               ) : null}
               {newCards > 0 ? (
@@ -291,7 +292,7 @@ export default function GameOver({ view }: { view: TableView }) {
                 </>
               ) : null}
             </p>
-            {COVENS_UNLOCK ? (
+            {COVENS_UNLOCK && !demo ? (
               <Button size="sm" onClick={leave}>Choose a coven</Button>
             ) : null}
           </motion.div>
@@ -313,13 +314,15 @@ export default function GameOver({ view }: { view: TableView }) {
                   and no unlock this line promised "All 7 covens" that no
                   build offered (round 6). The covens open from the second
                   run since 2026-10-22 (COVENS_UNLOCK). */}
-              {/* With the reveal above it the covens are already said, and the
-                  wishlist button has to stay above the fold at 1280x800. */}
+              {/* One line each: the wishlist button has to stay above the fold
+                  at 1280x800, and a bust with the phylactery's line as well
+                  put it 2px under (test/demo.mjs, 2026-10-22). With the
+                  reveal above, the covens are already said. */}
               {COVEN_CHOICE
                 ? <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
                 : COVENS_UNLOCK && !reveal
-                  ? <li>All {COVENS.length} covens from your second run, {MAX_HEX} hexes to climb, and a Daily Rite: the same seeded run for everyone.</li>
-                  : <li>{MAX_HEX} hexes to climb, and a Daily Rite: the same seeded run for everyone.</li>}
+                  ? <li>All {COVENS.length} covens from your second run, {MAX_HEX} hexes to climb, and a Daily Rite.</li>
+                  : <li>{MAX_HEX} hexes to climb, and a Daily Rite: one seeded run a day for everyone.</li>}
               <li>{sigilPool(true).length} sigils, {relicPool(true).length} relics and {omenPool(true).length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>
