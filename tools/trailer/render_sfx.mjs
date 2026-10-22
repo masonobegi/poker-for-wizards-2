@@ -27,7 +27,8 @@ const SR = 48000;
 const cues = JSON.parse(readFileSync(cuesPath, 'utf8')).filter((c) => !c.name.startsWith('tr_'));
 const wanted = [...new Map(cues.map((c) => [`${c.name}@${(+c.pitch || 1).toFixed(3)}`, { name: c.name, pitch: +c.pitch || 1 }])).values()];
 
-const srv = await startServer({ port: 3431 });
+// SFX_PORT: record_trailer.sh passes its PORT_A, free again by the time this runs.
+const srv = await startServer({ port: Number(process.env.SFX_PORT ?? 3431) });
 const { browser, page } = await openPage(`http://127.0.0.1:${srv.port}/`, { width: 800, height: 600 });
 await page.waitForTimeout(2000);
 await page.mouse.click(30, 30); // the engine chunk loads on the first gesture (App.tsx)
