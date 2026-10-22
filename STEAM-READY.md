@@ -1,4 +1,138 @@
-# HEXHOLD: Steam readiness (2026-10-10, fun pass)
+# HEXHOLD: Steam readiness (2026-10-22, round 6)
+
+Milestones: Coming Soon page by **20 Nov 2026**, Steam Playtest in
+**December**, Next Fest demo **22 Feb - 1 Mar 2027** (register by
+**10 Jan**), release **8 Apr 2027**.
+
+**Branch `steam-prep-2026-10-22`** holds this round: main at 35549b8 (the
+2026-10-17..19 UI pass) plus round 6's fixes. It is pushed, **not merged into
+`main`**, because a push to `main` builds the public web version on Railway
+(see NEXT.md). Merging is Mason's call. Upload depots from this branch.
+
+## Builds (2026-10-22)
+
+| Build | Where | Commit | Smoke |
+| --- | --- | --- | --- |
+| Windows full | `release/win-unpacked` (+ `HEXHOLD Setup 0.9.0.exe`, zip) | 06ce69c | packaged 21/21; quit 9/9 (slowest 198 ms) |
+| Windows demo | `release-demo/win-unpacked` (+ installer, zip) | 06ce69c | packaged 22/22 (see note); quit 9/9 (slowest 147 ms); `test/demo.mjs` all checks |
+| Windows playtest | `release-playtest/win-unpacked` (+ installer, zip) | 06ce69c | packaged 21/21 (version line says playtest) |
+| Linux full | WSL `~/hexhold-main/release/linux-unpacked` (+ AppImage, tar.gz) | cbea412 | packaged 21/21 at 1280x800 and 21/21 at 1920x1080; quit 6/6 (slowest 1.2 s, under load) |
+| Linux demo | WSL `~/hexhold-main/release-demo/linux-unpacked` | cbea412 | packaged 22/22; quit 6/6 (slowest 237 ms) |
+| Linux playtest | WSL `~/hexhold-main/release-playtest/linux-unpacked` | cbea412 | packaged 21/21 |
+
+06ce69c and cbea412 are the same game code (the commits between them change
+docs and screenshots). The Linux builds stay in WSL, where their execute bits
+survive; the stale Windows-side copies from 12 Oct were deleted so an upload
+from Windows fails instead of shipping an old build. The Windows demo's first
+packaged run scored 20/22 (Quit did not close the app): round 5's known
+harness flake, whose play loop can end with a spell prompt open, where the
+menu ignores Escape by design. The rerun passed 22/22, and the quit harness
+on the same build went 9/9. Linux was built with
+Node 22.23 in WSL (round 5: 24.12; `engines` asks for 20+). Smoke runs are
+headless, muted and off-screen (`test/packaged.mjs`, `test/quit.mjs`;
+`scripts/linux-smoke.sh` in WSL on SwiftShader).
+
+## Code-side readiness: 95% (43 of 45)
+
+The fixed list below (items 1-26 from earlier rounds, all still done), plus
+what round 6 found. Only work Claude can do counts; nothing that needs
+Mason's account, money, hardware or judgement is in it.
+
+| # | Code-side item (round 6) | Status | Proof |
+| --- | --- | --- | --- |
+| 27 | The demo player plays the coven the table plays | DONE (was: everyone sat down as the Ashen against Unaligned bots) | 92892eb; `test/demo.test.ts` fails on the old `covenFor` |
+| 28 | The intro and the demo's pitch promise only what is dealt | DONE (was: "choose one of seven covens", Sealed Rank, Deep Well, "All 7 covens") | 64fed75; `test/demo.mjs` fails if the end screen promises covens |
+| 29 | Mirror does what its card says, for the hand | DONE (was: no marks, no "was", and the copy never reverted) | d03be97; three tests failing on 35549b8 |
+| 30 | The style audit reads every background, and the game passes it | DONE (was: blind to color-mix(); a 1.79:1 label and six off-palette colours behind it) | 439b609, f91a8a9, 36b6100; `test/style.mjs` in style |
+| 31 | Legible at Deck size | DONE | `test/legibility.mjs` 0 findings on 12 screens at 1600x1000; `npm run responsive` 0 failures at 1280x800 with a 12 px text floor (11 px for labels on a card face), above Valve's 9 px |
+| 32 | Every control the UI pass added works on a pad | DONE (was: hints trapped the d-pad, the Market's Done unreachable, B could not close the deck census or a pinned omen) | 9195f62; `test/gamepad.mjs` 14 of 14 at 1280x800 (rules tab, deck census, cast, Market buy, Done) |
+| 33 | Glyphs match the pad in hand | DONE | Xbox (and the Deck), PlayStation, Nintendo; `test/padglyphs.test.ts` |
+| 34 | A Steam Playtest build with a feedback prompt | DONE | 481e79b; `npm run package:playtest:win` / `:linux`; menu and end-of-run "Send playtest feedback" once a link is set |
+| 35 | SteamPipe for the demo and the playtest apps | DONE | `steam/steampipe/demo/`, `steam/steampipe/playtest/`; `test/steampipe.test.ts` |
+| 36 | Rich presence text Steam can show | DONE (was: a token with no localization) | `steam/rich_presence.vdf`; `test/steampipe.test.ts` |
+| 37 | Achievements: all 20 obtainable with the current pool | DONE (checked) | One only through the blank page ("seal the kings"): Sealed Rank left the dealt pool |
+| 38 | Store copy matches the game | DONE (was: 71 spells, 41 omens, 45 relics, seven covens) | `steam/store-page.md`, each claim against the pools |
+| 39 | A brief for the commissioned capsule art | DONE | `steam/art/BRIEF.md` |
+| 40 | Store screenshots on the current UI | DONE | Five at 1920x1080, `steam/screenshots/README.md` |
+| 41 | Trailer on the current UI | DONE (was: cut 3, the pre-UI-pass table) | Cut 4, 81 s, 5.0 Mbps; `steam/trailer/STORYBOARD.md` |
+| 42 | Credits name every shipped font | DONE (was: three of six) | `THIRD_PARTY.md`, Settings > About |
+| 43 | Builds current on Windows and Linux, demo and playtest included | DONE | The table above |
+| 44 | The five relics that act at the deal say so (ledger line, rail punch) | OPEN | Gilt Edge, Third Hand, Cold Read, Unstable Isotope, Wild Inheritance act silently; a line per relic per hand is a design call about ledger noise |
+| 45 | A clean spell-stack store screenshot | OPEN | The capture has a hint over the ante bar and text running under the sticky "Answer it?"; Valve's minimum of five is met without it |
+
+**Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 6):
+**7/10 on the locked rubric (7.1), down from round 5's 7.6 (an 8)**. The UI
+pass helped presentation and clarity; the content cut that came with it
+(covens off, a 12-relic shelf) cost depth and variety. Sellable at $9.99 as a
+tight solo roguelite.
+
+## What the Coming Soon page needs
+
+| Item | Status |
+| --- | --- |
+| Short description, About This Game, feature bullets, tags, genre, languages, system requirements, content survey answers | **Done**: `steam/store-page.md` (paste from it) |
+| At least 5 screenshots, 1920x1080 | **Done**: `steam/screenshots/` (five) |
+| Trailer | **Done**: `steam/trailer/hexhold-trailer.mp4` (cut 4) and the 6 s loop |
+| Header, small, main and vertical capsules; library capsule, header, hero, logo; page background; community and shortcut icons | Placeholders done (`steam/art/`); **commissioned art is Mason's** (`steam/art/BRIEF.md`, needed by 13 Nov) |
+| Controller declaration | **Done**: declare Partial now (`store-page.md`); Full after Mason's Deck keyboard check |
+| Steamworks partner account, $100 app fee, identity, tax and bank | **Mason** |
+| The app created, App ID issued, store page created in Steamworks | **Mason** |
+| Assets uploaded, copy pasted, content survey filled, page submitted for Valve's review (allow about a week) | **Mason**, by 13 Nov for 20 Nov |
+| Trademark search on HEXHOLD | **Mason**, before paying for art with the name on it |
+
+## The December playtest and the Next Fest demo
+
+- **Playtest**: `npm run package:playtest:win` and `:linux` build the full
+  game as "HEXHOLD Playtest" (own app, own saves). The menu and the end of
+  every run offer "Send playtest feedback" with the four questions the
+  playtest is for, once `PLAYTEST_FEEDBACK_URL` (`shared/playtest.ts`) is set
+  or the full game's App ID exists. Upload with
+  `steam/steampipe/playtest/app_build_playtest.vdf`.
+- **Demo**: 3 antes; a first cast within seconds, a run in about 5 minutes,
+  an impossible hand in 40% of demos; it ends on "the demo ends here", the
+  run summary, an honest "In the full game" list and Wishlist above the fold
+  (and a bust ends on the same button). Checked against the 2024 and 2026
+  Next Fest data (`shared/demo.ts`): a demo has a player's attention for
+  minutes; median playtime barely predicts wishlists. Saves never carry into
+  the full game (its own app and save folder), by design. Wishlist opens a
+  store search until `FULL_GAME_APP_ID` is set. Upload with
+  `steam/steampipe/demo/app_build_demo.vdf`.
+
+## Mason later, in date order
+
+1. **Now (by 30 Oct)**: the Steamworks partner account, the $100 app fee,
+   the identity, tax and bank interviews; a trademark search on HEXHOLD;
+   commission the capsule artist with `steam/art/BRIEF.md`.
+2. **When the App ID arrives**: the App ID and depot IDs into
+   `steam/steampipe/*.vdf` (and the demo's and playtest's, once those apps
+   are created from the full game's page); `FULL_GAME_APP_ID` in
+   `shared/demo.ts`.
+3. **By 13 Nov**: the commissioned capsules delivered; paste
+   `steam/store-page.md`, upload the five screenshots, the trailer and the
+   art; fill the content survey (simulated gambling); submit the page for
+   review. **20 Nov: Coming Soon live.**
+4. **Before December**: decide on the covens (FUN-REVIEW round 6: an unlock
+   after the first run, or growing the pools) so the playtest tests the game
+   you mean to ship; merge `steam-prep-2026-10-22` into `main` when a web
+   deploy of it is wanted.
+5. **Before the playtest goes out (early December)**: set
+   `PLAYTEST_FEEDBACK_URL`; on a real Steam Deck (or Big Picture with a pad)
+   the keyboard check in `store-page.md` (pass: declare Full controller
+   support, add the Controller tag, aim for Verified), plus legibility and
+   frame rate on the hardware; one listening pass with headphones on the
+   packaged build; upload the playtest build and send the invites.
+6. **December**: run the playtest; it decides whether the creeds, the
+   two-relic shelf and the single opening hold up with people.
+7. **By 10 Jan 2027**: register for Next Fest (22 Feb - 1 Mar); the demo app,
+   its store page and its build uploaded and set live.
+8. **By 25 Mar 2027**: the release build uploaded for Valve's build review
+   (the store page must have been Coming Soon for at least two weeks, which
+   it will have been); price and launch discount set.
+9. **8 Apr 2027: release.**
+
+---
+
+# Steam readiness as of 2026-10-16 (kept for history)
 
 Branch `steam-ready-2026-10-09`. **Ship the Steam depots from this branch
 only**: `feedback-1` lacks the save fix, the solo pause, the playtest fixes
