@@ -15,9 +15,17 @@ devices are drawn in code (`src/components/`, `src/art/`).
 
 | Font | Author | Licence |
 | --- | --- | --- |
+| Bungee (400) | David Jonathan Ross | SIL Open Font License 1.1 |
+| Pixelify Sans (400) | Stefie Justprince | SIL Open Font License 1.1 |
+| Press Start 2P (400) | CodeMan38 | SIL Open Font License 1.1 |
 | Cinzel (500, 600, 700, 900) | Natanael Gama | SIL Open Font License 1.1 |
 | Inter (400–800) | Rasmus Andersson | SIL Open Font License 1.1 |
 | JetBrains Mono (500, 700) | JetBrains | SIL Open Font License 1.1 |
+
+The first three are the arcade look's faces (headlines, body text, the 8-pixel
+labels); `OFL.txt` has carried their copyright lines since that look shipped.
+This table and the in-game credits named only the older three until
+2026-10-22.
 
 OFL 1.1 allows bundling in a commercial product; the fonts may not be sold on
 their own, and the licence text must travel with them. It does:

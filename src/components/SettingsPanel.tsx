@@ -507,8 +507,9 @@ function AboutTab() {
       </p>
       <h4 className="field-label" style={{ marginTop: 'var(--s-3)' }}>Credits</h4>
       <p className="hh-field-hint">
-        Typefaces: Cinzel (Natanael Gama), Inter (Rasmus Andersson) and
-        JetBrains Mono (JetBrains), all under the SIL Open Font License 1.1.
+        Typefaces: Bungee (David Jonathan Ross), Pixelify Sans (Stefie Justprince),
+        Press Start 2P (CodeMan38), Cinzel (Natanael Gama), Inter (Rasmus Andersson)
+        and JetBrains Mono (JetBrains), all under the SIL Open Font License 1.1.
       </p>
       <p className="hh-field-hint">
         Built with React, Framer Motion, Zustand, Socket.IO, Express and
