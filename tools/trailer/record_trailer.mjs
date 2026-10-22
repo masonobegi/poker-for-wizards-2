@@ -173,13 +173,17 @@ async function frameOf(selectors, { pad = 40, minW = 720, dy = 0, top = 0, botto
  * Once a showdown's panel and banner have settled, measure them and keep the
  * result for the next showdown, saying so if SHOWDOWN was out of date.
  */
-async function checkShowdownCam() {
-  const live = await frameOf(['.showdown', '.hx-banner__title'], { pad: 30 });
-  if (live === FULL) return;
-  // Its top edge under the top bar, as long as the panel's top stays in.
+/** A showdown frame with its top edge under the top bar, as long as the panel's top stays in. */
+async function underBar(cam) {
+  if (cam === FULL) return cam;
   const bar = await boxOf(['.tbl-top']);
   const panel = await boxOf(['.showdown']);
-  if (bar && panel) live.y = Math.round(Math.min(Math.max(live.y, bar.y1 + 2), panel.y0 - 12));
+  if (bar && panel) cam.y = Math.round(Math.min(Math.max(cam.y, bar.y1 + 2), panel.y0 - 12));
+  return cam;
+}
+async function checkShowdownCam() {
+  const live = await underBar(await frameOf(['.showdown', '.hx-banner__title'], { pad: 30 }));
+  if (live === FULL) return;
   const off = Math.max(Math.abs(live.x - SHOWDOWN.x), Math.abs(live.y - SHOWDOWN.y), Math.abs(live.w - SHOWDOWN.w));
   if (off > 12) console.log(`\n  (camera: the showdown sits at ${JSON.stringify(live)}, not ${JSON.stringify(SHOWDOWN)}; update SHOWDOWN)`);
   SHOWDOWN = live;
@@ -585,7 +589,12 @@ await nextHand(
 );
 await skipUntil(`ctx.table.phase === 'river' && ctx.table.actingId === ctx.hero.id`);
 await skip(0.8);
-camCut(FULL);
+// Already where the results will be: the showdown's frame (measured by the
+// hook, under the top bar), which before the panel opens holds the board, both
+// seats and your hand. Cut 4's first take opened on FULL and pushed in once the
+// panel existed, so its first 1.2 s were the raw window: the ledger, and the
+// top bar's MARKET IN 94 HANDS (the director's handsPerAnte = 99).
+camCut(SHOWDOWN);
 await begin('worst_wins');                       // 7.5 s; the table holds the result while it is read
 await S('ctx.checkAround()');
 await at(0.7);
@@ -599,7 +608,7 @@ await S(`if (ctx.table.phase === 'payout') ctx.engine.deadline = Date.now() + 30
 // The panel whole: your row and the row under it are what the line is about.
 // (Cut 3 framed it with room under the rows; the panel takes the window now,
 // so the line sits over the bottom of the third row, which is nobody's win.)
-camMove(await frameOf(['.showdown'], { pad: 30, minW: 1180 }), 0.5);
+camMove(await underBar(await frameOf(['.showdown'], { pad: 30, minW: 1180 })), 0.5);
 await at(3.75);
 await caption('You had nothing. You won.', { pos: 'bottom' });   // read to 7.07
 await end();

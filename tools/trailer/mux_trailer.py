@@ -186,13 +186,14 @@ def main():
     mp4 = os.path.join(dst, "hexhold-trailer.mp4")
     webm = os.path.join(dst, "hexhold-trailer.webm")
     jpg = os.path.join(dst, "hexhold-trailer.jpg")
-    # CRF 20 lands around half what CRF 16 did. Valve's 5,000 kbps is a
-    # recommendation rather than a limit, and Steam re-encodes on upload, so
-    # the quality that survives to a viewer is the same; what changes is a
-    # 50 MB file in git and in anyone's download. Raise this back toward 16 if
-    # a master is ever wanted for somewhere that does not re-encode.
+    # This file is what goes to Steam, which re-encodes it for every viewer,
+    # and a re-encode keeps only what its source had: Valve recommends 5,000
+    # kbps or more for the upload. CRF 20 (cut 4's first take) came out at
+    # 3.8 Mbps; CRF 18 clears 5 Mbps on this edit at about 55 MB. The repo has
+    # no LFS, so every render stays in its history: do not go lower without a
+    # reason. The .webm is for the web and stays small.
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
-         "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-r", str(fps),
+         "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(fps),
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", mp4])
     run(["ffmpeg", "-y", "-v", "error", "-i", master, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "36", "-row-mt", "1",
          "-cpu-used", "3", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "128k", webm])
