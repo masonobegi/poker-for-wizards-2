@@ -11,6 +11,14 @@ checked against `POOL_IDS` (`shared/sigils.ts`), `OMEN_POOL_IDS`
 (`shared/omens.ts`), `RELIC_POOL_IDS` (`shared/relics.ts`), `shared/hexes.ts`
 and `server/game/shop.ts`. If a pool changes, the counts here change with it.
 
+**Updated 2026-10-22 (round 7, branch `covens-unlock-2026-10-22`)**: the
+first run is still that game, but after a run is finished, won or lost, the
+seven covens open and the pools grow to 16 sigils, 12 omens and 16 relics
+(`shared/unlock.ts`, `UNLOCKED_SIGIL_IDS`, `UNLOCKED_OMEN_IDS`,
+`UNLOCKED_RELIC_IDS`). The copy below says both halves: what the first run
+is, and what opens after it. Merge this file with the branch, not before: on
+`main` the covens are still off.
+
 ## Short description (264 characters, limit 300)
 
 > Texas Hold'em where a card on the board can show you one face and your rivals another, and both readings score. Cast spells mid-hand, counter theirs, buy relics, survive omens that rewrite the rules for good, and chase Five of a Kind: a hand no real deck can make.
@@ -46,6 +54,9 @@ Above the Straight Flush sit [b]Five of a Kind[/b], [b]Flush House[/b] and [b]Fl
 [h2]Write your own spells[/h2]
 Every Market has a blank page. Type a spell in plain English, like "burn the river and read the chip leader's cards", and it becomes a sigil in your hand, priced by what it does, not how you word it. A rules parser reads it, not an AI.
 
+[h2]Seven covens, from your second run[/h2]
+Your first run is the plain table, so you can learn it. Finish one, win or lose, and six more covens open beside the one you started as: each deals you its own sigils and a relic, and plays by one rule of its own for the whole run. Three more sigils, three omens and four relics join the deck.
+
 [h2]Build the run[/h2]
 Two relics on the Market's shelf, and you take one: straights of four cards, a hole card that is any card you need, a first spell each hand that resolves twice.
 
@@ -67,6 +78,13 @@ Omens: Blurred, The Flood and The Gilded can land from ante 2, The Unmade from
 4, The Inversion from 5. Relics: The Ladder, Wild Inheritance, Twice-Told.
 "Climb five hexes" is `MAX_HEX`; the Daily Rite is `shared/hexes.ts`. Casting
 happens in your own betting window since d6161e7 ("on your turn").
+Covens (checked 2026-10-22 on the branch): `COVENS_UNLOCK` opens the picker
+once `profile.totals.runs` is at least `UNLOCK_AFTER_RUNS` (1), and a demo
+cut-off counts as a finished run. "Six more beside the one you started as":
+the first run is the Unaligned (a Nullify, no relic), and each of the other
+six has two `sigils` of its own and a `relic`; "one rule of its own" is each
+coven's creed. "Three more sigils, three omens and four relics" are the three
+`UNLOCKED_*_IDS` lists. The bots stay Unaligned; nothing here says otherwise.
 
 Keep multiplayer wording to "host a table on your local network" until Steam
 lobbies exist (NEXT.md): nobody has played HEXHOLD against another human over
@@ -77,17 +95,20 @@ Steam, because there is no Steam networking yet.
 
 ## Feature bullets
 
-- 13 sigils across six schools: superposition, secrecy, time, binding, ruin, and rewriting the deck itself.
+- 13 sigils across six schools, 16 from your second run: superposition, secrecy, time, binding, ruin, and rewriting the deck itself.
+- Seven covens from your second run, each with its own opening sigils, a relic and one rule for the whole run.
 - A real spell stack: anyone holding a counterspell can answer, the last spell cast resolves first, and every seat always has an answer to hand.
-- 9 permanent omens that stack one per ante, from merged suits to a table where the worst hand wins.
+- 9 permanent omens that stack one per ante (12 from your second run), from merged suits to a table where the worst hand wins.
 - Three hands no 52-card deck can produce: Five of a Kind, Flush House and Flush Five.
 - Rites write permanent marks onto exact cards in the shared deck, so your upgrade can land in a rival's hand.
 - A blank page in every Market: write your own spell in plain English, and a rules parser (not an AI) turns it into a sigil.
-- 12 relics that change the rules for you, five hexes to climb, and a Daily Rite that deals the same seeded run to everyone.
+- 12 relics that change the rules for you (16 from your second run), five hexes to climb, and a Daily Rite that deals the same seeded run to everyone.
 
 Small numbers on purpose: the pools were cut so that every card is learnable
 (cc8f6ea). Do not pad these bullets back up with the retired content; the
-registry still holds it, but nobody is dealt it.
+registry still holds it, but nobody is dealt it. The later runs' pools stop
+at the cut's own ceilings (16, 12, 16; `test/pool.test.ts`), and a bullet
+that gives one count gives the first run's.
 
 ## Tags (15, most important first)
 
@@ -109,7 +130,7 @@ deckbuilder".
 
 ## A/B short descriptions (runner-ups, every claim verified)
 
-- **B, roguelike framing (275 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build a run from 13 sigils and 12 relics. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
+- **B, roguelike framing (299 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build runs from up to 16 sigils, 16 relics and seven covens. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
 - **C, social framing, only after a real session with other people over Steam:** Texas Hold'em with a deck that breaks physics. Cast spells on a stack, counter the counterspell, and play under omens that rewrite the rules every ante. Host a table for friends with a four-letter code, or fill the seats with bots. Five of a Kind is a real hand here.
 
 ## Genre
@@ -204,7 +225,8 @@ one.
   ($14.99, the genre's ceiling), Luck be a Landlord ($9.99), Poker Quest
   ($14.99), Dicey Dungeons ($14.99).
 - HEXHOLD has real depth in a small, learnable set (13 sigils, 9 omens, 12
-  relics, five hexes, a daily, a blank page that writes new sigils) but no
+  relics on the first run; seven covens and 16, 12 and 16 after it; five
+  hexes, a daily, a blank page that writes new sigils) but no
   reviews, one language and an unknown name. $9.99 sits under the genre
   leader, inside the impulse-buy band, and leaves room to raise the price
   after content updates. Raising later is easier than defending a higher
@@ -271,11 +293,11 @@ them (`art/BRIEF.md`).
 | `trailer/hexhold-preview-6s.mp4` | Six-second silent loop of the opening's payoff, for autoplay previews |
 | `achievements.json`, `achievements.vdf` | 20 achievements, 6 hidden |
 
-All 20 achievements can be earned with the current pool (checked
-2026-10-22). One only through the blank page: "Nobody Saw It Coming" (win
-with a sealed card) needs a sealed rank, and Sealed Rank left the dealt pool
-in cc8f6ea, but the Scribe still writes it ("seal the kings"). It is hidden,
-so nobody is promised a route that is hard to find.
+All 20 achievements can be earned (checked 2026-10-22, round 7). "Nobody Saw
+It Coming" (win with a sealed card) needs a sealed rank: from cc8f6ea only the
+blank page could make one ("seal the kings"); from the second run The Sealed
+Court omen deals every King face down again (`test/unlock.test.ts` checks a
+later run can seal a card). It is hidden, so nobody is promised a route.
 
 **Screenshots: upload the gameplay ones only.** Valve's review wants
 screenshots that "only contain gameplay", so leave out the main menu and the

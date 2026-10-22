@@ -276,10 +276,12 @@ export default function GameOver({ view }: { view: TableView }) {
               {COVENS_UNLOCK ? (
                 <>
                   <strong>Covens.</strong>{' '}
+                  {/* "More" than the Unaligned this run was played as, which
+                      has no relic: every one of the others has all three. */}
                   {demo
-                    ? `Pick one on the menu: ${DEMO_COVENS.length} are open in the demo, all ${COVENS.length} in the full game. `
-                    : `Pick one of ${COVENS.length} on the menu. `}
-                  Each opens with its own sigils, a relic and a rule of its own.
+                    ? `Pick one on the menu: ${DEMO_COVENS.length} more are open in the demo, ${COVENS.length - 1} in the full game, `
+                    : `Pick one on the menu: ${COVENS.length - 1} more beside the Unaligned, `}
+                  each with its own sigils, a relic and a rule of its own.
                 </>
               ) : null}
               {newCards > 0 ? (

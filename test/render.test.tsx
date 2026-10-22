@@ -828,7 +828,7 @@ test('after one finished run, the menu offers all seven covens and the larger po
 test('the run that opens the later game says what is new; a later run\'s end screen does not', async () => {
   const first = await endScreen(endedRun(false));
   assert.match(first, /New from your next run/);
-  assert.match(first, /Pick one of 7 on the menu/);
+  assert.match(first, /6 more beside the Unaligned, each with its own sigils, a relic and a rule/);
   assert.match(first, /3 sigils, 3 omens and 4 relics join the deck/);
   assert.match(first, /Choose a coven/);
 
@@ -836,7 +836,7 @@ test('the run that opens the later game says what is new; a later run\'s end scr
   assert.doesNotMatch(later, /New from your next run/, 'every later run repeated the news');
 
   const demo = await endScreen(endedRun(false, true));
-  assert.match(demo, /3 are open in the demo, all 7 in the full game/);
+  assert.match(demo, /3 more are open in the demo, 6 in the full game/);
   // Without the reveal, the demo's pitch is where the covens are said.
   const demoLater = await endScreen(endedRun(true, true));
   assert.doesNotMatch(demoLater, /New from your next run/);
