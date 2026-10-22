@@ -18,7 +18,10 @@
  *
  * Run: npx tsx test/fun.ts [runs] [first-seed] [--json out.json] [--coven id]
  *      [--skill novice|adept|master] [--hex n] [--demo] [--demo-antes n]
- *      [--player adept|cautious] [--no-phylactery] [--wall]
+ *      [--player adept|cautious] [--no-phylactery] [--wall] [--all-covens]
+ *
+ * The player sits down as a coven the game lets them pick: the Unaligned
+ * alone while COVEN_CHOICE is off. --all-covens rotates all seven anyway.
  *
  * --demo plays the Next Fest demo's table: its three covens, and the run cut
  * off after DEMO_ANTES antes (or --demo-antes). --no-phylactery plays the same
@@ -32,7 +35,7 @@ import { Engine, bigBlindAt } from '../server/game/engine';
 import { decideAction, decideCast, decideResponse, decideScribe, decideShop, previewClock } from '../server/game/bots';
 import { alive, byId, castableSigils, handCards, live, modsFor, totalPot } from '../server/game/table';
 import { evaluate } from '../shared/hand';
-import { COVENS } from '../shared/covens';
+import { COVENS, COVEN_CHOICE, DEFAULT_COVEN } from '../shared/covens';
 import { RELICS, RELIC_BY_ID, type RelicDef } from '../shared/relics';
 import { SIGIL_BY_ID, defOf } from '../shared/sigils';
 import { Rng } from '../shared/rng';
@@ -502,7 +505,15 @@ if (!WALL) previewClock.now = () => (previewTicks += 6);
 const warn = console.warn; const err = console.error;
 console.warn = () => {}; console.error = () => {};
 
-const covens = ONLY_COVEN ? [ONLY_COVEN] : DEMO ? [...DEMO_COVENS] : COVENS.map((c) => c.id);
+// The covens a player can actually sit down as. With the picker off
+// (COVEN_CHOICE) that is the Unaligned alone, in the demo too; until
+// 2026-10-22 this rotated all seven regardless, so a batch measured six
+// openings the shipped game never deals. --all-covens keeps the old rotation.
+const ALL_COVENS = args.includes('--all-covens');
+const covens = ONLY_COVEN ? [ONLY_COVEN]
+  : ALL_COVENS ? COVENS.map((c) => c.id)
+  : !COVEN_CHOICE ? [DEFAULT_COVEN]
+  : DEMO ? [...DEMO_COVENS] : COVENS.map((c) => c.id);
 const reports: RunReport[] = [];
 for (let i = FIRST; i < FIRST + RUNS; i++) {
   const coven = covens[i % covens.length];

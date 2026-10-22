@@ -37,9 +37,9 @@
 import { _electron as electron } from 'playwright';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
-import net from 'node:net';
 import path from 'node:path';
 import os from 'node:os';
+import { covenChoice, freePorts } from './ports.mjs';
 
 const SECONDS = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 90);
 const SHOTS = process.argv.includes('--shots');
@@ -92,29 +92,13 @@ function launchEnv(port) {
   return env;
 }
 
-/**
- * Two ports the OS says are free, held together so they cannot be the same.
- * The harness picks the game's port itself so the relaunch checks are
+/*
+ * Two free ports, held together so they cannot be the same (test/ports.mjs;
+ * HEXHOLD_PORT_RANGE keeps them inside a range on a shared machine). The
+ * harness picks the game's port itself so the relaunch checks are
  * deterministic: a new port when it tests that the save survives one, and an
  * old port when it tests that stale storage cannot return.
  */
-function freePorts(n) {
-  return new Promise((resolve, reject) => {
-    const probes = [];
-    const ports = [];
-    const next = () => {
-      if (ports.length === n) {
-        let open = probes.length;
-        for (const p of probes) p.close(() => { if (--open === 0) resolve(ports); });
-        return;
-      }
-      const p = net.createServer();
-      p.on('error', reject);
-      p.listen(0, '127.0.0.1', () => { ports.push(p.address().port); probes.push(p); next(); });
-    };
-    next();
-  });
-}
 
 async function start(port) {
   const app = await electron.launch({
@@ -238,8 +222,11 @@ if (isDemo !== EXPECT_DEMO) {
   const covens = await page.locator('.menu-coven').count();
   const locked = await page.locator('.menu-coven.is-locked').count();
   const wish = await page.locator('.menu-actions button:has-text("Wishlist on Steam")').first().isVisible().catch(() => false);
-  if (covens === 7 && locked === 4 && wish) pass('demo menu: 3 covens open, 4 locked, Wishlist on Steam shown');
-  else fail(`demo menu: ${covens} covens, ${locked} locked, wishlist button ${wish ? 'shown' : 'missing'}`);
+  // With the picker off (COVEN_CHOICE) the menu has no covens to lock.
+  const [wantCovens, wantLocked] = covenChoice() ? [7, 4] : [0, 0];
+  if (covens === wantCovens && locked === wantLocked && wish) {
+    pass(`demo menu: ${wantCovens ? '3 covens open, 4 locked' : 'no coven picker (COVEN_CHOICE off)'}, Wishlist on Steam shown`);
+  } else fail(`demo menu: ${covens} covens, ${locked} locked (expected ${wantCovens}, ${wantLocked}), wishlist button ${wish ? 'shown' : 'missing'}`);
 }
 
 const size = await page.evaluate(() => [innerWidth, innerHeight]);

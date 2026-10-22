@@ -29,9 +29,9 @@
 import { _electron as electron } from 'playwright';
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
-import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { freePort } from './ports.mjs';
 
 const ROUNDS = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 3);
 const QUIT_MAX_MS = 3000;
@@ -60,11 +60,7 @@ function processes() {
   } catch { return 0; }
 }
 
-const freePort = () => new Promise((resolve, reject) => {
-  const s = net.createServer();
-  s.on('error', reject);
-  s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); });
-});
+// freePort: test/ports.mjs (HEXHOLD_PORT_RANGE keeps it inside a range).
 
 async function launch() {
   // A fresh profile every launch: quitting mid-run leaves a table the next

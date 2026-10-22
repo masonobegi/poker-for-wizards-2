@@ -2,7 +2,8 @@
  * The Next Fest demo, seen in a real browser: headless, muted, off-screen.
  *
  * `test/demo.test.ts` proves the server enforces the demo. This proves what a
- * Next Fest player sees: the menu with three covens open and four locked, a
+ * Next Fest player sees: the menu (three covens open and four locked while
+ * the picker exists, COVEN_CHOICE; no covens with it off), a
  * run that ends after DEMO_ANTES antes on the wishlist screen, and a bust
  * that says who did it. It serves the built demo (`npm run build:demo`) from
  * its own server on a free port, so it never touches dist/ or a dev server.
@@ -17,9 +18,9 @@
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
-import { createServer } from 'node:net';
 import path from 'node:path';
 import { launch } from './browser.mjs';
+import { covenChoice, freePort } from './ports.mjs';
 
 const args = process.argv.slice(2);
 const arg = (name, d) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : d; };
@@ -33,11 +34,10 @@ if (!existsSync('dist-server-demo/index.mjs') || !existsSync('dist-demo/index.ht
   process.exit(2);
 }
 
-const freePort = () => new Promise((done) => {
-  const s = createServer();
-  s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => done(port)); });
-});
+// HEXHOLD_PORT_RANGE keeps the server inside a range on a shared machine.
 const port = await freePort();
+// The picker can be off (COVEN_CHOICE): then the menu shows no covens at all.
+const PICKER = covenChoice();
 const env = { ...process.env, PORT: String(port), HOST: '127.0.0.1', CLIENT_DIR: path.resolve('dist-demo'), HEXHOLD_PACE: '30' };
 delete env.ELECTRON_RUN_AS_NODE;
 const server = spawn(process.execPath, ['dist-server-demo/index.mjs'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -148,8 +148,12 @@ await shot(page, '02-menu');
 // ---- the menu --------------------------------------------------------------
 const covens = await page.locator('.menu-coven').count();
 const locked = await page.locator('.menu-coven.is-locked').count();
-if (covens !== 7) fail(`menu shows ${covens} covens, expected 7`);
-if (locked !== 4) fail(`menu locks ${locked} covens, expected 4`);
+if (PICKER) {
+  if (covens !== 7) fail(`menu shows ${covens} covens, expected 7`);
+  if (locked !== 4) fail(`menu locks ${locked} covens, expected 4`);
+} else if (covens !== 0) {
+  fail(`the coven picker is off (COVEN_CHOICE) but the menu shows ${covens} covens`);
+}
 for (const gone of ['Daily Rite', 'Host a Table', 'Join with a Code']) {
   if (await visible(page, `button:has-text("${gone}")`)) fail(`the demo menu still offers "${gone}"`);
 }
@@ -172,18 +176,20 @@ for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, -400); await page.waitFo
 await page.waitForTimeout(300);
 
 // A locked coven is marked, says what it is when pointed at, and cannot be picked.
-const lockedName = (await page.locator('.menu-coven.is-locked .menu-coven__name').first().innerText().catch(() => '')).trim();
-if (await page.locator('.menu-coven.is-locked .menu-coven__lock').count() !== 4) fail('the locked covens carry no lock');
-await page.locator('.menu-coven.is-locked').first().hover().catch(() => {});
-await page.waitForTimeout(200);
-const peek = await page.locator('.menu-covenpeek').first().innerText().catch(() => '');
-if (!/full game/i.test(peek)) fail('pointing at a locked coven does not say it is in the full game');
-else notes.push(`locked coven hover: ${peek}`);
-await page.locator('.menu-coven.is-locked').first().click().catch(() => {});
-if (await page.locator('.menu-coven.is-locked[aria-checked="true"]').count()) fail(`locked coven ${lockedName} could be picked`);
-await page.locator('.menu-coven', { hasText: 'The Twinned' }).first().click().catch(() => {});
-await page.waitForTimeout(300);
-await shot(page, '03-menu-twinned');
+if (PICKER) {
+  const lockedName = (await page.locator('.menu-coven.is-locked .menu-coven__name').first().innerText().catch(() => '')).trim();
+  if (await page.locator('.menu-coven.is-locked .menu-coven__lock').count() !== 4) fail('the locked covens carry no lock');
+  await page.locator('.menu-coven.is-locked').first().hover().catch(() => {});
+  await page.waitForTimeout(200);
+  const peek = await page.locator('.menu-covenpeek').first().innerText().catch(() => '');
+  if (!/full game/i.test(peek)) fail('pointing at a locked coven does not say it is in the full game');
+  else notes.push(`locked coven hover: ${peek}`);
+  await page.locator('.menu-coven.is-locked').first().click().catch(() => {});
+  if (await page.locator('.menu-coven.is-locked[aria-checked="true"]').count()) fail(`locked coven ${lockedName} could be picked`);
+  await page.locator('.menu-coven', { hasText: 'The Twinned' }).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  await shot(page, '03-menu-twinned');
+}
 
 // The wishlist button opens the store, in a new tab, and leaves the game alone.
 const [popup] = await Promise.all([
@@ -207,6 +213,8 @@ const survived = await playRun(page, 'fold', '10-survive');
 if (survived !== null) {
   if (!/demo ends here/i.test(survived)) fail('a survived demo run does not say the demo ends there');
   if (!/In the full game/i.test(survived)) fail('no "In the full game" block on the demo end screen');
+  // The pitch may only promise what the full game holds.
+  if (!PICKER && /covens/i.test(survived)) fail('the demo end screen promises covens the full game does not offer');
   if (!(await visible(page, '.gameover-actions button:has-text("Wishlist on Steam")'))) fail('no wishlist button on the end screen');
   await wishlistAboveFold(page, 'survive');
   if (!(await visible(page, 'button:has-text("Play the demo again")'))) fail('no "Play the demo again" button');
