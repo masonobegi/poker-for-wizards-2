@@ -8,15 +8,23 @@
  *   - the pot never exceeds what players have actually committed
  *   - the hand always advances (no phase deadlocks)
  *
- * Run: npx tsx test/sim.ts [seconds] [players]
+ * Run: npx tsx test/sim.ts [seconds] [players] [--unlocked]
+ *
+ * --unlocked plays a later run's table (shared/unlock.ts): the larger pools,
+ * and every seat sits down as a coven in turn, so the unlocked cards and all
+ * seven creeds go through the same invariants. (In the game the bots stay
+ * Unaligned; here every seat is a bot, and the point is coverage.)
  */
 import { Engine } from '../server/game/engine';
+import { COVENS } from '../shared/covens';
 import { alive, totalPot } from '../server/game/table';
 import type { FxEvent } from '../shared/protocol';
 import type { Table } from '../shared/types';
 
-const SECONDS = Number(process.argv[2] ?? 45);
-const PLAYERS = Math.max(2, Math.min(6, Number(process.argv[3] ?? 4)));
+const UNLOCKED = process.argv.includes('--unlocked');
+const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const SECONDS = Number(positional[0] ?? 45);
+const PLAYERS = Math.max(2, Math.min(6, Number(positional[1] ?? 4)));
 
 interface Violation { at: number; text: string }
 const violations: Violation[] = [];
@@ -39,6 +47,7 @@ const engine = new Engine(
     responseSeconds: 1,
     shopSeconds: 3,
     magicEnabled: true,
+    ...(UNLOCKED ? { unlocked: true } : {}),
   },
   (fx: FxEvent[]) => {
     for (const e of fx) {
@@ -89,6 +98,10 @@ function check(t: Table): void {
 
 engine.addPlayer('host', 'Simulacrum', true);
 for (let i = 1; i < PLAYERS; i++) engine.addBot();
+if (UNLOCKED) {
+  const offset = Math.floor(Math.random() * COVENS.length);
+  engine.table.players.forEach((p, i) => { p.coven = COVENS[(i + offset) % COVENS.length].id; });
+}
 
 const started = engine.start();
 if (!started.ok) {
