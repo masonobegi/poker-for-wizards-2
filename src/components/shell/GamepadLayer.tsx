@@ -52,6 +52,12 @@ function scopeElement(): Element {
     const cs = getComputedStyle(el);
     if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') continue;
     if (Number(cs.opacity) < 0.2) continue;
+    // A layer a click goes straight through is not modal. The first-run hints
+    // sit in one (.hints-layer, full screen, pointer-events none), and until
+    // 2026-10-22 it became the pad's whole world whenever a hint was up: the
+    // d-pad could reach only the hint's ×, and A pressed it instead of
+    // checking. A resolved spell left on screen to be read is the same.
+    if (cs.pointerEvents === 'none') continue;
     const r = el.getBoundingClientRect();
     if (r.width < vw * 0.6 || r.height < vh * 0.6) continue;
     if (!el.querySelector(FOCUSABLE)) continue;
@@ -60,6 +66,19 @@ function scopeElement(): Element {
     if (!best || zi >= best.z) best = { el, z: zi };
   }
   return best?.el ?? document.body;
+}
+
+/**
+ * Whether something between this element and the scope scrolls vertically,
+ * so moving focus to it can bring it into view (the move calls
+ * scrollIntoView).
+ */
+function inScroller(el: HTMLElement, scope: Element): boolean {
+  for (let n = el.parentElement; n && n !== scope.parentElement; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 2) return true;
+  }
+  return false;
 }
 
 /** Everything the player could plausibly move to right now. */
@@ -71,7 +90,11 @@ function candidates(): Target[] {
     if (node.hasAttribute('data-pad-skip')) continue;
     const rect = node.getBoundingClientRect();
     if (rect.width < 4 || rect.height < 4) continue;
-    if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
+    // Off the window is out of reach, unless it sits in something that
+    // scrolls. Until 2026-10-22 it was out of reach full stop, so the
+    // Market's Done, under the fold at 1280x800, could not be reached: down
+    // from the last control on screen wrapped back to the top.
+    if ((rect.bottom < 0 || rect.top > window.innerHeight) && !inScroller(node, scope)) continue;
     const cs = getComputedStyle(node);
     if (cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none') continue;
     // Deliberately no opacity test. An element that is mounted and
@@ -125,9 +148,16 @@ function pick(from: Target | null, dir: Pad, all: Target[]): HTMLElement | null 
   return far.length ? far[0].el : null;
 }
 
-/** Fire the keyboard shortcut the rest of the app already listens for. */
+/**
+ * Fire the keyboard shortcut the rest of the app already listens for.
+ *
+ * On `document`, from where it bubbles to `window`, so listeners on either
+ * hear it. It was dispatched on `window`, which `document` listeners never
+ * see: on a pad, B (Escape) could not close the deck census or a pinned omen,
+ * both of which listen on document (found 2026-10-22 by test/gamepad.mjs).
+ */
 function sendKey(key: string): void {
-  window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
 }
 
 export default function GamepadLayer() {
