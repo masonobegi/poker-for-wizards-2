@@ -187,7 +187,10 @@ if (started) {
   // shelf: all arrived or changed in the 2026-10-17..19 UI pass, and nothing
   // had pressed them with a pad. Each is reached the way a player would:
   // press toward it until it has focus, then press A.
-  const aimAt = async (selector, tries = 30) => {
+  const aimAt = async (selector, tries = 40) => {
+    let best = Infinity;
+    let stale = 0;
+    let flip = false;
     for (let i = 0; i < tries; i++) {
       const got = await page.evaluate((sel) => {
         const t = document.querySelector(sel);
@@ -200,9 +203,12 @@ if (started) {
       }, selector);
       if (got.none) return false;
       if (got.done) return true;
-      // The bigger gap first; every third try the other axis, so an aisle of
-      // controls that blocks one direction cannot trap the walk.
-      const horiz = (Math.abs(got.dx) > Math.abs(got.dy)) !== (i % 3 === 2);
+      // The bigger gap first, the way a player aims. When two presses in a
+      // row bring it no closer (a control in the way keeps winning, or the
+      // row wraps), switch axis for a while, as a player would go round.
+      const dist = Math.abs(got.dx) + Math.abs(got.dy);
+      if (dist < best - 4) { best = dist; stale = 0; } else if (++stale >= 2) { flip = !flip; stale = 0; }
+      const horiz = (Math.abs(got.dx) > Math.abs(got.dy)) !== flip;
       await press(horiz ? (got.dx > 0 ? BTN.RIGHT : BTN.LEFT) : (got.dy > 0 ? BTN.DOWN : BTN.UP));
     }
     return false;
@@ -224,7 +230,20 @@ if (started) {
     }
   };
 
+  /* A spell on the stack opens a modal panel and the pad is scoped to it, as
+     it should be; the table's own controls are for when nothing is resolving. */
+  const waitCalm = async (ms = 30000) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      const busy = await page.evaluate(() => !!document.querySelector('.stack-panel, [role="dialog"], .scrim, .showdown'));
+      if (!busy) return true;
+      await page.waitForTimeout(300);
+    }
+    return false;
+  };
+
   await clearOverlays();
+  await waitCalm();
   const rulesTab = '.tbl-sidetab:nth-of-type(2)';
   if (await page.locator('.tbl-sidetab').count()) {
     const onIt = await aimAt(rulesTab);
@@ -233,17 +252,27 @@ if (started) {
     check(onIt && open, 'the rules tab can be reached and opened on the pad');
   }
 
+  // Bots cast often, and a spell landing mid-walk takes the pad's scope (as
+  // it should), so try again once it has resolved. B is only pressed on an
+  // open census: on the table B is Escape, which opens the system menu and
+  // pauses a solo game.
   if (await page.locator('.deck-hit').count()) {
-    const onIt = await aimAt('.deck-hit');
-    if (onIt) await press(BTN.A);
-    await page.waitForTimeout(300);
-    const open = await page.locator('.deck.is-open').count() > 0;
-    await page.screenshot({ path: path.join(SHOTS, '05-deck.png') });
-    await press(BTN.B);
-    await page.waitForTimeout(300);
-    const closed = await page.locator('.deck.is-open').count() === 0;
-    check(onIt && open && closed, 'the deck census opens on the pad, and B puts it away');
+    let deckOk = false;
+    for (let attempt = 0; attempt < 5 && !deckOk; attempt++) {
+      await clearOverlays();
+      await waitCalm();
+      if (!(await aimAt('.deck-hit'))) continue;
+      await press(BTN.A);
+      await page.waitForTimeout(300);
+      if (!(await page.locator('.deck.is-open').count())) continue;
+      await page.screenshot({ path: path.join(SHOTS, '05-deck.png') });
+      await press(BTN.B);
+      await page.waitForTimeout(300);
+      deckOk = (await page.locator('.deck.is-open').count()) === 0;
+    }
+    check(deckOk, 'the deck census opens on the pad, and B puts it away');
   }
+  await clearOverlays();
 
   // A castable sigil has tabindex 0. Wait for one on our turn, then A arms it
   // (a targetless sigil asks for a second press) and A again casts it, or a
@@ -256,9 +285,15 @@ if (started) {
     if (!usable && i % 4 === 3 && await tagButton('.ab-buttons', /^(check|call)/)) {
       if (await aimAt('[data-hx-aim]', 12)) await press(BTN.A);
     }
+    // A sigil you can only answer with shows up while a spell resolves; this
+    // is about casting on your own turn, so wait for the table to be calm.
+    if (usable && await page.locator('.stack-panel').count()) { await page.waitForTimeout(500); continue; }
     if (usable) {
       const onIt = await aimAt('.rail .sigil[tabindex="0"]');
-      if (!onIt) { castNote = 'could not reach a castable sigil'; break; }
+      // A spell landing mid-walk, or the sigil going out of its window, is the
+      // table moving on, not the pad failing: look again.
+      if (!onIt && (await page.locator('.stack-panel').count() || !(await page.locator('.rail .sigil[tabindex="0"]').count()))) { await page.waitForTimeout(500); continue; }
+      if (!onIt) { castNote = 'could not reach a castable sigil'; check(false, `a sigil can be cast on the pad (${castNote})`); break; }
       const before = await page.locator('.rail .sigil').count();
       await press(BTN.A);
       await page.waitForTimeout(250);
@@ -292,12 +327,25 @@ if (started) {
   }
   if (shop) {
     await page.waitForTimeout(1200);
-    const shardsOf = () => page.evaluate(() => document.querySelector('.shop-panel, .shop')?.textContent?.match(/(\d+)\s*shards?/i)?.[1] ?? null);
-    const before = await shardsOf();
-    const buyable = '.shopcard button:not([disabled])';
+    // A bought ware locks (both relics, for a pick-one), so a purchase shows as
+    // fewer buy buttons that still work. A relic or the mana upgrade, because a
+    // sigil is refused while the hand is full, which is the game, not the pad.
+    const open = () => page.locator('.shopcard button:not([disabled])').count();
+    const before = await open();
+    const fits = await page.evaluate(() => {
+      for (const el of document.querySelectorAll('[data-hx-aim]')) el.removeAttribute('data-hx-aim');
+      const card = [...document.querySelectorAll('.shopcard')].find((c) =>
+        /relic|attunement|rite/i.test(c.querySelector('.shopcard-kind')?.textContent ?? '')
+        && c.querySelector('button:not([disabled])'));
+      card?.querySelector('button:not([disabled])')?.setAttribute('data-hx-aim', '1');
+      return !!card;
+    });
     let bought = false;
-    if (await page.locator(buyable).count()) {
-      if (await aimAt(buyable, 40)) { await press(BTN.A); await page.waitForTimeout(700); bought = (await shardsOf()) !== before; }
+    if (fits && await aimAt('[data-hx-aim]', 40)) {
+      await press(BTN.A);
+      for (let w = 0; w < 8 && !bought; w++) { await page.waitForTimeout(250); bought = (await open()) < before; }
+    } else if (!fits) {
+      console.log('  (nothing affordable on the shelf but sigils)');
     }
     await page.screenshot({ path: path.join(SHOTS, '07-market.png') });
     const done = (await tagButton('.shop-panel, .shop', /^done$/)) && await aimAt('[data-hx-aim]', 40);
