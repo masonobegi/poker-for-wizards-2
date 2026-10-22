@@ -182,6 +182,134 @@ if (started) {
   }
   check(acted, 'a betting action can be taken with the face buttons');
 
+  // --- the UI pass's controls, on the pad (added 2026-10-22) ---------------
+  // The rules tab, the deck census, arming and casting a sigil, the Market's
+  // shelf: all arrived or changed in the 2026-10-17..19 UI pass, and nothing
+  // had pressed them with a pad. Each is reached the way a player would:
+  // press toward it until it has focus, then press A.
+  const aimAt = async (selector, tries = 30) => {
+    for (let i = 0; i < tries; i++) {
+      const got = await page.evaluate((sel) => {
+        const t = document.querySelector(sel);
+        const f = document.activeElement;
+        if (!t || !(t instanceof HTMLElement)) return { none: true };
+        if (f && (f === t || t.contains(f))) return { done: true };
+        const a = t.getBoundingClientRect();
+        const b = f && f !== document.body ? f.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+        return { dx: (a.left + a.width / 2) - (b.left + b.width / 2), dy: (a.top + a.height / 2) - (b.top + b.height / 2) };
+      }, selector);
+      if (got.none) return false;
+      if (got.done) return true;
+      // The bigger gap first; every third try the other axis, so an aisle of
+      // controls that blocks one direction cannot trap the walk.
+      const horiz = (Math.abs(got.dx) > Math.abs(got.dy)) !== (i % 3 === 2);
+      await press(horiz ? (got.dx > 0 ? BTN.RIGHT : BTN.LEFT) : (got.dy > 0 ? BTN.DOWN : BTN.UP));
+    }
+    return false;
+  };
+  /** Mark the first button inside `scope` whose text matches, so aimAt can find it. */
+  const tagButton = (scope, re) => page.evaluate(([s, src]) => {
+    for (const el of document.querySelectorAll('[data-hx-aim]')) el.removeAttribute('data-hx-aim');
+    const rx = new RegExp(src, 'i');
+    const b = [...document.querySelectorAll(`${s} button`)].find((x) => rx.test(x.textContent || '') && !x.disabled);
+    if (b) b.setAttribute('data-hx-aim', '1');
+    return !!b;
+  }, [scope, re.source]);
+  const clearOverlays = async () => {
+    for (let w = 0; w < 4; w++) {
+      const busy = await page.evaluate(() => !!document.querySelector('[role="dialog"], .scrim, .hh-sysmenu'));
+      if (!busy) return;
+      await press(BTN.B);
+      await page.waitForTimeout(300);
+    }
+  };
+
+  await clearOverlays();
+  const rulesTab = '.tbl-sidetab:nth-of-type(2)';
+  if (await page.locator('.tbl-sidetab').count()) {
+    const onIt = await aimAt(rulesTab);
+    if (onIt) await press(BTN.A);
+    const open = await page.evaluate(() => /rules/i.test(document.querySelector('.tbl-sidetab.is-on')?.textContent ?? ''));
+    check(onIt && open, 'the rules tab can be reached and opened on the pad');
+  }
+
+  if (await page.locator('.deck-hit').count()) {
+    const onIt = await aimAt('.deck-hit');
+    if (onIt) await press(BTN.A);
+    await page.waitForTimeout(300);
+    const open = await page.locator('.deck.is-open').count() > 0;
+    await page.screenshot({ path: path.join(SHOTS, '05-deck.png') });
+    await press(BTN.B);
+    await page.waitForTimeout(300);
+    const closed = await page.locator('.deck.is-open').count() === 0;
+    check(onIt && open && closed, 'the deck census opens on the pad, and B puts it away');
+  }
+
+  // A castable sigil has tabindex 0. Wait for one on our turn, then A arms it
+  // (a targetless sigil asks for a second press) and A again casts it, or a
+  // targeted one opens its prompt, which B cancels.
+  let castNote = 'no castable sigil came up';
+  for (let i = 0; i < 240; i++) {
+    const usable = await page.locator('.rail .sigil[tabindex="0"]').count();
+    // Most sigils wait for the flop: on our turn with nothing castable, check
+    // or call (A) so the hand moves on to a street where one is.
+    if (!usable && i % 4 === 3 && await tagButton('.ab-buttons', /^(check|call)/)) {
+      if (await aimAt('[data-hx-aim]', 12)) await press(BTN.A);
+    }
+    if (usable) {
+      const onIt = await aimAt('.rail .sigil[tabindex="0"]');
+      if (!onIt) { castNote = 'could not reach a castable sigil'; break; }
+      const before = await page.locator('.rail .sigil').count();
+      await press(BTN.A);
+      await page.waitForTimeout(250);
+      const armed = await page.evaluate(() => /again to cast/i.test(document.querySelector('.rail')?.textContent ?? ''));
+      const prompted = await page.locator('.prompt, .tbl-targethint').count() > 0;
+      if (armed) await press(BTN.A);
+      await page.waitForTimeout(900);
+      const cast = (await page.locator('.stack-panel').count()) > 0 || (await page.locator('.rail .sigil').count()) < before;
+      if (prompted && !cast) { await press(BTN.B); await page.waitForTimeout(300); }
+      castNote = cast ? (armed ? 'armed, then cast' : 'cast') : prompted ? 'its target prompt opened' : 'nothing happened';
+      check(cast || prompted, `a sigil can be cast on the pad (${castNote})`);
+      break;
+    }
+    await page.waitForTimeout(500);
+  }
+  if (castNote === 'no castable sigil came up') console.log('  (skipped: no castable sigil came up)');
+  await page.screenshot({ path: path.join(SHOTS, '06-cast.png') });
+
+  // The Market: fold until it opens (LB folds; twice when a check is free),
+  // buy something on the shelf, and leave with Done.
+  await clearOverlays();
+  let shop = false;
+  const until = Date.now() + 300000;
+  while (Date.now() < until && !shop) {
+    shop = await page.locator('.shop-panel, .shop').count() > 0;
+    if (shop) break;
+    if (await page.locator('.ab-buttons button:has-text("Fold")').first().isVisible().catch(() => false)) {
+      await press(BTN.LB); await page.waitForTimeout(150); await press(BTN.LB);
+    }
+    await page.waitForTimeout(600);
+  }
+  if (shop) {
+    await page.waitForTimeout(1200);
+    const shardsOf = () => page.evaluate(() => document.querySelector('.shop-panel, .shop')?.textContent?.match(/(\d+)\s*shards?/i)?.[1] ?? null);
+    const before = await shardsOf();
+    const buyable = '.shopcard button:not([disabled])';
+    let bought = false;
+    if (await page.locator(buyable).count()) {
+      if (await aimAt(buyable, 40)) { await press(BTN.A); await page.waitForTimeout(700); bought = (await shardsOf()) !== before; }
+    }
+    await page.screenshot({ path: path.join(SHOTS, '07-market.png') });
+    const done = (await tagButton('.shop-panel, .shop', /^done$/)) && await aimAt('[data-hx-aim]', 40);
+    if (done) await press(BTN.A);
+    let left = false;
+    for (let w = 0; w < 20 && !left; w++) { await page.waitForTimeout(500); left = (await page.locator('.shop-panel, .shop').count()) === 0; }
+    check(bought, 'something on the Market shelf can be bought on the pad');
+    check(done && left, 'Done leaves the Market on the pad');
+  } else {
+    console.log('  (skipped: the Market did not open within 5 minutes)');
+  }
+
   // --- the system menu opens on Start --------------------------------------
   // The hand may have carried the table into the Market or a showdown panel
   // by now, and an overlay that is already up swallows Start. Clear whatever

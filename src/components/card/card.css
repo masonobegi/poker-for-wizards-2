@@ -1239,10 +1239,14 @@
 .hx-was__label {
   position: absolute;
   left: 0;
-  right: 0;
   bottom: 0;
-  padding: 1px 2px;
-  text-align: center;
+  padding: 1px 4px;
+  /* Hugging the left edge, the part of a card a fanned row never covers. It
+     was centred across the card, and in a showdown row the next card covered
+     everything but "wa". */
+  text-align: left;
+  max-width: 100%;
+  white-space: nowrap;
   font-size: clamp(11px, calc(var(--hx-h, 112px) * 0.09), 15px);
   font-weight: 700;
   letter-spacing: 0.04em;
