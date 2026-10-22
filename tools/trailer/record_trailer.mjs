@@ -168,7 +168,7 @@ async function frameOf(selectors, { pad = 40, minW = 720, dy = 0, top = 0, botto
   };
 }
 /**
- * Once a showdown's panel and banner have landed, measure them and keep the
+ * Once a showdown's panel and banner have settled, measure them and keep the
  * result for the next showdown, saying so if SHOWDOWN was out of date.
  */
 async function checkShowdownCam() {
@@ -443,8 +443,12 @@ await at(3.05);
 // banner holds 3.2 s; at half speed it stays the whole shot).
 speed = 0.5;
 await at(3.5);
-await checkShowdownCam();
 await nextHandArm();
+// Measured at the end of the shot, once the panel has sprung into place and
+// every letter of the banner has stopped decoding: at 3.5 s the title was
+// still made of random glyphs and gave a box 26 px wider (2026-10-22).
+await at(LEN.hook_cast - 0.1);
+await checkShowdownCam();
 await end();
 
 async function nextHandArm() {
