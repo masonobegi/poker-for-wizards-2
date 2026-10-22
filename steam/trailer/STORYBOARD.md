@@ -1,9 +1,60 @@
 # HEXHOLD trailer: storyboard
 
-Cut 3, 2026-10-15: re-recorded on the arcade look. Same edit as cut 2 — the
-pacing was re-timed so every word can be read on first viewing and nothing
-about that changed — but the game underneath it is pixel art now, and so is
-the director's own layer. 81 seconds, 1920x1080 at 60 fps.
+Cut 4, 2026-10-22: re-recorded on the table as it is after the UI pass of
+2026-10-17..19. Same edit, same beats, same pacing as cut 3 (the storyboard
+below was already approved), but cut 3 showed a table the game no longer has:
+
+- **Your cards are in front of you.** Your two hole cards sit on the felt
+  under the board, with the hand readout under them, bigger and brighter
+  (FOUR OF A KIND, KINGS). They used to sit in the bottom rail beside your
+  spells.
+- **The showdown fills the screen** and each row shows the five cards that
+  scored: your five Kings, your five hearts, your five Kings of Spades.
+- **A Wild card says so**: a rainbow pip and an ANY RANK · ANY SUIT strip.
+- **Casting happens in your betting window.** Every cast in the trailer
+  already happened on your own turn, so the beats did not change.
+
+What changed in the filming, and why:
+
+- **No caption sits on a card.** With your hand moved under the board, the
+  close shot of board and hand is taller, and FOUR KINGS., HATE THE LAST
+  CARD? and the finale's TWO. .. FIVE. would have covered the board's ranks.
+  The camera now keeps the band each caption occupies clear and fits the
+  cards and the readout under it.
+- **Each showdown is framed whole.** Cut 3's banner camera predates the
+  full-screen panel and cut off its top. The camera now holds the whole
+  panel with the banner across it: your row, its five cards and the winnings
+  all read. FIVE OF THE SAME CARD. moved from two-thirds down to the bottom,
+  because the banner's title now sits where it was.
+- **THE WORST HAND WINS frames the whole panel.** Cut 3 left room under the
+  rows, which on the new panel cut off the top of your row. The line now
+  sits over the bottom of the third row, which is nobody's win.
+
+- **THE WORST HAND WINS opens on the table, not the window.** The first take
+  of this shot opened on the full window and pushed in once the results panel
+  existed, so its first 1.2 s showed the ledger and the top bar's MARKET IN 94
+  HANDS (the director keeps Markets away with handsPerAnte 99). The shot now
+  starts on the showdown's frame, which before the panel opens holds the
+  board, both seats and your hand, and it was re-taken on its own and cut in
+  over the first take (`--only worst_wins` into a new folder, passed last to
+  `mux_trailer.py`).
+- **The upload is encoded at Valve's recommended rate.** CRF 18: 5.0 Mbps of
+  video, 52.9 MB (the first take's CRF 20 gave 3.8 Mbps). The .webm stays at
+  its smaller web encode.
+
+81 seconds, 1920x1080 at 60 fps; mixed to -14 LUFS, peak -1 dBFS, rendered
+to the file (nothing is played aloud while recording).
+
+Reviewed 2026-10-22 frame by frame at one a second and at a tenth of a second
+across every cut: the current table in every beat (your cards in front of
+you, the full-screen showdown with its five scoring cards, the Wild's rainbow
+pip and ANY RANK · ANY SUIT strip), no harness or debug UI, no top bar, every
+caption clear of the cards it is about. The one overlap left is UNDO IT. over
+the first 0.2 s of the showdown panel, inside the cut between the two.
+
+Cut 3, 2026-10-15, re-recorded on the arcade look: same edit as cut 2, but
+the game underneath was pixel art by then, and so was the director's own
+layer.
 
 Every shot is a real hand on the real game server, dealt from a stacked deck,
 with the spells cast through the engine. Text cards are short, in the game's
@@ -29,22 +80,22 @@ in slow motion, with a still beat before the payoff. The table under
 
 | # | Time | On screen | Text card | The viewer understands | They should feel |
 |---|---|---|---|---|---|
-| 1 | 0.0-2.5 | A poker table with two opponents; the camera pushes in onto the cards. Three Kings on the table, a King and a 7 in your hand, each King ringed in gold. | FOUR KINGS. | Four Kings, the most a deck has. | "Nice hand." |
-| 2 | 2.5-5.5 | You cast the spell you wrote ("copy my king", on the card in your hand). At a third of real speed the 7 turns into a second King of Spades; then a still beat on the two Kings. | MAKE IT FIVE. | The spell did it. | Disbelief. |
-| 2 | 5.5-11.5 | The showdown. The game's gold banner slams across the table: FIVE OF A KIND, KINGS, "a hand that cannot exist", held at half speed for six seconds. Music hits. | (the game's banner) | You won with an impossible hand. | "What game is this?" |
+| 1 | 0.0-2.5 | A poker table with two opponents; the camera pushes in onto the cards. Three Kings on the table, a King and a 7 in front of you over the readout FOUR OF A KIND, KINGS, each King ringed in gold. | FOUR KINGS. | Four Kings, the most a deck has. | "Nice hand." |
+| 2 | 2.5-5.5 | You cast the spell you wrote ("copy my king"). At a third of real speed the 7 turns into a second King of Spades and the readout becomes FIVE OF A KIND, KINGS; then a still beat on the two Kings. | MAKE IT FIVE. | The spell did it. | Disbelief. |
+| 2 | 5.5-11.5 | The showdown fills the screen: your row, five Kings, +900. The game's gold banner slams across it: FIVE OF A KIND, KINGS, "a hand that cannot exist", held at half speed for six seconds. Music hits. | (the game's banner) | You won with an impossible hand. | "What game is this?" |
 | 3 | 11.5-16.0 | Title card: the HEXHOLD wordmark slams in. | CHEAT AT POKER. WITH MAGIC. | It's poker, and the magic is how you win. | Curious. |
 | 4 | 16.0-24.0 | Close on the shop's blank page. "make my worst card wild and see everyone's cards" is typed at about fifteen letters a second; under it the game reads it live (Wild Rite → your worst card, Cold Read → every opponent, a price). The finished sentence is held four seconds, then Write is pressed. | WRITE YOUR OWN SPELLS. | You can invent a spell in plain English and the game understands it. | Creative spark. |
 | 5 | 24.0-27.5 | At the table you cast it: both opponents' face-down cards flip face up for you, each ringed in gold. | SEE EVERYONE'S CARDS: DONE. | It did one half of the sentence. | "Ha." |
-| 5 | 27.5-31.5 | Close on your hand: your worst card turns Wild, ringed. | MAKE MY WORST CARD WILD: DONE. | It did the other half. | "I could write anything." |
-| 6 | 31.5-34.6 | Five cards on the table, your two below; the last card dealt is ringed. Your label reads ACE HIGH: nothing. | HATE THE LAST CARD? | The last card dealt left you with nothing. | Familiar frustration. |
-| 6 | 34.6-37.5 | You cast. At half speed the last card is pulled back off the table and a new one is dealt; it is ringed. | UNDO IT. | You can take back a card. | Power. |
-| 6 | 37.5-41.0 | The showdown, close on the results: your row, Flush, Ace High, with the winnings beside it. | NOW YOU WIN. | The redo won the hand. | Satisfaction. |
+| 5 | 27.5-31.5 | Close on your hand: your worst card is Wild (the rainbow pip, ANY RANK · ANY SUIT), ringed. | MAKE MY WORST CARD WILD: DONE. | It did the other half. | "I could write anything." |
+| 6 | 31.5-34.6 | Five cards on the table, your two below; the last card dealt is ringed. Your readout says ACE HIGH: nothing. | HATE THE LAST CARD? | The last card dealt left you with nothing. | Familiar frustration. |
+| 6 | 34.6-37.5 | You cast. At half speed the last card is pulled back off the table and a new one is dealt; it is ringed, and the readout turns to FLUSH, ACE HIGH. | UNDO IT. | You can take back a card. | Power. |
+| 6 | 37.5-41.0 | The showdown, the whole panel: your row, Flush, Ace High, its five hearts, the winnings beside it. | NOW YOU WIN. | The redo won the hand. | Satisfaction. |
 | 7 | 41.0-45.5 | A purple banner slams across the table: THE INVERSION, "a new rule, permanently", held at 0.7x. | EVERY ROUND, A NEW RULE. FOREVER. | The rules change as you play, and stay changed. | Unease. |
-| 8 | 45.5-53.0 | The next showdown at 0.55x, close on the results. Your row: "Jack High", the winnings beside it. The row under it: "Pair of Aces", nothing. | THE WORST HAND WINS. then YOU HAD NOTHING. YOU WON. | The new rule turned the game upside down. | A laugh. |
-| 9 | 53.0-57.0 | Last card dealt. Close on your King of Spades, ringed. Four spell cards lit in your hand. | THERE IS ONE KING OF SPADES. | One of each card in a deck. | Anticipation. |
+| 8 | 45.5-53.0 | The next showdown at 0.55x, the whole panel. Your row: "Jack High", the winnings beside it. The row under it: "Pair of Aces", nothing. | THE WORST HAND WINS. then YOU HAD NOTHING. YOU WON. | The new rule turned the game upside down. | A laugh. |
+| 9 | 53.0-57.0 | Last card dealt. The board, and in front of you your King of Spades, ringed. | THERE IS ONE KING OF SPADES. | One of each card in a deck. | Anticipation. |
 | 9 | 57.0-66.6 | Four casts, one every 2.5 s on a music hit. Each new King of Spades gets a gold ring as it appears: your other card, a copy jumping onto the table, a table card, another. | TWO. / THREE. / FOUR. / FIVE. | You're copying one card over and over. | Escalating glee. |
 | 9 | 66.6-67.5 | A still beat: five Kings of Spades ringed, no words. | | | Held breath. |
-| 9 | 67.5-73.5 | The showdown at a third, then half, of real speed. The banner slams: FLUSH FIVE, KINGS. Biggest music hit. | FIVE OF THE SAME CARD. | The most impossible hand there is. | Awe, laughter. |
+| 9 | 67.5-73.5 | The showdown at a third, then half, of real speed: your row is five Kings of Spades. The banner slams across it: FLUSH FIVE, KINGS. Biggest music hit. | FIVE OF THE SAME CARD. | The most impossible hand there is. | Awe, laughter. |
 | 10 | 73.5-81.0 | End card: HEXHOLD wordmark, the hook line, the call to action, the small print. | TEXAS HOLD'EM WITH A DECK THAT BREAKS PHYSICS. WISHLIST ON STEAM. | What it is and what to do. | "I want to play that." |
 
 ## What cut 2 changed, and what it left out
@@ -111,7 +162,7 @@ Every row meets the rule. "Gone" is the cut to the next shot; the last 0.8 s of 
 
 ## The 6-second Steam preview loop
 
-`hexhold-preview-6s.mp4` is cut 2's 4.0-9.6 s: two Kings of Spades under
+`hexhold-preview-6s.mp4` is the cut's 4.0-9.6 s: two Kings of Spades under
 MAKE IT FIVE, then FIVE OF A KIND landing and held; its last 0.4 s dissolves
 back into its own first frame so a looping player never jumps. Silent. Six
 seconds cannot hold two cards to the rule, so the payoff gets the time: the
@@ -162,7 +213,7 @@ is, what is fun, what confuses, and whether they would wishlist.
   brighter). It also asked for a beat teaching the rules of poker; the trailer
   keeps its rule that no beat needs them.
 
-## As filmed (2026-10-11)
+## As filmed (2026-10-11, re-checked for cut 4 on 2026-10-22)
 
 `EDIT` in `tools/trailer/record_trailer.mjs` lists the ten shots and their
 lengths; `render_music.py` puts its hits on the same seconds.
@@ -177,9 +228,19 @@ lengths; `render_music.py` puts its hits on the same seconds.
   held at 0.5-0.7x so the game keeps them up while they are read, the
   worst-hand showdown at 0.55x, the Flush Five slam at 0.34x.
 - **Close-ups** are the game re-rendered sharp at up to 2x, never a crop of a
-  1080p frame.
+  1080p frame. Since cut 4 the camera also keeps clear the band a caption
+  covers (`CAP` in the recorder), so no caption lands on a card.
+- **Showdowns are framed whole** (`SHOWDOWN` in the recorder: the results
+  panel and the banner's title, measured at 1920x1080 and re-measured by the
+  hook's showdown before the finale uses it).
+- **The two table cards the Mirrors rewrite show the copy stamp, not a
+  greyed "was" half.** Only a card the Twinned omen inscribes Mirrored keeps
+  what it was printed as (`wasFace`, 2517d74); the Mirror sigil's copies do
+  not, so the finale cannot show "was J♥". A game question, not a recorder
+  one: if Mirror should remember too, the finale shows it on the next
+  recording with no change here.
 - **CANCEL IT is gone, and the COUNTERED stamp with it.** Cut 1 showed the
   counter without the stamp because the game never sends a view with a
   countered spell in it; recorded in `plans/FINDINGS.md` as open.
-- **The poster** is 70.4 s: FLUSH FIVE, KINGS over the table, FIVE OF THE
-  SAME CARD, two Kings of Spades in your hand.
+- **The poster** is 70.4 s: FLUSH FIVE, KINGS across the showdown, your
+  row of five Kings of Spades above it, FIVE OF THE SAME CARD under it.
