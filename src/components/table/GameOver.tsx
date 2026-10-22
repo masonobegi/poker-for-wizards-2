@@ -14,7 +14,8 @@ import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/l
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
 import { HEXES, MAX_HEX } from '@shared/hexes';
-import { COVENS, covenOf } from '@shared/covens';
+import { COVENS, COVEN_CHOICE, covenOf } from '@shared/covens';
+import { DEMO_ANTES } from '@shared/demo';
 import { POOL as SIGIL_POOL } from '@shared/sigils';
 import { RELIC_POOL } from '@shared/relics';
 import { OMEN_POOL } from '@shared/omens';
@@ -264,8 +265,13 @@ export default function GameOver({ view }: { view: TableView }) {
             <p className="gameover-runlabel">In the full game</p>
             <ul>
               <li>The run goes on, ante after ante, under a rulebook that keeps growing.</li>
-              <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
-              <li>{SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics and {OMEN_POOL.length} omens.</li>
+              {/* Only what the full game really holds: with the picker off
+                  (COVEN_CHOICE) this line promised "All 7 covens" that no
+                  build offered. */}
+              {COVEN_CHOICE
+                ? <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
+                : <li>{MAX_HEX} hexes to climb, each one harder, and a Daily Rite: the same seeded run for everyone.</li>}
+              <li>{SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics and {OMEN_POOL.length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>
           </motion.div>

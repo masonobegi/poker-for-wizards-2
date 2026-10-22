@@ -37,12 +37,18 @@ export const QUANTUM_DEMO: CardView = {
   memory: 0,
 };
 
-export const SEALED_DEMO: CardView = {
+/**
+ * A Mirrored card: a copy of the King beside it, still saying it was printed
+ * as the Four of Spades. It replaced a Sealed rank card here on 2026-10-22:
+ * Sealed Rank left the dealt pool in cc8f6ea, and the first screen a player
+ * reads should not teach a card they will never be dealt. Mirror is dealt.
+ */
+export const MIRRORED_DEMO: CardView = {
   id: nextId(),
-  state: 'veiled',
-  face: null,
-  rank: 13,
-  marks: [],
+  state: 'faceup',
+  face: { rank: 13, suit: 'S' },
+  wasFace: { rank: 4, suit: 'S' },
+  marks: ['mirrored'],
   memory: 0,
 };
 

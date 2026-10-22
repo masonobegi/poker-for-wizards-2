@@ -1,7 +1,7 @@
 /**
  * The first-run "How this works" flow.
  *
- * Eight panels, each making exactly one point, built from the real `Card`
+ * Seven panels (eight with the coven picker on), each making exactly one point, built from the real `Card`
  * component and sigil data rather than screenshots or prose. Shown
  * automatically the first time the game is opened (see `hasSeenIntro` /
  * `markIntroSeen`, backed by `localStorage['hexhold.seenIntro']`) and
@@ -14,16 +14,16 @@ import { Button } from '@/components/ui/kit';
 import { Card } from '@/components/card/Card';
 import { CardRow } from '@/components/card/CardRow';
 import { SIGIL_BY_ID } from '@shared/sigils';
-import { RELICS } from '@shared/relics';
+import { RELIC_POOL } from '@shared/relics';
 import SigilTile from './SigilTile';
 import {
-  HOLE_DEMO, FLOP_DEMO, QUANTUM_DEMO, SEALED_DEMO, DIVERGED_DEMO,
+  HOLE_DEMO, FLOP_DEMO, QUANTUM_DEMO, MIRRORED_DEMO, DIVERGED_DEMO,
   FIVE_OF_A_KIND, FLUSH_HOUSE, FLUSH_FIVE,
 } from './demo';
 import './onboarding.css';
 import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
-import { covenOf } from '@shared/covens';
+import { COVEN_CHOICE, covenOf } from '@shared/covens';
 import { SCHOOLS } from '@shared/sigils';
 
 // ---------------------------------------------------------------------------
@@ -117,8 +117,8 @@ function DeckBreaksVisual() {
         <span className="intro-visual__label">Undecided</span>
       </div>
       <div className="intro-trio__item">
-        <Card view={SEALED_DEMO} size="md" tiltOnHover />
-        <span className="intro-visual__label">Sealed rank</span>
+        <Card view={MIRRORED_DEMO} size="md" tiltOnHover />
+        <span className="intro-visual__label">Mirrored</span>
       </div>
       <div className="intro-trio__item">
         <Card view={DIVERGED_DEMO} size="md" tiltOnHover />
@@ -147,7 +147,9 @@ function HandsVisual() {
   );
 }
 
-const SHOP_RELIC = RELICS.find((r) => r.id === 'deep_well') ?? RELICS[0];
+// From the Market's real shelf (RELIC_POOL): Deep Well, shown here until
+// 2026-10-22, left the shelf in cc8f6ea, and a rule reads better than "+3".
+const SHOP_RELIC = RELIC_POOL.find((r) => r.id === 'ladder') ?? RELIC_POOL[0];
 const SHOP_SIGIL = SIGIL_BY_ID.mirror;
 
 function ShopVisual() {
@@ -212,7 +214,7 @@ const PANELS: Panel[] = [
     id: 'deck',
     kicker: 'None of this is a real deck',
     title: 'The deck breaks, on purpose.',
-    body: "A card can hold two identities until someone looks. A named rank can be dealt face-down before anyone's seen it. The same card can read differently to different players — and both readings score.",
+    body: "A card can hold two identities until someone looks. A card can become a copy of its neighbour, and say what it was. The same card can read differently to different players — and both readings score.",
     Visual: DeckBreaksVisual,
   },
   {
@@ -229,13 +231,16 @@ const PANELS: Panel[] = [
     body: 'Blinds climb every few hands. Between antes, the Market opens — spend shards on sigils, relics, and rites that carry into the rest of the run.',
     Visual: ShopVisual,
   },
-  {
+  // Only while there is a picker on the menu to point at (COVEN_CHOICE). From
+  // cc8f6ea to 2026-10-22 this panel told every new player to "choose one on
+  // the menu" from seven covens the menu no longer showed.
+  ...(COVEN_CHOICE ? [{
     id: 'coven',
     kicker: 'Before the first hand',
     title: 'Pick who you sat down as.',
     body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet can read a rival’s hand and always see the next card coming. Choose one on the menu — the bots will.',
     Visual: CovenVisual,
-  },
+  }] : []),
 ];
 
 /**
