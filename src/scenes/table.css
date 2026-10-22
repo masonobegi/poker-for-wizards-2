@@ -789,7 +789,10 @@
   max-width: 96px;
 }
 .seat-chips { font-size: var(--fs-sm); line-height: var(--lh-sm); font-weight: 700; color: var(--chip); }
-.seat.is-out .seat-chips { color: var(--bad); font-size: var(--fs-xs); }
+/* Light, not --bad: the out seat is grayscaled (`.seat.is-out`), so the red
+   was drawn as a dark grey, and at the seat's 24% opacity "OUT" read at
+   3.04:1 (test/style.mjs, whenever a bot was out at the sweep; 2026-10-22). */
+.seat.is-out .seat-chips { color: var(--text); font-size: var(--fs-xs); }
 
 .seat-meta { grid-column: 2; display: flex; align-items: center; gap: 6px; }
 .seat-sigilcount {
