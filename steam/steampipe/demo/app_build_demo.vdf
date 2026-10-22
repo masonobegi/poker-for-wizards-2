@@ -1,0 +1,21 @@
+"AppBuild"
+{
+	// The Next Fest demo is its own app, created from the full game's page
+	// (Steamworks: All Associated Packages, DLC, Demos and Tools > Demo).
+	// Replace DEMO_APP_ID and the two DEMO_DEPOT_ID_* values with the numbers
+	// Steamworks gives that app. Placeholders on purpose: there is no real App
+	// ID in this repository.
+	"AppID" "DEMO_APP_ID"
+	"Desc" "HEXHOLD Demo 0.9.0"
+	"BuildOutput" "..\..\build-output\demo\"
+	// Built by `npm run package:demo:win` and `:linux`.
+	"ContentRoot" "..\..\..\release-demo\"
+	"SetLive" ""
+	"Preview" "0"
+
+	"Depots"
+	{
+		"DEMO_DEPOT_ID_WINDOWS" "depot_build_demo_windows.vdf"
+		"DEMO_DEPOT_ID_LINUX" "depot_build_demo_linux.vdf"
+	}
+}

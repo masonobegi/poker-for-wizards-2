@@ -24,6 +24,7 @@ import { loadProfile } from '@/components/profile/profile';
 import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
 import { DEMO_ANTES, DEMO_COVENS, demoCoven } from '@shared/demo';
 import { IS_DEMO, openWishlist } from '@/lib/demo';
+import { IS_PLAYTEST, openFeedback, playtestFeedback } from '@/lib/playtest';
 
 type Pane = 'home' | 'host' | 'join';
 
@@ -397,10 +398,18 @@ export default function Menu() {
                   </Button>
                 ) : null}
 
+                {/* The Steam Playtest build (shared/playtest.ts): one press to say what
+                    you thought, when there is somewhere to send it. */}
+                {playtestFeedback() ? (
+                  <Button size="md" block onClick={openFeedback}>
+                    Send playtest feedback
+                  </Button>
+                ) : null}
+
                 {IS_DEMO ? null : (<>
                 <Button size="md" block disabled={!connected || practicing}
                   onClick={() => void daily()}>
-                  Daily Rite &mdash; {todayCoven.name}
+                  Daily Rite{COVEN_CHOICE ? <> &mdash; {todayCoven.name}</> : null}
                 </Button>
                 <p className="menu-practicenote">
                   Today&rsquo;s table, the same for everyone: one coven, Hex {HEXES[DAILY_HEX - 1].name.replace('Hex ', '')}, every deal and omen fixed.
@@ -547,7 +556,7 @@ export default function Menu() {
           <span className={connected ? 'pulse-dot' : 'pulse-dot off'} />
           <span>{connected ? 'Connected' : 'Looking for the server'}</span>
           {/* So a bug report can name the build it came from. */}
-          <span className="menu-version mono">v{appVersion()}</span>
+          <span className="menu-version mono">v{appVersion()}{IS_PLAYTEST ? ' · playtest' : IS_DEMO ? ' · demo' : ''}</span>
         </footer>
       </div>
 

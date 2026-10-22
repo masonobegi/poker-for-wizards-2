@@ -20,6 +20,8 @@ import { POOL as SIGIL_POOL } from '@shared/sigils';
 import { RELIC_POOL } from '@shared/relics';
 import { OMEN_POOL } from '@shared/omens';
 import { openWishlist } from '@/lib/demo';
+import { openFeedback, playtestFeedback } from '@/lib/playtest';
+import { PLAYTEST_ASKS } from '@shared/playtest';
 import { CountUp } from '@/components/fx/CountUp';
 
 /** However long a banner claims, the panel is never held back further. */
@@ -91,6 +93,8 @@ export default function GameOver({ view }: { view: TableView }) {
   // A demo table (the server sets demoAntes) ends on the wishlist screen,
   // whether the run was cut off after its last ante or ended in a bust.
   const demo = !!view.config.demoAntes;
+  // Only in the Steam Playtest build, and only with somewhere to send it.
+  const feedback = playtestFeedback();
   const busted = me?.bustedBy;
 
   const standings = (
@@ -274,6 +278,23 @@ export default function GameOver({ view }: { view: TableView }) {
               <li>{SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics and {OMEN_POOL.length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>
+          </motion.div>
+        ) : null}
+
+        {/* The Steam Playtest build: the run just ended, which is when a
+            player knows what they thought of it (shared/playtest.ts). */}
+        {feedback ? (
+          <motion.div
+            className="gameover-fullgame gameover-playtest"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <p className="gameover-runlabel">Playtest: tell us</p>
+            <ul>
+              {PLAYTEST_ASKS.map((q) => <li key={q}>{q}</li>)}
+            </ul>
+            <Button size="md" block onClick={openFeedback}>Send playtest feedback</Button>
           </motion.div>
         ) : null}
 

@@ -1,0 +1,17 @@
+"DepotBuild"
+{
+	"DepotID" "PLAYTEST_DEPOT_ID_LINUX"
+	// Relative to the app build's ContentRoot (release-playtest/). Upload it
+	// from the WSL build (~/hexhold-main/release-playtest/linux-unpacked),
+	// which keeps the execute bits a Windows copy loses.
+	"ContentRoot" "linux-unpacked\"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+
+	"FileExclusion" "steam_appid.txt"
+}

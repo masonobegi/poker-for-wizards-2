@@ -1,0 +1,21 @@
+"AppBuild"
+{
+	// The Steam Playtest is its own app, created from the full game's page
+	// (Steamworks: All Associated Packages, DLC, Demos and Tools > Playtest).
+	// Replace PLAYTEST_APP_ID and the two PLAYTEST_DEPOT_ID_* values with the
+	// numbers Steamworks gives that app. Placeholders on purpose: there is no
+	// real App ID in this repository.
+	"AppID" "PLAYTEST_APP_ID"
+	"Desc" "HEXHOLD Playtest 0.9.0"
+	"BuildOutput" "..\..\build-output\playtest\"
+	// Built by `npm run package:playtest:win` and `:linux`.
+	"ContentRoot" "..\..\..\release-playtest\"
+	"SetLive" ""
+	"Preview" "0"
+
+	"Depots"
+	{
+		"PLAYTEST_DEPOT_ID_WINDOWS" "depot_build_playtest_windows.vdf"
+		"PLAYTEST_DEPOT_ID_LINUX" "depot_build_playtest_linux.vdf"
+	}
+}

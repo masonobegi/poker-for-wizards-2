@@ -10,10 +10,12 @@ export default defineConfig({
   // The version a player can read off the menu, so a bug report names a
   // build. Read from package.json so the two cannot drift apart.
   // `__HEXHOLD_DEMO__` builds the Next Fest demo client (src/lib/demo.ts):
-  // set HEXHOLD_DEMO=1, or run `npm run build:demo`.
+  // set HEXHOLD_DEMO=1, or run `npm run build:demo`. `__HEXHOLD_PLAYTEST__`
+  // builds the Steam Playtest client (src/lib/playtest.ts): HEXHOLD_PLAYTEST=1.
   define: {
     __HEXHOLD_VERSION__: JSON.stringify(pkg.version),
     __HEXHOLD_DEMO__: JSON.stringify(process.env.HEXHOLD_DEMO === '1'),
+    __HEXHOLD_PLAYTEST__: JSON.stringify(process.env.HEXHOLD_PLAYTEST === '1'),
   },
   base: './',
   resolve: {

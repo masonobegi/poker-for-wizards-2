@@ -12,9 +12,11 @@ release/
 coverage/
 dist-server/
 dist-demo/
+dist-playtest/
 dist-server-demo/
 release-demo/
 release-play/
+release-playtest/
 electron/icon.png
 electron/icon@512.png
 hexhold*.db

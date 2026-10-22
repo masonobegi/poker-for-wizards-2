@@ -1,0 +1,17 @@
+"DepotBuild"
+{
+	"DepotID" "DEMO_DEPOT_ID_WINDOWS"
+	// Relative to the app build's ContentRoot (release-demo/).
+	"ContentRoot" "win-unpacked\"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+
+	// Never ship a test App ID beside the binary.
+	"FileExclusion" "steam_appid.txt"
+	"FileExclusion" "*.pdb"
+}

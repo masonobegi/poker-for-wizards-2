@@ -16,11 +16,13 @@ node_modules
 dist
 dist-server
 dist-demo
+dist-playtest
 dist-server-demo
 dist-electron
 release
 release-demo
 release-play
+release-playtest
 steam
 responsive
 recordings
