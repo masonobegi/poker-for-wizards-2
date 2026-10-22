@@ -30,7 +30,8 @@
  */
 import { launch } from './browser.mjs';
 
-const BASE = process.env.BASE ?? 'http://127.0.0.1:3001';
+// BASE, or HEXHOLD_URL as the other browser harnesses take it.
+const BASE = (process.env.BASE ?? process.env.HEXHOLD_URL ?? 'http://127.0.0.1:3001').replace(/\/$/, '');
 const W = Number(process.argv[2] ?? 1600);
 const H = Number(process.argv[3] ?? 1000);
 const NUDGE = { timeout: 2000 };

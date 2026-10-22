@@ -74,8 +74,17 @@ const probe = () => {
   };
   const parse = (c) => {
     const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(c || '');
-    if (!m) return null;
-    return { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] };
+    if (m) return { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] };
+    /* Chrome serialises color-mix() as color(srgb r g b / a), channels 0-1.
+       Reading only rgb() skipped every color-mix fill, so text was scored
+       against whatever opaque layer lay further out: the unmake button's
+       near-black disc was passed over and its bone glyph scored 1.59:1
+       against the bone card behind the disc (8:1 really). legibility.mjs
+       learned this on 2026-10-19; this audit learned it on 2026-10-22. */
+    const k = /color\(\s*srgb\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)(?:\s*\/\s*([\d.e+-]+%?))?\s*\)/.exec(c || '');
+    if (!k) return null;
+    const alpha = k[4] === undefined ? 1 : k[4].endsWith('%') ? parseFloat(k[4]) / 100 : +k[4];
+    return { r: +k[1] * 255, g: +k[2] * 255, b: +k[3] * 255, a: alpha };
   };
   const lum = ({ r, g, b }) => {
     const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
