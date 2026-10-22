@@ -2,7 +2,10 @@
 {
 	"DepotID" "DEPOT_ID_LINUX"
 	// Relative to the app build's ContentRoot (release/). Produced by
-	// `npm run package:linux`, or `npx electron-builder --linux dir`.
+	// `npm run package:linux`. Build and upload it from WSL or Linux
+	// (~/hexhold-main, STEAM-READY.md): a copy made on Windows loses the execute
+	// bits, and the stale Windows-side copy was removed on 2026-10-22 so that an
+	// upload from Windows fails rather than ships an old build.
 	"ContentRoot" "linux-unpacked\"
 
 	"FileMapping"
