@@ -2392,7 +2392,9 @@
   padding: 11px 13px;
   border-radius: var(--r-md);
   background: var(--surface);
-  border: 2px solid color-mix(in srgb, var(--school) 45%, var(--line));
+  /* The school's own hue: a 45% mix with --line sat between palette colours,
+     which test/style.mjs reports since it reads color-mix (2026-10-22). */
+  border: 2px solid var(--school);
   box-shadow: var(--e-4);
   opacity: 0;
   pointer-events: none;
