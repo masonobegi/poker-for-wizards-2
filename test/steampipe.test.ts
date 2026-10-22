@@ -56,6 +56,18 @@ for (const app of APPS) {
   });
 }
 
+test('every rich presence token the game sets has text for Steam to show', () => {
+  // Steam shows nothing for a token its localization file lacks, so a typo
+  // here is a friends list that never says what you are playing.
+  const vdf = readFileSync(join(ROOT, 'steam', 'rich_presence.vdf'), 'utf8');
+  const defined = new Set([...vdf.matchAll(/"(#[A-Za-z_]+)"\s+"[^"]+"/g)].map((m) => m[1]));
+  const code = ['electron/main.cjs', 'electron/steam.cjs', 'electron/preload.cjs']
+    .map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n');
+  const used = [...code.matchAll(/setRichPresence\(\s*'steam_display'\s*,\s*'(#[A-Za-z_]+)'/g)].map((m) => m[1]);
+  assert.ok(used.length > 0, 'the game sets no steam_display token at all');
+  for (const t of used) assert.ok(defined.has(t), `${t} is set by the game but not defined in steam/rich_presence.vdf`);
+});
+
 test('the playtest feedback link: the set one, else the game\'s discussions, else none', () => {
   assert.equal(feedbackUrl('https://example.com/form', 0), 'https://example.com/form');
   assert.equal(feedbackUrl('', 123), 'https://steamcommunity.com/app/123/discussions/');

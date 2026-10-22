@@ -1,0 +1,15 @@
+"lang"
+{
+	// Steam rich presence localization for HEXHOLD. Upload in Steamworks under
+	// Community > Rich Presence (one file per language). The game sets
+	// steam_display to a token below (electron/main.cjs); a token Steam has no
+	// text for shows nothing at all on a friend's list.
+	// test/steampipe.test.ts fails if the code sets a token this file lacks.
+	"english"
+	{
+		"tokens"
+		{
+			"#Status_Playing"	"Playing HEXHOLD"
+		}
+	}
+}
