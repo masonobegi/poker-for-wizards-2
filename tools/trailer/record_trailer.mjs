@@ -8,6 +8,8 @@
  *     --stills 10               also write every 10th frame as a JPEG, for review
  *     --until hook_cast         stop after that shot
  *     --measure                 time every text on screen (legibility.json), no pictures
+ *     --preview                 with --stills: capture only the stills, no video
+ *                               (a framing check of every shot in a minute or two)
  *
  * The approach is Bootleggers' (lords-of-vegas/tools/trailer/record_trailer.js),
  * adapted to a game that is DOM and a Node server rather than a canvas:
@@ -57,6 +59,8 @@ const ONLY = argv.only ? new Set(argv.only.split(',')) : null;
 const STILLS = Number(argv.stills ?? 0);
 /** --measure: play every shot and time its text (legibility.json), take no pictures. */
 const MEASURE = !!argv.measure;
+/** --preview: only the --stills frames are captured; no frames.mp4. */
+const PREVIEW = !!argv.preview && STILLS > 0;
 const FPS = 60;
 const STEP = 1000 / FPS;
 mkdirSync(OUT, { recursive: true });
@@ -139,7 +143,7 @@ function camNow() {
 }
 
 // ── Frames ───────────────────────────────────────────────────────────────────
-const ff = MEASURE ? { stdin: { write: () => true, end: () => {} }, on: (e, f) => f(), stderr: { on: () => {} } } : spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+const ff = MEASURE || PREVIEW ? { stdin: { write: () => true, end: () => {} }, on: (e, f) => f(), stderr: { on: () => {} } } : spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
   // Pad to even dimensions before encoding. The page is opened at 1920x1080,
   // but a Chromium build other than the one Playwright pins can hand back a
   // capture a row short (1920x1079 here), and libx264 refuses an odd height
@@ -183,7 +187,8 @@ async function step() {
       else seen.set(key + (v ? `|${editT}` : ''), { shot: shot.name, kind, text: words, first: editT, last: editT });
     }
   }
-  if (capturing()) {
+  const still = STILLS && shot && (frame - shot.f0) % STILLS === 0;
+  if (capturing() && (!PREVIEW || still)) {
     const w = Math.max(16, c.w);
     const { data } = await cdp.send('Page.captureScreenshot', {
       format: 'jpeg', quality: 93, optimizeForSpeed: true,
@@ -191,7 +196,7 @@ async function step() {
     });
     const buf = Buffer.from(data, 'base64');
     if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
-    if (STILLS && (frame - shot.f0) % STILLS === 0) {
+    if (still) {
       writeFileSync(join(OUT, 'stills', `${shot.name}-${st().toFixed(2).padStart(5, '0')}.jpg`), buf);
     }
     const editT = EDIT_AT[shot.name] + st();
@@ -272,7 +277,12 @@ const caption = (text, opts = {}) => { cue('slam', opts.quiet ? 0.35 : 0.6); ret
 const hush = () => tr(() => window.__tr.hush());
 const ring = (selector, pad) => tr(([s, p]) => window.__tr.ring(s, p), [selector, pad]);
 const unring = (id) => tr((i) => window.__tr.unring(i ?? undefined), id ?? null);
-const cardSel = (id) => `[data-card-id="${id}"]`;
+/**
+ * A card on the table, never its copy in the showdown panel: the panel draws
+ * the five scoring cards with the same data-card-id (2026-10-18), and a ring
+ * that found the copy first would jump into the panel as it opens.
+ */
+const cardSel = (id) => `[data-card-id="${id}"]:not(.showdown *)`;
 
 // ── Server-side shorthands ───────────────────────────────────────────────────
 const heroCast = (match, targets = {}) => S(`

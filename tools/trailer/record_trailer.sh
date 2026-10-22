@@ -5,6 +5,9 @@
 # Silent and invisible: headless, muted, no window, nothing played aloud.
 #   tools/trailer/record_trailer.sh            everything (about 45 minutes)
 #   KEEP=1 tools/trailer/record_trailer.sh     keep the work folder for review
+#   PORT_A=5610 PORT_B=5611 tools/trailer/record_trailer.sh
+#                                              the two recorders' servers on
+#                                              other ports (defaults 3419, 3420)
 # The shots are filmed by two recorders at once, each playing the whole run
 # and filming its half (the run is seeded, so both play the same game).
 set -euo pipefail
@@ -13,15 +16,17 @@ unset ELECTRON_RUN_AS_NODE
 PY="${PYTHON:-$(command -v python3 || command -v python)}"
 WORK="${WORK:-$(mktemp -d)}"
 OUT="steam/trailer"
+PORT_A="${PORT_A:-3419}"
+PORT_B="${PORT_B:-3420}"
 mkdir -p "$OUT" "$WORK/a" "$WORK/b"
 [ "${KEEP:-}" = 1 ] || trap 'rm -rf "$WORK"' EXIT
 
 npx vite build >/dev/null
 "$PY" tools/trailer/render_music.py
-node tools/trailer/record_trailer.mjs --port 3419 --out "$WORK/a" \
+node tools/trailer/record_trailer.mjs --port "$PORT_A" --out "$WORK/a" \
   --only hook_kings,hook_cast,title,undo,write,write_cast --until write_cast > "$WORK/a.log" 2>&1 &
 A=$!
-node tools/trailer/record_trailer.mjs --port 3420 --out "$WORK/b" \
+node tools/trailer/record_trailer.mjs --port "$PORT_B" --out "$WORK/b" \
   --only omen,worst_wins,finale,end > "$WORK/b.log" 2>&1 &
 B=$!
 wait $A || { cat "$WORK/a.log"; exit 1; }
