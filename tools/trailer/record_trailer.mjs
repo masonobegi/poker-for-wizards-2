@@ -445,8 +445,9 @@ speed = 0.5;
 await at(3.5);
 await nextHandArm();
 // Measured at the end of the shot, once the panel has sprung into place and
-// every letter of the banner has stopped decoding: at 3.5 s the title was
-// still made of random glyphs and gave a box 26 px wider (2026-10-22).
+// every letter of the banner has stopped decoding: at 3.5 s, in the recorder
+// that plays this shot unfilmed, the box came back 23 px right and 8 px low
+// (2026-10-22).
 await at(LEN.hook_cast - 0.1);
 await checkShowdownCam();
 await end();
