@@ -625,8 +625,8 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'graft', name: 'Graft', school: 'bind', glyph: '⊷', cost: 4,
     timing: ['any'], target: 'none', rarity: 'rare', price: 10, botBias: 0.6,
-    text: 'One of your hole cards becomes an exact copy of the other. You are now holding the same card twice.',
-    brief: 'One hole card becomes a copy of the other.',
+    text: 'One of your hole cards becomes an exact copy of the other, marks and all. For this hand you are holding the same card twice.',
+    brief: 'For this hand, one hole card is a copy of the other.',
     impossible: 'A pair made of one card.',
   },
   {
@@ -639,15 +639,15 @@ export const SIGILS: SigilDef[] = [
   {
     id: 'blight', name: 'Blight', school: 'ruin', glyph: '⌁', cost: 3,
     timing: ['any'], target: 'player', rarity: 'rare', price: 8, botBias: 0.5,
-    text: 'A sigil rots out of the target’s hand at random. Neither of you learns which one it was.',
+    text: 'A sigil rots out of the target’s hand at random. You are not told which one it was.',
     brief: 'A random sigil rots out of the target’s hand.',
     impossible: 'A spell dying before anybody casts it.',
   },
   {
     id: 'gild', name: 'Gild', school: 'weave', glyph: '⬙', cost: 3,
     timing: ['flop', 'turn', 'river'], target: 'board_card', rarity: 'rare', price: 9, botBias: 0.6,
-    text: 'A community card is gilded. It counts as every suit at once, for everyone.',
-    brief: 'A community card counts as every suit, for everyone.',
+    text: 'A community card is gilded for this hand. It counts as every suit at once, for everyone.',
+    brief: 'For this hand, a community card is every suit, for everyone.',
     impossible: 'One card being four suits.',
   },
   {

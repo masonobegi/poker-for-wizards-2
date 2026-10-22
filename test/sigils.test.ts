@@ -200,6 +200,29 @@ test('a Mirror lasts the hand: the copy is itself again at the next deal', () =>
   assert.deepEqual(src.marks, ['wild'], 'the original lost its own mark');
 });
 
+test('Graft copies the whole hole card, says what it was, and lasts the hand', () => {
+  // Back in later runs' bag from 2026-10-22 (shared/unlock.ts). It overwrote
+  // the second hole card's faces with nothing to put them back, so the card
+  // stayed a duplicate for the rest of the run and its own identity left the
+  // deck: the bug d03be97 fixed in Mirror, in a sigil that was not live then.
+  const { t, ctx } = freshTable();
+  const me = t.players[0];
+  const a = t.cards.get(me.hole[0])!;
+  const b = t.cards.get(me.hole[1])!;
+  a.marks = ['wild'];
+  const printed = { ...b.faces[b.collapsed ?? 0] };
+
+  cast(t, ctx, 'graft');
+  assert.deepEqual(b.faces[b.collapsed ?? 0], a.faces[a.collapsed ?? 0], 'not a copy');
+  assert.ok(b.marks.includes('wild'), '"marks and all": a copy of a Wild is Wild');
+  assert.deepEqual(b.wasFace, printed, 'the copy cannot say what it was');
+
+  clearHandMagic(t);
+  assert.deepEqual(b.faces, [printed], 'the grafted card stayed a copy past the hand');
+  assert.deepEqual(b.marks, [], 'the grafted card kept a borrowed mark');
+  assert.deepEqual(a.marks, ['wild']);
+});
+
 test('Erase takes a card out of the game, where Burn only takes it off the board', () => {
   const { t, ctx } = freshTable();
   const victim = t.board[1];

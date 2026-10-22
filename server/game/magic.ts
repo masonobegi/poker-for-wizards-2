@@ -1046,9 +1046,12 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
       const a = card(t, caster.hole[0]);
       const b = card(t, caster.hole[1]);
       if (!a || !canAlter(b)) { note('Nothing to graft onto.', 'warn'); break; }
-      b.faces = a.faces.map((f) => ({ ...f }));
-      b.collapsed = a.collapsed;
-      b.veil = a.veil;
+      // The copy Mirror makes (copyCardOnto): the whole card, for the hand,
+      // and the client can say what it was. Until 2026-10-22 this overwrote
+      // the faces with nothing to put them back, so the grafted card stayed a
+      // duplicate for the rest of the run and its own identity left the deck:
+      // the bug d03be97 fixed in Mirror, in a sigil that was not live then.
+      copyCardOnto(t, a, b);
       if (!b.marks.includes('mirrored')) b.marks.push('mirrored');
       t.tempMarks.push({ cardId: b.id, markId: 'mirrored' });
       ctx.fx.push({ t: 'entangle', cardIds: [a.id, b.id] });
