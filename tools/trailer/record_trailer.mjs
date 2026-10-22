@@ -109,13 +109,15 @@ const BANNER = { x: 200, y: 110, w: 1520 };
  * window (234,92 to 1394,734 at 1920x1080, three rows, each with the five
  * cards that scored) and the cut-in banner's title runs 432 to 1488 across
  * it; this is both with 30 px of room, which leaves out the ledger on the
- * right and the spell rail underneath. BANNER cropped the panel's top and
- * filled the bottom quarter with greyed spell cards. The camera has to be on
- * its way before the panel exists, so this is a measurement rather than a
- * query; the hook's showdown re-measures it (checkShowdownCam) and the
- * finale uses what it found.
+ * right, and its top edge just under the top bar (.tbl-top ends at 70), so
+ * the bar's MARKET IN 93 HANDS (the director's handsPerAnte = 99) is not in
+ * the shot or the poster. BANNER cropped the panel's top and filled the
+ * bottom quarter with greyed spell cards. The camera has to be on its way
+ * before the panel exists, so this is a measurement rather than a query; the
+ * hook's showdown re-measures it (checkShowdownCam) and the finale uses what
+ * it found.
  */
-let SHOWDOWN = { x: 204, y: 43, w: 1314 };
+let SHOWDOWN = { x: 204, y: 72, w: 1314 };
 /**
  * Output pixels a caption covers, by size, measured from the top or bottom
  * edge to where its slab's dark core ends. A camera given `top`/`bottom`
@@ -174,6 +176,10 @@ async function frameOf(selectors, { pad = 40, minW = 720, dy = 0, top = 0, botto
 async function checkShowdownCam() {
   const live = await frameOf(['.showdown', '.hx-banner__title'], { pad: 30 });
   if (live === FULL) return;
+  // Its top edge under the top bar, as long as the panel's top stays in.
+  const bar = await boxOf(['.tbl-top']);
+  const panel = await boxOf(['.showdown']);
+  if (bar && panel) live.y = Math.round(Math.min(Math.max(live.y, bar.y1 + 2), panel.y0 - 12));
   const off = Math.max(Math.abs(live.x - SHOWDOWN.x), Math.abs(live.y - SHOWDOWN.y), Math.abs(live.w - SHOWDOWN.w));
   if (off > 12) console.log(`\n  (camera: the showdown sits at ${JSON.stringify(live)}, not ${JSON.stringify(SHOWDOWN)}; update SHOWDOWN)`);
   SHOWDOWN = live;
