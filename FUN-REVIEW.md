@@ -1113,3 +1113,255 @@ store screenshots predated the arcade look, so the page would have shown a
 different game; they were recaptured from the rebuilt packaged build this
 round (`steam/screenshots/`). The generated capsules still use the older
 look's frames until the commissioned art replaces them.
+
+
+# Round 6 (2026-10-22): re-measure after the UI pass
+
+Brief: re-verify the game after another session's UI pass of 2026-10-17..19
+(f47cd99..35549b8), re-score on the same locked rubric, and say with evidence
+whether the pass helped or hurt. Same honesty rule as rounds 3 to 5. Raw batch
+summaries: `plans/fun-round6-data/` (each names its commit and command).
+
+## The rubric, unchanged
+
+The same eight criteria, word for word, each out of 10; the mean is rounded
+half up, and an 8 needs 7.5. Nothing below redefines one.
+
+## What the UI pass was
+
+Twenty commits, written from two people's play of the hosted build (Mason
+and a friend). Two kinds of change, and they pull in opposite directions on
+this rubric:
+
+- **Presentation and clarity.** Your cards in front of you; a readable turn
+  indicator and bet costs; seat positions (D/SB/BB); the target of every
+  spell named and ringed for every viewer; a rules tab listing every rule in
+  force and where it came from; hover any card for what has been done to it;
+  a Mirrored card shows what it was; Wild and Prism drawn differently; the
+  showdown fills the screen and shows the five cards that scored, and stays
+  up long enough to read; a contrast pass with zero findings on twelve
+  screens. Rule fixes: a street gets exactly one betting round; a burn is
+  for good; a mirror copies the marks; casting happens in your betting
+  window.
+- **Content.** On 2026-10-17 (cc8f6ea) the live pool was cut from 71 sigils,
+  41 omens and 45 relics to 13, 9 and 12, and the coven picker was turned off
+  (`COVEN_CHOICE`): everyone, bots included, is the Unaligned. The reason
+  given: neither player could say what a single omen did, and the first
+  screen asked a new player to weigh about thirty rules before the first
+  card. The bots were also slowed (520-1040 ms an action, was 300-920) and
+  the showdown held longer (2.6 s plus 1 s a hand), both from "too fast, I
+  can't tell what's going on".
+
+## Found and fixed this round
+
+- **The demo dealt a coven nobody could see.** With the picker off the menu
+  sends 'unaligned'; the demo server mapped anything outside its three
+  covens to the first, so every demo player since cc8f6ea played the Ashen
+  (its opening sigils and creed) against Unaligned bots. Fixed in
+  `covenFor` (server/net/io.ts); test fails on the old code.
+- **Three texts still sold the old game**: the first-run intro told every new
+  player to pick one of seven covens, and taught Sealed Rank and Deep Well,
+  neither dealt any more; the demo's end screen promised "All 7 covens".
+- **Mirror did not do what its card said.** "An exact duplicate of the first,
+  marks and all. For this hand..." The sigil copied the face only, and the
+  copy never reverted: cards live the whole run, so the overwritten card left
+  the deck for good. One copy routine for the sigil and the Twinned omen now,
+  borrowed marks hand-long, the printed face restored between hands. Three
+  tests, each failing on 35549b8.
+- **The style audit had been blind to every color-mix() fill**, the same bug
+  the UI pass found in its legibility audit. Reading them exposed a "was 3♠"
+  label at 1.79:1 and five labels mixed off the 14-colour palette; all fixed,
+  and the "was" label moved to the edge a fanned row never covers.
+- **On a pad, the first-run hints trapped the d-pad.** The hints live in a
+  full-screen click-through layer, which the pad took for a modal: while a
+  hint was up, the only reachable control was its ×, and A pressed it
+  instead of checking. **Nothing below the fold could be reached**: the
+  Market's Done at 1280x800 was out of the pad's reach (down from the last
+  control on screen wrapped to the top). And **B could not close the deck
+  census or a pinned omen**: the pad sent its keys to `window`, which their
+  `document` listeners never hear. All three fixed in GamepadLayer;
+  `test/gamepad.mjs` now walks the pad to the rules tab, the deck census, a
+  sigil (arm, cast), a Market purchase and Done, 14 of 14. It found all three.
+
+## Measured
+
+Seeds 0-279, adept bots, Hex I, the aggressive player, playing the coven the
+game deals. Round 5's column is its published "after" (eb6075d), which rotated
+all seven covens; the harness did that until this round regardless of the
+switch, so a straight run of today's harness against round 5's numbers is
+the comparison a player would feel: the game as shipped then and now.
+
+| | round 5 (eb6075d) | UI pass (35549b8) | after this round |
+|---|---|---|---|
+| run over before the first Market | 1% | 3% | 3% |
+| run over before ante 3 | 5% | 8% | 10% |
+| survived 3 antes | 80% | 71% | 69% |
+| busted, caught or not, before the first Market | 14% | 20% | 20% |
+| an impossible hand in the run | 64% | 58% | 57% |
+| ... one of your own | 37% | 34% | 35% |
+| impossible hands a run | 1.50 | 1.43 | 1.38 |
+| runs won | 91 | 87 | 91 |
+| your stack at ante 7 | 21 bb | 26 bb | 29 bb |
+| biggest pot in the last 3 hands | 49% | 58% | 58% |
+| real choices a minute | 9.5 | 8.7 | 8.9 |
+| share of the run that is not your decision | 36% | 44% | 44% |
+| a run | 7.4 min | 8.1 min | 8.0 min |
+| first Market | 92 s | 100 s | 100 s |
+| a real choice of two relics, per run | 3.3 | 2.6 | 2.5 |
+| distinct relics bought | 41 of 45 | 12 of 12 | 12 of 12 |
+| spread of purchases | 5.09 bits | 3.44 | 3.42 |
+| overlap between two runs' relics | 0.09 | 0.34 | 0.34 |
+| a bought relic's rule visibly fired | 60% | 45% | 47% |
+| a run owning a mythic | 2.5% (new ones) | 14% | 9% |
+
+At 280 runs a difference under about 4 points is noise. The Mirror fix moved
+nothing outside it: on the same 280 seeds one of your own impossible hands
+went 34% to 35% (on the first 70 seeds alone it looked like 24% to 37%,
+which is why 70 runs is not a measurement).
+
+**The demo** (3 antes, seeds 0-139): an impossible hand inside the demo 40%
+(round 5: 36%), yours 16% (14%), reached the "demo ends here" screen 64%
+(74%; a bust ends on a screen with the same Wishlist button), 5.1 minutes
+(4.3), first Market 100 s.
+
+**Two numbers that are not what they look like.** "A bought relic's rule
+visibly fired" counts ledger lines tagged with a relic. Five of the twelve
+shelf relics (Gilt Edge, Third Hand, Cold Read, Unstable Isotope, Wild
+Inheritance) act at the deal and write no line, so they never count, and
+never trigger the relic "punch" on the rail either: an attribution gap,
+recorded, not fixed (a ledger line per relic per hand is a design call about
+noise). And the time split moved partly by design: the bots were slowed and
+the showdown lengthened because two players asked for it.
+
+**The browser harnesses on the final client**: `npm run responsive` 7 of 7
+resolutions (a 1440p failure under heavy load passed on its rerun),
+`test/legibility.mjs` zero findings on twelve screens, `test/style.mjs` in
+style, `test/align.mjs` square, `test/demo.mjs` every check, `test/gamepad.mjs` 14 of 14, `npm test` 453.
+
+## Presentation, scored blind
+
+A separate reviewer was given the criterion's words, the comparables
+(Balatro, Poker Quest, Luck be a Landlord, Apokerlypse), the facts a still
+cannot show (synthesised sound nobody has listened to, silhouette opponents,
+generated capsules, motion juice), and two unlabelled sets of screenshots:
+round 5's store set and today's. No score from any round. It gave round 5's
+build **5** ("only just, close to a 4") and today's **6** ("only just").
+
+So this reviewer is two points harsher than round 5's on the same build
+(round 5's gave it 7). Absolute numbers from one blind reviewer are that
+noisy; the relative call, from one eye on both builds, is the signal: **the
+UI pass is worth about a point of presentation**, mostly the drawn card
+states (the "was" face, the burned slot, the Wild tag, rules chips, BUSTED),
+your hand centre-stage and the turn indicator. Against it: the mutation
+treatments read as crude (a black slash through a card looks like a
+strike-through, not magic), the felt is flat, the opponents are silhouettes,
+the menu is a scrolling form, and stills showed layout blemishes (a spell's
+text running under the sticky "Answer it?", the MORE RULES chip over text, a
+hint toast over the ante bar).
+
+## Re-scored with the same rubric
+
+| # | Criterion | Round 5 | Now | Why |
+|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 8 | 7 | Over before the first Market 3% (1%), before ante 3 10% (5%), survived 3 antes 69% (80%), busted before the first Market 20% (14%). The phylactery still catches the first bust (99 runs). Cause: everyone now opens as the Unaligned, the thinnest opening (no relic, no signature sigils); in round 5 the Unaligned alone busted in the first ante 18% of the time against a 14% average. Round 4 scored 8 at 1% / 3% / 83%; round 3 scored 6 at 12% / 23% / 71%. |
+| 2 | The namesake shows up | 8 | 8 | Seen in 57% of runs (64%), one of your own 35% (37%). The first fell beyond noise, the second did not; round 4 scored 8 at 61% / 32%. Not 7: about one run in three still makes its own. Not 9: two in three do not. |
+| 3 | The run arc builds | 7 | 7 | Biggest pot in the last three hands 58% (49%), 29 bb at ante 7 (21). Better, by about what round 3's 7 rested on (56%, 19 bb), so not a full point. |
+| 4 | Covens play differently and deliver their pitch | 7 | 5 | There are no covens to play differently: the picker is off and every seat is the Unaligned, so every run opens the same way. That is less than round 3's 5 on the first half (covens existed then, and differed a little in outcome). On the second half nothing is promised any more (the store copy, the intro and the demo's pitch no longer sell covens), so the refund this criterion was written for, a coven that does not deliver, cannot happen, and the one creed left delivers (it fires 1.6 times a run). Read strictly on the first half it is a 4. |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | "Says what happened" is far better (the list above, and this round's Mirror and "was" fixes). Dead time is worse, by design: 44% of a run is not your decision (36%), 8.9 choices a minute (9.5), a run 8.0 minutes (7.4). One half up, one half down. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | First cast 4 s, first Market 100 s (92), an impossible hand inside the demo 40% (36%). The intro no longer points at a menu control that is not there. |
+| 7 | Builds have depth; relics are more than numbers | 8 | 7 | Relics are rules more than ever (10 of the 12 on the shelf; 85% of what a run buys), and the mythics now show (9-14% of runs own one, was 2.5%), which answers one of round 4's "not 9" reasons. But depth is what the criterion says first, and it fell hard: two runs now share a third of their relics (overlap 0.34, was 0.09), the spread of purchases is 3.42 bits (5.09), a real two-relic choice comes 2.5 times a run (3.3), and the sigils a run is built from went from 71 to 13. |
+| 8 | Presentation: art and feel | 7 | 7 | Held. The blind reviewer puts the UI pass about a point above round 5's build, and two points below round 5's reviewer in absolute terms; neither moves this number honestly. What would: an artist (portraits, a felt with life, card states that look like magic), and one listening pass. |
+| | **Mean** | **7.6 (8)** | **7.1 (7)** | 57 points; an 8 needs 60. |
+
+## Did the UI pass help or hurt?
+
+**Both, and on this rubric it hurt on balance: 7.6 to 7.1, the 8 lost.**
+
+- Helped: what the game says about itself. Criterion 5's second half and
+  criterion 8 are better by evidence (a blind reviewer, zero legibility
+  findings, the cards and showdown that explain the magic), and the rules
+  fixes (one betting round a street, a burn that stays burned) remove ways
+  an unexplained loss could read as cheating. Criterion 3 improved.
+- Hurt: the content cut and the covens switch, which arrived in the same
+  pass. They cost criterion 4 two points and criterion 7 one, and the
+  all-Unaligned opening costs criterion 1 one. Net -4 points against +0 that
+  moved a whole criterion up.
+
+Was the cut wrong? The rubric cannot say, and that matters: it measures
+depth and variety, and the cut traded both for a game two real players could
+follow. Their confusion is the strongest evidence this project has, and no
+harness here can weigh it. So this round reverses nothing.
+
+## What would earn the 8 back (not built: each is Mason's call)
+
+1. **Covens back as an unlock after the first run.** The first run stays the
+   simple, symmetric Unaligned table the playtest asked for; from the second
+   run the picker opens (bots stay Unaligned, so the table never plays
+   rulebooks you were not shown). It is the genre's own pattern (Balatro's
+   decks, Slay the Spire's characters). It speaks to criteria 4, 7 and 1 at
+   once: round 5's other covens opened safer than the Unaligned. One switch
+   and a profile check; the content is all still there.
+2. **Grow the pools one card at a time**, as cc8f6ea's own rule says
+   (ceilings 16 sigils, 12 omens, 16 relics), starting with relics: four more
+   on the shelf is the most direct lever on criterion 7.
+3. **A line for the five silent relics**, so the ledger and the rail say
+   when Gilt Edge or Wild Inheritance did something.
+4. As before, none of it code: the December playtest decides criterion 4
+   and whether "pick one" reads as a choice; an artist moves criterion 8.
+
+## Watch list from round 5, re-measured
+
+- **The Unaligned's win rate**: it is now the only coven, and wins 91 of
+  280 (32%), where round 5's Unaligned won 6 of 40 (15%) and the whole game
+  91 of 280. With every seat Unaligned the table is symmetric, and the fall
+  is gone. Nothing to adjust.
+- **The Unmoored's first ante**: the Unmoored is no longer dealt. The
+  table-wide figure that replaced it is criterion 1's: busted before the
+  first Market 20% (round 5: 14% across covens, 33% for the Unmoored), with
+  the phylactery catching it. A constant could soften it (a longer
+  phylactery, warmer bots); not changed, because the cause is the opening,
+  and proposal 1 addresses the opening.
+- **Mythic affordability**: answered by the pool cut, not by a price: two
+  mythics among twelve relics, owned in 9-14% of runs (round 5: 7 of 280 owned
+  a new one).
+
+No constant was changed this round: none had evidence of a fault a constant
+should fix rather than a design call.
+
+## Three simulated Steam reviews (after round 6)
+
+**The impatient refunder** · 0.9 hrs · Recommended
+
+> I could tell what was going on, which is not something I say about card
+> roguelites with spells. Every card says what was done to it when you hover,
+> the showdown shows the actual five cards, and when a guy copied a card it
+> said "was 7♥" underneath. Lost my first run in the second ante, the
+> phylactery brought me back. Bots are a bit slow.
+
+**The genre veteran** · 14 hrs · Not recommended (for now)
+
+> Clean and readable, and the impossible hands are real. But every run starts
+> the same, the shelf has twelve relics so by run five I had seen all of
+> them, and two runs share a third of their builds. The earlier builds people
+> talk about had covens; this one has a single opening. $9.99 for a tight
+> core, but I want the variety back before I put more hours in.
+
+**The Deck player** · 6 hrs · Recommended
+
+> Plays fine on a pad now: the d-pad gets to everything including the deck
+> and the Market's Done button. Text is readable at Deck size. Hints used to
+> grab the controller on the first hand; not any more. Typing on the blank
+> page is still the clumsy bit.
+
+## Verdict, round 6
+
+**Fun: 7/10 on the locked rubric (7.1; round 5 published 7.6, an 8).** The UI
+pass made the game clearer and better-looking by a point a blind reviewer
+could see, and the content cut that came with it cost more than that on a
+rubric that measures depth and variety. Every number is from simulated
+players and one blind reviewer.
+
+**Sellable at $9.99: yes, as a tight solo roguelite**, on the same conditions
+as before (no online play on the store page until Steam invites exist;
+commissioned capsule art). The store copy was rewritten this round to sell
+what the game now deals: 13 sigils, 9 omens, 12 relics, no covens.

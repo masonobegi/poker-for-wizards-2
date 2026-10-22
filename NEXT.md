@@ -1,10 +1,55 @@
-# NEXT: HEXHOLD after fun round 5 (2026-10-16)
+# NEXT: HEXHOLD after round 6 (2026-10-22)
 
-HEXHOLD ships first: Coming Soon by 20 Nov 2026, Next Fest demo 22 Feb 2027,
-release 8 Apr 2027. `main` is the line every build comes from;
-`steam-ready-2026-10-09` is kept equal to it.
+HEXHOLD ships first: Coming Soon by 20 Nov 2026, a Steam Playtest in
+December, the Next Fest demo 22 Feb - 1 Mar 2027 (register by 10 Jan),
+release 8 Apr 2027.
 
-## State
+**Branches.** Round 6 is on `steam-prep-2026-10-22`, pushed but **not merged
+into `main`**: a push to `main` builds the public web version on Railway
+(GitHub shows the Railway environment deploying every push since 17 Oct,
+including commits that were only on the `railway` branch, and `railway`
+equals `main`). Merging is Mason's call; `steam-ready-2026-10-09` still
+equals `main` at 35549b8.
+
+## State after round 6
+
+- **Fun 7/10 on the locked rubric (7.1; round 5 was 7.6, an 8)**
+  (`FUN-REVIEW.md`, round 6). The 2026-10-17..19 UI pass made the game
+  clearer and better-looking (a blind reviewer puts it about a point above
+  round 5's build), but the content cut that came with it (13 sigils, 9
+  omens, 12 relics; covens off) cost criteria 4, 7 and 1. Nothing was
+  reversed: the cut came from two real players' confusion.
+- **Fixed this round**: the demo dealt the Ashen to everyone; the intro and
+  the demo's pitch sold covens and cards that are not dealt; Mirror did not
+  copy marks and its copies never reverted; the style audit could not read
+  color-mix() and hid a 1.79:1 label and five off-palette colours; on a pad,
+  first-run hints trapped the d-pad, nothing below the fold was reachable
+  (the Market's Done), and B could not close the deck census or a pinned
+  omen. Fonts credited; rich presence text added.
+- **Built**: a Steam Playtest build with a feedback prompt; SteamPipe files
+  for the demo and playtest apps; the store copy rewritten for the current
+  game; an art brief for the capsules; five store screenshots and trailer
+  cut 4 on the current UI.
+- Code-side readiness: `STEAM-READY.md`.
+
+## Next steps, in order
+
+1. Mason: the Steamworks account, the $100 fee and the tax and bank
+   interviews now; commission the capsule artist (`steam/art/BRIEF.md`, art
+   needed by 13 Nov for a 20 Nov Coming Soon).
+2. Mason: decide on the covens (FUN-REVIEW round 6, "What would earn the 8
+   back"): bring them back as an unlock after the first run, grow the pools
+   a card at a time, or keep the single opening. This decides whether the
+   December playtest tests a 7 or an 8.
+3. Mason: merge `steam-prep-2026-10-22` into `main` when a web deploy of it
+   is wanted (it fixes the demo and the pad, and changes nothing about
+   hosting).
+4. Code, when wanted: a ledger line for the five relics that act silently at
+   the deal; a clean spell-stack store screenshot (`steam/screenshots/`).
+5. Mason, before the playtest: `PLAYTEST_FEEDBACK_URL`, the real-hardware
+   Deck and pad check, one listening pass with headphones.
+
+## State after round 5 (2026-10-16, kept for history)
 
 - **Fun 8/10 on the locked rubric, 7.6 with one point of margin**
   (`FUN-REVIEW.md`, round 5 at the end). This morning's build re-scored 7.5:
@@ -24,7 +69,7 @@ release 8 Apr 2027. `main` is the line every build comes from;
 - `npm test` 382 pass, typecheck clean; `npm run responsive` 7/7,
   `test/style.mjs`, `test/align.mjs` and `test/demo.mjs` pass on the new build.
 
-## Next steps, in order
+## Next steps after round 5 (kept for history)
 
 1. Mason: a closed playtest with real people (the December Steam Playtest).
    It decides whether the 8 holds: the creeds' feel, whether "pick one" reads
