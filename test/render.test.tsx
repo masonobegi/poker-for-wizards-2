@@ -837,5 +837,8 @@ test('the run that opens the later game says what is new; a later run\'s end scr
 
   const demo = await endScreen(endedRun(false, true));
   assert.match(demo, /3 are open in the demo, all 7 in the full game/);
-  assert.match(demo, /All 7 covens from your second run/, 'the demo pitch should say when covens open');
+  // Without the reveal, the demo's pitch is where the covens are said.
+  const demoLater = await endScreen(endedRun(true, true));
+  assert.doesNotMatch(demoLater, /New from your next run/);
+  assert.match(demoLater, /All 7 covens from your second run/, 'the demo pitch should say when covens open');
 });

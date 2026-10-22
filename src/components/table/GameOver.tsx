@@ -311,11 +311,13 @@ export default function GameOver({ view }: { view: TableView }) {
                   and no unlock this line promised "All 7 covens" that no
                   build offered (round 6). The covens open from the second
                   run since 2026-10-22 (COVENS_UNLOCK). */}
+              {/* With the reveal above it the covens are already said, and the
+                  wishlist button has to stay above the fold at 1280x800. */}
               {COVEN_CHOICE
                 ? <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
-                : COVENS_UNLOCK
+                : COVENS_UNLOCK && !reveal
                   ? <li>All {COVENS.length} covens from your second run, {MAX_HEX} hexes to climb, and a Daily Rite: the same seeded run for everyone.</li>
-                  : <li>{MAX_HEX} hexes to climb, each one harder, and a Daily Rite: the same seeded run for everyone.</li>}
+                  : <li>{MAX_HEX} hexes to climb, and a Daily Rite: the same seeded run for everyone.</li>}
               <li>{sigilPool(true).length} sigils, {relicPool(true).length} relics and {omenPool(true).length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>

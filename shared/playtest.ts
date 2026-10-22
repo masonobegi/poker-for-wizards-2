@@ -39,10 +39,16 @@ export const feedbackUrl = (
   return null;
 };
 
-/** The questions the December playtest is for (FUN-REVIEW.md round 5/6). */
+/**
+ * The questions the December playtest is for (FUN-REVIEW.md rounds 5 to 7).
+ * The covens open from the second run in the playtest build as in the full
+ * game (shared/unlock.ts), and only people can say whether that reads as a
+ * reward or as a wall: round 7's criterion 4 is held at 7 for want of it.
+ */
 export const PLAYTEST_ASKS: readonly string[] = [
   'Was there a moment you wanted to tell someone about?',
   'Did you know why you won or lost the hands that mattered?',
   'At the Market, did "pick one" feel like a choice or a loss?',
+  'From your second run: did the coven you picked change how you played?',
   'Would you play another run? Why, or why not?',
 ];
