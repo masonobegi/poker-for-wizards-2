@@ -213,12 +213,17 @@ export function attach(io: Server): Rooms {
     socket.on('room:leave', () => {
       const s = seat();
       const e = engine();
+      // Out of the room first. removePlayer broadcasts the table to the room,
+      // and while this socket was still in it holding its seat, it was sent a
+      // view of the table it had just left: the client, already on the menu,
+      // went back to the table screen with nobody in the chair, a blank
+      // screen ("Leave table" at the end of every run, until 2026-10-22).
+      socket.data.seat = undefined;
+      if (s) socket.leave(s.code);
       if (s && e) {
         e.removePlayer(s.playerId);
-        socket.leave(s.code);
         if (e.table.players.filter((p) => !p.isBot).length === 0) rooms.destroy(s.code);
       }
-      socket.data.seat = undefined;
     });
 
     socket.on('room:config', (p: unknown) => {

@@ -265,3 +265,40 @@ test('a table nobody is watching stops counting as active', async () => {
   tick();
   assert.ok(e.table.lastActivity > old, 'a table someone is at stays alive');
 });
+
+test('leaving a table sends the leaver nothing more, so the menu stays the menu', async () => {
+  // "Leave table" at the end of a run went to a blank screen: room:leave took
+  // the seat out of the table, the engine broadcast the change to the room,
+  // and the leaving socket was still in the room with its seat attached, so
+  // it was sent a view of a table it no longer sat at and the client went
+  // back to the table screen with nobody in the chair. Found 2026-10-22
+  // through the end screen's "Choose a coven", which is a way to leave.
+  const s = client();
+  const made = await emitAck<{ code: string; youId: string }>(s, 'room:create', { name: 'Leaver' });
+  await until(s, (v) => v.code === made.code);
+  s.emit('room:bot', { add: true });
+  await until(s, (v) => v.players.length === 2);
+  let after = 0;
+  s.on('table', () => { after += 1; });
+  s.emit('room:leave');
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(after, 0, 'the leaver was sent the table it just left');
+});
+
+test('a later run is honoured over the socket, and a first run is not', async () => {
+  // shared/unlock.ts: the client says it has finished a run; only then does
+  // the coven it asked for reach the seat.
+  const first = client();
+  const a = await emitAck<{ code: string; youId: string }>(first, 'room:create', { name: 'New', coven: 'loom' });
+  const va = await until(first, (v) => v.code === a.code);
+  assert.equal(va.players.find((p) => p.isYou)?.coven, 'unaligned');
+  assert.ok(!va.config.unlocked);
+
+  const later = client();
+  const b = await emitAck<{ code: string; youId: string }>(later, 'room:create', {
+    name: 'Back', coven: 'loom', config: { unlocked: true },
+  });
+  const vb = await until(later, (v) => v.code === b.code);
+  assert.equal(vb.players.find((p) => p.isYou)?.coven, 'loom');
+  assert.equal(vb.config.unlocked, true);
+});
