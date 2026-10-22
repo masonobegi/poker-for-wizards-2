@@ -84,7 +84,13 @@ export interface Profile {
 
 const MAX_DAYS = 30;
 
-const EMPTY: Profile = {
+/**
+ * A new, empty profile every time. It was one shared object, and `recordRun`
+ * adds to whatever `loadProfile` hands it, so the first run banked on an empty
+ * save was added to the constant itself: from then on "no save" read as a
+ * player with runs (found 2026-10-22, when the run count started to matter).
+ */
+const empty = (): Profile => ({
   runs: [],
   totals: {
     runs: 0, wins: 0, handsWon: 0, impossible: 0,
@@ -93,16 +99,16 @@ const EMPTY: Profile = {
   },
   covens: {},
   daily: {},
-};
+});
 
 export function loadProfile(): Profile {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return EMPTY;
+    if (!raw) return empty();
     const parsed = JSON.parse(raw) as Partial<Profile>;
     return {
       runs: Array.isArray(parsed.runs) ? parsed.runs : [],
-      totals: { ...EMPTY.totals, ...(parsed.totals ?? {}) },
+      totals: { ...empty().totals, ...(parsed.totals ?? {}) },
       // Profiles written before covens existed have no `covens` key, and a
       // save from a week ago must not throw away a week of runs.
       covens: Object.fromEntries(
@@ -111,7 +117,7 @@ export function loadProfile(): Profile {
       daily: { ...(parsed.daily ?? {}) },
     };
   } catch {
-    return EMPTY;
+    return empty();
   }
 }
 
