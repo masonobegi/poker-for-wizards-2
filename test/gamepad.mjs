@@ -10,6 +10,7 @@
  * Run: node test/gamepad.mjs
  */
 import { launch } from './browser.mjs';
+import { asLaterRun } from './ports.mjs';
 import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -24,6 +25,7 @@ const check = (ok, text) => (ok ? passes : fails).push(text);
 
 const browser = await launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); // Steam Deck
+await asLaterRun(ctx);
 const page = await ctx.newPage();
 
 page.on('pageerror', (e) => fails.push(`uncaught: ${String(e).slice(0, 160)}`));

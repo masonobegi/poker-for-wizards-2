@@ -37,6 +37,7 @@
  * Run: node test/style.mjs [width] [height]      (needs the client served)
  */
 import { launch } from './browser.mjs';
+import { asLaterRun } from './ports.mjs';
 
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
 const W = Number(process.argv[2] ?? 1280);
@@ -251,6 +252,7 @@ const NUDGE = { timeout: 1500 };
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+await asLaterRun(ctx);
 const page = await ctx.newPage();
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 await page.waitForTimeout(1800);

@@ -12,6 +12,7 @@
  * Run: node test/responsive.mjs [--headed]
  */
 import { launch } from './browser.mjs';
+import { LATER_RUN, asLaterRun } from './ports.mjs';
 import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -373,9 +374,26 @@ async function checkOwnCardsOnScreen(page) {
 
     const sigils = document.querySelectorAll('.rail-sigils .sigil');
     if (sigils.length === 0) out.push('no sigils rendered in .rail-sigils');
+    /* A long hand scrolls sideways by design (table.css `.rail-sigils`, "the
+       row scrolls exactly as it did" at six). Five sigils reach it at the
+       Electron minimum window: the Loom holds five from its first hand since
+       the covens open from the second run (HEXHOLD_LATER_RUN=1, 2026-10-22).
+       So a card outside the viewport is a failure only if the row itself is
+       off-screen or cannot be scrolled to show it; a scrolled row is put back. */
+    const row = document.querySelector('.rail-sigils');
+    const scrolls = !!row && row.scrollWidth > row.clientWidth + 2;
+    const rowRect = row?.getBoundingClientRect();
+    if (scrolls && rowRect && !within(rowRect)) out.push('the sigil row itself runs off-screen');
     for (const s of sigils) {
-      const r = s.getBoundingClientRect();
+      let r = s.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
+      if (!within(r) && scrolls && row && rowRect) {
+        const was = row.scrollLeft;
+        // Bring this card's right edge to the row's right edge.
+        row.scrollLeft = was + (r.right - rowRect.right) + 4;
+        r = s.getBoundingClientRect();
+        row.scrollLeft = was;
+      }
       if (!within(r)) out.push(`sigil card off-screen (${Math.round(r.left)},${Math.round(r.top)})..(${Math.round(r.right)},${Math.round(r.bottom)}) vs ${vw}x${vh}`);
     }
     return [...new Set(out)].slice(0, 12);
@@ -523,6 +541,7 @@ async function runResolution(browser, res) {
     deviceScaleFactor: zoom,
     reducedMotion: 'reduce',
   });
+  await asLaterRun(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => fail('page', [`uncaught error: ${String(e).slice(0, 200)}`]));
 
@@ -732,6 +751,7 @@ for (const res of RESOLUTIONS) {
 
 // --- final table -------------------------------------------------------
 console.log('\n\n══════════════════════════ RESPONSIVE REPORT ══════════════════════════');
+if (LATER_RUN) console.log('  as a later run (HEXHOLD_LATER_RUN=1): the coven picker on the menu, a coven at the table, the later pools');
 console.log(
   ['Resolution', 'Size', 'Menu', 'Table', 'Market', 'Showdown', 'Fails', 'Result']
     .map((h) => h.padEnd(12)).join(' '),

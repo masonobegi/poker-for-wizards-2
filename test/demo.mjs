@@ -2,10 +2,12 @@
  * The Next Fest demo, seen in a real browser: headless, muted, off-screen.
  *
  * `test/demo.test.ts` proves the server enforces the demo. This proves what a
- * Next Fest player sees: the menu (three covens open and four locked while
- * the picker exists, COVEN_CHOICE; no covens with it off), a
- * run that ends after DEMO_ANTES antes on the wishlist screen, and a bust
- * that says who did it. It serves the built demo (`npm run build:demo`) from
+ * Next Fest player sees: the menu (no covens on a first run; three covens
+ * open and four locked under the old picker, COVEN_CHOICE), a run that ends
+ * after DEMO_ANTES antes on the wishlist screen, and a bust that says who did
+ * it. Since 2026-10-22 (shared/unlock.ts) the first run's end screen says
+ * what the next run adds, the second run's does not, and the menu after a
+ * finished run offers the Unaligned and three covens, with four locked. It serves the built demo (`npm run build:demo`) from
  * its own server on a free port, so it never touches dist/ or a dev server.
  *
  * Two runs, at a quick pace (HEXHOLD_PACE): one that folds everything it
@@ -20,7 +22,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { launch } from './browser.mjs';
-import { covenChoice, freePort } from './ports.mjs';
+import { covenChoice, covensUnlock, freePort } from './ports.mjs';
 
 const args = process.argv.slice(2);
 const arg = (name, d) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : d; };
@@ -38,6 +40,9 @@ if (!existsSync('dist-server-demo/index.mjs') || !existsSync('dist-demo/index.ht
 const port = await freePort();
 // The picker can be off (COVEN_CHOICE): then the menu shows no covens at all.
 const PICKER = covenChoice();
+// The covens open after a finished run (COVENS_UNLOCK): the end screen may
+// then promise them, and the menu after a run shows them.
+const UNLOCK = !PICKER && covensUnlock();
 const env = { ...process.env, PORT: String(port), HOST: '127.0.0.1', CLIENT_DIR: path.resolve('dist-demo'), HEXHOLD_PACE: '30' };
 delete env.ELECTRON_RUN_AS_NODE;
 const server = spawn(process.execPath, ['dist-server-demo/index.mjs'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -214,7 +219,13 @@ if (survived !== null) {
   if (!/demo ends here/i.test(survived)) fail('a survived demo run does not say the demo ends there');
   if (!/In the full game/i.test(survived)) fail('no "In the full game" block on the demo end screen');
   // The pitch may only promise what the full game holds.
-  if (!PICKER && /covens/i.test(survived)) fail('the demo end screen promises covens the full game does not offer');
+  if (!PICKER && !UNLOCK && /covens/i.test(survived)) fail('the demo end screen promises covens the full game does not offer');
+  // The first run's end screen says what the next run adds, once.
+  if (UNLOCK) {
+    if (!(await visible(page, '.gameover-reveal'))) fail('the first demo run end screen does not say the covens open next run');
+    else if (!/open in the demo/i.test(survived)) fail('the reveal does not say how many covens the demo opens');
+    else notes.push(`reveal: ${(await page.locator('.gameover-reveal').innerText()).replace(/\s+/g, ' ')}`);
+  }
   if (!(await visible(page, '.gameover-actions button:has-text("Wishlist on Steam")'))) fail('no wishlist button on the end screen');
   await wishlistAboveFold(page, 'survive');
   if (!(await visible(page, 'button:has-text("Play the demo again")'))) fail('no "Play the demo again" button');
@@ -231,6 +242,31 @@ if (busted !== null) {
   // the one the phylactery broke on), so read them all, not one.
   else notes.push(`bust line: ${(await page.locator('.gameover-bust').allInnerTexts()).join(' | ').replace(/\s+/g, ' ')}`);
   await wishlistAboveFold(page, 'bust');
+  // "Play the demo again" made this a later run: no news a second time.
+  if (UNLOCK && await visible(page, '.gameover-reveal')) fail('the second run repeated the first run reveal');
+}
+
+// ---- the menu after a finished run ------------------------------------------
+if (UNLOCK) {
+  await clickIf(page, '.gameover-actions button:has-text("Leave table")');
+  for (let i = 0; i < 40 && !(await visible(page, '.menu-panel')); i++) await page.waitForTimeout(250);
+  await page.waitForTimeout(800);
+  await shot(page, '30-menu-after-a-run');
+  if (!(await visible(page, '.menu-panel'))) fail('"Leave table" at the end of a run did not reach the menu');
+  const after = await page.locator('.menu-coven').count();
+  const lockedAfter = await page.locator('.menu-coven.is-locked').count();
+  if (after !== 7) fail(`after a finished run the demo menu shows ${after} covens, expected 7`);
+  if (lockedAfter !== 3) fail(`after a finished run the demo menu locks ${lockedAfter} covens, expected 3 (the Unaligned and three are open)`);
+  if (await page.locator('.menu-coven.is-locked', { hasText: 'The Unaligned' }).count()) fail('the demo locked the Unaligned the first run was played as');
+  await page.locator('.menu-coven.is-locked').first().hover().catch(() => {});
+  await page.waitForTimeout(200);
+  const peek = await page.locator('.menu-covenpeek').first().innerText().catch(() => '');
+  if (!/full game/i.test(peek)) fail('pointing at a locked coven does not say it is in the full game');
+  for (const label of ['Play the Demo', 'Wishlist on Steam']) {
+    const box = await page.locator(`.menu-actions button:has-text("${label}")`).first().boundingBox().catch(() => null);
+    if (!box) fail(`no "${label}" on the menu after a run`);
+    else notes.push(`after a run, "${label}" sits at y=${Math.round(box.y + box.height)} of ${H}${box.y + box.height > H ? ' (scroll)' : ''}`);
+  }
 }
 
 await browser.close();

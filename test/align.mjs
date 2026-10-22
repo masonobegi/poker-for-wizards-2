@@ -37,6 +37,7 @@
  * Run: node test/align.mjs [width] [height]      (needs the client served)
  */
 import { launch } from './browser.mjs';
+import { asLaterRun } from './ports.mjs';
 
 const URL = process.env.HEXHOLD_URL ?? 'http://localhost:3001/';
 const SIZES = process.argv[2]
@@ -243,6 +244,7 @@ let soft = 0;
 
 for (const [W, H] of SIZES) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+  await asLaterRun(ctx);
   const page = await ctx.newPage();
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForTimeout(1600);

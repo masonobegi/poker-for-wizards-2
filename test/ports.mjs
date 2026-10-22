@@ -48,9 +48,42 @@ export async function freePorts(n) {
 
 export const freePort = async () => (await freePorts(1))[0];
 
+/**
+ * HEXHOLD_LATER_RUN=1: run a browser harness as a player past their first run
+ * (shared/unlock.ts). Seeds a profile with one finished run before any page
+ * code runs, so the menu shows the coven picker, and picks HEXHOLD_LATER_COVEN
+ * (default the Loom, whose five-sigil hand is the widest rail any coven
+ * deals), so the table, the rules tab and the Market are the later game's.
+ * Without it a harness is a brand-new player on their first run, as before.
+ */
+export const LATER_RUN = process.env.HEXHOLD_LATER_RUN === '1';
+
+export async function asLaterRun(ctx, coven = process.env.HEXHOLD_LATER_COVEN ?? 'loom') {
+  if (!LATER_RUN) return;
+  await ctx.addInitScript((c) => {
+    try {
+      if (!localStorage.getItem('hexhold.profile')) {
+        localStorage.setItem('hexhold.profile', JSON.stringify({
+          runs: [], covens: {}, daily: {},
+          totals: { runs: 1, wins: 0, handsWon: 0, impossible: 0, bestCat: -1, bestHand: '', deepestAnte: 1, omensSeen: [], relicsOwned: [] },
+        }));
+        localStorage.setItem('hexhold.coven', c);
+      }
+    } catch { /* private mode: the harness then measures a first run */ }
+  }, coven);
+}
+
 export function covenChoice() {
   const src = readFileSync(path.join(root, 'shared', 'covens.ts'), 'utf8');
   const m = /export const COVEN_CHOICE\s*=\s*(true|false)/.exec(src);
   if (!m) throw new Error('COVEN_CHOICE not found in shared/covens.ts');
+  return m[1] === 'true';
+}
+
+/** Whether the covens open from the second run (COVENS_UNLOCK in shared/covens.ts). */
+export function covensUnlock() {
+  const src = readFileSync(path.join(root, 'shared', 'covens.ts'), 'utf8');
+  const m = /export const COVENS_UNLOCK\s*=\s*(true|false)/.exec(src);
+  if (!m) throw new Error('COVENS_UNLOCK not found in shared/covens.ts');
   return m[1] === 'true';
 }
