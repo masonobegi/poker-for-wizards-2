@@ -14,11 +14,12 @@ import { centerOf, confetti, elementForSeat, flash, slowmo, vignette } from '@/l
 import { useReducedMotionPref } from '@/components/fx/useReducedMotionPref';
 import { Mark } from '@/art/marks';
 import { HEXES, MAX_HEX } from '@shared/hexes';
-import { COVENS, COVEN_CHOICE, covenOf } from '@shared/covens';
-import { DEMO_ANTES } from '@shared/demo';
-import { POOL as SIGIL_POOL } from '@shared/sigils';
-import { RELIC_POOL } from '@shared/relics';
-import { OMEN_POOL } from '@shared/omens';
+import { COVENS, COVEN_CHOICE, COVENS_UNLOCK, covenOf } from '@shared/covens';
+import { DEMO_ANTES, DEMO_COVENS } from '@shared/demo';
+import { UNLOCKED_SIGIL_IDS, sigilPool } from '@shared/sigils';
+import { UNLOCKED_RELIC_IDS, relicPool } from '@shared/relics';
+import { UNLOCKED_OMEN_IDS, omenPool } from '@shared/omens';
+import { isUnlocked } from '@/components/profile/profile';
 import { openWishlist } from '@/lib/demo';
 import { openFeedback, playtestFeedback } from '@/lib/playtest';
 import { PLAYTEST_ASKS } from '@shared/playtest';
@@ -29,7 +30,7 @@ const MAX_WAIT_MS = 4500;
 
 export default function GameOver({ view }: { view: TableView }) {
   const isHost = useIsHost();
-  const { startGame, leave } = useGame();
+  const { dealAgain, leave } = useGame();
   const reduced = useReducedMotionPref();
 
   // Let the end-of-run banner have the screen first, then take it. Polled
@@ -96,6 +97,12 @@ export default function GameOver({ view }: { view: TableView }) {
   // Only in the Steam Playtest build, and only with somewhere to send it.
   const feedback = playtestFeedback();
   const busted = me?.bustedBy;
+  // The run that opens the later game (shared/unlock.ts): it was played at a
+  // first-run table, and a finished run is all the unlock asks for, so the
+  // next run is a later one. Said here, once, while the player is deciding
+  // whether to play again. With every switch off there is nothing to say.
+  const newCards = UNLOCKED_SIGIL_IDS.length + UNLOCKED_OMEN_IDS.length + UNLOCKED_RELIC_IDS.length;
+  const reveal = !!me && !view.config.unlocked && !COVEN_CHOICE && (COVENS_UNLOCK || newCards > 0);
 
   const standings = (
     <ul className="gameover-board">
@@ -257,6 +264,37 @@ export default function GameOver({ view }: { view: TableView }) {
           </motion.div>
         ) : null}
 
+        {reveal ? (
+          <motion.div
+            className="gameover-reveal"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <p className="gameover-runlabel">New from your next run</p>
+            <p className="gameover-revealtext">
+              {COVENS_UNLOCK ? (
+                <>
+                  <strong>Covens.</strong>{' '}
+                  {demo
+                    ? `Pick one on the menu: ${DEMO_COVENS.length} are open in the demo, all ${COVENS.length} in the full game. `
+                    : `Pick one of ${COVENS.length} on the menu. `}
+                  Each opens with its own sigils, a relic and a rule of its own.
+                </>
+              ) : null}
+              {newCards > 0 ? (
+                <>
+                  {' '}{UNLOCKED_SIGIL_IDS.length} sigils, {UNLOCKED_OMEN_IDS.length} omens
+                  and {UNLOCKED_RELIC_IDS.length} relics join the deck.
+                </>
+              ) : null}
+            </p>
+            {COVENS_UNLOCK ? (
+              <Button size="sm" onClick={leave}>Choose a coven</Button>
+            ) : null}
+          </motion.div>
+        ) : null}
+
         {demo ? null : standings}
 
         {demo ? (
@@ -270,12 +308,15 @@ export default function GameOver({ view }: { view: TableView }) {
             <ul>
               <li>The run goes on, ante after ante, under a rulebook that keeps growing.</li>
               {/* Only what the full game really holds: with the picker off
-                  (COVEN_CHOICE) this line promised "All 7 covens" that no
-                  build offered. */}
+                  and no unlock this line promised "All 7 covens" that no
+                  build offered (round 6). The covens open from the second
+                  run since 2026-10-22 (COVENS_UNLOCK). */}
               {COVEN_CHOICE
                 ? <li>All {COVENS.length} covens, each with {MAX_HEX} hexes to climb, and a Daily Rite.</li>
-                : <li>{MAX_HEX} hexes to climb, each one harder, and a Daily Rite: the same seeded run for everyone.</li>}
-              <li>{SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics and {OMEN_POOL.length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
+                : COVENS_UNLOCK
+                  ? <li>All {COVENS.length} covens from your second run, {MAX_HEX} hexes to climb, and a Daily Rite: the same seeded run for everyone.</li>
+                  : <li>{MAX_HEX} hexes to climb, each one harder, and a Daily Rite: the same seeded run for everyone.</li>}
+              <li>{sigilPool(true).length} sigils, {relicPool(true).length} relics and {omenPool(true).length} omens, and the late ones a demo never reaches: past ante {DEMO_ANTES} a rank leaves the game, then the worst hand wins.</li>
               <li>Five of a Kind, Flush House and Flush Five: hands a real deck can&rsquo;t make.</li>
             </ul>
           </motion.div>
@@ -305,7 +346,7 @@ export default function GameOver({ view }: { view: TableView }) {
             </Button>
           ) : null}
           {isHost ? (
-            <Button tone={demo ? 'default' : 'primary'} size={demo ? 'md' : 'lg'} display={!demo} block onClick={startGame}>
+            <Button tone={demo ? 'default' : 'primary'} size={demo ? 'md' : 'lg'} display={!demo} block onClick={() => dealAgain(isUnlocked())}>
               {demo ? 'Play the demo again' : 'Deal again'}
             </Button>
           ) : (

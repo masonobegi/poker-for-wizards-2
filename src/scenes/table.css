@@ -3723,6 +3723,29 @@
 }
 .gameover-bust strong { color: var(--text); font-weight: 700; }
 
+/* The run that opened the later game (shared/unlock.ts): what the next run
+   adds, said once, where the player decides whether to play again. A gold
+   edge on the panel's own plate, so it reads as news and not as a stat. */
+.gameover-reveal {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  border: 2px solid var(--gold-deep);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+}
+.gameover-reveal .gameover-runlabel { margin: 0; color: var(--gold); }
+.gameover-revealtext {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  text-align: center;
+  max-width: 50ch;
+}
+.gameover-revealtext strong { color: var(--text); font-weight: 700; }
+
 /* The demo's last panel: what the full game holds, above the wishlist button. */
 .gameover-fullgame {
   width: 100%;

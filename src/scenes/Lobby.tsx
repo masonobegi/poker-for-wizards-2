@@ -172,7 +172,7 @@ export default function Lobby() {
       </div>
 
       <Modal open={codex} onClose={() => setCodex(false)}>
-        <Codex onClose={() => setCodex(false)} />
+        <Codex unlocked={!!view.config.unlocked} onClose={() => setCodex(false)} />
       </Modal>
 
       <Modal open={tuning} onClose={() => setTuning(false)}>

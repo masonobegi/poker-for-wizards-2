@@ -18,7 +18,7 @@ import type { PlayerView, TableView } from '@shared/types';
 import { OMEN_BY_ID } from '@shared/omens';
 import { RELIC_BY_ID } from '@shared/relics';
 import { RANK_NAME, rankPlural } from '@shared/cards';
-import { COVEN_CHOICE } from '@shared/covens';
+import { COVEN_CHOICE, DEFAULT_COVEN, covenOf } from '@shared/covens';
 import { Mark } from '@/art/marks';
 import ScrollMore from '@/components/ui/ScrollMore';
 
@@ -105,20 +105,30 @@ function yourRules(view: TableView, me: PlayerView): Rule[] {
     const r = RELIC_BY_ID[id];
     if (!r) continue;
     /* "How did this happen? I don't ever remember this" — about The Last
-       Word, which arrives with the coven everybody now plays (COVEN_CHOICE
-       is off), so nobody chose it and nothing said where it came from. It is
-       a rule of the table now, so it says so. */
-    if (r.coven && !COVEN_CHOICE) {
+       Word, which arrives with the coven everybody plays on a first run
+       (COVEN_CHOICE is off), so nobody chose it and nothing said where it
+       came from. It is a rule of the table, so it says so. On a later run
+       (shared/unlock.ts) the bots are still Unaligned, so it is still every
+       seat's but the player's own coven, if they picked another, says whose
+       creed it is. */
+    if (r.coven === DEFAULT_COVEN && !COVEN_CHOICE) {
       out.push({
         key: `creed:${id}`,
         from: 'Every seat',
         title: r.name,
-        text: `${r.text} Nobody picked this: with the covens gone it is simply how this table plays, for everyone.`,
+        text: view.config.unlocked
+          ? `${r.text} The Unaligned's creed: every bot at this table plays it too.`
+          : `${r.text} Nobody picked this: with the covens gone it is simply how this table plays, for everyone.`,
         tone: 'good',
       });
       continue;
     }
-    out.push({ key: `relic:${id}`, from: r.coven ? 'Creed' : 'Relic', title: r.name, text: r.text });
+    out.push({
+      key: `relic:${id}`,
+      from: r.coven ? 'Creed' : 'Relic',
+      title: r.name,
+      text: r.coven ? `${r.text} The creed of ${covenOf(r.coven).name}, for the whole run.` : r.text,
+    });
   }
 
   if (me.warded) out.push({ key: 'warded', from: 'This hand', title: 'Warded', text: 'No sigil can target you or your cards.', tone: 'good' });

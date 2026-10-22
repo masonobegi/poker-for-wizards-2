@@ -487,7 +487,7 @@ export default function GameTable() {
       </AnimatePresence>
 
       <Modal open={codex} onClose={() => setCodex(false)}>
-        <Codex onClose={() => setCodex(false)} />
+        <Codex unlocked={!!view.config.unlocked} onClose={() => setCodex(false)} />
       </Modal>
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />

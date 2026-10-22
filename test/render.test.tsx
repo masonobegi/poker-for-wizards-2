@@ -771,3 +771,71 @@ test('the trailer recorder hears every sound the game asks for, and nothing list
   playSfx('card_flip');
   assert.deepEqual(heard, [['sfx', 'card_deal', 0.5], ['music', 'table', undefined]]);
 });
+
+// ------------------------------------------------- covens as unlock (2026-10-22)
+
+/** A finished run's end screen, for the player at a first-run or later table. */
+function endedRun(unlocked: boolean, demo = false): unknown {
+  return {
+    code: 'UNLK', phase: 'gameover', handNumber: 9, ante: 3, omens: [], winnerId: 'b1',
+    demoComplete: demo, youId: 'p1', hostId: 'p1',
+    config: { hex: 1, ...(unlocked ? { unlocked: true } : {}), ...(demo ? { demoAntes: 3 } : {}) },
+    players: [
+      { id: 'p1', isYou: true, name: 'You', chips: 0, handsWon: 2, relics: ['creed_last_word'], avatar: 'a',
+        isBot: false, eliminated: true, coven: 'unaligned', biggestPot: 0 },
+      { id: 'b1', isYou: false, name: 'Bot', chips: 80000, handsWon: 7, relics: [], avatar: 'b',
+        isBot: true, eliminated: false, coven: 'unaligned', biggestPot: 0 },
+    ],
+  };
+}
+
+async function endScreen(view: unknown): Promise<string> {
+  const GameOver = (await import('../src/components/table/GameOver')).default;
+  const { act } = await import('react');
+  const { root } = await mount(<GameOver view={view as never} />);
+  // It waits for the end-of-run banner before it takes the screen (polled).
+  await act(async () => { await new Promise((r) => setTimeout(r, 400)); });
+  return root.textContent ?? '';
+}
+
+test('a first run\'s menu asks nothing: no coven picker', async () => {
+  // clearProfile, not only localStorage.clear(): the runs this file banked
+  // above also count as finished in this session (profile.ts runsFinished).
+  (await import('../src/components/profile/profile')).clearProfile();
+  localStorage.clear();
+  const Menu = (await import('../src/scenes/Menu')).default;
+  const { root } = await mount(<Menu />);
+  assert.equal(root.querySelectorAll('.menu-coven').length, 0, 'a new player was asked to pick a coven');
+  assert.match(root.textContent ?? '', /13 sigils, 12 relics/, 'the Codex link counts the first run\'s pools');
+});
+
+test('after one finished run, the menu offers all seven covens and the larger pools', async () => {
+  const { clearProfile, recordRun } = await import('../src/components/profile/profile');
+  clearProfile();
+  recordRun({
+    at: 1, placement: 3, players: 4, handsWon: 1, antesSurvived: 2, bestHand: 'Pair', bestCat: 1,
+    impossible: 0, omens: [], relics: [], coven: 'unaligned', won: false, hex: 1,
+  });
+  const Menu = (await import('../src/scenes/Menu')).default;
+  const { root } = await mount(<Menu />);
+  assert.equal(root.querySelectorAll('.menu-coven').length, 7);
+  assert.equal(root.querySelectorAll('.menu-coven.is-locked').length, 0, 'the full game locks no coven');
+  assert.ok(root.querySelector('[role="radiogroup"][aria-label="Choose your coven"]'));
+  assert.match(root.textContent ?? '', /16 sigils, 16 relics/);
+  clearProfile();
+});
+
+test('the run that opens the later game says what is new; a later run\'s end screen does not', async () => {
+  const first = await endScreen(endedRun(false));
+  assert.match(first, /New from your next run/);
+  assert.match(first, /Pick one of 7 on the menu/);
+  assert.match(first, /3 sigils, 3 omens and 4 relics join the deck/);
+  assert.match(first, /Choose a coven/);
+
+  const later = await endScreen(endedRun(true));
+  assert.doesNotMatch(later, /New from your next run/, 'every later run repeated the news');
+
+  const demo = await endScreen(endedRun(false, true));
+  assert.match(demo, /3 are open in the demo, all 7 in the full game/);
+  assert.match(demo, /All 7 covens from your second run/, 'the demo pitch should say when covens open');
+});

@@ -6,10 +6,11 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button, Badge } from '@/components/ui/kit';
-import { SCHOOLS, POOL as SIGIL_POOL, RARITY_COLOR, type School } from '@shared/sigils';
-import { CREEDS, RELIC_POOL, RELIC_RARITY_COLOR } from '@shared/relics';
+import { SCHOOLS, RARITY_COLOR, sigilPool, type School } from '@shared/sigils';
+import { CREEDS, RELIC_RARITY_COLOR, relicPool } from '@shared/relics';
 import { covenOf } from '@shared/covens';
-import { OMEN_POOL } from '@shared/omens';
+import { omenPool } from '@shared/omens';
+import { isUnlocked } from '@/components/profile/profile';
 import { MARKS } from '@shared/cards';
 import { ACHIEVEMENTS } from '@shared/achievements';
 import { earned } from '@/lib/achievements';
@@ -20,13 +21,22 @@ import { ENTER } from '@/styles/motion';
 
 type Tab = 'sigils' | 'relics' | 'omens' | 'marks' | 'rules' | 'feats';
 
-export default function Codex({ onClose }: { onClose: () => void }) {
+/**
+ * `unlocked`: list the later runs' pools (shared/unlock.ts). At a table, the
+ * table's own (view.config.unlocked); elsewhere, whether this player has
+ * finished a run. A first-run player reads the first run's cards only.
+ */
+export default function Codex({ onClose, unlocked }: { onClose: () => void; unlocked?: boolean }) {
   const [tab, setTab] = useState<Tab>('rules');
   const [school, setSchool] = useState<School | 'all'>('all');
+  const [later] = useState(() => unlocked ?? isUnlocked());
+  const SIGIL_POOL = sigilPool(later);
+  const RELIC_POOL = relicPool(later);
+  const OMEN_POOL = omenPool(later);
 
   const sigils = useMemo(
     () => (school === 'all' ? SIGIL_POOL : SIGIL_POOL.filter((s) => s.school === school)),
-    [school],
+    [school, SIGIL_POOL],
   );
 
   return (

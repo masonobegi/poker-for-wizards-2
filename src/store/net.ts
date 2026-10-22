@@ -108,6 +108,12 @@ interface GameStore {
   setConfig(patch: Partial<RoomConfig>): void;
   setReady(ready: boolean): void;
   startGame(): void;
+  /**
+   * "Deal again" from the end of a run. `unlocked` when this player has now
+   * finished a run, so the next one at this table is a later run (the run
+   * that just ended may have been the one that opened it).
+   */
+  dealAgain(unlocked: boolean): void;
   addBot(add: boolean): void;
   kick(playerId: string): void;
 
@@ -274,6 +280,10 @@ export const useGame = create<GameStore>((set, get) => ({
   setConfig(patch) { get().socket?.emit('room:config', patch); },
   setReady(ready) { get().socket?.emit('room:ready', { ready }); },
   startGame() { get().socket?.emit('room:start'); },
+  dealAgain(unlocked) {
+    if (unlocked) get().socket?.emit('room:start', { unlocked: true });
+    else get().socket?.emit('room:start');
+  },
   addBot(add) { get().socket?.emit('room:bot', { add }); },
   kick(playerId) { get().socket?.emit('room:kick', { playerId }); },
 

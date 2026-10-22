@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, Field, Modal } from '@/components/ui/kit';
 import { readName, useGame } from '@/store/net';
-import { SCHOOLS, POOL as SIGIL_POOL } from '@shared/sigils';
+import { SCHOOLS, sigilPool } from '@shared/sigils';
 import type { BotSkill, TableSpeed } from '@shared/types';
-import { RELIC_POOL } from '@shared/relics';
+import { relicPool } from '@shared/relics';
 import Codex from '@/components/Codex';
 import SettingsPanel from '@/components/SettingsPanel';
 import IntroFlow, { hasSeenIntro } from '@/components/onboarding/IntroFlow';
@@ -18,11 +18,11 @@ import { appVersion } from '@/components/shell/version';
 import './menu.css';
 import { EASE_OUT } from '@/styles/motion';
 import { Mark } from '@/art/marks';
-import { COVENS, COVEN_CHOICE, DEFAULT_COVEN, covenOf, creedOf } from '@shared/covens';
+import { COVENS, COVEN_CHOICE, DEFAULT_COVEN, covenOf, covensOpen, creedOf } from '@shared/covens';
 import { RELIC_BY_ID } from '@shared/relics';
-import { loadProfile } from '@/components/profile/profile';
+import { isUnlocked, loadProfile } from '@/components/profile/profile';
 import { DAILY_HEX, HEXES, dailyCoven, dailySeed, dayKey } from '@shared/hexes';
-import { DEMO_ANTES, DEMO_COVENS, demoCoven } from '@shared/demo';
+import { DEMO_ANTES, DEMO_COVENS, demoCoven, demoOpen, demoOpenCoven } from '@shared/demo';
 import { IS_DEMO, openWishlist } from '@/lib/demo';
 import { IS_PLAYTEST, openFeedback, playtestFeedback } from '@/lib/playtest';
 
@@ -115,17 +115,24 @@ export default function Menu() {
   const [name, setName] = useState(() => readName());
   const [code, setCode] = useState('');
   const [codex, setCodex] = useState(false);
+  // A player who has finished a run gets the later game (shared/unlock.ts):
+  // the coven picker, and the larger pools. Read when the menu opens, which
+  // is every time a run is left, so the run that unlocked it counts.
+  const [unlocked] = useState(() => isUnlocked());
+  const picker = covensOpen(unlocked);
   // The run's opening decision, remembered between sessions so a player who
   // has found the one they like does not re-pick it every time.
   const [coven, setCoven] = useState<string>(() => {
-    // Covens are off (COVEN_CHOICE): a run saved under the picker must not
-    // start as a coven the player can no longer see, and the Hex ladder is
-    // kept per coven, so this has to be the same id every time.
-    if (!COVEN_CHOICE) return DEFAULT_COVEN;
+    // A first run has no picker: a pick saved by an older build must not
+    // start a coven the player cannot see, and the Hex ladder is kept per
+    // coven, so this has to be the same id every time.
+    if (!picker) return DEFAULT_COVEN;
     let id = DEFAULT_COVEN;
     try { id = localStorage.getItem('hexhold.coven') ?? DEFAULT_COVEN; } catch { /* private mode */ }
-    // The demo opens three covens; anything else falls back to the first.
-    return IS_DEMO ? demoCoven(id) : id;
+    // The demo opens three covens (and, since the unlock, the Unaligned);
+    // anything else falls back.
+    if (!IS_DEMO) return id;
+    return COVEN_CHOICE ? demoCoven(id) : demoOpenCoven(id);
   });
   // Re-read on every pick so the record under the blurb is the real one, not
   // whatever it was when the menu mounted.
@@ -156,13 +163,13 @@ export default function Menu() {
     label: h.name.replace('Hex ', ''),
     blurb: `${h.name}. ${h.text}${h.level > 1 ? ' Every hex below it still applies.' : ''}`,
     locked: h.level > openHex
-      ? `Win a run at Hex ${HEXES[h.level - 2].name.replace('Hex ', '')}${COVEN_CHOICE ? ` as ${covenOf(coven).name}` : ''} to open this.`
+      ? `Win a run at Hex ${HEXES[h.level - 2].name.replace('Hex ', '')}${picker ? ` as ${covenOf(coven).name}` : ''} to open this.`
       : undefined,
   }));
 
   // The Daily Rite: the same seeded table for everyone today.
   const today = dayKey();
-  const todayCoven = covenOf(dailyCoven(today));
+  const todayCoven = covenOf(dailyCoven(today, unlocked));
   const todayBest = profile.daily[today];
 
   const [settings, setSettings] = useState(false);
@@ -193,7 +200,8 @@ export default function Menu() {
   const canHost = trimmed.length > 0 && connected && !joining;
   const canJoin = canHost && code.trim().length === 4;
 
-  const host = async () => { if (canHost) await createRoom(trimmed); };
+  // A hosted table deals the host's pools; nobody at it has picked a coven.
+  const host = async () => { if (canHost) await createRoom(trimmed, unlocked ? { unlocked: true } : undefined); };
   const join = async () => { if (canJoin) await joinRoom(code.trim(), trimmed); };
 
   /**
@@ -212,8 +220,8 @@ export default function Menu() {
     try {
       const code = await createRoom(
         trimmed || 'Adept',
-        { maxPlayers: 4, private: true, botSkill: skill, speed, hex },
-        coven,
+        { maxPlayers: 4, private: true, botSkill: skill, speed, hex, ...(unlocked ? { unlocked: true } : {}) },
+        picker ? coven : DEFAULT_COVEN,
       );
       if (!code) return;
       addBot(true);
@@ -234,7 +242,7 @@ export default function Menu() {
         trimmed || 'Adept',
         {
           maxPlayers: 4, private: true, botSkill: 'adept', speed,
-          hex: DAILY_HEX, seed: dailySeed(today),
+          hex: DAILY_HEX, seed: dailySeed(today), ...(unlocked ? { unlocked: true } : {}),
         },
         todayCoven.id,
       );
@@ -292,11 +300,11 @@ export default function Menu() {
                 run again.
               </p>
 
-              {/* The run used to open on a choice between seven covens. See
-                  COVEN_CHOICE in shared/covens.ts: the first screen of a game
-                  nobody has played before should not be a thirty-rule decision.
-                  Turn the flag on and this comes back as it was. */}
-              {COVEN_CHOICE ? (
+              {/* No picker on a first run: the first screen of a game nobody
+                  has played before should not be a thirty-rule decision
+                  (cc8f6ea). From the second run it is back (COVENS_UNLOCK in
+                  shared/covens.ts, shared/unlock.ts). */}
+              {picker ? (
                 <>
                 {/* The coven picker. This is the first decision of a run and it
                     sits directly above the button that starts one, because a
@@ -304,9 +312,9 @@ export default function Menu() {
                     them never make. */}
                 <div className="menu-covens" role="radiogroup" aria-label="Choose your coven">
                   {COVENS.map((c) => {
-                    // In the demo the other four are shown, locked: a demo
-                    // should show the shape of what it is holding back.
-                    const locked = IS_DEMO && !DEMO_COVENS.includes(c.id);
+                    // In the demo the rest are shown, locked: a demo should
+                    // show the shape of what it is holding back.
+                    const locked = IS_DEMO && !(COVEN_CHOICE ? DEMO_COVENS.includes(c.id) : demoOpen(c.id));
                     return (
                     <button
                       key={c.id}
@@ -409,7 +417,7 @@ export default function Menu() {
                 {IS_DEMO ? null : (<>
                 <Button size="md" block disabled={!connected || practicing}
                   onClick={() => void daily()}>
-                  Daily Rite{COVEN_CHOICE ? <> &mdash; {todayCoven.name}</> : null}
+                  Daily Rite{picker ? <> &mdash; {todayCoven.name}</> : null}
                 </Button>
                 <p className="menu-practicenote">
                   Today&rsquo;s table, the same for everyone: one coven, Hex {HEXES[DAILY_HEX - 1].name.replace('Hex ', '')}, every deal and omen fixed.
@@ -465,7 +473,7 @@ export default function Menu() {
                   How this works
                 </Button>
                 <Button tone="ghost" size="sm" onClick={() => setCodex(true)}>
-                  Codex &mdash; {SIGIL_POOL.length} sigils, {RELIC_POOL.length} relics
+                  Codex &mdash; {sigilPool(unlocked).length} sigils, {relicPool(unlocked).length} relics
                 </Button>
                 <Button tone="ghost" size="sm" onClick={() => setSettings(true)}>
                   Settings
@@ -565,7 +573,7 @@ export default function Menu() {
       <ScrollMore target={innerRef} className="scrollmore--aside" />
 
       <Modal open={codex} onClose={() => setCodex(false)}>
-        <Codex onClose={() => setCodex(false)} />
+        <Codex unlocked={unlocked} onClose={() => setCodex(false)} />
       </Modal>
       <Modal open={settings} onClose={() => setSettings(false)}>
         <SettingsPanel onClose={() => setSettings(false)} />
@@ -616,7 +624,7 @@ function MenuBackdrop() {
       accent: s.accent,
       // One sigil per school, drifting behind the menu. It is the real mark
       // from the real school, not a decorative asterisk.
-      sigil: SIGIL_POOL.find((g) => g.school === s.id),
+      sigil: sigilPool(false).find((g) => g.school === s.id),
       left: `${8 + (i * 15.5) % 84}%`,
       top: `${12 + ((i * 37) % 70)}%`,
       delay: i * 2.4,

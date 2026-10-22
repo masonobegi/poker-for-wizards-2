@@ -1,7 +1,7 @@
 /**
  * The first-run "How this works" flow.
  *
- * Seven panels (eight with the coven picker on), each making exactly one point, built from the real `Card`
+ * Seven panels (eight once the coven picker is on the menu), each making exactly one point, built from the real `Card`
  * component and sigil data rather than screenshots or prose. Shown
  * automatically the first time the game is opened (see `hasSeenIntro` /
  * `markIntroSeen`, backed by `localStorage['hexhold.seenIntro']`) and
@@ -23,7 +23,8 @@ import {
 import './onboarding.css';
 import { EASE_OUT, ENTER, T_REDUCED } from '@/styles/motion';
 import { Mark } from '@/art/marks';
-import { COVEN_CHOICE, covenOf } from '@shared/covens';
+import { covenOf, covensOpen } from '@shared/covens';
+import { isUnlocked } from '@/components/profile/profile';
 import { SCHOOLS } from '@shared/sigils';
 
 // ---------------------------------------------------------------------------
@@ -181,7 +182,7 @@ interface Panel {
   Visual: ComponentType;
 }
 
-const PANELS: Panel[] = [
+const BASE_PANELS: Panel[] = [
   {
     id: 'holdem',
     kicker: 'First things first',
@@ -231,17 +232,24 @@ const PANELS: Panel[] = [
     body: 'Blinds climb every few hands. Between antes, the Market opens — spend shards on sigils, relics, and rites that carry into the rest of the run.',
     Visual: ShopVisual,
   },
-  // Only while there is a picker on the menu to point at (COVEN_CHOICE). From
-  // cc8f6ea to 2026-10-22 this panel told every new player to "choose one on
-  // the menu" from seven covens the menu no longer showed.
-  ...(COVEN_CHOICE ? [{
-    id: 'coven',
-    kicker: 'Before the first hand',
-    title: 'Pick who you sat down as.',
-    body: 'Seven covens, each opening with its own sigils and a relic you keep all run. The Ashen burn things and get paid for folding; the Quiet can read a rival’s hand and always see the next card coming. Choose one on the menu — the bots will.',
-    Visual: CovenVisual,
-  }] : []),
 ];
+
+/**
+ * Only while there is a picker on the menu to point at: from the second run
+ * (shared/unlock.ts). From cc8f6ea to 2026-10-22 this panel told every new
+ * player to "choose one on the menu" from seven covens the menu did not show.
+ * A first-run player is shown the seven panels above and nothing more: the
+ * covens are news for later, and the run-end screen is where it is told.
+ */
+const COVEN_PANEL: Panel = {
+  id: 'coven',
+  kicker: 'Before the next hand',
+  title: 'Pick who you sat down as.',
+  body: 'Seven covens, each opening with its own sigils, a relic you keep all run and a rule of its own. The Ashen burn things and get paid for folding; the Quiet see a rival’s card when they bet. Choose one on the menu. The bots stay Unaligned.',
+  Visual: CovenVisual,
+};
+
+const panelsFor = (covens: boolean): Panel[] => (covens ? [...BASE_PANELS, COVEN_PANEL] : BASE_PANELS);
 
 /**
  * Three covens, drawn the way the menu draws them. The point of the panel is
@@ -276,6 +284,8 @@ export interface IntroFlowProps {
 export default function IntroFlow({ open, onClose }: IntroFlowProps) {
   const [index, setIndex] = useState(0);
   const reduced = useReducedMotionPref();
+  // Read when the flow opens: the menu reopens it after a run has unlocked.
+  const PANELS = useMemo(() => panelsFor(covensOpen(isUnlocked())), [open]);
 
   useEffect(() => { if (open) setIndex(0); }, [open]);
 
@@ -286,9 +296,10 @@ export default function IntroFlow({ open, onClose }: IntroFlowProps) {
 
   const last = index === PANELS.length - 1;
 
+  const count = PANELS.length;
   const next = useCallback(() => {
-    setIndex((i) => (i >= PANELS.length - 1 ? i : i + 1));
-  }, []);
+    setIndex((i) => (i >= count - 1 ? i : i + 1));
+  }, [count]);
   const back = useCallback(() => {
     setIndex((i) => Math.max(0, i - 1));
   }, []);
