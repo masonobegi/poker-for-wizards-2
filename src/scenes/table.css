@@ -3681,7 +3681,10 @@
   color: var(--text-quiet);
 }
 .stack-feature.is-countered .stack-feature__name { text-decoration: line-through; opacity: 0.6; }
-.stack-feature.is-countered .stack-feature__state { color: var(--bad); }
+/* Light ink, not --bad: 12px red on the feature's dark fill measured 4.1:1
+   (test/legibility.mjs, a countered stack, 2026-10-23). The COUNTERED stamp
+   and the struck-through name already say it in red. */
+.stack-feature.is-countered .stack-feature__state { color: var(--text); }
 
 .stack-body strong { font-size: var(--fs-md); }
 .stack-caster { font-size: var(--fs-sm); color: var(--text-3); }
