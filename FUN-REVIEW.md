@@ -1687,3 +1687,249 @@ Every number is from simulated players and one blind reviewer.
 **Sellable at $9.99: yes**, on the same conditions as before (no online play
 on the store page until Steam invites exist; commissioned capsule art). The
 store copy now says both halves: the first run, and what opens after it.
+
+# Round 8 (2026-10-23): a bigger later shelf, and the deal relics speak
+
+Brief: Mason said to work on what makes money, and game calls are delegated
+to Claude (2026-10-10). Round 7 named the most direct point left: a later
+shelf of about 24-30 relics, kept to the same bar. Round 6 named an
+attribution gap nobody had closed. Both are code, both are reversible, and
+neither touches the first run's content. Same rubric, same honesty rule.
+Branch `relic-shelf-2026-10-23`, from main at 326034a. Raw batch summaries:
+`plans/fun-round8-data/`, each naming its commit and command, run from a
+pinned worktree so a later edit cannot leak into a running batch.
+
+## The rubric, unchanged
+
+The same eight criteria, word for word, scored on the same runs as round 7:
+criteria 1 and 6 on run 1, criteria 4 and 7 on runs 2+, criteria 2, 3 and 5
+on runs 2+ unless run 1 is lower. Decided before any batch.
+
+## What changed
+
+**Seven more relics on the later shelf**, 16 to 23, for runs 2+ only
+(`UNLOCKED_RELIC_IDS`; the first run's twelve are untouched, and
+`test/unlock.test.ts` still checks the first run deals the same cards). The
+cut's ceiling of 16 rose to 24 for relics alone (`LATER_RELIC_CEILING`).
+Sigils and omens keep 16 and 12. The reason the kinds differ: a player meets
+relics by choice, two at a time in the Market, and owns four or five in a
+run; sigils and omens are played against you whether you chose them or not.
+The player who could not remember 71 sigils still meets 16 of them.
+
+The bar was round 7's: a rule or a sight you can see work, not a number, and
+not a rule the shelf, a creed or a live omen already runs. The seven:
+
+| Relic | Rarity | Why it earns a slot |
+|---|---|---|
+| The Prism Lens | common | Every Prism is Wild for you. Gild, The Prism omen and The Engraver all make Prism cards in a later run, so it is the later game's own combo. |
+| Heirloom | common | A card scores a rank higher for each pot it has won. The Twinned's relic, sold to everyone else; 3.9 visible firings a run in round 5. |
+| The Second River | common | A High Card river runs again, in front of the table. |
+| The Engraver | rare | Win a showdown and a card of your hand is Prism, for good, on the shared deck. |
+| Mirror Shard | rare | Read both faces of every undecided card. Superpose, Entropy Rising, the Unmoored's creed and Unstable Isotope all make them. |
+| The Lodestone | mythic | A rank drawn in front of the table, Wild for you that hand. |
+| The Usurper | mythic | Knock a player out and take their relics. |
+
+Left out, and why (also beside the list in `shared/relics.ts`):
+
+- **A live omen already runs the rule**: Smeared Ink (Blurred), Ouroboros
+  (Serpent), Reversal (Inversion), Crowned (The Sealed Court).
+- **The Ledger does nothing.** "You see every opponent's exact mana", but
+  every seat's mana is already on the table for everyone
+  (`server/game/table.ts`, `viewFor`: `mana: isYou || seesMana || p.isBot ?
+  p.mana : p.mana`, the same value on both branches). Not on any shelf, so
+  nobody pays for it today; recorded here so it is not put back as it is.
+- **The Informant** is Cold Read's job, at the river.
+- **The hole-card family again**: Bloodline, Gilded Thumb, Twin Suns,
+  Unsettled (round 7's rule).
+- **Two shelf relics glued together**: The Archive, The Long Game.
+- **Numbers**: everything else.
+
+That is seven, not round 7's "about eight": an eighth would have had to break
+the bar.
+
+**Every relic that marks a hole card now applies.** Found reading the deal:
+it applied only the first such relic (`.find(Boolean)`), so a player who owned
+Gilt Edge and then bought Wild Inheritance, a 20-shard mythic, got nothing
+for it. Both are on the first run's shelf, so this was live in every run.
+Each marking relic now takes its own hole card, in the order bought
+(`test/relics.test.ts`; fails on 326034a with "Wild Inheritance marked no
+card").
+
+**The relics that act at the deal say when they mattered** (round 6's third
+proposal, `STEAM-READY.md` row 44). The deal records what each one shaped
+(`t.relicDeals`), and a contested showdown reads each hand again without it.
+A ledger line, tagged with the relic so the rail flashes it, is written only
+when the hand reads differently:
+
+- Gilt Edge, Wild Inheritance: "Hero's Wild Inheritance: 2♣ played as
+  whatever the hand needed, in Four of a Kind."
+- Third Hand: "the extra hole card played, in Three of a Kind."
+- Unstable Isotope, which is a coin (every undecided card lands at random at
+  the showdown): "the undecided 2♣ landed as A♣, and it played", or "...and
+  the hand reads worse for it". Landing on the card as dealt says nothing.
+
+A relic that changed nothing says nothing, which is the answer to round 6's
+worry about noise. Cold Read is left as it was: what it shows is on the
+table, face up, from the deal.
+
+**Proved, not assumed: the new lines change no play.** On seeds 0-27 of the
+first run, this branch with only the mark fix reverted plays every run
+exactly as main (326034a) does: 28 of 28 identical, every field but the
+firing counters and the wall clock (`samerun` over both parts folders). With
+the fix in, 4 of the 28 differ, each a table where some seat owned two
+marking relics. So the first run below is round 7's game plus the fix,
+nothing else.
+
+**The Market holds the longest card the shelf can print.** The new rules are
+the longest any shelf relic has had (The Second River 113 characters; the
+longest before was The Blood Price at 99). `test/shoptext.mjs` plays to the
+first Market of a later run at 1024x680, 1280x800 and 1920x1080, prints the
+shelf's longest name, longest rule and longest italic line onto every card at
+once (a card worse than any real one), and checks nothing is clipped, nothing
+runs past its card or off the screen, and Done can be reached.
+
+## Measured
+
+Seeds 0-279, adept bots, Hex I, the aggressive player, as round 7. "Runs 2+"
+is the later run: the later pools, the player rotating all seven covens (40
+runs each), the bots Unaligned.
+
+| | round 7, runs 2+ | this round, runs 2+ | this round, run 1 (round 7's) |
+|---|---|---|---|
+| run over before the first Market | 3% | 3% | 3% (3%) |
+| run over before ante 3 | 6% | 6% | 10% (10%) |
+| survived 3 antes | 77% | 77% | 68% (69%) |
+| busted, caught or not, before the first Market | 19% | 19% | 20% (20%) |
+| an impossible hand in the run | 68% | 65% | 58% (57%) |
+| ... one of your own | 43% | 40% | 36% (35%) |
+| impossible hands a run | 1.74 | 1.99 | 1.63 (1.38) |
+| runs won | 106 | 102 | 90 (91) |
+| your stack at ante 7 | 26 bb | 27 bb | 29 bb (29) |
+| biggest pot in the last 3 hands | 49% | 53% | 57% (58%) |
+| real choices a minute | 8.3 | 8.1 | 8.8 (8.9) |
+| share of the run that is not your decision | 45% | 45% | 43% (44%) |
+| a run | 8.3 min | 8.3 min | 8.0 min (8.0) |
+| first Market | 99 s | 98 s | 100 s (100) |
+| a real choice of two relics, per run | 3.3 | 3.2 | 2.5 (2.5) |
+| distinct relics bought | 16 of 16 | 23 of 23 | 12 of 12 |
+| spread of purchases | 3.87 bits (of 4.00) | 4.29 (of 4.52) | 3.42 (3.42) |
+| overlap between two runs' relics | 0.17 | 0.14 | 0.34 (0.34) |
+| ... over what the Market sold | 0.16 | 0.11 | 0.21 (0.21) |
+| distinct relics owned, covens' included | 25 | 31 | 13 (13) |
+| a bought relic's rule visibly fired | 71% | 73% | 59% (47%) |
+| ... counted as round 7 counted it (`scripts/fun-fired.cjs`) | 71% | 68% | 47% (47%) |
+| a run owning a mythic | 11% | 7% | 10% (9%) |
+
+At 280 runs a difference under about 4 points is noise. The impossible-hand
+lines moved 3 points each, down on runs 2+ and up on run 1: noise both ways.
+Impossible hands a run is a mean that a few runs past ante 15 can carry (run 1
+had eight runs reach ante 17 this time), so it is not read as a change.
+
+**Two numbers went the wrong way, and both are the price of the change.**
+
+- **A run owning a mythic, 11% to 7%.** Four mythics now share what the
+  Market's mythic draws used to split two ways, and the two new ones cost 22
+  and 24 shards against a greedy buyer that rarely holds that much: The
+  Lodestone was bought in 10 runs, The Usurper in 4, Twice-Told in 3 (was 10).
+  On the edge of noise, and the mythics that are bought fire loudly (The
+  Lodestone 9.8 lines a run in the runs that own it).
+- **Visibly fired, counted as round 7 counted it, 71% to 68%.** Seven
+  relics joined, and two of them seldom fire in this harness: The Second River
+  (0.12 a run: the simulated player is rarely still in at the river with High
+  Card) and Mirror Shard, which shows information and never writes a line.
+
+**What the new relics do in a later run**: The Prism Lens was owned in 93
+runs, the most of any new relic, and is the relic the Long Now and the
+Twinned buy most; Heirloom 4.2 firings a run, The Engraver 2.1, The
+Lodestone 9.8. The Usurper was owned in 4 runs and never fired: a knockout
+by its owner is rare against three bots. The deal relics' new lines, later runs: Wild Inheritance 2.7 a
+run, Unstable Isotope 1.9, Gilt Edge 1.1, Third Hand 0.5.
+
+## Re-scored with the same rubric
+
+A separate reviewer was given criterion 7 word for word, rounds 3 to 7's
+evidence and scores as anchors, and this round's numbers unlabelled, with
+both counts of the firing figure, and told to be strict. It gave 7: "the
+strongest 7 so far, not yet an 8", with the reasons folded in below.
+
+| # | Criterion | Round 7 | Now | Scored on | Why |
+|---|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 7 | 7 | run 1 | Run 1 is round 7's: 3% / 10% / 68%, busted before the first Market 20%. |
+| 2 | The namesake shows up | 8 | 8 | runs 2+, run 1 no lower | Runs 2+ 65% / 40%, 1.99 a run; run 1 58% / 36%. Inside noise of round 7 both ways. |
+| 3 | The run arc builds | 7 | 7 | both | Biggest pot in the last three hands 53% (49%), 27 bb at ante 7. Up, not a point. |
+| 4 | Covens play differently and deliver their pitch | 7 | 7 | runs 2+ | Untouched: hands made 0.13 apart (0.11), schools 0.27 (0.26). |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | both | Says what happened, up again: on the first run a bought relic now visibly fires in 59% of runs (47%), because five of its twelve relics act at the deal and now say so. Dead time flat: 45% of a run is not your decision (43% on run 1), 8.1 choices a minute. Round 5's "not 8" still stands. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | run 1 | Untouched. |
+| 7 | Builds have depth; relics are more than numbers | 7 | 7 | runs 2+ | The strongest 7 yet. More than numbers: 21 of the shelf's 23 change a rule or show something, 7% of purchases are numbers, all 23 are bought, the side-by-side choice holds at 3.2. Depth closed about half the gap and no more: overlap 0.14 (round 7 0.17; the 8s 0.10 and 0.09; Market-sold alone 0.11), spread 4.29 bits, about 20 relics' worth (15; the 8s 31 and 34), and that spread is already 95% of what a 23-relic shelf allows, so the shelf's size is now the limit. Against it: mythics owned 7% (11%), firing 68% counted the old way (71%). |
+| 8 | Presentation: art and feel | 7 | 7 | | Untouched. |
+| | **Mean** | **7.4 (7)** | **7.4 (7)** | | 59 points; an 8 needs 60. |
+
+## Was the 8 earned?
+
+**No. 7.4, one point short, as round 7.** Criterion 7 moved as far as
+seven honest relics move it, and the reviewer and this review agree it is
+not a whole point: the depth figures the 8s rested on came from a 45-relic
+shelf, and a 23-relic shelf cannot reach them. Its estimate of what would:
+a later shelf of about 28-30 or a wider sigil pool, enough for a spread of
+4.6 bits and an overlap of 0.11 or lower, with numbers under 10% of what a
+run buys and firing at 70% or more.
+
+The shelf was not padded to get there. The relics left could only be added
+by breaking round 7's bar (a rule a live omen already runs, the hole-card
+family again, two relics glued together, or a number), which is the "shitty
+mechanics" the brief rules out. A 28-relic shelf needs new relics, written
+and measured, or the sigil pool reopened by one school at a time: both are
+content design that the December playtest should steer.
+
+## What round 8 is worth anyway
+
+- **A mythic that did nothing now works.** Wild Inheritance bought beside
+  Gilt Edge, on any run, first or later: 4 of 28 first runs were changed by
+  it, so this was common, and a player who paid 20 shards for a relic that
+  never acts is a refund reason on its own.
+- **The game says when its quietest relics win.** Five of the first run's
+  twelve relics acted with no word; now the ledger and the rail say when one
+  of them changed the hand.
+- **Later runs differ more**: two runs share 0.11 of what the Market sold
+  them (0.16), and 23 relics are all bought.
+
+## Decisions made (each reversible)
+
+1. **The later shelf is 23** (`UNLOCKED_RELIC_IDS`; `LATER_RELIC_CEILING` 24).
+   Delete the seven round-8 lines to put round 7's sixteen back.
+2. **The relic ceiling rises for later runs only; sigils and omens keep 16
+   and 12.** The reason is above: relics are met by choice.
+3. **A deal relic's line is written only when it changed the hand.** The
+   other way, a line every hand it acts, is the noise round 6 worried about.
+
+## Three simulated Steam reviews (after round 8)
+
+**The impatient refunder** · 1.1 hrs · Recommended
+
+> Plain poker with spells for one run, then covens. I bought the wild card
+> relic on top of the one that makes a card worth more and the log told me
+> the wild card made my four of a kind. Did not know the game was tracking
+> that.
+
+**The genre veteran** · 18 hrs · Recommended
+
+> Twenty-odd relics once you are past the first run, and they are rules, not
+> +1s: a rank that turns wild every hand, Prism cards that go wild if you
+> hold the Lens, a river that reruns when you whiff. By run eight I was
+> still seeing new pairs. Fewer runs than the old 45-relic build before it
+> repeats itself, and the expensive mythics are hard to afford.
+
+**The Deck player** · 7 hrs · Recommended
+
+> Market cards stay readable on the Deck even with the long ones. The d-pad
+> gets everywhere. Typing on the blank page is still the clumsy bit.
+
+## Verdict, round 8
+
+**Fun: 7/10 on the locked rubric (7.4, as round 7).** Criterion 7 is the
+strongest 7 the game has had, and the shelf's size, not its contents, is now
+what holds it there. One paying player's bug is gone (a 20-shard mythic that
+did nothing), and the quietest relics now say when they won. Every number is
+from simulated players and one blind reviewer.
+
+**Sellable at $9.99: yes**, on the same conditions as before.

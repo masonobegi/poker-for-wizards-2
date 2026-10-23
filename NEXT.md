@@ -1,3 +1,24 @@
+# NEXT: HEXHOLD after round 8 (2026-10-23)
+
+## Round 8, in short
+
+- **Merged into `main`** (branch `relic-shelf-2026-10-23`). Later runs sell
+  23 relics instead of 16; the first run is unchanged.
+- **Fixed**: a second relic that marks a hole card did nothing (Wild
+  Inheritance beside Gilt Edge), on every run since the shelf had both.
+- **New**: Gilt Edge, Third Hand, Unstable Isotope and Wild Inheritance say
+  in the ledger, and flash on the rail, when they changed a hand.
+- **Fun stays 7/10 (7.4).** Criterion 7 is the strongest 7 yet; the next
+  point needs a later shelf of about 28-30 or a wider sigil pool, which
+  means new content, best steered by the December playtest
+  (`FUN-REVIEW.md`, round 8).
+- **Code, when wanted**: a clean spell-stack store screenshot
+  (`STEAM-READY.md` row 45). The Windows and Linux builds are round 7's
+  until rebuilt; see `STEAM-READY.md`.
+
+Everything below is from round 6 and still stands where round 7 and 8 did
+not change it.
+
 # NEXT: HEXHOLD after round 6 (2026-10-22)
 
 HEXHOLD ships first: Coming Soon by 20 Nov 2026, a Steam Playtest in
