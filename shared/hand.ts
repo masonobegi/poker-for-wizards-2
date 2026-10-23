@@ -82,8 +82,8 @@ export interface RuleMods {
   kinHole?: string[];
   /**
    * Twofold (round 9): every card that is Wild for this reader, by its mark or
-   * by a rule, fills two of the five places. A pair and a Wild is four of a
-   * kind; the hand's used ids name the card twice.
+   * by a rule, counts as two of the same card. A pair and a Wild is four of a
+   * kind, three and a Wild five; the hand's used ids name the card twice.
    */
   wildTwice?: boolean;
 }
@@ -209,6 +209,8 @@ type Cand = Face & { anySuit?: true };
 interface Slot {
   card: CardEntity;
   candidates: Cand[];
+  /** Twofold: this card may stand twice in one five, as the same face. */
+  twice?: true;
 }
 
 function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods): Slot[] {
@@ -268,13 +270,45 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
     });
 
     if (cands.length === 0) continue; // card is struck from the hand entirely
-    slots.push({ card, candidates: cands });
-    // Twofold: a Wild stands in a second place too, with its own choice of face.
-    if (mods.wildTwice && (marks.includes('wild') || ruledWild.has(card.id))) {
-      slots.push({ card, candidates: cands.slice() });
-    }
+    const twice = mods.wildTwice && (marks.includes('wild') || ruledWild.has(card.id));
+    slots.push(twice ? { card, candidates: cands, twice: true } : { card, candidates: cands });
   }
   return slots;
+}
+
+/**
+ * Twofold's extra readings: fives built from four slots with one of them
+ * twice, or three slots with two of them twice, the doubled slot wearing the
+ * same face in both places. A second slot with a face of its own was the
+ * first version: it let a Wild fill two gaps in a straight, and it made a
+ * hand with one Wild about twenty times as dear to read (8.6x under the bots'
+ * rollout cap, measured 2026-10-23), on every bot's equity read of the
+ * owner's hand. Calls `visit` with the slots in the five, the doubled ones
+ * listed twice.
+ */
+function twofoldPlans(slots: Slot[], visit: (five: Slot[]) => void): void {
+  const doubled = slots.filter((s) => s.twice).length;
+  if (!doubled) return;
+  // Two Wilds that could be the same set of faces read the same whichever of
+  // them is the one counted twice: only one of those choices is walked.
+  const kind = slots.map((s) => (s.twice ? s.candidates.map((c) => `${c.rank}${c.anySuit ? '*' : c.suit}`).join() : ''));
+  for (let d = 1; d <= Math.min(2, doubled); d++) {
+    const k = 5 - d;
+    if (slots.length < k) continue;
+    for (const subset of combosOf(slots.length, k)) {
+      const ws = subset.filter((i) => slots[i].twice);
+      if (ws.length < d) continue;
+      const seen = new Set<string>();
+      for (const pick of combosOf(ws.length, d)) {
+        const key = pick.map((j) => kind[ws[j]]).join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const five = subset.map((i) => slots[i]);
+        for (const j of pick) five.push(slots[ws[j]]);
+        visit(five);
+      }
+    }
+  }
 }
 
 /**
@@ -518,6 +552,12 @@ export function evalComplexity({ cards, viewerId, mods = {} }: EvalInput): numbe
     for (let i = 0; i < 5; i++) p *= lens[subset[i]];
     total += p;
   }
+  // Twofold: a doubled slot's second place costs nothing more to read.
+  twofoldPlans(slots, (five) => {
+    let p = 1;
+    for (const s of new Set(five)) p *= s.candidates.length;
+    total += p;
+  });
   return total;
 }
 
@@ -562,6 +602,36 @@ export function evaluate({ cards, viewerId, mods = {}, maxCombos }: EvalInput): 
       }
     }
   }
+
+  // Twofold: the same walk over fives where a Wild stands twice, one face
+  // for both of its places (twofoldPlans). Only the distinct slots vary.
+  twofoldPlans(slots, (fiveSlots) => {
+    const own = [...new Set(fiveSlots)];
+    const lens = own.map((s) => s.candidates.length);
+    const total = lens.reduce((a, b) => a * b, 1);
+    const face = new Map<Slot, Cand>();
+    for (let t = 0; t < total; t++) {
+      let rem = t;
+      for (let i = 0; i < own.length; i++) {
+        face.set(own[i], own[i].candidates[rem % lens[i]]);
+        rem = Math.floor(rem / lens[i]);
+      }
+      for (let i = 0; i < 5; i++) pick[i] = face.get(fiveSlots[i])!;
+      const five = score5(pick, mods);
+      const s = scoreOf(five.cat, five.ranks);
+      if (!best || s > best.score) {
+        best = {
+          cat: five.cat,
+          ranks: five.ranks,
+          score: s,
+          usedIds: fiveSlots.map((p) => p.card.id),
+          usedFaces: pick.slice(),
+          name: '',
+          impossible: IMPOSSIBLE_CATS.has(five.cat),
+        };
+      }
+    }
+  });
 
   if (!best) return EMPTY;
 

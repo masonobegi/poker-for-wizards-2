@@ -253,7 +253,7 @@ export function modsFor(t: Table, p: Player): RuleMods {
   if (relic.copiesWild) { m.copiesWild = true; if (KIN_BOARD_ONLY) m.kinHole = scoringHole(t, p); }
   // The Lodestone: this hand's rank is Wild for its owner.
   if (p.lodestone) m.wildRanks = [...new Set([...(m.wildRanks ?? []), p.lodestone])];
-  // Twofold: every card Wild for its owner fills two places (shared/hand.ts).
+  // Twofold: every card Wild for its owner counts as two of it (shared/hand.ts).
   if (hasRule(p.relics, 'twofold')) m.wildTwice = true;
 
   const shift = (m.categoryShift ?? 0) + (relic.categoryShift ?? 0) - p.hexed;

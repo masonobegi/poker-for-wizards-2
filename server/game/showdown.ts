@@ -319,7 +319,7 @@ function creditDealRelics(t: Table, sc: Scored): void {
 }
 
 /**
- * Twofold: when a Wild that fills two places is what made the hand, say so.
+ * Twofold: when a Wild counted twice is what made the hand, say so.
  * The hand is read again with every Wild in one place only, and a line is
  * written only when that reads worse.
  */
@@ -335,7 +335,7 @@ function creditTwofold(t: Table, sc: Scored): void {
   const better = sc.lowWins ? sc.used.score < once : sc.used.score > once;
   if (!better) return;
   const relicId = p.relics.find((id) => RELIC_BY_ID[id]?.rule === 'twofold') ?? 'twofold';
-  log(t, `${p.name}'s ${RELIC_BY_ID[relicId]?.name ?? 'Twofold'}: the Wild ${describeCard(t, twice)} fills two places, in ${sc.used.name}.`, 'impossible', {
+  log(t, `${p.name}'s ${RELIC_BY_ID[relicId]?.name ?? 'Twofold'}: the Wild ${describeCard(t, twice)} counts twice, in ${sc.used.name}.`, 'impossible', {
     playerId: p.id, rule: relicId,
   });
 }

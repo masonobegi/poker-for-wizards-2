@@ -14,7 +14,7 @@ import { runShowdown } from '../server/game/showdown';
 import { rosterFor } from '../server/game/shop';
 import { modsFor } from '../server/game/table';
 import { type CardEntity, type Rank, type Suit, makeCard } from '../shared/cards';
-import { Cat, evaluate } from '../shared/hand';
+import { Cat, evalComplexity, evaluate } from '../shared/hand';
 import {
   LATER_RELIC_CEILING, NINTH_RELIC_IDS, RELIC_BY_ID, RELIC_POOL, UNLOCKED_RELIC_IDS, relicPool,
 } from '../shared/relics';
@@ -253,18 +253,35 @@ test('Indelible Ink keeps Gild\'s Prism too, signed for the Loom; a card already
 
 // ------------------------------------------------------------ Twofold
 
-test('Twofold: a Wild fills two of the five places, for its owner only', () => {
+test('Twofold: a Wild counts as two of the same card, for its owner only', () => {
   const wild = () => c(2, 'C', { marks: ['wild'] });
   const pair = [c(9, 'S'), c(9, 'H'), c(4, 'D'), c(12, 'C'), c(6, 'S'), c(3, 'H')];
   const plain = evaluate({ cards: [wild(), ...pair], viewerId: 'me', mods: {} });
   const twice = evaluate({ cards: [wild(), ...pair], viewerId: 'me', mods: { wildTwice: true } });
   assert.equal(plain.cat, Cat.Trips);
   assert.equal(twice.cat, Cat.Quads, 'a pair and a Wild counted twice is four of a kind');
+  assert.equal(twice.usedIds.filter((id) => id === twice.usedIds.find((x, i) => twice.usedIds.indexOf(x) !== i)).length, 2, 'the Wild is named twice');
   const trips = [c(9, 'S'), c(9, 'H'), c(9, 'D'), c(12, 'C'), c(6, 'S'), c(3, 'H')];
   assert.equal(evaluate({ cards: [wild(), ...trips], viewerId: 'me', mods: { wildTwice: true } }).cat, Cat.FiveOfAKind);
+  // Two Wilds, each twice, and one King: five Kings, every one a Spade.
+  const lone = [c(13, 'S'), c(4, 'D'), c(7, 'C'), c(10, 'H'), c(2, 'D')];
+  assert.equal(evaluate({ cards: [wild(), c(5, 'H', { marks: ['wild'] }), ...lone], viewerId: 'me', mods: { wildTwice: true } }).cat, Cat.FlushFive);
   // A Prism under the Prism Lens is Wild for its owner, so it doubles too.
   const lens = evaluate({ cards: [c(5, 'D', { marks: ['prism'] }), ...pair], viewerId: 'me', mods: { prismIsWild: true, wildTwice: true } });
   assert.equal(lens.cat, Cat.Quads);
+  // Two of the same card: it never fills two gaps in a straight.
+  const gappy = [c(5, 'S'), c(6, 'H'), c(9, 'D'), c(13, 'C'), c(13, 'H'), c(2, 'S')];
+  assert.notEqual(evaluate({ cards: [wild(), ...gappy], viewerId: 'me', mods: { wildTwice: true, straightGap: false } }).cat, Cat.Straight);
+});
+
+test('Twofold is not much dearer to read than the Wild it doubles', () => {
+  // The first version gave a doubled Wild a second slot of its own: one Wild
+  // cost about twenty times the readings. Two of the same card costs a little
+  // over twice.
+  const hand = [c(2, 'C', { marks: ['wild'] }), c(9, 'S'), c(9, 'H'), c(4, 'D'), c(12, 'C'), c(6, 'S'), c(3, 'H')];
+  const plain = evalComplexity({ cards: hand, viewerId: 'me', mods: {} });
+  const twice = evalComplexity({ cards: hand, viewerId: 'me', mods: { wildTwice: true } });
+  assert.ok(twice <= plain * 3, `${twice} readings against ${plain}`);
 });
 
 test('Twofold reaches the evaluator through modsFor, and the showdown says when it made the hand', () => {
@@ -282,7 +299,7 @@ test('Twofold reaches the evaluator through modsFor, and the showdown says when 
   assert.ok(mine.won > 0);
   const said = lines(t, 'twofold');
   assert.equal(said.length, 1);
-  assert.match(said[0].text, /Hero's Twofold: the Wild 2♣ fills two places, in Four of a Kind/);
+  assert.match(said[0].text, /Hero's Twofold: the Wild 2♣ counts twice, in Four of a Kind/);
   assert.equal(w.memory, memory + 1, 'a card named twice remembers the pot once');
 });
 

@@ -534,9 +534,10 @@ const NINTH: RelicDef[] = [
   // The later game is full of Wild cards (The Gilded, Wild Inheritance, Wild
   // Rite, the Lodestone, the Prism Lens, Kin). This is what makes one more
   // than any card: a pair and a Wild is four of a kind, three and a Wild five.
+  // Two of the same card, not two cards: see shared/hand.ts twofoldPlans.
   {
     id: 'twofold', name: 'Twofold', glyph: '⧈', rarity: 'rare', price: 15,
-    text: 'Every card that is Wild for you counts twice in your hand: it fills two of your five places.',
+    text: 'Every card that is Wild for you counts as two of the same card: a pair and a Wild is four of a kind.',
     impossible: 'One card standing in two places at once, and both of them counting.',
     rule: 'twofold',
   },
@@ -742,7 +743,7 @@ export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
  * - The Witness: the board's undecided cards settle your way.
  * - The Ember Jar: a burned community card comes to your hand.
  * - Indelible Ink: Wild Rite's Wild and Gild's Prism stay for good.
- * - Twofold: a card Wild for you fills two of your five places.
+ * - Twofold: a card Wild for you counts as two of the same card.
  * - The High Spade: the highest Spade in the hole takes half a pot you lose.
  * - The Changeling: each hand, one opponent's relic is yours too.
  * - The Grimoire: a sigil you wrote comes back after you cast it.
@@ -769,7 +770,7 @@ export const UNLOCKED_RELIC_IDS: readonly string[] = [
   'indelible_ink',     // common: Wild Rite and Gild write for good
   'grimoire',          // common: a sigil you wrote comes back after the hand
   'ember_jar',         // rare: a burned community card comes to your hand
-  'twofold',           // rare: a Wild card fills two of your five places
+  'twofold',           // rare: a card Wild for you counts as two of the same card
   'high_spade',        // rare: the highest Spade in the hole takes half a pot
   'changeling',        // rare: one opponent's relic is yours each hand
 ];
