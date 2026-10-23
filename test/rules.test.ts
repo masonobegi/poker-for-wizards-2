@@ -83,10 +83,10 @@ function give(p: Player, defId: string): string {
 
 // ---------------------------------------------------------------- the shelf
 
-test('the rule shelf is on, and the shelf is still 45', () => {
+test('the rule shelf is on, and the registry is 45 and round 9\'s seven', () => {
   assert.equal(RULE_RELICS, true);
-  assert.equal(RELICS.length, 45);
-  assert.equal(new Set(RELICS.map((r) => r.id)).size, 45);
+  assert.equal(RELICS.length, 52);
+  assert.equal(new Set(RELICS.map((r) => r.id)).size, 52);
 });
 
 test('no creed is for sale, and every coven has its own', () => {

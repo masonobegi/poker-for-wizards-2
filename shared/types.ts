@@ -121,6 +121,10 @@ export interface Player {
   lodestone?: number;
   /** The Quiet's creed: opponents whose tell this player has read this hand. */
   tells?: string[];
+  /** The Changeling: the relic copied from an opponent for this hand, given back when it ends. */
+  borrowed?: string;
+  /** The Grimoire: written sigils cast this hand, back in hand when it ends. */
+  margin?: SigilInstance[];
 }
 
 /** The hand that ended a player's run, in words the game-over screen can say. */

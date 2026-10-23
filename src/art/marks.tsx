@@ -1025,6 +1025,67 @@ const RELIC: Record<string, ReactNode> = {
     </>
   ),
 
+  // ---- round 9: the later shelf's own -------------------------------------
+  the_witness: (
+    <>
+      {/* A monocle on its cord, over a card that has not decided. */}
+      <circle cx={10.4} cy={10.4} r={5.6} />
+      <circle cx={10.4} cy={10.4} r={2.4} strokeDasharray="1.6 1.4" />
+      <path d="M14.4 14.4c1.6 1.4 2.8 3 3.4 5.4" />
+      <Dot x={18.2} y={19.8} r={1.1} />
+    </>
+  ),
+  ember_jar: (
+    <>
+      {/* A lidded jar with a flame still burning inside. */}
+      <path d="M8 6.4h8" />
+      <path d="M8.8 6.4c-2.6 1.6-3.8 4-3.8 7 0 3.8 3 6.4 7 6.4s7-2.6 7-6.4c0-3-1.2-5.4-3.8-7" />
+      <path d="M12 16.6c-1.6 0-2.4-1-2.4-2.2 0-1.4 1.2-2.4 2.4-3.8 1.2 1.4 2.4 2.4 2.4 3.8 0 1.2-.8 2.2-2.4 2.2Z" />
+      <path d="M10.4 3.8h3.2" />
+    </>
+  ),
+  indelible_ink: (
+    <>
+      {/* An inkwell, and the nib that never runs dry. */}
+      <path d="M5.4 13.6h9.2v6H5.4Z" />
+      <path d="M7.4 13.6v-2h5.2v2" />
+      <path d="M11.4 11.6 18.6 4.4l1.2 1.2-7.2 7.2" />
+      <Dot x={10} y={16.6} r={1.2} />
+    </>
+  ),
+  twofold: (
+    <>
+      {/* One card, folded so it stands in two places. */}
+      <path d="M4.6 6.2 12 4.4v15.2l-7.4-1.8Z" />
+      <path d="M12 4.4l7.4 1.8v11.6L12 19.6" strokeDasharray="2.2 1.8" />
+      <path d="M8.3 9.6v4.8M6 12h4.6" />
+    </>
+  ),
+  high_spade: (
+    <>
+      {/* A spade, standing on a coin split in two. */}
+      <path d="M12 3.8c3 3 5.6 4.8 5.6 7.4a2.8 2.8 0 0 1-4.6 2.2L13.6 16h-3.2l.6-2.6a2.8 2.8 0 0 1-4.6-2.2c0-2.6 2.6-4.4 5.6-7.4Z" />
+      <path d="M5.4 19.2h5.4M13.2 19.2h5.4" />
+    </>
+  ),
+  changeling: (
+    <>
+      {/* A mask half turned, wearing two faces. */}
+      <path d="M4.6 7.4c2.4-1.4 4.8-2 7.4-2s5 .6 7.4 2c0 6.4-3 11.2-7.4 11.2S4.6 13.8 4.6 7.4Z" />
+      <path d="M12 5.4v13.2" strokeDasharray="1.8 1.6" />
+      <path d="M7.2 10.4h2.6" />
+      <circle cx={15.6} cy={10.4} r={1.4} />
+    </>
+  ),
+  grimoire: (
+    <>
+      {/* A bound book, its ribbon marking the page that comes back. */}
+      <path d="M5.4 4.4h11.4a1.6 1.6 0 0 1 1.6 1.6v13.6H7a1.6 1.6 0 0 1-1.6-1.6Z" />
+      <path d="M5.4 18c0-1 .7-1.6 1.6-1.6h11.4" />
+      <path d="M13.6 4.4v6.4l1.6-1.4 1.6 1.4V4.4" />
+    </>
+  ),
+
   // ---- creeds: one per coven, drawn as a seal around the coven's idea ------
   creed_last_word: (
     <>

@@ -8,9 +8,9 @@
  * running six different rulebooks at once can still settle a bet.
  */
 import { cardsOf, byId, describeCard, live, alive, log, modsFor, scoringHole } from './table';
-import { type CardEntity, type MarkId, faceLabel, viewCard } from '../../shared/cards';
+import { type CardEntity, type MarkId, faceFor, faceLabel, marksFor, viewCard } from '../../shared/cards';
 import { type HandResult, Cat, evaluate } from '../../shared/hand';
-import { RELIC_BY_ID, hasVision } from '../../shared/relics';
+import { RELIC_BY_ID, hasRule, hasVision } from '../../shared/relics';
 import type { FxEvent } from '../../shared/protocol';
 import type { Rng } from '../../shared/rng';
 import type { PayoutInfo, Player, Pot, ShowdownEntry, Table } from '../../shared/types';
@@ -86,9 +86,11 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
 
   // Uncontested — everyone else folded. No hand is read, nothing is revealed.
   const uncontested = contenders.length === 1;
-  if (!uncontested) for (const sc of scored.values()) creditDealRelics(t, sc);
+  if (!uncontested) for (const sc of scored.values()) { creditDealRelics(t, sc); creditTwofold(t, sc); }
 
   const won = new Map<string, number>();
+  /** The High Spade's halves: paid, but not a pot won (no shards, no memory). */
+  const spadeWon = new Map<string, number>();
   const shards = new Map<string, number>();
   const potResults: PayoutInfo['pots'] = [];
 
@@ -98,8 +100,22 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
       : winnersOf(pot, scored);
     if (ws.length === 0) continue;
 
-    const share = Math.floor(pot.amount / ws.length);
-    let remainder = pot.amount - share * ws.length;
+    // The High Spade: half of a contested pot its owner would lose.
+    let amount = pot.amount;
+    const spade = uncontested ? null : highSpade(t, pot, scored, ws);
+    if (spade) {
+      const half = Math.floor(amount / 2);
+      amount -= half;
+      spade.player.chips += half;
+      spadeWon.set(spade.player.id, (spadeWon.get(spade.player.id) ?? 0) + half);
+      fx.push({ t: 'pot_to', playerId: spade.player.id, amount: half });
+      log(t, `${spade.player.name}'s High Spade: ${spade.label} is the highest Spade in the hole, and takes half the ${!pot.label || pot.label === 'Main Pot' ? 'pot' : pot.label.toLowerCase()}, ${half.toLocaleString()}.`, 'impossible', {
+        playerId: spade.player.id, rule: spade.relicId,
+      });
+    }
+
+    const share = Math.floor(amount / ws.length);
+    let remainder = amount - share * ws.length;
 
     // Odd chips go to the first winner left of the button, as at a real table.
     const ordered = [...ws].sort((a, b) => seatDistance(t, a.player.seat) - seatDistance(t, b.player.seat));
@@ -125,7 +141,8 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
 
     // The cards themselves keep score.
     if (sc && !uncontested) {
-      for (const cid of sc.used.usedIds) {
+      // Once a card, though Twofold can name a Wild twice in one hand.
+      for (const cid of new Set(sc.used.usedIds)) {
         const c = t.cards.get(cid);
         if (c) c.memory += 1;
       }
@@ -203,15 +220,17 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
       score: sc?.used.score ?? -1,
       usedIds: reveal ? (sc?.used.usedIds ?? []) : [],
       impossible: !!sc?.used.impossible,
-      won: won.get(p.id) ?? 0,
+      won: (won.get(p.id) ?? 0) + (spadeWon.get(p.id) ?? 0),
       echoName: sc?.echo?.name,
       timelineUsed: sc?.timeline,
     };
   });
 
   for (const e of entries) {
-    if (e.won > 0) {
-      log(t, `${byId(t, e.playerId)?.name} takes ${e.won.toLocaleString()} with ${e.handName}.`,
+    // The pot a hand won; a High Spade's half has its own line above.
+    const took = won.get(e.playerId) ?? 0;
+    if (took > 0) {
+      log(t, `${byId(t, e.playerId)?.name} takes ${took.toLocaleString()} with ${e.handName}.`,
         e.impossible ? 'impossible' : 'win', { playerId: e.playerId });
     }
   }
@@ -297,6 +316,69 @@ function creditDealRelics(t: Table, sc: Scored): void {
     }
     credited.add(d.relicId);
   }
+}
+
+/**
+ * Twofold: when a Wild that fills two places is what made the hand, say so.
+ * The hand is read again with every Wild in one place only, and a line is
+ * written only when that reads worse.
+ */
+function creditTwofold(t: Table, sc: Scored): void {
+  const p = sc.player;
+  if (!hasRule(p.relics, 'twofold')) return;
+  const ids = sc.used.usedIds;
+  const twice = ids.find((id, i) => ids.indexOf(id) !== i);
+  if (!twice) return;
+  const mods = modsFor(t, p);
+  const board = sc.timeline === 'echo' && t.echoTimeline ? t.echoTimeline.boardIds : t.board;
+  const once = evaluate({ cards: cardsOf(t, [...scoringHole(t, p), ...board]), viewerId: p.id, mods: { ...mods, wildTwice: false } }).score;
+  const better = sc.lowWins ? sc.used.score < once : sc.used.score > once;
+  if (!better) return;
+  const relicId = p.relics.find((id) => RELIC_BY_ID[id]?.rule === 'twofold') ?? 'twofold';
+  log(t, `${p.name}'s ${RELIC_BY_ID[relicId]?.name ?? 'Twofold'}: the Wild ${describeCard(t, twice)} fills two places, in ${sc.used.name}.`, 'impossible', {
+    playerId: p.id, rule: relicId,
+  });
+}
+
+/**
+ * The High Spade: of the players contesting a pot, the one holding the
+ * highest Spade in the hole, when it is theirs alone, they own The High Spade
+ * and their hand did not win it. A Wild is any card, so it is the Ace of
+ * Spades; a Prism is every suit, so it is a Spade of its own rank; where a
+ * player's rules make Spades and Clubs one suit, a Club is a Spade for them.
+ * Each hole card is read as its holder reads it, after the showdown settled it.
+ */
+function highSpade(
+  t: Table, pot: Pot, scored: Map<string, Scored>, ws: Scored[],
+): { player: Player; label: string; relicId: string } | null {
+  let top = 0;
+  let holders: Array<{ player: Player; label: string }> = [];
+  for (const id of pot.eligible) {
+    const q = scored.get(id)?.player;
+    if (!q) continue;
+    const merged = !!modsFor(t, q).mergedColors;
+    let best = 0;
+    let label = '';
+    for (const cid of q.hole) {
+      const c = t.cards.get(cid);
+      const f = c ? faceFor(c, q.id) : null;
+      if (!c || !f) continue;
+      const marks = marksFor(c, q.id);
+      const rank = marks.includes('wild') ? 14
+        : (f.suit === 'S' || marks.includes('prism') || (merged && f.suit === 'C')) ? f.rank : 0;
+      if (rank > best) {
+        best = rank;
+        label = marks.includes('wild') ? `the Wild ${faceLabel(f)}` : marks.includes('prism') ? `the Prism ${faceLabel(f)}` : faceLabel(f);
+      }
+    }
+    if (best === 0) continue;
+    if (best > top) { top = best; holders = [{ player: q, label }]; } else if (best === top) holders.push({ player: q, label });
+  }
+  if (holders.length !== 1) return null;
+  const { player, label } = holders[0];
+  if (!hasRule(player.relics, 'high_spade') || ws.some((w) => w.player.id === player.id)) return null;
+  const relicId = player.relics.find((id) => RELIC_BY_ID[id]?.rule === 'high_spade') ?? 'high_spade';
+  return { player, label, relicId };
 }
 
 function seatDistance(t: Table, seat: number): number {

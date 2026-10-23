@@ -58,8 +58,9 @@ test('Cold Read shows one hole card of every other player from the deal', () => 
 });
 
 test('the store page count is the real count', () => {
-  assert.equal(RELICS.length, 45);
-  assert.equal(new Set(RELICS.map((r) => r.id)).size, 45);
+  // 45 since round 4; round 9 (2026-10-23) wrote seven for the later shelf.
+  assert.equal(RELICS.length, 52);
+  assert.equal(new Set(RELICS.map((r) => r.id)).size, 52);
 });
 
 test('most of the shelf changes a rule; a few relics are only a number', () => {

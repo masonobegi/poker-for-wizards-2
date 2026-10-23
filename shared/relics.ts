@@ -31,11 +31,22 @@ export type RelicRarity = 'common' | 'rare' | 'mythic';
  *   foreknown     engine.ts   dealStreet, the flop
  *   salt          magic.ts    burn
  *   signature     magic.ts    inscribe, first_draft; shop.ts a rite
+ *
+ * Round 9, the later shelf only (UNLOCKED_RELIC_IDS):
+ *
+ *   witness       engine.ts   toShowdown, the board settling
+ *   ember_jar     table.ts    emberJar, after every burn
+ *   indelible     magic.ts    handMark (Wild Rite, Gild)
+ *   twofold       table.ts    modsFor; showdown.ts creditTwofold
+ *   high_spade    showdown.ts runShowdown, each contested pot
+ *   changeling    engine.ts   beginHand (borrow); endHand (give back)
+ *   grimoire      magic.ts    castSigil; engine.ts endHand (give back)
  */
 export type RuleId =
   | 'keepsake' | 'second_river' | 'sanctum' | 'magpie' | 'blood_price' | 'vow'
   | 'lodestone' | 'twice_told' | 'usurper'
-  | 'last_word' | 'many_futures' | 'tells' | 'foreknown' | 'salt' | 'signature';
+  | 'last_word' | 'many_futures' | 'tells' | 'foreknown' | 'salt' | 'signature'
+  | 'witness' | 'ember_jar' | 'indelible' | 'twofold' | 'high_spade' | 'changeling' | 'grimoire';
 
 export interface RelicDef {
   id: string;
@@ -484,11 +495,87 @@ const RETIRED: RelicDef[] = [
   },
 ];
 
+// ------------------------------------------------------------ THE NINTH ROUND
+// Round 9 of the fun pass (FUN-REVIEW.md, 2026-10-23). Every relic left in
+// the registry failed round 7's bar (a rule a live omen runs, the hole-card
+// family, two relics glued together, a number), so the later shelf could only
+// grow by new ones. Each changes a rule you can watch work, says so in the
+// ledger under its own name, and does something no relic, creed or live omen
+// already does. They are sold from the second run only (UNLOCKED_RELIC_IDS).
+const NINTH: RelicDef[] = [
+  // Settling is the one decision an undecided card makes, and on the board it
+  // is a coin. The Unmoored's game, and Superpose, Entropy Rising and Mirror
+  // Shard all put undecided cards there. Observer Effect and Decohere, which
+  // also settle cards on purpose, are not in any pool.
+  {
+    id: 'the_witness', name: 'The Witness', glyph: '⊙', rarity: 'common', price: 9,
+    text: 'At the showdown, every undecided community card settles on the face that helps you most.',
+    impossible: 'A board that waits for the right person to look at it.',
+    rule: 'witness',
+  },
+  // Burn was only ever denial. The Ashen's Burn, The Kindling's Burning cards
+  // and Salt all take cards off the board; this is the one thing that puts a
+  // burned card to use, and it is a theft the whole table watches.
+  {
+    id: 'ember_jar', name: 'The Ember Jar', glyph: '⚶', rarity: 'rare', price: 14,
+    text: 'When a community card burns, it does not vanish: it comes to your hand for the rest of the hand.',
+    impossible: 'Catching a card that has been destroyed, and playing it anyway.',
+    rule: 'ember_jar',
+  },
+  // MTG's "until end of turn" against "permanently": the Loom writes on the
+  // deck, and Wild Rite and Gild were the two sigils whose writing faded.
+  // Under the Loom's Signature the mark works for its writer alone.
+  {
+    id: 'indelible_ink', name: 'Indelible Ink', glyph: '✒', rarity: 'common', price: 9,
+    text: 'The Wild your Wild Rite writes, and the Prism your Gild writes, stay on the card for good. The deck is shared.',
+    impossible: 'Ink that was only meant to last one hand, refusing to fade.',
+    rule: 'indelible',
+  },
+  // The later game is full of Wild cards (The Gilded, Wild Inheritance, Wild
+  // Rite, the Lodestone, the Prism Lens, Kin). This is what makes one more
+  // than any card: a pair and a Wild is four of a kind, three and a Wild five.
+  {
+    id: 'twofold', name: 'Twofold', glyph: '⧈', rarity: 'rare', price: 15,
+    text: 'Every card that is Wild for you counts twice in your hand: it fills two of your five places.',
+    impossible: 'One card standing in two places at once, and both of them counting.',
+    rule: 'twofold',
+  },
+  // Chicago, the home game where the high Spade in the hole splits the pot.
+  // A second way to be paid at a showdown, read off a card the hand itself
+  // may not even use; a Prism or a Wild is a Spade.
+  {
+    id: 'high_spade', name: 'The High Spade', glyph: '♠', rarity: 'rare', price: 13,
+    text: 'Lose a showdown holding the highest Spade in anyone’s hole and half the pot is yours. Wild and Prism count.',
+    impossible: 'Being paid for a card the hand never used.',
+    rule: 'high_spade',
+  },
+  // Balatro's Blueprint, at a table where everyone shops: your build is
+  // partly theirs, a different part every hand, and the whole table sees
+  // which. "Whatever the deck feels like giving you."
+  {
+    id: 'changeling', name: 'The Changeling', glyph: '☻', rarity: 'rare', price: 13,
+    text: 'Each hand, one relic a random opponent holds is yours too, for that hand. The table sees which.',
+    impossible: 'Wearing someone else’s luck for one hand, and handing it back.',
+    rule: 'changeling',
+  },
+  // The blank page is the game's own invention and a written sigil was spent
+  // once. MTG's buyback: the page you wrote is a spell you keep.
+  {
+    id: 'grimoire', name: 'The Grimoire', glyph: '⌗', rarity: 'common', price: 8,
+    text: 'A sigil you wrote on a blank page is not spent when you cast it: it comes back to your hand when the hand ends.',
+    impossible: 'A page you can read aloud and still find written on.',
+    rule: 'grimoire',
+  },
+];
+
 /** The rule shelf (true) or the twelve numbers it replaced (false). */
 export const RULE_RELICS = true;
 
-/** The Market's shelf: 45 relics, the store page's count. */
-export const RELICS: RelicDef[] = [...KEPT, ...(RULE_RELICS ? RULES : RETIRED)];
+/** Every relic a Market can sell, first run or later: 52, the registry. */
+export const RELICS: RelicDef[] = [...KEPT, ...(RULE_RELICS ? RULES : RETIRED), ...NINTH];
+
+/** Round 9's relics: the later shelf only, never dealt to a Hex II bot on a first run. */
+export const NINTH_RELIC_IDS: ReadonlySet<string> = new Set(NINTH.map((r) => r.id));
 
 // ------------------------------------------------------------------ CREEDS
 // One whole-run rule per coven (round 4, FUN-REVIEW.md). A coven used to be
@@ -647,8 +734,22 @@ export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
  * Suns and Unsettled (the hole-card family again), The Archive and The Long
  * Game (two shelf relics glued together), and the numbers.
  *
- * Twenty-three at the shop's 6/3/1 weighting: ten commons, nine rares, four
- * mythics. Empty this list and later runs see the first run's twelve.
+ * Round 9 (2026-10-23, FUN-REVIEW.md) added seven written for the later game,
+ * because nothing left in the registry passed the bar: the reviewer of round
+ * 8 put the next point at a shelf of about 28-30. Each is a rule the ledger
+ * names when it acts (the NINTH block above has why each one earns a slot):
+ *
+ * - The Witness: the board's undecided cards settle your way.
+ * - The Ember Jar: a burned community card comes to your hand.
+ * - Indelible Ink: Wild Rite's Wild and Gild's Prism stay for good.
+ * - Twofold: a card Wild for you fills two of your five places.
+ * - The High Spade: the highest Spade in the hole takes half a pot you lose.
+ * - The Changeling: each hand, one opponent's relic is yours too.
+ * - The Grimoire: a sigil you wrote comes back after you cast it.
+ *
+ * Thirty at the shop's 6/3/1 weighting: thirteen commons, thirteen rares,
+ * four mythics. Empty this list and later runs see the first run's twelve;
+ * delete the seven round-9 lines to put round 8's twenty-three back.
  */
 export const UNLOCKED_RELIC_IDS: readonly string[] = [
   'keepsake',          // common: fold before the flop, keep your higher card
@@ -663,10 +764,18 @@ export const UNLOCKED_RELIC_IDS: readonly string[] = [
   'mirror_shard',      // rare: both faces of every undecided card
   'lodestone',         // mythic: a rank Wild for you, drawn each hand
   'the_usurper',       // mythic: a knockout takes the loser's relics
+  // Round 9.
+  'the_witness',       // common: the board's undecided cards settle your way
+  'indelible_ink',     // common: Wild Rite and Gild write for good
+  'grimoire',          // common: a sigil you wrote comes back after the hand
+  'ember_jar',         // rare: a burned community card comes to your hand
+  'twofold',           // rare: a Wild card fills two of your five places
+  'high_spade',        // rare: the highest Spade in the hole takes half a pot
+  'changeling',        // rare: one opponent's relic is yours each hand
 ];
 
 /** The later shelf's ceiling: relics only, and only past the first run. */
-export const LATER_RELIC_CEILING = 24;
+export const LATER_RELIC_CEILING = 30;
 
 const UNLOCKED_RELIC_POOL: RelicDef[] = [...RELIC_POOL, ...UNLOCKED_RELIC_IDS.map((id) => {
   const def = RELIC_BY_ID[id];

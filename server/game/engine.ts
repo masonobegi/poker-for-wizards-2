@@ -8,11 +8,11 @@
  */
 import { nanoid } from 'nanoid';
 import { config } from '../config';
-import { type CardEntity, type Face, type Rank, RANKS, RANK_NAME, isQuantum, rankPlural, standardDeck } from '../../shared/cards';
+import { type CardEntity, type Face, type Rank, RANKS, RANK_NAME, faceLabel, isQuantum, rankPlural, standardDeck } from '../../shared/cards';
 import { Cat, evaluate } from '../../shared/hand';
 import type { FxEvent } from '../../shared/protocol';
 import { Rng } from '../../shared/rng';
-import { RELICS, RELIC_BY_ID, hasRule, hasVision, isCreed, relicNumber } from '../../shared/relics';
+import { NINTH_RELIC_IDS, RELICS, RELIC_BY_ID, hasRule, hasVision, isCreed, relicNumber } from '../../shared/relics';
 import {
   HEXES, PHYLACTERY_BEFORE_ANTE, PHYLACTERY_STACK, dailyCoven, hasPhylactery, isDailySeed,
 } from '../../shared/hexes';
@@ -25,7 +25,7 @@ import {
 } from '../../shared/types';
 import {
   actable, alive, anteLength, byId, card, copyCardOnto, createPlayer, createTable, describeCard,
-  burnCard, contenders, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
+  burnCard, contenders, emberJar, freeSeat, handCards, live, log, maxManaFor, modsFor, nextSeat, refreshMaxMana, ruleRelic, seated, sigilHandSize,
 } from './table';
 import {
   applySeal, bindInscribedPairs, castSigil, clearHandMagic, drawId, giveSigil, passResponse,
@@ -417,6 +417,8 @@ export class Engine {
       p.revived = undefined;
       p.handsWon = 0;
       p.attuned = 0;
+      p.borrowed = undefined;
+      p.margin = undefined;
       p.maxMana = maxManaFor(p, t);
 
       // The coven is the run's opening decision, and it is expressed entirely
@@ -446,7 +448,9 @@ export class Engine {
       }
       // Hex II: the opponents arrive already equipped.
       if (p.isBot && t.config.hex >= 2) {
-        const pool = RELICS.filter((r) => !p.relics.includes(r.id) && r.rarity !== 'mythic');
+        // The registry the first run always drew from: round 9's relics are
+        // the later shelf's (shared/relics.ts NINTH_RELIC_IDS).
+        const pool = RELICS.filter((r) => !p.relics.includes(r.id) && r.rarity !== 'mythic' && !NINTH_RELIC_IDS.has(r.id));
         if (pool.length) p.relics.push(opening.pick(pool).id);
       }
       // The relic may raise the ceiling or the hand size.
@@ -513,6 +517,9 @@ export class Engine {
         p.relics.unshift(creed);
         log(t, `${p.name}'s creed wakes: ${RELIC_BY_ID[creed]?.name}. ${RELIC_BY_ID[creed]?.text}`, 'magic', { playerId: p.id });
       }
+      // The Changeling: one relic an opponent holds is this player's too,
+      // before anything reads the relics (the ceiling, the draws, the deal).
+      if (!p.folded && hasRule(p.relics, 'changeling')) this.borrow(p);
       refreshMaxMana(p, t);
       // Two at the top of the hand, not three. At three, a measured session
       // ended every hand with four unspent mana per player out of a ceiling
@@ -590,7 +597,9 @@ export class Engine {
     for (const p of players) {
       const kept = p.keepsake;
       p.keepsake = undefined;
-      if (!kept || !hasRule(p.relics, 'keepsake') || !t.cards.has(kept)) continue;
+      // Only the Keepsake sets `keepsake` (at the fold), so the card comes back
+      // even when the relic was a Changeling's, given back since.
+      if (!kept || !t.cards.has(kept)) continue;
       const at = t.deck.indexOf(kept);
       if (at < 0) continue;
       t.deck.splice(at, 1);
@@ -943,6 +952,7 @@ export class Engine {
       this.fx.push({ t: 'burn', cardId: id });
       this.fx.push({ t: 'sfx', name: 'card_burn' });
       log(t, `${describeCard(t, id)} burns away.`, 'impossible');
+      emberJar(t, id, this.fx);
     }
   }
 
@@ -1011,12 +1021,22 @@ export class Engine {
         }
       }
     }
+    // The board's undecided cards land at random, unless someone still in the
+    // hand holds The Witness: then each settles on the face that helps the
+    // first of them most (witnessFace).
+    const witness = live(t).length > 1 ? live(t).find((p) => hasRule(p.relics, 'witness')) : undefined;
     for (const id of t.board) {
       const c = card(t, id);
       if (c && isQuantum(c)) {
-        const idx = this.rng.int(c.faces.length);
+        const kind = witness ? this.witnessFace(witness, c) : null;
+        const idx = kind ?? this.rng.int(c.faces.length);
         c.collapsed = idx;
         this.fx.push({ t: 'collapse', cardId: id, face: c.faces[idx] });
+        if (kind !== null && witness) {
+          log(t, `${witness.name}'s Witness: the undecided ${c.faces.map(faceLabel).join('/')} settles as ${faceLabel(c.faces[idx])}.`, 'impossible', {
+            playerId: witness.id, rule: ruleRelic(witness, 'witness'),
+          });
+        }
       }
     }
     void ctx;
@@ -1111,6 +1131,28 @@ export class Engine {
     return Math.min(14000, Math.max(floor, scaled));
   }
 
+  /**
+   * The Witness: the face of an undecided community card that makes its
+   * holder's hand best, or null when every face reads the same for them (then
+   * it is the coin it always was, and nothing is said).
+   */
+  private witnessFace(p: Player, c: CardEntity): number | null {
+    const t = this.table;
+    const mods = modsFor(t, p);
+    const was = c.collapsed;
+    const scores = c.faces.map((_, i) => {
+      c.collapsed = i;
+      return evaluate({ cards: handCards(t, p), viewerId: p.id, mods }).score;
+    });
+    c.collapsed = was;
+    if (scores.every((x) => x === scores[0])) return null;
+    let best = 0;
+    for (let i = 1; i < scores.length; i++) {
+      if (mods.lowWins ? scores[i] < scores[best] : scores[i] > scores[best]) best = i;
+    }
+    return best;
+  }
+
   private bestFaceFor(faces: Face[]): number {
     let best = 0;
     for (let i = 1; i < faces.length; i++) if (faces[i].rank > faces[best].rank) best = i;
@@ -1174,6 +1216,7 @@ export class Engine {
         this.usurp(p);
       }
     }
+    this.giveBack();
 
     if (alive(t).length <= 1) { this.endGame(); return; }
     // Nobody left to play for. A solo run used to make its player sit through
@@ -1216,6 +1259,58 @@ export class Engine {
   }
 
   /**
+   * The Changeling: one relic of one opponent's, both drawn at random in
+   * front of the table, is this player's too until the hand ends. Never a
+   * creed (it stays with its coven), never another Changeling, never one they
+   * hold already, and never one that only pays between antes, which would
+   * do nothing inside the hand it was borrowed for.
+   */
+  private borrow(p: Player): void {
+    const t = this.table;
+    const lenders = t.players
+      .filter((q) => q.id !== p.id && !q.eliminated)
+      .map((q) => ({
+        q,
+        ids: q.relics.filter((id) => {
+          const def = RELIC_BY_ID[id];
+          return !!def && !def.coven && def.rule !== 'changeling' && id !== q.borrowed
+            && !p.relics.includes(id) && !def.economy?.interestPct;
+        }),
+      }))
+      .filter((l) => l.ids.length > 0);
+    if (!lenders.length) return;
+    const rng = this.stream(`changeling:${t.handNumber}:${p.seat}`);
+    const { q, ids } = rng.pick(lenders);
+    const id = rng.pick(ids);
+    p.relics.push(id);
+    p.borrowed = id;
+    log(t, `${p.name}'s Changeling wears ${q.name}'s ${RELIC_BY_ID[id]?.name ?? id} for this hand: ${RELIC_BY_ID[id]?.text ?? ''}`, 'magic', {
+      playerId: p.id, rule: ruleRelic(p, 'changeling'),
+    });
+  }
+
+  /** The hand is over: a Changeling's relic goes back, a Grimoire's pages come home. */
+  private giveBack(): void {
+    const t = this.table;
+    for (const p of t.players) {
+      if (p.borrowed) {
+        const i = p.relics.lastIndexOf(p.borrowed);
+        if (i >= 0) p.relics.splice(i, 1);
+        p.borrowed = undefined;
+        refreshMaxMana(p, t);
+      }
+      const back = p.margin ?? [];
+      p.margin = undefined;
+      if (!back.length || p.eliminated) continue;
+      p.sigils.push(...back);
+      const names = back.map((s) => s.scribed?.name ?? 'a written sigil').join(', ');
+      log(t, `${p.name}'s Grimoire: ${names} comes back to their hand.`, 'magic', {
+        playerId: p.id, rule: ruleRelic(p, 'grimoire'),
+      });
+    }
+  }
+
+  /**
    * The Usurper: whoever took a player's last chip, holding it, takes every
    * relic they held (a creed stays with its coven).
    */
@@ -1226,9 +1321,13 @@ export class Engine {
       .sort((a, b) => b.won - a.won)[0];
     const q = taker ? byId(t, taker.playerId) : undefined;
     if (!q || q.eliminated || !hasRule(q.relics, 'usurper')) return;
-    const taken = out.relics.filter((id) => !isCreed(id) && !q.relics.includes(id));
+    // A relic the loser only borrowed was never theirs to lose; one the
+    // Usurper had only borrowed from them is now the Usurper's own.
+    const taken = out.relics.filter((id) => !isCreed(id) && id !== out.borrowed
+      && (!q.relics.includes(id) || id === q.borrowed));
     if (!taken.length) return;
-    q.relics.push(...taken);
+    if (q.borrowed && taken.includes(q.borrowed)) q.borrowed = undefined;
+    q.relics.push(...taken.filter((id) => !q.relics.includes(id)));
     out.relics = out.relics.filter((id) => !taken.includes(id));
     refreshMaxMana(q, t);
     log(t, `${q.name} usurps ${out.name}: ${taken.map((id) => RELIC_BY_ID[id]?.name ?? id).join(', ')}.`, 'impossible', {

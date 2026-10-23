@@ -80,6 +80,12 @@ export interface RuleMods {
    * when both cards are on the board; without this, any two cards qualify.
    */
   kinHole?: string[];
+  /**
+   * Twofold (round 9): every card that is Wild for this reader, by its mark or
+   * by a rule, fills two of the five places. A pair and a Wild is four of a
+   * kind; the hand's used ids name the card twice.
+   */
+  wildTwice?: boolean;
 }
 
 export interface HandResult {
@@ -263,6 +269,10 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
 
     if (cands.length === 0) continue; // card is struck from the hand entirely
     slots.push({ card, candidates: cands });
+    // Twofold: a Wild stands in a second place too, with its own choice of face.
+    if (mods.wildTwice && (marks.includes('wild') || ruledWild.has(card.id))) {
+      slots.push({ card, candidates: cands.slice() });
+    }
   }
   return slots;
 }

@@ -24,6 +24,7 @@ import { Rng } from '../../shared/rng';
 import { omenMods, omenNumber } from '../../shared/omens';
 import { DEFAULT_COVEN, KIN_BOARD_ONLY } from '../../shared/covens';
 import { handsPerAnteAt } from '../../shared/hexes';
+import type { FxEvent } from '../../shared/protocol';
 
 export const AVATARS = 12;
 
@@ -252,6 +253,8 @@ export function modsFor(t: Table, p: Player): RuleMods {
   if (relic.copiesWild) { m.copiesWild = true; if (KIN_BOARD_ONLY) m.kinHole = scoringHole(t, p); }
   // The Lodestone: this hand's rank is Wild for its owner.
   if (p.lodestone) m.wildRanks = [...new Set([...(m.wildRanks ?? []), p.lodestone])];
+  // Twofold: every card Wild for its owner fills two places (shared/hand.ts).
+  if (hasRule(p.relics, 'twofold')) m.wildTwice = true;
 
   const shift = (m.categoryShift ?? 0) + (relic.categoryShift ?? 0) - p.hexed;
   if (shift !== 0) m.categoryShift = shift;
@@ -312,6 +315,26 @@ export function burnCard(t: Table, id: string): number | null {
   // Not the discard: the discard folds back into the deck.
   t.deck = t.deck.filter((d) => d !== id);
   return slot;
+}
+
+/**
+ * The Ember Jar: a community card that has just burned goes to the first
+ * player still in the hand who owns one, in seat order, and plays in their
+ * hand until the hand ends. It is still burned: `destroyed` stays set, so it
+ * never comes back to the deck. Called by every burn, after its own line, so
+ * the ledger reads in the order it happened. Returns who caught it.
+ */
+export function emberJar(t: Table, id: string, fx?: FxEvent[]): Player | null {
+  const c = card(t, id);
+  if (!c?.destroyed || t.board.includes(id)) return null;
+  const q = t.players.find((p) => !p.folded && !p.eliminated && hasRule(p.relics, 'ember_jar'));
+  if (!q || q.hole.includes(id)) return null;
+  q.hole.push(id);
+  fx?.push({ t: 'deal', cardIds: [id], to: q.id });
+  log(t, `${q.name}'s Ember Jar catches ${describeCard(t, id)}: it plays in their hand for the rest of the hand.`, 'impossible', {
+    playerId: q.id, rule: ruleRelic(q, 'ember_jar'),
+  });
+  return q;
 }
 
 export const sigilHandSize = (p: Player): number =>

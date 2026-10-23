@@ -27,7 +27,7 @@ import type {
   Player, SigilTargets, StackEntry, Table,
 } from '../../shared/types';
 import {
-  alive, bloodOwed, burnCard, byId, canCast, card, copyCardOnto, describeCard, describeCardInPlace, live, log, manaCost,
+  alive, bloodOwed, burnCard, byId, canCast, card, copyCardOnto, describeCard, describeCardInPlace, emberJar, live, log, manaCost,
   ruleRelic, sigilHandSize,
 } from './table';
 
@@ -262,6 +262,9 @@ export function castSigil(
     p.mana -= cost;
   }
   p.sigils = p.sigils.filter((s) => s.uid !== uid);
+  // The Grimoire: a sigil its owner wrote is set aside, not spent, and comes
+  // back to hand when the hand ends (Engine.giveBack), countered or not.
+  if (inst.scribed && hasRule(p.relics, 'grimoire')) p.margin = [...(p.margin ?? []), inst];
   // Twice-Told: the first sigil of the hand resolves twice.
   const twice = (p.castsThisHand ?? 0) === 0 && hasRule(p.relics, 'twice_told');
   p.castsThisHand = (p.castsThisHand ?? 0) + 1;
@@ -701,10 +704,13 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     // ---------------------------------------------------------------- RUIN
     case 'burn': {
       if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
+      // Named while it is still on the board, where it is public. Described
+      // after the burn it read "burns a card in the deck out of the board".
+      const burned = describeCard(t, firstCard.id);
       if (burnCard(t, firstCard.id) === null) { note('That card is not on the board.', 'warn'); break; }
       ctx.fx.push({ t: 'burn', cardId: firstCard.id });
       ctx.fx.push({ t: 'sfx', name: 'card_burn' });
-      noteCard(firstCard.id, (d) => `${caster.name} burns ${d} out of the board.`, 'impossible');
+      note(`${caster.name} burns ${burned} out of the board.`, 'impossible');
       // The Ashen's creed: the rank goes with the card, as Unmake would take it.
       if (hasRule(caster.relics, 'salt')) {
         const face = firstCard.collapsed !== null ? firstCard.faces[firstCard.collapsed] : null;
@@ -716,6 +722,8 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
           });
         }
       }
+      // The Ember Jar: the burned card goes to whoever holds one.
+      emberJar(t, firstCard.id, ctx.fx);
       break;
     }
     case 'unmake': {
@@ -783,10 +791,11 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
     }
     case 'wild_rite': {
       if (!firstCard) break;
-      if (!firstCard.marks.includes('wild')) firstCard.marks.push('wild');
-      t.tempMarks.push({ cardId: firstCard.id, markId: 'wild' });
+      const fresh = !firstCard.marks.includes('wild');
+      if (fresh) firstCard.marks.push('wild');
       ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: 'wild' });
       note(`${caster.name} makes a card mean anything at all.`, 'impossible');
+      handMark(t, caster, firstCard, 'wild', fresh);
       break;
     }
     case 'conjure': {
@@ -1090,10 +1099,11 @@ function applyEffect(ctx: MagicCtx, e: StackEntry, stack: StackEntry[], index: n
 
     case 'gild': {
       if (!canAlter(firstCard)) { note('That card is set in amber.', 'warn'); break; }
-      if (!firstCard.marks.includes('prism')) firstCard.marks.push('prism');
-      t.tempMarks.push({ cardId: firstCard.id, markId: 'prism' });
+      const fresh = !firstCard.marks.includes('prism');
+      if (fresh) firstCard.marks.push('prism');
       ctx.fx.push({ t: 'inscribe', cardId: firstCard.id, markId: 'prism' });
       note(`${caster.name} gilds a community card. It is every suit at once.`, 'impossible');
+      handMark(t, caster, firstCard, 'prism', fresh);
       break;
     }
 
@@ -1414,6 +1424,29 @@ function magpie(t: Table, counterer: Player, countered: StackEntry): void {
     return;
   }
   log(t, `${counterer.name}'s Magpie keeps ${name}.`, 'magic', { playerId: counterer.id, rule: ruleRelic(counterer, 'magpie') });
+}
+
+/**
+ * A mark Wild Rite or Gild writes for the hand. Indelible Ink keeps it for
+ * good instead: it is not registered to fade, it is signed as any permanent
+ * mark its writer makes is (the Loom's Signature), and the ledger says so.
+ *
+ * Without the relic this is exactly what the two sigils always did: the mark
+ * is registered in `t.tempMarks` whether or not the card already had it, so
+ * a first run plays as it did.
+ */
+function handMark(t: Table, caster: Player, c: CardEntity, mark: MarkId, fresh: boolean): void {
+  if (!hasRule(caster.relics, 'indelible')) {
+    t.tempMarks.push({ cardId: c.id, markId: mark });
+    return;
+  }
+  // A card that already wore the mark, for good or for the hand, was not
+  // written on: the ink leaves it as it was, and says nothing.
+  if (!fresh) return;
+  sign(t, caster, c, mark);
+  log(t, `${caster.name}'s Indelible Ink: ${describeCard(t, c.id)} stays ${MARKS[mark].name}, for good.`, 'impossible', {
+    playerId: caster.id, rule: ruleRelic(caster, 'indelible'),
+  });
 }
 
 /**
