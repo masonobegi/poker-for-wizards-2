@@ -1,15 +1,40 @@
-# HEXHOLD: Steam readiness (2026-10-22, round 6)
+# HEXHOLD: Steam readiness (2026-10-22, round 7: covens as unlock)
+
+**Round 7 is on branch `covens-unlock-2026-10-22`** (from `main` at 8d1fea7,
+pushed, not merged: a push to `main` redeploys the web version). Mason chose
+"covens as unlock": the first run is unchanged, and after one finished run
+the coven picker opens and the pools grow to 16 sigils, 12 omens and 16
+relics (`shared/unlock.ts`). It also fixes "Leave table" going to a blank
+screen at the end of a run, which is live on `main` today. The builds and
+items below marked round 7 are from that branch; upload depots from it once
+it is merged. Fun: 7/10 (7.4), up from 7.1 (`FUN-REVIEW.md`, round 7).
+
+The round 6 state follows unchanged where round 7 did not touch it.
 
 Milestones: Coming Soon page by **20 Nov 2026**, Steam Playtest in
 **December**, Next Fest demo **22 Feb - 1 Mar 2027** (register by
 **10 Jan**), release **8 Apr 2027**.
 
-**Branch `steam-prep-2026-10-22`** holds this round: main at 35549b8 (the
-2026-10-17..19 UI pass) plus round 6's fixes. It is pushed, **not merged into
-`main`**, because a push to `main` builds the public web version on Railway
-(see NEXT.md). Merging is Mason's call. Upload depots from this branch.
+Round 6 was branch `steam-prep-2026-10-22` (main at 35549b8, the
+2026-10-17..19 UI pass, plus round 6's fixes), since merged: `main` is
+8d1fea7.
 
-## Builds (2026-10-22)
+## Builds, round 7 (2026-10-22, branch `covens-unlock-2026-10-22`)
+
+| Build | Where | Commit | Smoke |
+| --- | --- | --- | --- |
+| Windows full | `release/win-unpacked` (+ `HEXHOLD Setup 0.9.0.exe`, zip) in this worktree | 87b6f1a | packaged 21/21; quit 9/9 (slowest 90 ms) |
+| Windows demo | `release-demo/win-unpacked` (+ installer, zip) | 87b6f1a | packaged 22/22 on the rerun (first run 21/22: "menu did not pause", the known flake where the play loop ends on an open spell prompt); quit 9/9 on the rerun (first run timed out launching the 6th, under load); `test/demo.mjs` all checks, including the unlock |
+| Windows playtest | `release-playtest/win-unpacked` (+ installer, zip) | 87b6f1a | packaged 21/21 on the rerun (first run 19/21: Quit did not close the app, the same flake; no process was left afterwards) |
+| Linux full | WSL `~/hexhold-covens/release/linux-unpacked` (+ AppImage, tar.gz), its own clone of the branch | 87b6f1a | packaged 21/21 at 1280x800; quit: 113 quits measured (stopped there; it had been given 60 rounds), every process gone in all 113, 112 within 3 s, median 549 ms, slowest 3.3 s with the Windows smokes running beside it |
+| Linux demo | WSL `~/hexhold-covens/release-demo/linux-unpacked` | 87b6f1a | packaged 22/22 |
+| Linux playtest | WSL `~/hexhold-covens/release-playtest/linux-unpacked` | 87b6f1a | packaged 21/21 |
+
+The Windows builds replaced round 6's in this worktree's `release*/`; round
+6's Linux builds are untouched in `~/hexhold-main`. Commits after 87b6f1a
+change tests and docs only. All smokes headless, muted and off-screen.
+
+## Builds, round 6 (2026-10-22)
 
 | Build | Where | Commit | Smoke |
 | --- | --- | --- | --- |
@@ -32,7 +57,7 @@ Node 22.23 in WSL (round 5: 24.12; `engines` asks for 20+). Smoke runs are
 headless, muted and off-screen (`test/packaged.mjs`, `test/quit.mjs`;
 `scripts/linux-smoke.sh` in WSL on SwiftShader).
 
-## Code-side readiness: 95% (43 of 45)
+## Code-side readiness: 96% (47 of 49; round 7's four on the branch)
 
 The fixed list below (items 1-26 from earlier rounds, all still done), plus
 what round 6 found. Only work Claude can do counts; nothing that needs
@@ -59,12 +84,18 @@ Mason's account, money, hardware or judgement is in it.
 | 43 | Builds current on Windows and Linux, demo and playtest included | DONE | The table above |
 | 44 | The five relics that act at the deal say so (ledger line, rail punch) | OPEN | Gilt Edge, Third Hand, Cold Read, Unstable Isotope, Wild Inheritance act silently; a line per relic per hand is a design call about ledger noise |
 | 45 | A clean spell-stack store screenshot | OPEN | The capture has a hint over the ante bar and text running under the sticky "Answer it?"; Valve's minimum of five is met without it |
+| 46 | Round 7: the covens open after the first run, the first run unchanged, Steam-Cloud-safe | DONE (branch) | `test/unlock.test.ts` (pools identical on a first run, a coven honoured on a later one, the demo's three, the Daily Rite, persistence on a failed write, `cloudWins` both ways); the browser harnesses run both ways (`HEXHOLD_LATER_RUN=1`) |
+| 47 | "Leave table" reaches the menu | DONE (branch; was: a blank screen at the end of every run, live on `main`) | b8bf409; `test/net.test.ts` fails on the old order |
+| 48 | `test/style.mjs` in style with a Market on screen | DONE (branch; was: every shop card's border off the palette at 8d1fea7) | 58ab5ab, 33d89d2 |
+| 49 | Every achievement has a dealt route | DONE (branch; was: "Nobody Saw It Coming" only through the blank page) | The Sealed Court in later runs; `test/unlock.test.ts` |
 
-**Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 6):
-**7/10 on the locked rubric (7.1), down from round 5's 7.6 (an 8)**. The UI
-pass helped presentation and clarity; the content cut that came with it
-(covens off, a 12-relic shelf) cost depth and variety. Sellable at $9.99 as a
-tight solo roguelite.
+**Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 7):
+**7/10 on the locked rubric (7.4; round 6 7.1, round 5 7.6, an 8)**. The
+covens are back from the second run and play differently (criterion 4, 5 to
+7); one point short of an 8, held there by the first run (the plain opening,
+by design) and a 16-relic shelf. Round 6: the UI pass helped presentation and
+clarity, and the content cut that came with it cost depth and variety.
+Sellable at $9.99 as a tight solo roguelite.
 
 ## What the Coming Soon page needs
 
@@ -84,12 +115,13 @@ tight solo roguelite.
 
 - **Playtest**: `npm run package:playtest:win` and `:linux` build the full
   game as "HEXHOLD Playtest" (own app, own saves). The menu and the end of
-  every run offer "Send playtest feedback" with the four questions the
+  every run offer "Send playtest feedback" with the five questions the
   playtest is for, once `PLAYTEST_FEEDBACK_URL` (`shared/playtest.ts`) is set
   or the full game's App ID exists. Upload with
   `steam/steampipe/playtest/app_build_playtest.vdf`.
 - **Demo**: 3 antes; a first cast within seconds, a run in about 5 minutes,
-  an impossible hand in 40% of demos; it ends on "the demo ends here", the
+  an impossible hand in 40% of first demos (52% of a player's second, once
+  the covens and the larger pools open, round 7); it ends on "the demo ends here", the
   run summary, an honest "In the full game" list and Wishlist above the fold
   (and a bust ends on the same button). Checked against the 2024 and 2026
   Next Fest data (`shared/demo.ts`): a demo has a player's attention for
@@ -111,7 +143,9 @@ tight solo roguelite.
    `steam/store-page.md`, upload the five screenshots, the trailer and the
    art; fill the content survey (simulated gambling); submit the page for
    review. **20 Nov: Coming Soon live.**
-4. **Before December**: decide on the covens (FUN-REVIEW round 6: an unlock
+4. **Before December** (round 7: decided, covens as unlock, on branch
+   `covens-unlock-2026-10-22`; merge it, then the rest of this item is
+   history): decide on the covens (FUN-REVIEW round 6: an unlock
    after the first run, or growing the pools) so the playtest tests the game
    you mean to ship; merge `steam-prep-2026-10-22` into `main` when a web
    deploy of it is wanted.
