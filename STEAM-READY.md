@@ -10,6 +10,18 @@ unchanged apart from that fix. Fun: still 7/10 (7.4; `FUN-REVIEW.md`, round
 
 Round 7 follows.
 
+## Builds, round 8 (2026-10-23, `main` at 379c617)
+
+| Build | Where | Commit | Smoke |
+| --- | --- | --- | --- |
+| Windows full | `release/win-unpacked` (+ `HEXHOLD Setup 0.9.0.exe`, zip) in this worktree | 379c617 | packaged 21/21; quit 9/9 (slowest 101 ms) |
+| Windows demo | `release-demo/win-unpacked` (+ installer, zip) | 379c617 | packaged 22/22 |
+| Windows playtest | `release-playtest/win-unpacked` (+ installer, zip) | 379c617 | packaged 21/21 |
+
+The Linux builds are still round 7's (WSL `~/hexhold-covens`); rebuild them
+from 379c617 or later before a Linux depot upload. All smokes headless,
+muted and off-screen.
+
 **Round 7 is on branch `covens-unlock-2026-10-22`** (from `main` at 8d1fea7,
 pushed, not merged: a push to `main` redeploys the web version). Mason chose
 "covens as unlock": the first run is unchanged, and after one finished run
