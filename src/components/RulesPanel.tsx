@@ -196,7 +196,7 @@ function RulesPanelBase({ view, me, className = '' }: {
         <h3 className="rules-head">You<span className="rules-count">{mine.length}</span></h3>
         <RuleList rules={mine} empty="Nothing of your own yet — the Market sells relics between antes." />
       </div>
-      <ScrollMore target={scrollRef} label="more rules" />
+      <ScrollMore target={scrollRef} label="more rules" className="scrollmore--foot" />
     </section>
   );
 }
