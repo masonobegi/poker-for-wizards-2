@@ -613,6 +613,12 @@ export interface Table {
   sealedRanks: Rank[];
   /** Marks granted for one hand only; stripped when the hand ends. */
   tempMarks: Array<{ cardId: string; markId: MarkId }>;
+  /**
+   * What relics did at this hand's deal: the hole card each one marked or
+   * left undecided, or a seat dealt an extra card. Silent when it happens, so
+   * the showdown reads it back and says when one changed the hand.
+   */
+  relicDeals?: Array<{ playerId: string; relicId: string; cardId?: string }>;
   /** Set by Schrödinger's Flop — the next flop arrives undecided. */
   quantumFlop: boolean;
   /** Permanent table-wide rules, one added per ante. They never come off. */

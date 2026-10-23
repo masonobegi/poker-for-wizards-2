@@ -8,7 +8,7 @@
  * running six different rulebooks at once can still settle a bet.
  */
 import { cardsOf, byId, describeCard, live, alive, log, modsFor, scoringHole } from './table';
-import { viewCard } from '../../shared/cards';
+import { type CardEntity, type MarkId, faceLabel, viewCard } from '../../shared/cards';
 import { type HandResult, Cat, evaluate } from '../../shared/hand';
 import { RELIC_BY_ID, hasVision } from '../../shared/relics';
 import type { FxEvent } from '../../shared/protocol';
@@ -86,6 +86,7 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
 
   // Uncontested — everyone else folded. No hand is read, nothing is revealed.
   const uncontested = contenders.length === 1;
+  if (!uncontested) for (const sc of scored.values()) creditDealRelics(t, sc);
 
   const won = new Map<string, number>();
   const shards = new Map<string, number>();
@@ -227,6 +228,75 @@ export function runShowdown(t: Table, rng: Rng): ShowdownOutput {
     },
     fx,
   };
+}
+
+/** What a hole card's mark did for the hand, in the ledger's words. */
+const MARK_PLAYED: Partial<Record<MarkId, string>> = {
+  blooded: 'played a rank higher',
+  wild: 'played as whatever the hand needed',
+  prism: 'played as the suit the hand needed',
+  echo: 'played higher for the pots it has won',
+};
+
+/**
+ * Relics that act at the deal (a marked hole card, an undecided one, an extra
+ * one) write nothing when they act, so neither the ledger nor the rail said
+ * when one of them won a hand (FUN-REVIEW.md, round 6). At a contested
+ * showdown each is read again without what it dealt, and a line is written
+ * only when the hand reads differently: a relic that changed nothing says
+ * nothing. The line carries the relic's id, so the rail flashes it.
+ */
+function creditDealRelics(t: Table, sc: Scored): void {
+  const p = sc.player;
+  const deals = (t.relicDeals ?? []).filter((d) => d.playerId === p.id);
+  if (deals.length === 0) return;
+  const mods = modsFor(t, p);
+  const board = sc.timeline === 'echo' && t.echoTimeline ? t.echoTimeline.boardIds : t.board;
+  const cards = cardsOf(t, [...scoringHole(t, p), ...board]);
+  const score = (cs: CardEntity[]): number => evaluate({ cards: cs, viewerId: p.id, mods }).score;
+  const swap = (alt: CardEntity): CardEntity[] => cards.map((c) => (c.id === alt.id ? alt : c));
+  const full = sc.used.score;
+  // Under a player's own Reversal the lower score is the better hand.
+  const better = (a: number, b: number): boolean => (sc.lowWins ? a < b : a > b);
+  const say = (relicId: string, text: string): void => {
+    log(t, `${p.name}'s ${RELIC_BY_ID[relicId]?.name ?? relicId}: ${text}`, 'magic', { playerId: p.id, rule: relicId });
+  };
+
+  const credited = new Set<string>();
+  for (const d of deals) {
+    const deal = RELIC_BY_ID[d.relicId]?.deal;
+    if (!deal || credited.has(d.relicId)) continue;
+    const c = d.cardId ? t.cards.get(d.cardId) : undefined;
+
+    if (deal.markOwn && c) {
+      const mark = deal.markOwn;
+      if (!better(full, score(swap({ ...c, marks: c.marks.filter((m) => m !== mark) })))) continue;
+      say(d.relicId, `${describeCard(t, c.id)} ${MARK_PLAYED[mark] ?? 'played on its mark'}, in ${sc.used.name}.`);
+    } else if (deal.quantumHole && c) {
+      // Undecided until the showdown, then a coin: the first face is the card
+      // as dealt, so landing on it is the relic doing nothing.
+      if (c.collapsed === null || c.collapsed === 0) continue;
+      const dealt = score(swap({ ...c, faces: [c.faces[0]], collapsed: 0 }));
+      if (dealt === full) continue;
+      const was = faceLabel(c.faces[0]);
+      const now = faceLabel(c.faces[c.collapsed]);
+      say(d.relicId, better(full, dealt)
+        ? `the undecided ${was} landed as ${now}, and it played.`
+        : `the undecided ${was} landed as ${now}, and the hand reads worse for it.`);
+    } else if (deal.extraHole) {
+      // The hand with one hole card fewer, whichever one it could best spare.
+      let spare: number | null = null;
+      for (const id of p.hole) {
+        const s = score(cards.filter((x) => x.id !== id));
+        if (spare === null || better(s, spare)) spare = s;
+      }
+      if (spare === null || !better(full, spare)) continue;
+      say(d.relicId, `the extra hole card played, in ${sc.used.name}.`);
+    } else {
+      continue;
+    }
+    credited.add(d.relicId);
+  }
 }
 
 function seatDistance(t: Table, seat: number): number {

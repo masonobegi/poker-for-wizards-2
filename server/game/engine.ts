@@ -616,19 +616,45 @@ export class Engine {
       });
     }
 
+    // Each relic that shapes a hole card says which card it shaped, so the
+    // showdown can tell when it mattered (runShowdown, creditDealRelics).
+    const deals: NonNullable<typeof t.relicDeals> = [];
+    t.relicDeals = deals;
     const omenQuantumHole = omenNumber(t.omens, (o) => o.deal?.quantumHole);
     for (const p of players) {
-      const quantum = omenQuantumHole + relicNumber(p.relics, (r) => r.deal?.quantumHole);
-      for (let i = 0; i < quantum && i < p.hole.length; i++) {
-        const c = card(t, p.hole[i]);
+      for (const relicId of p.relics) {
+        if (RELIC_BY_ID[relicId]?.deal?.extraHole) deals.push({ playerId: p.id, relicId });
+      }
+      // The omen's undecided cards first, then each relic's, in the order
+      // they were bought: the same cards, in the same order, as one count.
+      let slot = 0;
+      for (let i = 0; i < omenQuantumHole && slot < p.hole.length; i++) {
+        const c = card(t, p.hole[slot++]);
         if (c) superposeCard(ctx, c);
       }
-      const mark = p.relics.map((id) => RELIC_BY_ID[id]?.deal?.markOwn).find(Boolean);
-      if (mark && p.hole.length) {
-        const c = card(t, p.hole[0]);
-        if (c && !c.marks.includes(mark)) {
+      for (const relicId of p.relics) {
+        const n = RELIC_BY_ID[relicId]?.deal?.quantumHole ?? 0;
+        for (let i = 0; i < n && slot < p.hole.length; i++) {
+          const c = card(t, p.hole[slot++]);
+          if (!c) continue;
+          superposeCard(ctx, c);
+          deals.push({ playerId: p.id, relicId, cardId: c.id });
+        }
+      }
+      // "One of your hole cards is X every hand": each such relic takes its
+      // own card, in the order they were bought. Only the first one used to
+      // apply, so Wild Inheritance bought beside Gilt Edge did nothing.
+      slot = 0;
+      for (const relicId of p.relics) {
+        const mark = RELIC_BY_ID[relicId]?.deal?.markOwn;
+        if (!mark) continue;
+        while (slot < p.hole.length) {
+          const c = card(t, p.hole[slot++]);
+          if (!c || c.marks.includes(mark)) continue;
           c.marks.push(mark);
           t.tempMarks.push({ cardId: c.id, markId: mark });
+          deals.push({ playerId: p.id, relicId, cardId: c.id });
+          break;
         }
       }
       this.fx.push({ t: 'deal', cardIds: p.hole, to: p.id, stagger: 80 });
