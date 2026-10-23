@@ -364,6 +364,53 @@ test('The Changeling borrows nothing when no opponent holds a relic it could wea
   assert.equal(lines(t, 'changeling').length, 0);
 });
 
+test('The Changeling: a card kept under a borrowed Keepsake still comes back, and a Usurper keeps what it took', () => {
+  const { e, t, hero, others, ix } = table('changeling-keep');
+  // The Keepsake, worn for a hand: fold before the flop and the card is kept.
+  hero.relics = ['changeling'];
+  for (const q of others) q.relics = q === others[0] ? ['keepsake'] : [];
+  t.phase = 'payout';
+  ix.beginHand();
+  assert.equal(hero.borrowed, 'keepsake');
+  t.actingId = hero.id;
+  const ranks = hero.hole.map((id) => t.cards.get(id)!.faces[0].rank);
+  const best = hero.hole[ranks.indexOf(Math.max(...ranks))];
+  assert.ok(e.act(hero.id, { kind: 'fold' }).ok);
+  e.dispose();
+  assert.equal(hero.keepsake, best);
+  t.payout = { pots: [], entries: [], shards: {} };
+  ix.endHand();
+  e.dispose();
+  assert.ok(!hero.relics.includes('keepsake'), 'given back');
+  // Next hand nobody has a relic to lend: the kept card comes back anyway.
+  for (const q of others) q.relics = [];
+  t.phase = 'payout';
+  ix.beginHand();
+  e.dispose();
+  assert.ok(hero.hole.includes(best), 'the card kept under the borrowed Keepsake came back');
+
+  // The Usurper knocks out the player it borrowed from: the relic is now its own.
+  const u = table('changeling-usurp');
+  const [foe] = u.others;
+  u.hero.relics = ['changeling', 'the_usurper', 'third_hand'];
+  u.hero.borrowed = 'third_hand';
+  foe.relics = ['third_hand', 'ouroboros'];
+  foe.chips = 0;
+  u.t.payout = {
+    pots: [{ amount: 1000, winners: [u.hero.id], label: 'Main Pot' }],
+    entries: [
+      { playerId: u.hero.id, cards: [], handName: 'Pair of Aces', cat: Cat.Pair, score: 1, usedIds: [], impossible: false, won: 1000 },
+      { playerId: foe.id, cards: [], handName: 'High Card', cat: Cat.HighCard, score: 0, usedIds: [], impossible: false, won: 0 },
+    ],
+    shards: {},
+  };
+  u.ix.endHand();
+  u.e.dispose();
+  assert.ok(foe.eliminated);
+  assert.ok(u.hero.relics.includes('third_hand') && u.hero.relics.includes('ouroboros'));
+  assert.equal(u.hero.borrowed, undefined);
+});
+
 // ------------------------------------------------------------ The Grimoire
 
 test('The Grimoire: a sigil you wrote comes back to your hand when the hand ends', () => {

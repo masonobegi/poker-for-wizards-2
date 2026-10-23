@@ -13,7 +13,7 @@ and `server/game/shop.ts`. If a pool changes, the counts here change with it.
 
 **Updated 2026-10-22 (round 7, branch `covens-unlock-2026-10-22`)**: the
 first run is still that game, but after a run is finished, won or lost, the
-seven covens open and the pools grow to 16 sigils, 12 omens and 23 relics (23 since round 8, 2026-10-23)
+seven covens open and the pools grow to 16 sigils, 12 omens and 30 relics (23 since round 8, 30 since round 9, both 2026-10-23)
 (`shared/unlock.ts`, `UNLOCKED_SIGIL_IDS`, `UNLOCKED_OMEN_IDS`,
 `UNLOCKED_RELIC_IDS`). The copy below says both halves: what the first run
 is, and what opens after it. Merge this file with the branch, not before: on
@@ -130,7 +130,7 @@ deckbuilder".
 
 ## A/B short descriptions (runner-ups, every claim verified)
 
-- **B, roguelike framing (299 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build runs from up to 16 sigils, 23 relics and seven covens. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
+- **B, roguelike framing (299 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build runs from up to 16 sigils, 30 relics and seven covens. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
 - **C, social framing, only after a real session with other people over Steam:** Texas Hold'em with a deck that breaks physics. Cast spells on a stack, counter the counterspell, and play under omens that rewrite the rules every ante. Host a table for friends with a four-letter code, or fill the seats with bots. Five of a Kind is a real hand here.
 
 ## Genre

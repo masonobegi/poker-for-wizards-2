@@ -1028,11 +1028,14 @@ const RELIC: Record<string, ReactNode> = {
   // ---- round 9: the later shelf's own -------------------------------------
   the_witness: (
     <>
-      {/* A monocle on its cord, over a card that has not decided. */}
-      <circle cx={10.4} cy={10.4} r={5.6} />
-      <circle cx={10.4} cy={10.4} r={2.4} strokeDasharray="1.6 1.4" />
-      <path d="M14.4 14.4c1.6 1.4 2.8 3 3.4 5.4" />
-      <Dot x={18.2} y={19.8} r={1.1} />
+      {/* A balance that has tipped one way: the coin did not get to choose. */}
+      <path d="M12 8v11.4" />
+      <path d="M8.4 19.4h7.2" />
+      <path d="M4.8 9.4 19.2 6.6" />
+      <path d="M4.8 9.4v3.8M19.2 6.6v3.8" strokeDasharray="1.4 1.2" />
+      <path d="M3.2 13.2a1.6 1.6 0 0 0 3.2 0Z" />
+      <path d="M17.6 10.4a1.6 1.6 0 0 0 3.2 0Z" />
+      <Dot x={12} y={8} r={1.3} />
     </>
   ),
   ember_jar: (

@@ -201,6 +201,28 @@ test('the codex lists the rules, sigils and relics', async () => {
   assert.ok(/Flush Five/i.test(text), 'the impossible hands are undocumented');
 });
 
+test('a later run\'s codex shows round 9\'s seven relics, each drawn rather than typed', async () => {
+  const Codex = (await import('../src/components/Codex')).default;
+  const { NINTH_RELIC_IDS, RELIC_BY_ID } = await import('../shared/relics');
+  const { act } = await import('react');
+  const { root } = await mount(<Codex onClose={() => {}} unlocked />);
+  const tab = [...root.querySelectorAll('button[role="tab"]')].find((b) => b.textContent === 'relics') as HTMLButtonElement;
+  await act(async () => { tab.click(); });
+  const entries = [...root.querySelectorAll('.codex-entry')];
+  for (const id of NINTH_RELIC_IDS) {
+    const def = RELIC_BY_ID[id];
+    const entry = entries.find((e) => e.querySelector('strong')?.textContent === def.name);
+    assert.ok(entry, `${def.name} is not in the later Codex`);
+    assert.ok(entry!.textContent!.includes(def.text), `${def.name}'s rule is not shown`);
+    assert.ok(entry!.querySelector('.codex-glyph svg path, .codex-glyph svg circle'), `${def.name} shows its fallback glyph, not its mark`);
+  }
+  // A first-run Codex does not list them.
+  const first = await mount(<Codex onClose={() => {}} unlocked={false} />);
+  const firstTab = [...first.root.querySelectorAll('button[role="tab"]')].find((b) => b.textContent === 'relics') as HTMLButtonElement;
+  await act(async () => { firstTab.click(); });
+  for (const id of NINTH_RELIC_IDS) assert.ok(!first.root.textContent!.includes(RELIC_BY_ID[id].text));
+});
+
 test('the whole app mounts without a canvas or an audio context', async () => {
   const App = (await import('../src/App')).default;
   const { html, text } = await mount(<App />);
