@@ -13,7 +13,7 @@ and `server/game/shop.ts`. If a pool changes, the counts here change with it.
 
 **Updated 2026-10-22 (round 7, branch `covens-unlock-2026-10-22`)**: the
 first run is still that game, but after a run is finished, won or lost, the
-seven covens open and the pools grow to 16 sigils, 12 omens and 16 relics
+seven covens open and the pools grow to 16 sigils, 12 omens and 23 relics (23 since round 8, 2026-10-23)
 (`shared/unlock.ts`, `UNLOCKED_SIGIL_IDS`, `UNLOCKED_OMEN_IDS`,
 `UNLOCKED_RELIC_IDS`). The copy below says both halves: what the first run
 is, and what opens after it. Merge this file with the branch, not before: on
@@ -55,7 +55,7 @@ Above the Straight Flush sit [b]Five of a Kind[/b], [b]Flush House[/b] and [b]Fl
 Every Market has a blank page. Type a spell in plain English, like "burn the river and read the chip leader's cards", and it becomes a sigil in your hand, priced by what it does, not how you word it. A rules parser reads it, not an AI.
 
 [h2]Seven covens, from your second run[/h2]
-Your first run is the plain table, so you can learn it. Finish one, win or lose, and six more covens open beside the one you started as: each deals you its own sigils and a relic, and plays by one rule of its own for the whole run. Three more sigils, three omens and four relics join the deck.
+Your first run is the plain table, so you can learn it. Finish one, win or lose, and six more covens open beside the one you started as: each deals you its own sigils and a relic, and plays by one rule of its own for the whole run. Three more sigils, three omens and eleven relics join the deck.
 
 [h2]Build the run[/h2]
 Two relics on the Market's shelf, and you take one: straights of four cards, a hole card that is any card you need, a first spell each hand that resolves twice.
@@ -83,7 +83,7 @@ once `profile.totals.runs` is at least `UNLOCK_AFTER_RUNS` (1), and a demo
 cut-off counts as a finished run. "Six more beside the one you started as":
 the first run is the Unaligned (a Nullify, no relic), and each of the other
 six has two `sigils` of its own and a `relic`; "one rule of its own" is each
-coven's creed. "Three more sigils, three omens and four relics" are the three
+coven's creed. "Three more sigils, three omens and eleven relics" are the three
 `UNLOCKED_*_IDS` lists. The bots stay Unaligned; nothing here says otherwise.
 
 Keep multiplayer wording to "host a table on your local network" until Steam
@@ -130,7 +130,7 @@ deckbuilder".
 
 ## A/B short descriptions (runner-ups, every claim verified)
 
-- **B, roguelike framing (299 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build runs from up to 16 sigils, 16 relics and seven covens. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
+- **B, roguelike framing (299 characters):** A poker roguelike played at a Texas Hold'em table. Win pots, shop between antes and build runs from up to 16 sigils, 23 relics and seven covens. But your opponents cast too, spells resolve on a stack, the deck you upgrade is shared, and each new ante brings an omen that rewrites the rules for good.
 - **C, social framing, only after a real session with other people over Steam:** Texas Hold'em with a deck that breaks physics. Cast spells on a stack, counter the counterspell, and play under omens that rewrite the rules every ante. Host a table for friends with a four-letter code, or fill the seats with bots. Five of a Kind is a real hand here.
 
 ## Genre
