@@ -13,14 +13,15 @@ minimum): upload them in this order.
 | `03-market.png` | The Market: two relics on the shelf (take one), a sigil, a rite, the mana upgrade and the blank page | the same client in a 1920x1080 browser (`npm run responsive`) |
 | `04-burned-card.png` | A board with a burned slot (the X stays where the card was) and a big pot | packaged build |
 | `05-your-turn.png` | Your turn with a rank struck from the game ("Fives unmade") and a mirrored card on the board | packaged build |
+| `06-answer-it.png` | The counterspell moment: Mordent's Nullify on top of Vesper's Unmake, the board and your Three of a Kind inside the panel, and "Answer it?" offering your own Nullify to counter the counter | the same client in a 1920x1080 browser, hints already seen (2026-10-23) |
 
-**Wanted: a clean spell-stack shot.** The counterspell moment ("Answer it?")
-is one of the game's selling points, but the capture of it
-(`raw/03-answer-it-blemished.png`) has a first-run hint over the ante bar,
-and the spell's text runs under the sticky "Answer it?" section, so in a
-still it reads as cut off at "It never". A blind reviewer flagged both
-(FUN-REVIEW.md, round 6). Recapture with the hints already seen, or give the
-reading area room on a tall window, then add it as the sixth.
+**The spell-stack shot (06), added 2026-10-23.** The earlier capture
+(`raw/03-answer-it-blemished.png`) was not only a bad frame: the "Answer
+it?" plate opened on top of the spell it asked about at every size (66px of
+it at 1920x1080, half the spell at 1280x800). That was fixed in the panel
+itself (two columns from 960px wide; `test/stackfit.mjs`), and 06 is a
+capture of the fixed build with the first-run hints marked as seen. Upload
+it sixth, or first if the store page leads with the magic.
 
 The packaged harness's off-screen window comes out 1936x1119 on this machine
 (display scaling), a little taller than 16:9. Cropping would cut the ante bar

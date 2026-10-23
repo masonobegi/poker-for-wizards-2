@@ -1380,15 +1380,14 @@
   vertical-align: middle;
 }
 
-/* Positioned, so the "more rules" chip inside it pins to the panel rather
-   than scrolling away with the list it is advertising. */
-.rules { position: relative; display: grid; min-height: 0; }
+/* The "more rules" chip gets a row of its own under the list. Pinned over the
+   list, it covered whichever rule happened to be behind it (the Hex I line in
+   every Market at 1280x800, which round 6's blind reviewer named); in a row
+   it never covers anything, and the row goes when the list ends. */
+.rules { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
 .rules-scroll {
   overflow-y: auto;
-  /* The extra 26px at the foot is the landing space for the "more rules"
-     chip, which is pinned to the panel: without it the chip sits on top of
-     the sentence it is telling you to scroll for. */
-  padding: var(--s-3) var(--s-3) calc(var(--s-3) + 26px);
+  padding: var(--s-3);
   display: grid;
   gap: var(--s-2);
   align-content: start;
@@ -3682,7 +3681,10 @@
   color: var(--text-quiet);
 }
 .stack-feature.is-countered .stack-feature__name { text-decoration: line-through; opacity: 0.6; }
-.stack-feature.is-countered .stack-feature__state { color: var(--bad); }
+/* Light ink, not --bad: 12px red on the feature's dark fill measured 4.1:1
+   (test/legibility.mjs, a countered stack, 2026-10-23). The COUNTERED stamp
+   and the struck-through name already say it in red. */
+.stack-feature.is-countered .stack-feature__state { color: var(--text); }
 
 .stack-body strong { font-size: var(--fs-md); }
 .stack-caster { font-size: var(--fs-sm); color: var(--text-3); }
@@ -3693,6 +3695,47 @@
 @media (max-width: 720px), (max-height: 700px) {
   .stack-feature { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: var(--s-3); }
   .stack-panel { padding: var(--s-4); }
+}
+
+.stack-reading { display: grid; gap: var(--s-4); min-width: 0; }
+
+/* Two columns: the spell, and beside it the answer.
+   Stacked, the reading and the answer did not fit the height the panel is
+   allowed, so the sticky "Answer it?" plate opened on top of the spell it was
+   asking about. Measured 2026-10-23 with one counter in hand, preflop: the
+   plate covered 66px of the spell at 1920x1080, 151px at 1280x800 (the Steam
+   Deck's size: "AMBER" cut in half, its rule hidden) and 221px at 1024x680.
+   Side by side, each column needs only its own height, and both fit at every
+   one of those sizes. A narrow window keeps the stacked panel, where the
+   width for two columns is not there. */
+@media (min-width: 960px) {
+  .stack-panel:has(> .stack-respond) {
+    width: min(920px, calc(100vw - 32px), 100%);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    align-items: start;
+    column-gap: var(--s-5);
+  }
+  /* Sticky to the top of the panel now: if a deep stack makes the reading
+     scroll, the answer stays where it is. */
+  .stack-panel:has(> .stack-respond) > .stack-respond {
+    top: 0;
+    bottom: auto;
+    padding: 0 0 0 var(--s-5);
+    border-top: 0;
+    border-left: 2px solid var(--line);
+    box-shadow: none;
+  }
+  /* The column is wide enough for the glyph beside the words again, even on
+     a short window, and the glyph sizes to the height as well. */
+  .stack-panel:has(> .stack-respond) .stack-feature {
+    grid-template-columns: auto 1fr;
+    justify-items: stretch;
+    text-align: left;
+  }
+  .stack-panel:has(> .stack-respond) .stack-feature__glyph {
+    width: clamp(44px, min(9vw, 11vh), 96px);
+    height: clamp(44px, min(9vw, 11vh), 96px);
+  }
 }
 
 /* --- a hand you can read ------------------------------------------------------

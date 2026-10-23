@@ -12,9 +12,12 @@
   point needs a later shelf of about 28-30 or a wider sigil pool, which
   means new content, best steered by the December playtest
   (`FUN-REVIEW.md`, round 8).
-- **Code, when wanted**: a clean spell-stack store screenshot
-  (`STEAM-READY.md` row 45). The Windows and Linux builds are round 7's
-  until rebuilt; see `STEAM-READY.md`.
+- **Also 2026-10-23**: the "Answer it?" plate no longer covers the spell it
+  asks about (it hid half of it at the Steam Deck's 1280x800;
+  `test/stackfit.mjs`), the Market's "more rules" chip no longer sits on a
+  rule, and the sixth store screenshot (`06-answer-it.png`) is captured.
+  Code-side readiness 52 of 52. Windows builds are from 379c617, before the
+  panel fix: rebuild before an upload. Linux builds are round 7's.
 
 Everything below is from round 6 and still stands where round 7 and 8 did
 not change it.

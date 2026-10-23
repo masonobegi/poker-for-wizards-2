@@ -238,99 +238,103 @@ function StackOverlayBase({ view, me, onBeginCast }: StackOverlayProps) {
               them with it, the way the showdown panel does — "is their Burn
               worth a Nullify?" is a question about these cards.
             */}
-            {board.length > 0 || hole.length > 0 ? (
-              <div className="stack-cards">
-                {board.length > 0 ? (
-                  <div className="stack-cardset">
-                    <span className="stack-cardlabel">Board</span>
-                    <CardRow views={board} size="xs" overlap={0} tiltOnHover={false} />
-                  </div>
-                ) : null}
-                {hole.length > 0 ? (
-                  <div className="stack-cardset">
-                    <span className="stack-cardlabel">Yours</span>
-                    <CardRow views={hole} size="xs" overlap={0} tiltOnHover={false} />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {lead && leadDef ? (
-              <section
-                className={`stack-feature ${lead.countered ? 'is-countered' : ''}`}
-                style={{ ['--school' as string]: leadSchool.accent }}
-                aria-live="polite"
-              >
-                <span className="stack-feature__glyph" aria-hidden>
-                  <Mark kind="sigil" id={leadDef.id} fallback={leadDef.glyph} />
-                </span>
-                <div className="stack-feature__body">
-                  <p className="stack-feature__who">
-                    {lead.casterId === me.id ? 'You cast' : `${lead.casterName} casts`}
-                    {leadAim ? <> &rarr; <strong>{leadAim}</strong></> : null}
-                  </p>
-                  <h3 className="stack-feature__name hx-gilt--school">{words ? `“${words}”` : lead.sigilName}</h3>
-                  <p className="stack-feature__text">{leadDef.text}</p>
-                  <p className="stack-feature__state">
-                    {/* "Chronos · resolves first" names a school and a fact
-                        and explains neither. The rule is one short sentence
-                        and it is the rule the whole magic layer turns on. */}
-                    {lead.countered ? 'Countered — it never happened.'
-                      : live ? 'Resolves first — the last sigil cast is the first to land.'
-                        : 'Resolved'}
-                  </p>
+            {/* What is being cast, and on what: one column beside the answer
+                on a wide window (table.css, "two columns"). */}
+            <div className="stack-reading">
+              {board.length > 0 || hole.length > 0 ? (
+                <div className="stack-cards">
+                  {board.length > 0 ? (
+                    <div className="stack-cardset">
+                      <span className="stack-cardlabel">Board</span>
+                      <CardRow views={board} size="xs" overlap={0} tiltOnHover={false} />
+                    </div>
+                  ) : null}
+                  {hole.length > 0 ? (
+                    <div className="stack-cardset">
+                      <span className="stack-cardlabel">Yours</span>
+                      <CardRow views={hole} size="xs" overlap={0} tiltOnHover={false} />
+                    </div>
+                  ) : null}
                 </div>
-                {/* The basketball roguelike's REJECTED!!: the counter is the
-                    most dramatic thing a spell can have happen to it, and a
-                    strikethrough was all it got. Keyed by the entry, so the
-                    next countered spell slams again. */}
-                <AnimatePresence>
-                  {lead.countered
-                    ? <Stamp key={`countered-${lead.id}`} text="COUNTERED" tone="ice" from={2.8} rotate={-7} className="stack-stamp" />
-                    : null}
-                </AnimatePresence>
-              </section>
-            ) : null}
+              ) : null}
 
-            {rest.length ? (
-              <>
-                <p className="stack-note">
-                  {featured === entries.length - 1 ? 'Underneath, resolving after it' : 'The rest of the stack'}
-                </p>
-                <ol className="stack-list">
-                  {rest.map((e, i) => {
-                    const def = entryDef(e);
-                    const school = SCHOOLS[e.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil;
-                    return (
-                      <motion.li
-                        key={e.id}
-                        className={`stack-item ${e.countered ? 'is-countered' : ''}`}
-                        style={{ ['--school' as string]: school.accent }}
-                        initial={{ opacity: 0, x: -20 }}
-                        // The counterspell punch lives here rather than in a CSS
-                        // keyframe: the stack is a rapid, reversible surface
-                        // (counter, counter-the-counter), and two systems writing
-                        // `transform` to one node meant a second hit restarted the
-                        // first from zero.
-                        animate={e.countered && !reducedMotion
-                          ? { opacity: 0.45, x: [0, -7, 5, -2, 0] }
-                          : { opacity: e.countered ? 0.45 : 1, x: 0 }}
-                        transition={e.countered
-                          ? { duration: T_BASE, ease: EASE_OUT }
-                          : { ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
-                      >
-                        <span className="stack-glyph">{def ? <Mark kind="sigil" id={def.id} fallback={def.glyph} /> : '✦'}</span>
-                        <span className="stack-body">
-                          <strong>{e.scribed ? `“${e.scribed.text}”` : e.sigilName}</strong>
-                          <span className="stack-caster">{e.casterName} — {def?.text}</span>
-                        </span>
-                        {e.countered ? <span className="stack-badge is-bad">countered</span> : null}
-                      </motion.li>
-                    );
-                  })}
-                </ol>
-              </>
-            ) : null}
+              {lead && leadDef ? (
+                <section
+                  className={`stack-feature ${lead.countered ? 'is-countered' : ''}`}
+                  style={{ ['--school' as string]: leadSchool.accent }}
+                  aria-live="polite"
+                >
+                  <span className="stack-feature__glyph" aria-hidden>
+                    <Mark kind="sigil" id={leadDef.id} fallback={leadDef.glyph} />
+                  </span>
+                  <div className="stack-feature__body">
+                    <p className="stack-feature__who">
+                      {lead.casterId === me.id ? 'You cast' : `${lead.casterName} casts`}
+                      {leadAim ? <> &rarr; <strong>{leadAim}</strong></> : null}
+                    </p>
+                    <h3 className="stack-feature__name hx-gilt--school">{words ? `“${words}”` : lead.sigilName}</h3>
+                    <p className="stack-feature__text">{leadDef.text}</p>
+                    <p className="stack-feature__state">
+                      {/* "Chronos · resolves first" names a school and a fact
+                          and explains neither. The rule is one short sentence
+                          and it is the rule the whole magic layer turns on. */}
+                      {lead.countered ? 'Countered — it never happened.'
+                        : live ? 'Resolves first — the last sigil cast is the first to land.'
+                          : 'Resolved'}
+                    </p>
+                  </div>
+                  {/* The basketball roguelike's REJECTED!!: the counter is the
+                      most dramatic thing a spell can have happen to it, and a
+                      strikethrough was all it got. Keyed by the entry, so the
+                      next countered spell slams again. */}
+                  <AnimatePresence>
+                    {lead.countered
+                      ? <Stamp key={`countered-${lead.id}`} text="COUNTERED" tone="ice" from={2.8} rotate={-7} className="stack-stamp" />
+                      : null}
+                  </AnimatePresence>
+                </section>
+              ) : null}
+
+              {rest.length ? (
+                <>
+                  <p className="stack-note">
+                    {featured === entries.length - 1 ? 'Underneath, resolving after it' : 'The rest of the stack'}
+                  </p>
+                  <ol className="stack-list">
+                    {rest.map((e, i) => {
+                      const def = entryDef(e);
+                      const school = SCHOOLS[e.school as keyof typeof SCHOOLS] ?? SCHOOLS.veil;
+                      return (
+                        <motion.li
+                          key={e.id}
+                          className={`stack-item ${e.countered ? 'is-countered' : ''}`}
+                          style={{ ['--school' as string]: school.accent }}
+                          initial={{ opacity: 0, x: -20 }}
+                          // The counterspell punch lives here rather than in a CSS
+                          // keyframe: the stack is a rapid, reversible surface
+                          // (counter, counter-the-counter), and two systems writing
+                          // `transform` to one node meant a second hit restarted the
+                          // first from zero.
+                          animate={e.countered && !reducedMotion
+                            ? { opacity: 0.45, x: [0, -7, 5, -2, 0] }
+                            : { opacity: e.countered ? 0.45 : 1, x: 0 }}
+                          transition={e.countered
+                            ? { duration: T_BASE, ease: EASE_OUT }
+                            : { ...ENTER, delay: Math.min(i * 0.06, 0.3) }}
+                        >
+                          <span className="stack-glyph">{def ? <Mark kind="sigil" id={def.id} fallback={def.glyph} /> : '✦'}</span>
+                          <span className="stack-body">
+                            <strong>{e.scribed ? `“${e.scribed.text}”` : e.sigilName}</strong>
+                            <span className="stack-caster">{e.casterName} — {def?.text}</span>
+                          </span>
+                          {e.countered ? <span className="stack-badge is-bad">countered</span> : null}
+                        </motion.li>
+                      );
+                    })}
+                  </ol>
+                </>
+              ) : null}
+            </div>
 
             {!live ? (
               <p className="stack-waiting">Click to dismiss.</p>

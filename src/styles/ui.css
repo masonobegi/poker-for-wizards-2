@@ -478,6 +478,9 @@
    press offset is the one for a chip that is not centred.) */
 .scrollmore--aside { left: auto; right: 16px; translate: none; }
 .scrollmore--aside:active { translate: 0 2px; }
+/* In the flow, under its scroller, where a panel has the room for a row. */
+.scrollmore--foot { position: static; justify-self: center; translate: none; margin: 0 0 var(--s-2); }
+.scrollmore--foot:active { translate: 0 2px; }
 /* Two frames, no ramp: the arrow is either up or down a pixel pair, which is
    how a sprite bobs. */
 .scrollmore__arrow { animation: scrollmorebob 1.1s steps(1, end) infinite; }
