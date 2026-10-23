@@ -20,7 +20,9 @@ Round 7 follows.
 
 The Linux builds are still round 7's (WSL `~/hexhold-covens`); rebuild them
 from 379c617 or later before a Linux depot upload. All smokes headless,
-muted and off-screen.
+muted and off-screen. **The stack-panel fix (row 52) came after these
+Windows builds**: rebuild from `main` before uploading a depot or sending a
+playtest build.
 
 **Round 7 is on branch `covens-unlock-2026-10-22`** (from `main` at 8d1fea7,
 pushed, not merged: a push to `main` redeploys the web version). Mason chose
@@ -79,7 +81,7 @@ Node 22.23 in WSL (round 5: 24.12; `engines` asks for 20+). Smoke runs are
 headless, muted and off-screen (`test/packaged.mjs`, `test/quit.mjs`;
 `scripts/linux-smoke.sh` in WSL on SwiftShader).
 
-## Code-side readiness: 98% (50 of 51)
+## Code-side readiness: 100% (52 of 52)
 
 The fixed list below (items 1-26 from earlier rounds, all still done), plus
 what round 6 found. Only work Claude can do counts; nothing that needs
@@ -105,12 +107,13 @@ Mason's account, money, hardware or judgement is in it.
 | 42 | Credits name every shipped font | DONE (was: three of six) | `THIRD_PARTY.md`, Settings > About |
 | 43 | Builds current on Windows and Linux, demo and playtest included | DONE | The table above |
 | 44 | The relics that act at the deal say so (ledger line, rail punch) | DONE (round 8; was: Gilt Edge, Third Hand, Unstable Isotope and Wild Inheritance acted with no word) | d1e664e: a line, tagged with the relic, only when the showdown reads differently without it; `test/relics.test.ts`. Cold Read is left as it was: what it shows is face up on the table from the deal. On the first run a bought relic now visibly fires in 59% of runs (47%) |
-| 45 | A clean spell-stack store screenshot | OPEN | The capture has a hint over the ante bar and text running under the sticky "Answer it?"; Valve's minimum of five is met without it |
+| 45 | A clean spell-stack store screenshot | DONE (2026-10-23) | `steam/screenshots/06-answer-it.png`, captured on the fixed panel (row 52) with the hints seen |
 | 46 | Round 7: the covens open after the first run, the first run unchanged, Steam-Cloud-safe | DONE (branch) | `test/unlock.test.ts` (pools identical on a first run, a coven honoured on a later one, the demo's three, the Daily Rite, persistence on a failed write, `cloudWins` both ways); the browser harnesses run both ways (`HEXHOLD_LATER_RUN=1`) |
 | 47 | "Leave table" reaches the menu | DONE (branch; was: a blank screen at the end of every run, live on `main`) | b8bf409; `test/net.test.ts` fails on the old order |
 | 48 | `test/style.mjs` in style with a Market on screen | DONE (branch; was: every shop card's border off the palette at 8d1fea7) | 58ab5ab, 33d89d2 |
 | 49 | Every achievement has a dealt route | DONE (branch; was: "Nobody Saw It Coming" only through the blank page) | The Sealed Court in later runs; `test/unlock.test.ts` |
 | 50 | Round 8: every relic that marks a hole card applies | DONE (was: only the first one, so Wild Inheritance bought beside Gilt Edge did nothing; 4 of 28 first runs had a seat holding both) | d1e664e; `test/relics.test.ts` fails on 326034a with "Wild Inheritance marked no card" |
+| 52 | The spell you are asked to answer is on screen when you are asked | DONE (2026-10-23; was: the "Answer it?" plate opened on top of the spell, 66px of it at 1920x1080, half of it at 1280x800, the Steam Deck's size) | b69534a: two columns from 960px wide; `test/stackfit.mjs` 4 of 4 sizes fail on dca619d and pass after, first and later run; `npm run responsive` 7 of 7 both ways, `test/legibility.mjs` 0 findings, `test/style.mjs` in style, `test/align.mjs` square, `test/gamepad.mjs` 14 of 14 |
 | 51 | Round 8: the later shelf's 23 relics fit the Market | DONE | `test/shoptext.mjs`: the shelf's longest name, rule and italic line on every card at 1024x680, 1280x800 and 1920x1080, nothing clipped, Done reachable |
 
 **Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 8):
