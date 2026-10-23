@@ -24,7 +24,7 @@ import { UNLOCK_AFTER_RUNS, unlockedAfter } from '../shared/unlock';
 import { COVENS, COVEN_BY_ID, COVEN_CHOICE, COVENS_UNLOCK, DEFAULT_COVEN, covensOpen } from '../shared/covens';
 import { POOL, POOL_IDS, SIGIL_BY_ID, UNLOCKED_SIGIL_IDS, sigilPool } from '../shared/sigils';
 import { OMEN_BY_ID, OMEN_POOL, UNLOCKED_OMEN_IDS, omenPool } from '../shared/omens';
-import { RELIC_BY_ID, RELIC_POOL, UNLOCKED_RELIC_IDS, relicPool } from '../shared/relics';
+import { LATER_RELIC_CEILING, RELIC_BY_ID, RELIC_POOL, UNLOCKED_RELIC_IDS, relicPool } from '../shared/relics';
 import { dailyCoven } from '../shared/hexes';
 import { DEMO_COVENS } from '../shared/demo';
 import { Rng } from '../shared/rng';
@@ -139,17 +139,17 @@ test('the socket layer seats a first-run player as the Unaligned, whatever the p
 
 // ------------------------------------------------------------------ 2. the later run
 
-test('the later pools are the first run\'s, in order, plus the unlocked lists, at the cut\'s ceilings', () => {
+test('the later pools are the first run\'s, in order, plus the unlocked lists, under their ceilings', () => {
   for (const [what, first, later, extra, ceiling] of [
     ['sigil', POOL.map((d) => d.id), sigilPool(true).map((d) => d.id), UNLOCKED_SIGIL_IDS, 16],
     ['omen', OMEN_POOL.map((d) => d.id), omenPool(true).map((d) => d.id), UNLOCKED_OMEN_IDS, 12],
-    ['relic', RELIC_POOL.map((d) => d.id), relicPool(true).map((d) => d.id), UNLOCKED_RELIC_IDS, 16],
+    ['relic', RELIC_POOL.map((d) => d.id), relicPool(true).map((d) => d.id), UNLOCKED_RELIC_IDS, LATER_RELIC_CEILING],
   ] as const) {
     assert.deepEqual(later.slice(0, first.length), first, `the later ${what} pool reorders the first run's`);
     assert.deepEqual(later.slice(first.length), [...extra]);
     assert.equal(new Set(later).size, later.length, `a ${what} is in the later pool twice`);
     for (const id of extra) assert.ok(!first.includes(id), `${id} is already in the first run's ${what} pool`);
-    assert.ok(later.length <= ceiling, `${later.length} ${what}s is past the cut's ceiling of ${ceiling}`);
+    assert.ok(later.length <= ceiling, `${later.length} ${what}s is past the ceiling of ${ceiling}`);
   }
 });
 

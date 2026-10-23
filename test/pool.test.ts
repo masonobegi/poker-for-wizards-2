@@ -21,7 +21,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 import { OMENS, OMEN_POOL_IDS, IMPOSSIBLE_BY_ANTE, keepsPromise, omenPool } from '../shared/omens';
-import { RELICS, RELIC_POOL_IDS, relicPool } from '../shared/relics';
+import { LATER_RELIC_CEILING, RELICS, RELIC_POOL_IDS, relicPool } from '../shared/relics';
 import { POOL_IDS, SCHOOLS, SIGILS, sigilPool, type School } from '../shared/sigils';
 import { COVENS, COVEN_BY_ID, COVEN_CHOICE, DEFAULT_COVEN } from '../shared/covens';
 
@@ -46,15 +46,17 @@ test('the pools are a subset of what exists, with nothing named twice', () => {
 test('the set stays small — that is the whole point of it', () => {
   // These are ceilings, not targets. Raising one is a design decision and
   // should read like one in the diff, rather than happening a card at a time.
-  // The later runs' pools are held to the same ceilings: the player who could
-  // not remember 71 sigils is the same player on their second run.
+  // The later runs' sigils and omens are held to the same ceilings: the player
+  // who could not remember 71 sigils is the same player on their second run.
+  // Relics alone get a higher ceiling past the first run (round 8): a player
+  // meets them two at a time, by choice, and owns a handful.
   for (const [phase, unlocked] of PHASES) {
     const sigils = sigilPool(unlocked).length;
     const omens = omenPool(unlocked).length;
     const relics = relicPool(unlocked).length;
     assert.ok(sigils <= 16, `${phase}: ${sigils} sigils is heading back towards a wall of cards`);
     assert.ok(omens <= 12, `${phase}: ${omens} omens`);
-    assert.ok(relics <= 16, `${phase}: ${relics} relics`);
+    assert.ok(relics <= (unlocked ? LATER_RELIC_CEILING : 16), `${phase}: ${relics} relics`);
     // And large enough to still be a game.
     assert.ok(sigils >= 8, 'a spell game needs spells');
     assert.ok(omens >= 6, 'a run is several antes long and each takes an omen');

@@ -821,7 +821,7 @@ test('after one finished run, the menu offers all seven covens and the larger po
   assert.equal(root.querySelectorAll('.menu-coven').length, 7);
   assert.equal(root.querySelectorAll('.menu-coven.is-locked').length, 0, 'the full game locks no coven');
   assert.ok(root.querySelector('[role="radiogroup"][aria-label="Choose your coven"]'));
-  assert.match(root.textContent ?? '', /16 sigils, 16 relics/);
+  assert.match(root.textContent ?? '', /16 sigils, 23 relics/);
   clearProfile();
 });
 
@@ -829,7 +829,7 @@ test('the run that opens the later game says what is new; a later run\'s end scr
   const first = await endScreen(endedRun(false));
   assert.match(first, /New from your next run/);
   assert.match(first, /6 more beside the Unaligned, each with its own sigils, a relic and a rule/);
-  assert.match(first, /3 sigils, 3 omens and 4 relics join the deck/);
+  assert.match(first, /3 sigils, 3 omens and 11 relics join the deck/);
   assert.match(first, /Choose a coven/);
 
   const later = await endScreen(endedRun(true));

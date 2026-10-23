@@ -591,9 +591,10 @@ export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
 });
 
 /**
- * Four relics back on the shelf from the second run (shared/unlock.ts).
+ * Relics back on the shelf from the second run (shared/unlock.ts).
  *
- * Picked for what they do to a decision, from round 5's measurements of all
+ * Round 7 (2026-10-22) brought back four, picked for what they do to a
+ * decision, from round 5's measurements of all
  * 45 (plans/fun-round5-data): each was bought often enough to be seen, and
  * each fires where the player can see it (a ledger line or the hand it makes
  * at showdown), because round 6 found five shelf relics that act silently and
@@ -614,16 +615,58 @@ export const RELIC_POOL: RelicDef[] = RELIC_POOL_IDS.map((id) => {
  * one-of-your-hole-cards family beyond the three already on the shelf, The
  * Sanctum (it never shows when it works), and every relic that is a number.
  *
- * Sixteen with these, the cut's ceiling, at its 6/3/1 rarity weighting:
- * seven commons, seven rares, two mythics. Empty this list and later runs
- * see the first run's twelve.
+ * Round 8 (2026-10-23, FUN-REVIEW.md) raised the later shelf past the cut's
+ * sixteen, for runs 2+ only. Sixteen could not get two runs' relics apart
+ * (overlap 0.17, against round 5's 0.09), and relics are the one kind of
+ * content a player meets by choice: two at a time in the Market, four or
+ * five owned in a run, each in the rules tab. Sigils and omens are played
+ * against you whether you chose them or not, so their ceilings stay. Seven
+ * more, by the same bar (a rule or a sight you can see work, not a number,
+ * not a rule the shelf, a creed or a live omen already has):
+ *
+ * - The Prism Lens: every Prism is Wild for you. The later run's own combo:
+ *   Gild, The Prism omen and The Engraver all make Prism cards.
+ * - Heirloom: a card scores a rank higher for every pot it has won. The
+ *   Twinned's relic, sold to everyone else; 3.9 visible firings a run in
+ *   round 5.
+ * - The Second River: a High Card river runs again, in front of the table.
+ * - The Engraver: win a showdown and a card of your hand is Prism for good,
+ *   on the shared deck. 2.1 ledger lines a run in round 5.
+ * - Mirror Shard: you read both faces of every undecided card. Superpose is
+ *   the signature sigil, Entropy Rising deals one a hand, the Unmoored's creed
+ *   makes more, and Unstable Isotope is on this shelf.
+ * - The Lodestone: a rank drawn in front of the table, Wild for you that
+ *   hand. 7.3 firings a run in round 5, second only to The Keepsake.
+ * - The Usurper: knock a player out and take their relics. The mythic a
+ *   table remembers.
+ *
+ * Still left out: Smeared Ink, Ouroboros, Reversal and Crowned (live omens
+ * already run their rules: Blurred, Serpent, Inversion, The Sealed Court),
+ * The Ledger (every seat's mana is on the table already, so it does
+ * nothing), The Informant (Cold Read's job), Bloodline, Gilded Thumb, Twin
+ * Suns and Unsettled (the hole-card family again), The Archive and The Long
+ * Game (two shelf relics glued together), and the numbers.
+ *
+ * Twenty-three at the shop's 6/3/1 weighting: ten commons, nine rares, four
+ * mythics. Empty this list and later runs see the first run's twelve.
  */
 export const UNLOCKED_RELIC_IDS: readonly string[] = [
   'keepsake',          // common: fold before the flop, keep your higher card
   'broken_compass',    // common: your flushes need four
   'magpie',            // rare: counter a sigil and it comes to your hand
   'crown_of_thieves',  // rare: Jacks and Queens read as Kings for you
+  // Round 8.
+  'prism_lens',        // common: every Prism is Wild for you
+  'heirloom',          // common: a card remembers every pot it has won
+  'second_river',      // common: a High Card river runs again, once
+  'the_engraver',      // rare: your winning hand engraves a card Prism
+  'mirror_shard',      // rare: both faces of every undecided card
+  'lodestone',         // mythic: a rank Wild for you, drawn each hand
+  'the_usurper',       // mythic: a knockout takes the loser's relics
 ];
+
+/** The later shelf's ceiling: relics only, and only past the first run. */
+export const LATER_RELIC_CEILING = 24;
 
 const UNLOCKED_RELIC_POOL: RelicDef[] = [...RELIC_POOL, ...UNLOCKED_RELIC_IDS.map((id) => {
   const def = RELIC_BY_ID[id];
