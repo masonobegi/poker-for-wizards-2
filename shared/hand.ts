@@ -282,9 +282,9 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
  * same face in both places. A second slot with a face of its own was the
  * first version: it let a Wild fill two gaps in a straight, and it made a
  * hand with one Wild about eleven times as dear to read (10.9x under the
- * bots' rollout cap, 1.6x now; plans/fun-round9-data/probes.txt), on every bot's equity read of the
- * owner's hand. Calls `visit` with the slots in the five, the doubled ones
- * listed twice.
+ * bots' rollout cap, against 1.6x now: plans/fun-round9-data/probes.txt),
+ * on every bot's equity read of the owner's hand. Calls `visit` with the
+ * slots in the five, the doubled ones listed twice.
  */
 function twofoldPlans(slots: Slot[], visit: (five: Slot[]) => void): void {
   const doubled = slots.filter((s) => s.twice).length;
