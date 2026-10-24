@@ -1,3 +1,22 @@
+# NEXT: HEXHOLD after round 9 (2026-10-23)
+
+## Round 9, in short
+
+- **Branch `relics-r9-2026-10-23`.** Later runs sell 30 relics instead of
+  23: seven new ones written for the later game (The Witness, The Ember Jar,
+  Indelible Ink, Twofold, The High Spade, The Changeling, The Grimoire). The
+  first run is unchanged, 280 of 280 seeded runs identical.
+- **Fun 8/10 (7.5)**, the narrowest 8 the locked rubric allows: criterion 7
+  ("builds have depth") 7 to 8, scored 8 by two blind reviewers. It rests on
+  simulated players; the December playtest is the test of it.
+- **Watch**: the Ashen won 9 of 40 later runs (15), partly to the Ember Jar
+  in opponents' hands; three of four mythics are almost never bought.
+- **Fixed**: the Burn sigil's ledger line ("burns a card in the deck out of
+  the board").
+- The Windows builds predate round 9; rebuild before an upload.
+
+Round 8 follows.
+
 # NEXT: HEXHOLD after round 8 (2026-10-23)
 
 ## Round 8, in short

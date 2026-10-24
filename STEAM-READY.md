@@ -1,4 +1,16 @@
-# HEXHOLD: Steam readiness (2026-10-23, round 8: the later shelf)
+# HEXHOLD: Steam readiness (2026-10-23, round 9: thirty relics on the later shelf)
+
+**Round 9 (2026-10-23, branch `relics-r9-2026-10-23`)**: seven new relics,
+written for the later runs, take the later shelf from 23 to 30 (The Witness,
+The Ember Jar, Indelible Ink, Twofold, The High Spade, The Changeling, The
+Grimoire), each a rule the ledger names when it acts. The first run is round
+8's to the digit (280 of 280 seeded runs identical). Also fixed: the Burn
+sigil's ledger line said "burns a card in the deck out of the board". Fun:
+**8/10 (7.5)**, the narrowest 8 the rubric allows (`FUN-REVIEW.md`, round
+9). Row 53 below. The Windows builds predate round 9: rebuild before an
+upload.
+
+Round 8 follows.
 
 **Round 8 (2026-10-23, branch `relic-shelf-2026-10-23`, merged into
 `main`)**: the later runs' relic shelf grows from 16 to 23, a bug that made
@@ -115,12 +127,15 @@ Mason's account, money, hardware or judgement is in it.
 | 50 | Round 8: every relic that marks a hole card applies | DONE (was: only the first one, so Wild Inheritance bought beside Gilt Edge did nothing; 4 of 28 first runs had a seat holding both) | d1e664e; `test/relics.test.ts` fails on 326034a with "Wild Inheritance marked no card" |
 | 52 | The spell you are asked to answer is on screen when you are asked | DONE (2026-10-23; was: the "Answer it?" plate opened on top of the spell, 66px of it at 1920x1080, half of it at 1280x800, the Steam Deck's size) | b69534a: two columns from 960px wide; `test/stackfit.mjs` 4 of 4 sizes fail on dca619d and pass after, first and later run; `npm run responsive` 7 of 7 both ways, `test/legibility.mjs` 0 findings, `test/style.mjs` in style, `test/align.mjs` square, `test/gamepad.mjs` 14 of 14 |
 | 51 | Round 8: the later shelf's 23 relics fit the Market | DONE | `test/shoptext.mjs`: the shelf's longest name, rule and italic line on every card at 1024x680, 1280x800 and 1920x1080, nothing clipped, Done reachable |
+| 53 | Round 9: the later shelf's 30 relics fit the Market, and each is drawn | DONE | The worst card `test/shoptext.mjs` prints is unchanged: the seven new rules are 88-111 characters (the longest is still The Second River's 113), their names 7-14 (16), their italic lines 42-67 (89); `test/ninth.test.ts` holds every new rule to 113. Each has its own mark (`src/art/marks.tsx`, `test/marks.test.tsx`), and the later Codex draws all seven (`test/render.test.tsx`) |
 
-**Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 8):
-**7/10 on the locked rubric (7.4, as round 7; round 6 7.1, round 5 7.6, an
-8)**. Round 8's 23-relic later shelf is the strongest "builds have depth"
-the game has had and still a 7: a shelf that size cannot reach the variety
-the 45-relic 8s had, and the rest could only be added by padding. Round 7:
+**Whether it is fun is a separate question** (`FUN-REVIEW.md`, round 9):
+**8/10 on the locked rubric (7.5; round 8 7.4, round 6 7.1, round 5 7.6, an
+8)**. Round 9's seven new relics take "builds have depth" from 7 to 8: two
+later runs share about a tenth of their relics, and two blind reviewers
+called it a narrow 8. Every number is simulated; the December playtest is
+the test of it. Round 8's 23-relic later shelf was the strongest 7: a shelf
+that size could not reach the variety the 45-relic 8s had. Round 7:
 the covens are back from the second run and play differently (criterion 4,
 5 to 7). The first run stays the plain opening, by design. Round 6: the UI pass helped presentation and
 clarity, and the content cut that came with it cost depth and variety.

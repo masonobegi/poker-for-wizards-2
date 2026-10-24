@@ -10,7 +10,7 @@
 import { nanoid } from 'nanoid';
 import {
   type CardEntity, type CardView, type Face, type MarkId, type Rank,
-  faceLabel, isQuantum, standardDeck, viewCard,
+  faceLabel, isQuantum, rankPlural, standardDeck, viewCard,
 } from '../../shared/cards';
 import { evalComplexity, evaluate, type RuleMods } from '../../shared/hand';
 import { RELIC_BY_ID, type RuleId, hasRule, hasVision, mergeRelicMods, relicNumber } from '../../shared/relics';
@@ -331,7 +331,13 @@ export function emberJar(t: Table, id: string, fx?: FxEvent[]): Player | null {
   if (!q || q.hole.includes(id)) return null;
   q.hole.push(id);
   fx?.push({ t: 'deal', cardIds: [id], to: q.id });
-  log(t, `${q.name}'s Ember Jar catches ${describeCard(t, id)}: it plays in their hand for the rest of the hand.`, 'impossible', {
+  // A rank already struck (Salt, Unmake, The Unmade) is struck in the Jar's
+  // hand too: the line says so rather than promise a card that cannot play.
+  const face = c.collapsed !== null ? c.faces[c.collapsed] : null;
+  const struck = !!face && !!modsFor(t, q).deadRanks?.includes(face.rank);
+  log(t, struck
+    ? `${q.name}'s Ember Jar catches ${describeCard(t, id)}, but ${rankPlural(face!.rank)} are struck from every hand.`
+    : `${q.name}'s Ember Jar catches ${describeCard(t, id)}: it plays in their hand for the rest of the hand.`, 'impossible', {
     playerId: q.id, rule: ruleRelic(q, 'ember_jar'),
   });
   return q;

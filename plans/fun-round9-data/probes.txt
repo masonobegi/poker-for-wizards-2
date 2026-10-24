@@ -1,0 +1,29 @@
+# Round 9 probes (2026-10-23). Each names its commit and command; none is a rubric number.
+
+## Engine time, side by side (same machine, same minutes, same load)
+Later runs, seeds 0-20 (three chunks of 7, `node --import tsx test/fun.ts 7 <seed> --json <part> --unlocked`),
+round 8 (379c617) and round 9 (a79b04d) run at the same time from pinned worktrees:
+  round 8: 21 runs, 14.1 hands a run, engine 30.5 s a run = 2.16 s a hand, worst tick a run median 835 ms
+  round 9: 21 runs, 17.5 hands a run, engine 35.6 s a run = 2.03 s a hand, worst tick a run median 1044 ms
+The batch figures' "engine wall time per run" moves with the machine's load: the first-run batch below is
+280 of 280 runs identical to round 8's and measured 31 s a run today against 21 s on round 8's day.
+
+## Twofold's evaluation cost (shared/hand.ts evaluate, 400 random seven-card hands, ms per read, one quiet run)
+                       plain    first Twofold (adc23c6)    shipped Twofold (a79b04d)
+  one Wild, cap 3000   0.30     3.25 (10.8x)               0.47 (1.6x)
+  one Wild, cap 300    0.30     3.25 (10.9x)               0.47 (1.6x)
+  two Wilds, cap 3000  1.57     23.6 (15x)                 3.84 (2.5x)
+  two Wilds, cap 300   1.45     3.98 (2.7x)                3.85 (2.5x)
+(cap 300 is the bots' rollout cap, ROLLOUT_COMBOS; 3000 is the default every exact read uses.
+An earlier, noisier run of the same script gave 8.6x for one Wild under a cap of 200: that is the
+figure in commit 052d6a2's message.)
+
+## The Ashen, 40 seeds (5, 12, ... 278), `node --import tsx test/fun.ts 1 <seed> --coven ashen --unlocked`
+  round 8 shelf (batch, d1e664e):                 won 15 of 40, final ante 4.6, own impossible 35%
+  shipped shelf (batch, a79b04d):                 won  9 of 40, final ante 4.7, own impossible 25%
+  shipped shelf without The Ember Jar (a79b04d, 'ember_jar' cut from UNLOCKED_RELIC_IDS in a scratch
+  worktree):                                      won 12 of 40, final ante 5.6, own impossible 35%
+  shipped shelf, Ashen runs that owned the Jar:   won 4 of 8; that did not: 5 of 32
+  first version (adc23c6), bots' relic lines counted in a scratch copy of test/fun.ts: a bot's Ember Jar
+  caught a card in 5 of the 40 Ashen runs (16 catches); none of those 5 was won.
+At 40 runs one standard deviation is about 3 wins.

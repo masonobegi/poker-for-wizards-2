@@ -281,8 +281,8 @@ function buildSlots(cards: CardEntity[], viewerId: string | null, mods: RuleMods
  * twice, or three slots with two of them twice, the doubled slot wearing the
  * same face in both places. A second slot with a face of its own was the
  * first version: it let a Wild fill two gaps in a straight, and it made a
- * hand with one Wild about ten times as dear to read (8.6x under the bots'
- * rollout cap, measured 2026-10-23), on every bot's equity read of the
+ * hand with one Wild about eleven times as dear to read (10.9x under the
+ * bots' rollout cap, 1.6x now; plans/fun-round9-data/probes.txt), on every bot's equity read of the
  * owner's hand. Calls `visit` with the slots in the five, the doubled ones
  * listed twice.
  */

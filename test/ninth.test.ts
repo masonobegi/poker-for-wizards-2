@@ -178,6 +178,24 @@ test('The Ember Jar: a burned community card comes to its owner\'s hand, still b
   assert.ok(!t.deck.includes(king) && !t.players.some((p) => p.hole.includes(king)));
 });
 
+test('The Ember Jar says so when Salt has struck the rank of the card it caught', () => {
+  const { t, hero } = table('ember-salt');
+  hero.relics = ['creed_salt', 'ember_jar'];
+  hero.folded = false;
+  t.phase = 'flop';
+  t.mods = {};
+  hero.sigils = [];
+  hero.mana = 9;
+  hero.hole = [place(t, c(13, 'H')), place(t, c(4, 'C'))];
+  const king = place(t, c(13, 'S'));
+  t.board = [king, place(t, c(5, 'H')), place(t, c(8, 'D'))];
+  castAndResolve(t, hero, give(hero, 'burn'), { cardIds: [king] });
+  assert.ok(hero.hole.includes(king));
+  const said = lines(t, 'ember_jar');
+  assert.equal(said.length, 1);
+  assert.match(said[0].text, /Hero's Ember Jar catches K♠, but Kings are struck from every hand/);
+});
+
 test('The Ember Jar catches The Kindling\'s cards too, and never for a player who folded', () => {
   const { e, t, hero, others, ix } = table('kindling');
   hero.relics = ['ember_jar'];

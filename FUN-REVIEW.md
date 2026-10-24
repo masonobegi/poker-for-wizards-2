@@ -1,11 +1,13 @@
 # HEXHOLD: fun and sellable review (2026-10-10)
 
-> **Round 7 (end of this file) is the current state:** fun 7/10 on the
-> locked rubric, 7.4, one point short of an 8. The covens open after the
-> first run, which stays the plain table the playtest asked for (branch
-> `covens-unlock-2026-10-22`). Round 6 (7.1) measured the UI pass and its
-> content cut; round 5 (7.6, an 8) is the last round with covens from the
-> first run. Rounds 3 and 4 are above them.
+> **Round 9 (end of this file) is the current state:** fun 8/10 on the
+> locked rubric, 7.5, the narrowest 8 it allows: seven new relics on the
+> later shelf (23 to 30) took criterion 7 from 7 to 8, and the first run is
+> round 8's to the digit (branch `relics-r9-2026-10-23`). Round 8 (7.4)
+> grew the later shelf to 23; round 7 (7.4) opened the covens after the
+> first run, which stays the plain table the playtest asked for. Round 6
+> (7.1) measured the UI pass and its content cut; round 5 (7.6, an 8) is the
+> last round with covens from the first run. Rounds 3 and 4 are above them.
 
 Branch `steam-ready-2026-10-09`. Brief: `masonobegi_webpage/ops/session-2026-10-09/FUN_BRIEF.md`.
 Grounded in the market research (`market/poker-for-wizards-2.md`), the three
@@ -1931,5 +1933,282 @@ strongest 7 the game has had, and the shelf's size, not its contents, is now
 what holds it there. One paying player's bug is gone (a 20-shard mythic that
 did nothing), and the quietest relics now say when they won. Every number is
 from simulated players and one blind reviewer.
+
+**Sellable at $9.99: yes**, on the same conditions as before.
+
+# Round 9 (2026-10-23): seven new relics, written for the later game
+
+Brief: Mason said to work on what makes money, and game calls are delegated
+to Claude (2026-10-10). Round 8's blind reviewer put the next point at a
+later shelf of about 28-30 relics or a wider sigil pool: a spread of 4.6 bits
+or more and an overlap of 0.11 or less, with numbers under 10% of what a run
+buys, a side-by-side choice 3 or more times a run, and firing at 70% or more
+counted the old way. Round 8 also found that every relic left in the
+registry fails round 7's bar, so this round writes new ones. Same rubric,
+same honesty rule. Branch `relics-r9-2026-10-23`, from `main` at 379c617.
+Raw batch summaries and probes: `plans/fun-round9-data/`, each naming its
+commit and command; every batch ran from a pinned worktree.
+
+## The rubric, unchanged
+
+The same eight criteria, word for word, scored on the same runs as rounds 7
+and 8: criteria 1 and 6 on run 1, criteria 4 and 7 on runs 2+, criteria 2, 3
+and 5 on runs 2+ unless run 1 is lower. Decided before any batch.
+
+## What changed
+
+**Seven new relics on the later shelf**, 23 to 30, for runs 2+ only
+(`UNLOCKED_RELIC_IDS`; `LATER_RELIC_CEILING` 24 to 30). The first run's
+twelve are the same objects (`test/unlock.test.ts`), and a Hex II bot still
+equips from the first run's 45 (`NINTH_RELIC_IDS`). The bar is round 7's,
+unchanged: a rule you can watch work, which the ledger names when it acts (a
+line tagged with the relic, so the rail flashes it) or which changes the
+showdown's read; not a number; not a hidden penalty; not a rule the shelf, a
+creed or a live omen already runs. Each engine rule is one `RuleId`, read
+where the comment beside it says (`shared/relics.ts`). Each has its own
+drawing in the set's grammar (`src/art/marks.tsx`): a headless render
+checked all seven at 96 and 16 pixels, and the later Codex shows each one
+drawn rather than as a fallback glyph (`test/render.test.tsx`). Tests:
+`test/ninth.test.ts`, one or more per relic, each holding it to its card and
+to its ledger line.
+
+| Relic | Rarity | The rule | Why it earns a slot |
+|---|---|---|---|
+| The Witness | common, 9 | At the showdown, every undecided community card settles on the face that helps you most. | The board's undecided cards were a coin. Superpose, Entropy Rising, the Unmoored's creed and Mirror Shard all put them there; this is the one thing that decides them. It says nothing when every face reads the same for its owner. Observer Effect and Decohere, which also settle cards on purpose, are in no pool. |
+| The Ember Jar | rare, 14 | When a community card burns, it does not vanish: it comes to your hand for the rest of the hand. | Burn, The Kindling and Salt only ever took cards away. This puts a burned card to use, and it is a theft the table watches. It is still burned: it never comes back to the deck. Ashes, the one card that un-burns, is in no pool. |
+| Indelible Ink | common, 9 | The Wild your Wild Rite writes, and the Prism your Gild writes, stay on the card for good. The deck is shared. | MTG's "until end of turn" against "permanently". The Loom writes on the deck, and its two writing sigils faded with the hand; under its creed the ink works for its writer alone. Not the Engraver: that one writes a Prism the rule picks, when you win; this keeps what you chose to write, when you cast. |
+| Twofold | rare, 15 | Every card that is Wild for you counts as two of the same card: a pair and a Wild is four of a kind. | The later game is full of Wild cards (The Gilded in 81% of later runs, Wild Inheritance, Wild Rite, the Lodestone, the Prism Lens, Kin). Three and a Wild is five of a kind: the namesake. Nothing reads a card twice today. |
+| The High Spade | rare, 13 | Lose a showdown holding the highest Spade in anyone's hole and half the pot is yours. Wild and Prism count. | Chicago, the home game where the high Spade in the hole splits the pot: a second way to be paid, read off a card the hand may not even use. A Prism is a Spade of its rank, a Wild the Ace. Nothing on the shelf pays a losing hand. |
+| The Changeling | rare, 13 | Each hand, one relic a random opponent holds is yours too, for that hand. The table sees which. | Balatro's Blueprint, at a table where everyone shops: your build is partly theirs, a different part every hand, and the ledger names it. Never a creed, never one you hold, never one that only pays between antes. The Usurper takes a loser's relics for good on a knockout; this lends one for a hand. |
+| The Grimoire | common, 8 | A sigil you wrote on a blank page is not spent when you cast it: it comes back to your hand when the hand ends. | The blank page is the game's own invention, and a written sigil was spent once. MTG's buyback: the page you wrote is a spell you keep. Printed sigils are spent as ever. |
+
+Written and turned down by the same bar:
+
+- **Deuces Wild, Follow the Queen** (a rank Wild for you, fixed or set by the
+  board): the Lodestone's rule with another trigger.
+- **Both faces at once** (an undecided card plays as both its faces):
+  Twofold's verb on another kind of card.
+- **The Lightning Rod** (a Wild on the board trades places with your lowest
+  hole card): the Ember Jar's verb, a board card into your hand.
+- **The Rebound** (a countered sigil of yours comes back): it and the Magpie
+  would both claim one countered card "instead of vanishing".
+- **Short Deck** (your flush beats a full house): your full house then loses
+  to an ordinary flush, a penalty dressed as a rule.
+- **A mulligan** (trash hole cards dealt again): the Second River's rule,
+  before the flop.
+- **Rabbit hunting** (see the board you folded from): information that
+  changes nothing.
+
+**Twofold was rewritten after the first batch.** Its first version gave a
+doubled Wild a second place with a face of its own, so one Wild could fill
+two gaps in a straight. It also made a hand holding one Wild about eleven
+times as dear to read (10.9x under the bots' rollout cap), and every bot
+reads the owner's hand in every equity rollout. Now the Wild stands twice
+wearing one face (`twofoldPlans` in `shared/hand.ts`): one Wild reads at
+1.6x the plain cost, two at 2.5x (`plans/fun-round9-data/probes.txt`;
+`test/ninth.test.ts` holds the reading count under 3x). The card says "two
+of the same card". The numbers below are the shipped version's (a79b04d);
+the first version's batch (adc23c6) is in the data folder, and no figure in
+the table below differs between the two by more than noise.
+
+## Found and fixed while building
+
+- **The Burn sigil's ledger line named the card after it had left the
+  board**: "Quill burns a card in the deck out of the board", and "K♠ in the
+  deck" to the seats allowed to see the face, on every Burn since 80a1a4d,
+  first run included. The card is now named while it is still on the board:
+  "Quill burns K♠ out of the board." Text only; the run-1 batch is identical.
+- **A card kept under the Keepsake is dealt back whether or not the Keepsake
+  is still held.** Only the Keepsake sets a kept card, so a first run plays
+  as before; without this a Changeling that wore the Keepsake for one hand
+  kept a card and never gave it back.
+- **The Usurper beside the Changeling**: a relic the loser had only borrowed
+  is not the Usurper's to take, and a relic the Usurper had borrowed from the
+  loser becomes its own.
+- **The Ember Jar and Salt**: the Ashen's creed strikes a burned card's rank
+  from every hand, the Jar's included. The Jar's line now says so ("catches
+  K♠, but Kings are struck from every hand") instead of promising a card
+  that cannot play.
+
+**Proved, not assumed: the first run is round 8's.** Seeds 0-279 of the
+first run at adc23c6, against round 8's own first-run parts (d1e664e): 280
+of 280 runs identical, every field but the firing counters and the wall
+clock (`scripts/samerun.cjs`). The final commit changes only Twofold's
+reading and the Jar's line, neither reachable on a first run, and a 14-run
+spot check at a79b04d is 14 of 14 identical too.
+
+## Measured
+
+Seeds 0-279, adept bots, Hex I, the aggressive player, as rounds 7 and 8.
+"Runs 2+" is the later run: the later pools, the player rotating all seven
+covens (40 runs each), the bots Unaligned. The harness's buyer is greedy (it
+takes the dearest relic it can afford), so purchase figures are a floor for
+variety, as before.
+
+| | round 8, runs 2+ | this round, runs 2+ | run 1 (round 8's, 280 of 280 identical) |
+|---|---|---|---|
+| run over before the first Market | 3% | 3% | 3% |
+| run over before ante 3 | 6% | 7% | 10% |
+| survived 3 antes | 77% | 75% | 68% |
+| busted, caught or not, before the first Market | 19% | 19% | 20% |
+| an impossible hand in the run | 65% | 65% | 58% |
+| ... one of your own | 40% | 40% | 36% |
+| impossible hands a run | 1.99 | 2.21 | 1.63 |
+| runs won | 102 | 109 | 90 |
+| your stack at ante 7 | 27 bb | 28 bb | 29 bb |
+| biggest pot in the last 3 hands | 53% | 55% | 57% |
+| real choices a minute | 8.1 | 8.2 | 8.8 |
+| share of the run that is not your decision | 45% | 45% | 43% |
+| a run | 8.3 min | 8.4 min | 8.0 min |
+| first Market | 98 s | 99 s | 100 s |
+| a real choice of two relics, per run | 3.2 | 3.4 | 2.5 |
+| distinct relics bought | 23 of 23 | 30 of 30 | 12 of 12 |
+| spread of purchases | 4.29 bits (of 4.52) | 4.71 (of 4.91) | 3.42 |
+| overlap between two runs' relics | 0.14 | 0.11 | 0.34 |
+| ... over what the Market sold | 0.11 | 0.08 | 0.21 |
+| numbers, share of what was bought | 7.0% | 4.0% | 17% |
+| distinct relics owned, covens' included | 31 | 38 | 13 |
+| a bought relic's rule visibly fired | 73% | 75% | 59% |
+| ... counted as round 7 counted it (`scripts/fun-fired.cjs`) | 68% | 72% | 47% |
+| ... and without the Changeling's own lines | | 70% | |
+| a run owning a mythic | 7% | 9% | 10% |
+| covens apart: hands made, schools cast | 0.13, 0.27 | 0.15, 0.26 | |
+
+At 280 runs a difference under about 4 points is noise. Every target the
+round 8 reviewer named is met, two of them narrowly: spread 4.71 (4.6),
+overlap 0.11 (0.11 or lower, so exactly), numbers 4.0% of purchases (under
+10%), the side-by-side choice 3.4 a run (3), and firing 72% the old way
+(70%), or 70% with the Changeling's per-hand line taken out as well. The first version of
+Twofold measured 4.72 bits, 0.11 and 0.09, 3.6 choices a run, 3.8% numbers
+and 72%.
+
+**What the seven do in a later run** (owned-runs; ledger lines a run; share
+of owning runs in which it acted at least once): Indelible Ink 76, 1.45,
+66%; The Witness 67, 0.76, 39%; The Grimoire 44, 2.61, 43%; The High Spade
+43, 0.53, 33%; The Changeling 41, 11.5, 100% (one line every hand, naming
+the relic it wears); The Ember Jar 38, 2.08, 79%; Twofold 38, 1.03, 55%. For
+comparison on the same shelf: The Magpie fires in 19% of the runs that own
+it, The Second River in 4%, Mirror Shard never writes a line.
+
+**One number is smaller than it looks.** Numbers are 4.0% of what the Market
+sold, but Leyline and Deep Pockets are also the Long Now's and the Loom's
+starting relics, so they are about 9% of what runs end up holding.
+
+**One coven did worse, and it is not only the new shelf's fault.** The Ashen
+won 9 of 40 (round 8: 15), the fewest; every other coven won as often or
+more (Unaligned 11, Unmoored 18, Quiet 20, Long Now 12, Twinned 17, Loom 22).
+At 40 runs one standard deviation is about 3 wins. The same 40 seeds with
+the Ember Jar cut from the shelf won 12; the Ashen runs that owned the Jar
+won 4 of 8. So the Jar costs the Ashen something, mostly as a relic their
+opponents hold (replaying the first version's 40 Ashen runs, 5 had a bot's
+Jar catch a card, and none was won), and the rest is the bigger shelf
+itself: the Keepsake, the relic round 7 brought back for the Ashen, is the
+cheapest on it and the greedy buyer takes it least. Round 5 scored covens 7 with wins of 6 to 21 of
+40, so the spread is not new; it is the one thing in this round to watch in
+the playtest.
+
+**Engine time is the same a hand.** The batches' "engine wall time" moves
+with the machine's load (the identical first run measured 31 s a run today,
+21 s on round 8's day), so round 8 and round 9 were run side by side on the
+same seeds at the same time: 2.03 s of engine time a hand against round 8's
+2.16, the worst tick a run 1.0 s against 0.8 s, on runs 24% longer
+(`probes.txt`).
+
+## Re-scored with the same rubric
+
+Two separate reviewers, each fresh, were given criterion 7 word for word,
+rounds 3 to 8's evidence and scores as anchors, this round's numbers
+unlabelled (the first on the first version's batch, the second on the
+shipped one), the full later shelf as its cards print it, the live omens,
+sigils and creeds to judge duplicates against, and both firing counts, and
+told to be strict. Both gave 8: "a narrow 8: the thinnest of the three 8s on
+depth, and the strongest of any round on more than numbers", and "an 8, but
+less sturdy than round 5's". Their reasons are folded in below.
+
+| # | Criterion | Round 8 | Now | Scored on | Why |
+|---|---|---|---|---|---|
+| 1 | The run shows itself before it can end | 7 | 7 | run 1 | Run 1 is round 8's, 280 of 280 runs identical: 3% / 10% / 68%, busted before the first Market 20%. |
+| 2 | The namesake shows up | 8 | 8 | runs 2+, run 1 no lower | Runs 2+ 65% / 40%, 2.21 a run (65% / 40%, 1.99); run 1 58% / 36%. Not 9: 60% of later runs still never make one of their own. |
+| 3 | The run arc builds | 7 | 7 | both | Biggest pot in the last three hands 55% (53%), 28 bb at ante 7 (27); run 1 57%, 29 bb. |
+| 4 | Covens play differently and deliver their pitch | 7 | 7 | runs 2+ | Hands made 0.15 apart (0.13), schools cast 0.26 (0.27), each coven casts its own school at about twice anyone else's rate. Not 8, for round 7's reasons (no human has played it, Kin fires under once a run and Signature about twice, the Unmoored still die first, ante 4.5) and one more: the Ashen won 9 of 40, partly to the Ember Jar. Not 6: round 5's 7 had a wider spread of wins. |
+| 5 | Little dead time, and the game says what happened | 7 | 7 | both | Says what happened: a bought relic visibly fires in 75% of later runs (73%), and every new relic names itself when it acts, including the Ember Jar when Salt has made its catch worthless. Dead time flat: 45% of a run is not your decision, 8.2 choices a minute, 8.4 minutes. |
+| 6 | The special things show in the first 10 minutes | 9 | 9 | run 1 | Untouched: run 1 identical. |
+| 7 | Builds have depth; relics are more than numbers | 7 | 8 | runs 2+ | The two depth figures the 8s rested on have mostly caught up: overlap 0.11 against 0.10 and 0.09, 0.08 over what the Market sold (the fair comparison, since rounds 4 and 5 had no creed or starting relic in the count), and spread about 26 relics' worth, 96% of what a 30-relic shelf allows, so round 8's "the shelf's size is now the limit" is answered. More than numbers, ahead of both 8s on two of three counts: 4% of purchases are numbers and 84% rules (round 4: 86% rules, the rest numbers and information), a rule visibly fires in 72% of runs counted their way (54%, 60%), 70% without the Changeling's announcements, and a real two-relic choice comes 3.4 times a run (3.3). The rules now cross the covens: Twofold, the Prism Lens, the Engraver and Indelible Ink with Wild Rite, Gild and Signature; Unstable Isotope, the Witness and Mirror Shard with Many Futures; the Ember Jar against Salt; the Grimoire with the blank page. Not 9: spread still trails the 45-relic builds by 5 to 8 relics' worth and the sigil pool is 16 against 71; three of the four mythics barely show (the Usurper, the Lodestone, Twice-Told in 3, 3 and 2 runs of 280), the fault that kept round 4 from a 9; a greedy buyer cannot show that a player can steer into an engine. Both reviewers named the weak relics on the shelf, all older than this round: the Second River (fires in 4% of the runs that own it), Gilt Edge (a rank on one card), Third Hand (an omen made private), Mirror Shard (never writes a line). They are why this is a thin 8, and neither reviewer thought they made it a 7. |
+| 8 | Presentation: art and feel | 7 | 7 | | Untouched; seven new drawings in the set's own grammar. |
+| | **Mean** | **7.4 (7)** | **7.5 (8)** | | 60 points; an 8 needs 60. |
+
+## Was the 8 earned?
+
+**Yes, by the narrowest margin the rubric allows: 60 points, a mean of 7.5,
+rounded half up to 8.** It rests on one criterion moving one point, 7 to 8,
+on numbers that meet every target the last reviewer set and on two strict
+blind reads that agree. Nothing was redefined, nothing was tuned, and no
+rule was added that the bar would have turned down: the seven relics are
+new, each does one thing no card, creed or omen does, and each says so when
+it acts. Every other criterion holds where round 8 left it, run 1 to the
+digit.
+
+It is the thinnest 8 this game has had, and it should be read as one:
+
+- **Every number is simulated.** No human has played a later run. The
+  December playtest decides whether thirty relics read as a deeper Market
+  or as a longer list, and whether the Changeling's line every hand reads as
+  a story or as noise.
+- **One criterion carries it.** If the playtest takes criterion 7 back to 7,
+  the game is 7.4 again; if it lifts criterion 4 (covens) or 5 (dead time),
+  the 8 gets a second leg.
+- **Three of four mythics are nearly never bought** by a buyer that rarely
+  holds 22-26 shards. That is a price question, and prices wait for the
+  playtest.
+- **The Ashen** won 9 of 40, the fewest of any coven. Watch it.
+
+## Decisions made (each reversible)
+
+1. **The later shelf is 30** (`UNLOCKED_RELIC_IDS`; `LATER_RELIC_CEILING`
+   30). Delete the seven round-9 lines to put round 8's 23 back.
+2. **Bots buy the new relics too.** A bot's Ember Jar can catch what you
+   burn, and a bot's High Spade can take half a pot you win; each says so in
+   the ledger, and the relic sits on the bot's seat. The other way, the seven
+   sold to the player only, would make them the only relics the table cannot
+   hold.
+3. **Twofold is two of the same card**, not two cards (above).
+4. **Salt still strikes a rank the Ember Jar caught**, and the Jar says so.
+   Sparing the Jar's card would be a special case in the Ashen's creed; the
+   playtest can say whether Ashen players want it.
+
+## Three simulated Steam reviews (after round 9)
+
+**The impatient refunder** · 1.2 hrs · Recommended
+
+> First run was plain poker with spells. Second run I took the Twinned and
+> bought a relic called Twofold, and a Wild card counted as two of the same
+> card, so my pair of nines and a Wild was four nines. The log said so,
+> which is good because I would not have believed it.
+
+**The genre veteran** · 21 hrs · Recommended
+
+> Thirty relics past the first run and nearly all of them are rules. The
+> good ones talk to each other: Indelible Ink makes your Wild Rites
+> permanent, Twofold doubles every Wild, and a bot with the Changeling spent
+> a hand wearing my Lens. The High Spade is a nod to Chicago that changes
+> which junk hands you call with. The expensive mythics are still a
+> lottery, and a couple of the old relics (the river rerun) almost never do
+> anything.
+
+**The Deck player** · 8 hrs · Recommended
+
+> Market cards still fit on the Deck. The new relic icons read at a glance,
+> the d-pad gets everywhere, and typing on the blank page is still the clumsy
+> bit, which matters more now that a relic makes written sigils come back.
+
+## Verdict, round 9
+
+**Fun: 8/10 on the locked rubric (7.5; round 8 7.4).** Seven relics written
+for the later game took criterion 7 from 7 to 8: two runs now share about a
+tenth of their relics, the Market sells about 26 relics' worth of variety,
+and 96% of what a run buys is a rule or a sight. It is the thinnest 8 the
+rubric allows, it rests on one criterion and on simulated players, and the
+December playtest should be read as the test of it. The first run is round
+8's, to the digit.
 
 **Sellable at $9.99: yes**, on the same conditions as before.
